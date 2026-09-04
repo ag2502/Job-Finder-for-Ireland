@@ -1,0 +1,105 @@
+{# Results table. Rendered standalone for HTMX swaps and inlined on a full page load. #}
+<div class="card">
+  <div class="row" style="justify-content:space-between;align-items:baseline">
+    <h2 style="margin:0">
+      {% if internships_only %}
+        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }}
+      {% else %}
+        {{ "{:,}".format(total) }} matching role{{ "" if total == 1 else "s" }}
+      {% endif %}
+    </h2>
+    <div class="row" style="gap:12px;align-items:baseline">
+      <span class="muted small">
+        {% if new_count %}<span class="badge">{{ new_count }} new</span>&nbsp;{% endif %}
+        {% if candidate_years is not none and not internships_only %}
+          up to {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} experience &middot;
+        {% endif %}
+        {% if skill_count %}ranked against {{ skill_count }} skills from your CV{% else %}ranked by field{% endif %}
+      </span>
+      <label class="muted small" style="display:flex;align-items:center;gap:6px">
+        Sort
+        <select name="sort" hx-post="/search" hx-include="#finder-form"
+                hx-target="#results" hx-swap="innerHTML" hx-trigger="change">
+          {% for key, label in sorts.items() %}
+          <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
+            {{ label }}
+          </option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+  </div>
+
+  {% if candidate_years is not none and candidate_years <= 2 and not internships_only %}
+  <p class="small muted" style="margin:8px 0 0">
+    Graduate and entry-level openings are included at this experience level.
+  </p>
+  {% endif %}
+
+  {% if items %}
+  <div class="scroll">
+    <table class="jobs">
+      <thead>
+        <tr>
+          <th>Company</th>
+          <th>Position</th>
+          <th>Posted</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td class="co">{{ item.company }}</td>
+          <td>
+            <span class="pos">{{ item.job.title }}</span>
+            {% if item.is_new %}<span class="badge">NEW</span>{% endif %}
+            <div class="sub muted">
+              {{ item.job.location_raw or "Dublin" }}
+              {%- if item.job.is_remote %} &middot; remote{% endif %}
+              {%- if item.experience %} &middot; <span class="exp">{{ item.experience }}</span>{% endif %}
+              &middot; {{ item.why }}
+            </div>
+          </td>
+          <td class="date">
+            {% if item.posted %}
+              {{ item.posted }}
+            {% else %}
+              <span class="muted" title="This employer does not publish a posting date">&mdash;</span>
+              <div class="sub muted">seen {{ item.first_seen }}</div>
+            {% endif %}
+          </td>
+          <td><a class="apply" href="{{ item.job.url }}" target="_blank" rel="noopener">Apply &rarr;</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if pages > 1 %}
+  <div class="row" style="justify-content:center;gap:14px;margin-top:16px">
+    {% if page > 1 %}
+      <a href="#" hx-post="/search?page={{ page - 1 }}" hx-include="#finder-form"
+         hx-target="#results" hx-swap="innerHTML">&larr; Previous</a>
+    {% endif %}
+    <span class="muted small">Page {{ page }} of {{ pages }}</span>
+    {% if page < pages %}
+      <a href="#" hx-post="/search?page={{ page + 1 }}" hx-include="#finder-form"
+         hx-target="#results" hx-swap="innerHTML">Next &rarr;</a>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {% else %}
+  <p class="muted" style="margin:12px 0 0">
+    {% if internships_only %}
+      No active internships match those fields right now. Internship postings are
+      seasonal, so this varies a lot through the year &mdash; try more fields, or
+      include remote roles.
+    {% else %}
+      No roles matched. Try raising the years of experience, selecting more fields,
+      clearing the title filter, or including remote roles.
+    {% endif %}
+  </p>
+  {% endif %}
+</div>

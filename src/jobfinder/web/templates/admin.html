@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Coverage &mdash; Dublin Job Finder{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h1>Coverage</h1>
+  <p class="muted small">
+    The point of this page is that gaps are <em>visible</em>. Nothing is missed silently:
+    every company is in one of the states below, and the ones not yet resolved are a
+    work queue rather than an unknown.
+  </p>
+  <div class="stats" style="margin-top:14px">
+    <div class="stat"><b>{{ "{:,}".format(totals.companies) }}</b><span class="muted small">companies</span></div>
+    <div class="stat"><b>{{ "{:,}".format(totals.sources) }}</b><span class="muted small">sources</span></div>
+    <div class="stat"><b>{{ "{:,}".format(totals.active) }}</b><span class="muted small">active jobs</span></div>
+    <div class="stat"><b>{{ "{:,}".format(totals.dublin) }}</b><span class="muted small">Dublin jobs</span></div>
+    <div class="stat"><b>{{ "{:,}".format(totals.closed) }}</b><span class="muted small">closed</span></div>
+    <div class="stat"><b>{{ totals.review }}</b><span class="muted small">location review</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Company resolution state</h2>
+  <table>
+    <tr><th>State</th><th>Companies</th></tr>
+    {% for state, count in coverage %}
+    <tr><td>{{ state }}</td><td>{{ count }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if listed %}
+<div class="card">
+  <h2>Euronext Dublin (ISEQ) listed companies</h2>
+  <p class="muted small">
+    The one list where complete coverage is provable. Any company here not in a resolved
+    state fails the test suite.
+  </p>
+  <table>
+    <tr><th>Company</th><th>State</th></tr>
+    {% for c in listed %}
+    <tr><td>{{ c.name }}</td><td>{{ c.coverage_state.value }}</td></tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Recent crawl runs</h2>
+  <table>
+    <tr><th>#</th><th>Started</th><th>OK</th><th>Partial</th><th>Failed</th>
+        <th>New</th><th>Closed</th><th>Reopened</th></tr>
+    {% for r in runs %}
+    <tr>
+      <td>{{ r.id }}</td>
+      <td>{{ r.started_at.strftime("%d %b %H:%M") if r.started_at else "" }}</td>
+      <td>{{ r.sources_ok }}</td><td>{{ r.sources_partial }}</td><td>{{ r.sources_failed }}</td>
+      <td>{{ r.jobs_created }}</td><td>{{ r.jobs_closed }}</td><td>{{ r.jobs_reopened }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+
+{% if problems %}
+<div class="card">
+  <h2>Sources needing attention</h2>
+  <p class="muted small">These did not return usable data. Their existing jobs were left untouched.</p>
+  <table>
+    <tr><th>Company</th><th>Source</th><th>Status</th><th>Error</th></tr>
+    {% for crawl, source, company in problems %}
+    <tr>
+      <td>{{ company.name }}</td>
+      <td>{{ source.adapter }}:{{ source.slug }}</td>
+      <td>{{ crawl.status.value }}</td>
+      <td class="small muted">{{ (crawl.error or "")[:80] }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+
+<div class="card">
+  <h2>Dublin jobs by source</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Company</th><th>Adapter</th><th>Slug</th><th>Dublin jobs</th></tr>
+    {% for name, adapter, slug, count in per_source %}
+    <tr>
+      <td>{{ name }}</td><td>{{ adapter }}</td>
+      <td class="small muted">{{ slug }}</td><td>{{ count }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  </div>
+</div>
+
+{% endblock %}

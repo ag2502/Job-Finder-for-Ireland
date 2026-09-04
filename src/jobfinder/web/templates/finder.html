@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="card">
+  <h1>Find your next role in Dublin</h1>
+  <p class="muted" style="margin-top:4px">
+    Upload your CV and pick the fields you want. We search
+    <strong>{{ "{:,}".format(dublin_count) }}</strong> active Dublin openings taken
+    straight from {{ company_count }} employers' own careers systems.
+  </p>
+
+  {% if error %}<p class="err">{{ error }}</p>{% endif %}
+
+  <form id="finder-form"
+        hx-post="/search"
+        hx-target="#results"
+        hx-swap="innerHTML"
+        hx-encoding="multipart/form-data"
+        hx-indicator="#spinner">
+
+    <div class="grid2">
+      <div>
+        <label for="resume">Your CV <span class="muted small">(PDF, DOCX or TXT)</span></label>
+        <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
+        <p class="small muted" style="margin:6px 0 0">
+          Read in memory, never stored. <a href="/privacy">How this works</a>.
+        </p>
+      </div>
+      <div>
+        <label for="years">Years of experience <span class="muted small">(optional)</span></label>
+        <input type="number" id="years" name="years" min="0" max="50" step="1"
+               placeholder="Leave blank to see everything"
+               value="{{ profile.years if profile and profile.years is not none else '' }}">
+        <p class="small muted" style="margin:6px 0 0">
+          {% if profile and profile.cv_years and profile.years is none %}
+            Your CV suggests about <strong>{{ profile.cv_years }} years</strong> &mdash;
+            enter a number to narrow results. Blank shows everything.
+          {% else %}
+            Shows roles asking for this many years <strong>or fewer</strong>.
+            At 2 or under, graduate and entry-level roles are included too.
+          {% endif %}
+        </p>
+
+        <label for="q">Filter by title <span class="muted small">(optional)</span></label>
+        <input type="text" id="q" name="q" placeholder="e.g. engineer, analyst"
+               value="{{ profile.query if profile and profile.query else '' }}">
+      </div>
+    </div>
+
+    <div class="chips" style="margin-top:16px">
+      <label class="chip">
+        <input type="checkbox" name="include_remote" value="1"
+               {% if profile and profile.include_remote %}checked{% endif %}> Include remote roles
+      </label>
+      <label class="chip">
+        <input type="checkbox" name="internships_only" value="1"
+               {% if profile and profile.internships_only %}checked{% endif %}> Internships only
+      </label>
+    </div>
+
+    <label>
+      Roles you want <span class="req">required</span>
+      <span class="muted small">&mdash; related fields are included automatically</span>
+    </label>
+    <p class="small muted" style="margin:0 0 8px">
+      Your CV shows what you have done. These say what you want to do next, which is
+      what we actually search for.
+    </p>
+    <div class="chips" id="field-chips">
+      {% for f in fields %}
+      <label class="chip">
+        <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
+               {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
+        {{ f.label }}
+      </label>
+      {% endfor %}
+    </div>
+
+    <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
+      <button type="submit" id="find-btn" disabled>Find jobs</button>
+      <span id="find-hint" class="muted small">Pick at least one role above</span>
+      <span id="spinner" class="htmx-indicator muted small">Searching&hellip;</span>
+    </div>
+  </form>
+</div>
+
+<script>
+  // Enable the search only once a role is chosen. The server enforces this too - this
+  // just explains the requirement before the click rather than after it.
+  (function () {
+    var form = document.getElementById('finder-form');
+    var button = document.getElementById('find-btn');
+    var hint = document.getElementById('find-hint');
+    if (!form || !button) return;
+
+    function sync() {
+      var chosen = form.querySelectorAll('input[name="chosen_fields"]:checked').length;
+      button.disabled = chosen === 0;
+      hint.textContent = chosen === 0
+        ? 'Pick at least one role above'
+        : chosen + (chosen === 1 ? ' role selected' : ' roles selected');
+    }
+
+    form.addEventListener('change', function (event) {
+      if (event.target.name === 'chosen_fields') sync();
+    });
+    sync();
+  })();
+</script>
+
+<div id="results">
+  {% if items is defined %}
+    {% include "_results.html" %}
+  {% endif %}
+</div>
+
+{% endblock %}

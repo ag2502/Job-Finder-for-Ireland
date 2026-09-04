@@ -1,0 +1,40 @@
+name,adapter,slug,coverage_priority,is_public_listed,seed_source,notes
+Accenture,workday,accenture:wd103:AccentureCareers,2,false,ats-detection,Largest private employer in Ireland
+Amazon,amazon,IRL,2,false,bespoke,Bespoke careers platform; country=IRL filter
+Google,google,"Dublin, Ireland",2,false,bespoke,No public API; careers page is server-rendered
+Intel,workday,intel:wd1:External,2,false,ats-detection,Leixlip and Dublin sites
+Pfizer,workday,pfizer:wd1:PfizerCareers,2,false,ats-detection,Irish manufacturing and commercial
+Workday,workday,workday:wd5:Workday,2,false,ats-detection,Dublin EMEA HQ
+Deloitte Ireland,workday,deloitteie:wd3:Early_Careers,2,false,ats-detection,Irish member firm
+Cairn Homes,workday,cairnhomes:wd502:External,1,true,euronext-dublin,ISEQ listed
+Uniphar,workday,uniphar:wd3:uniphar_external_careers,1,true,euronext-dublin,ISEQ listed
+Fenergo,workable,fenergocareers,1,false,ats-detection,Irish regtech scale-up
+Stripe,greenhouse,stripe,2,false,manual,Large Dublin engineering and operations site
+Intercom,greenhouse,intercom,2,false,manual,Founded in Dublin
+Datadog,greenhouse,datadog,2,false,manual,Dublin EMEA office
+MongoDB,greenhouse,mongodb,2,false,manual,Dublin office
+Elastic,greenhouse,elastic,2,false,manual,Distributed with Irish roles
+Toast,greenhouse,toast,2,false,manual,Dublin office
+Riot Games,greenhouse,riotgames,3,false,manual,Dublin office
+Airbnb,greenhouse,airbnb,2,false,manual,Dublin EMEA HQ
+Figma,greenhouse,figma,3,false,manual,
+Klaviyo,greenhouse,klaviyo,2,false,manual,Dublin office
+Twilio,greenhouse,twilio,2,false,manual,Dublin office
+Asana,greenhouse,asana,3,false,manual,
+Vercel,greenhouse,vercel,3,false,manual,
+Qualtrics,greenhouse,qualtrics,3,false,manual,Dublin office
+Dropbox,greenhouse,dropbox,3,false,manual,Dublin EMEA HQ
+Amplitude,greenhouse,amplitude,3,false,manual,
+Udemy,greenhouse,udemy,3,false,manual,Dublin office
+Tines,greenhouse,tines,1,false,manual,Irish cybersecurity scale-up
+Flipdish,greenhouse,flipdish,1,false,manual,Irish scale-up
+Learnupon,greenhouse,learnupon,1,false,manual,Irish scale-up
+Notion,ashby,notion,3,false,manual,
+Ramp,ashby,ramp,3,false,manual,
+Confluent,ashby,confluent,3,false,manual,
+Miro,ashby,miro,3,false,manual,
+Mural,ashby,mural,3,false,manual,
+Wayflyer,ashby,wayflyer,1,false,manual,Irish fintech scale-up
+Workhuman,ashby,workhuman,1,false,manual,Irish HQ in Dublin
+Evervault,ashby,evervault,1,false,manual,Irish security startup
+Spotify,lever,spotify,3,false,manual,Dublin office

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Privacy &mdash; Dublin Job Finder{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h1>What happens to your CV</h1>
+  <p><strong>Your CV is never stored.</strong> It is read in memory, and the file is
+  discarded before the page loads. Nothing is written to disk or to a database.</p>
+
+  <h2 style="margin-top:22px">What is kept</h2>
+  <p class="muted">Only what matching needs, held in a signed cookie in your own browser:</p>
+  <ul class="muted">
+    <li>Skill keywords found in your CV (e.g. <em>python</em>, <em>kubernetes</em>)</li>
+    <li>A seniority guess and rough years of experience</li>
+    <li>The fields you chose</li>
+    <li>A short excerpt of CV text used for keyword scoring</li>
+  </ul>
+  <p class="muted">Clearing your session with <strong>Start over</strong>, or clearing
+  your browser cookies, removes all of it. There is no account and no server-side copy
+  to request or delete.</p>
+
+  <h2 style="margin-top:22px">Why it is built this way</h2>
+  <p class="muted">A CV is personal data. Under GDPR, storing one makes the operator a
+  data controller with retention, access and erasure duties, and it becomes the most
+  sensitive thing in the system &mdash; the part worth attacking. Extracting the few
+  hundred bytes that matching actually uses and discarding the document removes that
+  risk entirely, and costs you nothing in results quality.</p>
+
+  <h2 style="margin-top:22px">Job listings</h2>
+  <p class="muted">Job postings are public business information collected from
+  employers' own careers systems. Each listing links back to the employer's original
+  posting, which is where you apply.</p>
+</div>
+
+{% endblock %}
