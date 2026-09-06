@@ -39,6 +39,11 @@ class RawJob:
     # expanded into its own candidate so a Dublin secondary location is not lost.
     extra_locations: list[str] = field(default_factory=list)
 
+    # Set only by aggregator sources, which carry postings from many employers under
+    # one source. Every other adapter leaves this None, because a company's own board
+    # belongs to exactly one company and the Source already says which.
+    company_name: str | None = None
+
 
 @dataclass
 class FetchResult:

@@ -1,0 +1,653 @@
+name,website,coverage_priority,is_public_listed,seed_source,notes
+# Ireland's employer universe: name and website only. The ATS is found by
+# `jobfinder detect-all`, not curated here - see registry/universe.py.
+#
+# coverage_priority 1-2 are crawled on every run; 3+ wait for the staleness window.
+# A wrong domain is cheap: detection fails, the company is marked UNRESOLVED, and it
+# appears in `jobfinder coverage` as work to do rather than corrupting anything.
+#
+# --- Multinational technology employers with major Dublin sites -------------------
+Google,google.com,1,false,mnc-tech,EMEA HQ Dublin
+Meta,meta.com,1,false,mnc-tech,International HQ Dublin
+Microsoft,microsoft.com,1,false,mnc-tech,Leopardstown campus
+Amazon,amazon.jobs,1,false,mnc-tech,AWS and corporate Dublin
+Apple,apple.com,1,false,mnc-tech,Cork and Dublin
+LinkedIn,linkedin.com,1,false,mnc-tech,EMEA HQ Dublin
+Salesforce,salesforce.com,1,false,mnc-tech,Dublin tower
+Intel,intel.com,1,false,mnc-tech,Leixlip fab
+IBM,ibm.com,1,false,mnc-tech,Dublin technology campus
+Oracle,oracle.com,1,false,mnc-tech,East Point Dublin
+SAP,sap.com,1,false,mnc-tech,Dublin
+Dell Technologies,dell.com,1,false,mnc-tech,Cherrywood
+HP,hp.com,2,false,mnc-tech,Leixlip
+HPE,hpe.com,2,false,mnc-tech,
+Cisco,cisco.com,1,false,mnc-tech,Oranmore and Dublin
+VMware,vmware.com,2,false,mnc-tech,Ballycoolin
+Adobe,adobe.com,2,false,mnc-tech,Dublin
+Workday,workday.com,1,false,mnc-tech,EMEA HQ Dublin
+ServiceNow,servicenow.com,1,false,mnc-tech,Dublin
+Stripe,stripe.com,1,false,mnc-tech,Dublin engineering
+Airbnb,airbnb.com,1,false,mnc-tech,EMEA HQ Dublin
+Booking.com,booking.com,2,false,mnc-tech,
+Uber,uber.com,2,false,mnc-tech,Limerick and Dublin
+Twilio,twilio.com,2,false,mnc-tech,Dublin
+Zendesk,zendesk.com,2,false,mnc-tech,Dublin EMEA
+HubSpot,hubspot.com,1,false,mnc-tech,Dublin EMEA HQ
+Datadog,datadoghq.com,1,false,mnc-tech,Dublin EMEA
+MongoDB,mongodb.com,1,false,mnc-tech,Dublin EMEA
+Elastic,elastic.co,2,false,mnc-tech,
+Squarespace,squarespace.com,2,false,mnc-tech,Dublin
+Etsy,etsy.com,2,false,mnc-tech,Dublin
+Indeed,indeed.com,1,false,mnc-tech,Dublin international HQ
+Yelp,yelp.com,3,false,mnc-tech,
+Slack,slack.com,2,false,mnc-tech,Now Salesforce
+Dropbox,dropbox.com,3,false,mnc-tech,
+Qualtrics,qualtrics.com,2,false,mnc-tech,Dublin
+Shopify,shopify.com,2,false,mnc-tech,
+Coinbase,coinbase.com,2,false,mnc-tech,Dublin
+Mastercard,mastercard.com,1,false,mnc-tech,Leopardstown tech hub
+Visa,visa.com,1,false,mnc-tech,Dublin
+PayPal,paypal.com,1,false,mnc-tech,Dundalk and Dublin
+Block,block.xyz,2,false,mnc-tech,
+Klarna,klarna.com,2,false,mnc-tech,
+Revolut,revolut.com,1,false,mnc-tech,Dublin
+N26,n26.com,3,false,mnc-tech,
+Toast,toasttab.com,2,false,mnc-tech,Dublin
+Klaviyo,klaviyo.com,2,false,mnc-tech,Dublin
+Notion,notion.so,2,false,mnc-tech,Dublin EMEA
+Figma,figma.com,3,false,mnc-tech,
+Canva,canva.com,3,false,mnc-tech,
+Atlassian,atlassian.com,3,false,mnc-tech,
+GitHub,github.com,3,false,mnc-tech,
+GitLab,gitlab.com,3,false,mnc-tech,
+Docusign,docusign.com,2,false,mnc-tech,Dublin
+Box,box.com,3,false,mnc-tech,
+Asana,asana.com,3,false,mnc-tech,
+Miro,miro.com,3,false,mnc-tech,
+Personio,personio.com,3,false,mnc-tech,
+Udemy,udemy.com,2,false,mnc-tech,Dublin
+Coursera,coursera.org,3,false,mnc-tech,
+Riot Games,riotgames.com,2,false,mnc-tech,Dublin EMEA
+Activision Blizzard,activisionblizzard.com,3,false,mnc-tech,
+Electronic Arts,ea.com,3,false,mnc-tech,Galway
+Zynga,zynga.com,3,false,mnc-tech,Dublin
+Keywords Studios,keywordsstudios.com,2,true,mnc-tech,Irish HQ games services
+Pinterest,pinterest.com,2,false,mnc-tech,Dublin EMEA
+Snap,snap.com,2,false,mnc-tech,Dublin
+TikTok,tiktok.com,1,false,mnc-tech,Dublin trust and safety
+X Corp,x.com,3,false,mnc-tech,Dublin
+Spotify,spotify.com,2,false,mnc-tech,
+Netflix,netflix.com,2,false,mnc-tech,Dublin EMEA
+Zoom,zoom.us,3,false,mnc-tech,
+Genesys,genesys.com,2,false,mnc-tech,Galway and Dublin
+Verizon,verizon.com,3,false,mnc-tech,Dublin
+Ericsson,ericsson.com,2,false,mnc-tech,Athlone
+Nokia,nokia.com,3,false,mnc-tech,
+Qualcomm,qualcomm.com,3,false,mnc-tech,Cork
+Analog Devices,analog.com,2,false,mnc-tech,Limerick
+Xilinx,amd.com,3,false,mnc-tech,Now AMD Dublin
+Arista Networks,arista.com,3,false,mnc-tech,Dublin
+Fastly,fastly.com,3,false,mnc-tech,
+Cloudflare,cloudflare.com,3,false,mnc-tech,
+Akamai,akamai.com,3,false,mnc-tech,
+Okta,okta.com,3,false,mnc-tech,
+CrowdStrike,crowdstrike.com,3,false,mnc-tech,
+Palo Alto Networks,paloaltonetworks.com,3,false,mnc-tech,
+Rapid7,rapid7.com,3,false,mnc-tech,Belfast and Dublin
+Tenable,tenable.com,3,false,mnc-tech,Dublin
+Trend Micro,trendmicro.com,3,false,mnc-tech,Cork
+McAfee,mcafee.com,3,false,mnc-tech,Cork
+Forcepoint,forcepoint.com,3,false,mnc-tech,Cork
+Integrity360,integrity360.com,3,false,irish-tech,Irish cyber security
+Smarttech247,smarttech247.com,3,true,irish-tech,Cork cyber security
+#
+# --- Irish technology companies and scale-ups ------------------------------------
+Intercom,intercom.com,1,false,irish-tech,Founded in Dublin
+Workhuman,workhuman.com,1,false,irish-tech,Dublin HQ
+Fenergo,fenergo.com,1,false,irish-tech,Dublin regtech
+Flipdish,flipdish.com,2,false,irish-tech,Dublin
+Wayflyer,wayflyer.com,2,false,irish-tech,Dublin fintech
+Tines,tines.com,2,false,irish-tech,Dublin security automation
+LearnUpon,learnupon.com,2,false,irish-tech,Dublin LMS
+Teamwork,teamwork.com,2,false,irish-tech,Cork
+CurrencyFair,currencyfair.com,3,false,irish-tech,
+Nuritas,nuritas.com,3,false,irish-tech,Dublin
+SoapBox Labs,soapboxlabs.com,3,false,irish-tech,Dublin speech AI
+Manna,manna.aero,3,false,irish-tech,Dublin drone delivery
+Boards.ie,boards.ie,4,false,irish-tech,
+Kinzen,kinzen.com,4,false,irish-tech,Dublin
+Zalando Ireland,zalando.ie,4,false,irish-tech,
+Sysdoc,sysdoc.com,4,false,irish-tech,
+Version 1,version1.com,1,false,irish-tech,Dublin IT services
+Ergo,ergogroup.ie,2,false,irish-tech,Irish IT services
+Codec,codec.ie,3,false,irish-tech,
+Storm Technology,storm.ie,3,false,irish-tech,Galway
+Auxilion,auxilion.com,3,false,irish-tech,
+Asystec,asystec.ie,3,false,irish-tech,Limerick
+Arkphire,arkphire.com,3,false,irish-tech,
+Cubic Telecom,cubictelecom.com,2,false,irish-tech,Dublin automotive connectivity
+Openet,openet.com,3,false,irish-tech,Dublin telecom software
+AMCS Group,amcsgroup.com,2,false,irish-tech,Limerick
+Fineos,fineos.com,2,true,irish-tech,Dublin insurance software
+CarTrawler,cartrawler.com,2,false,irish-tech,Dublin travel tech
+Datalex,datalex.com,3,true,irish-tech,Dublin travel retail
+Global Shares,globalshares.com,3,false,irish-tech,Cork equity plans
+Taxamo,taxamo.com,4,false,irish-tech,Kerry
+Immedis,immedis.com,3,false,irish-tech,Dublin payroll
+CluneTech,clunetech.com,3,false,irish-tech,Kilkenny
+TransferMate,transfermate.com,3,false,irish-tech,Kilkenny
+Corvil,corvil.com,4,false,irish-tech,
+Swrve,swrve.com,4,false,irish-tech,
+Pointy,pointy.com,4,false,irish-tech,Acquired by Google
+Sonru,sonru.com,4,false,irish-tech,
+Xtremepush,xtremepush.com,3,false,irish-tech,Dublin
+Altada,altada.com,4,false,irish-tech,
+VoxPro,voxprogroup.com,3,false,irish-tech,Cork
+Poppulo,poppulo.com,2,false,irish-tech,Cork comms software
+Newsweaver,poppulo.com,4,false,irish-tech,Now Poppulo
+Qualio,qualio.com,3,false,irish-tech,Dublin quality management
+Nearform,nearform.com,3,false,irish-tech,Waterford
+Zartis,zartis.com,3,false,irish-tech,Cork
+Nostra,nostra.ie,4,false,irish-tech,
+Evros Technology,evros.ie,3,false,irish-tech,
+Sidero,sidero.ie,4,false,irish-tech,Athlone
+Vertical Bridge,verticalbridge.ie,4,false,irish-tech,
+Deposify,deposify.com,4,false,irish-tech,
+Circit,circit.io,4,false,irish-tech,Dublin
+Fund Recs,fundrecs.com,4,false,irish-tech,Dublin
+Priviti,priviti.com,4,false,irish-tech,
+Sedicii,sedicii.com,4,false,irish-tech,Waterford
+Trustev,trustev.com,4,false,irish-tech,Cork
+UrbanVolt,urbanvolt.com,4,false,irish-tech,
+LetsGetChecked,letsgetchecked.com,2,false,irish-tech,Dublin health tech
+Patient MPower,patientmpower.com,4,false,irish-tech,Dublin
+HealthBeacon,healthbeacon.com,4,true,irish-tech,Dublin
+Oneview Healthcare,oneviewhealthcare.com,3,true,irish-tech,Dublin
+Clanwilliam Health,clanwilliamhealth.com,3,false,irish-tech,Dublin
+Aerogen,aerogen.com,3,false,irish-tech,Galway
+Ocuco,ocuco.com,3,false,irish-tech,Dublin
+Kianda,kianda.com,4,false,irish-tech,
+Boxever,boxever.com,4,false,irish-tech,Dublin
+Sysnet Global Solutions,sysnetgs.com,3,false,irish-tech,Dublin
+Escher Group,eschergroup.com,3,false,irish-tech,Dublin
+Openjaw Technologies,openjawtech.com,3,false,irish-tech,Dublin
+Cora Systems,corasystems.com,4,false,irish-tech,Leitrim
+Sonic Healthcare Ireland,sonichealthcare.ie,4,false,irish-tech,
+#
+# --- Banking, insurance and financial services -----------------------------------
+AIB,aib.ie,1,true,finance,Allied Irish Banks
+Bank of Ireland,bankofireland.com,1,true,finance,
+Permanent TSB,permanenttsb.ie,2,true,finance,
+Central Bank of Ireland,centralbank.ie,1,false,finance,Regulator
+Citi,citi.com,1,false,finance,Dublin
+JPMorgan Chase,jpmorganchase.com,1,false,finance,Dublin
+Bank of America,bankofamerica.com,2,false,finance,Dublin
+Goldman Sachs,goldmansachs.com,2,false,finance,Dublin
+Morgan Stanley,morganstanley.com,2,false,finance,Dublin
+BNY Mellon,bny.com,1,false,finance,Wexford and Dublin
+State Street,statestreet.com,1,false,finance,Dublin
+Northern Trust,northerntrust.com,1,false,finance,Limerick and Dublin
+Fidelity Investments,fidelity.com,1,false,finance,Dublin and Galway
+BlackRock,blackrock.com,2,false,finance,Dublin
+Barclays,barclays.com,2,false,finance,Dublin
+HSBC,hsbc.com,3,false,finance,Dublin
+Deutsche Bank,db.com,3,false,finance,Dublin
+UBS,ubs.com,3,false,finance,Dublin
+Credit Suisse,ubs.com,4,false,finance,Merged into UBS
+Susquehanna,sig.com,2,false,finance,Dublin trading
+Optiver,optiver.com,3,false,finance,
+IMC Trading,imc.com,3,false,finance,
+Zurich Insurance,zurich.ie,2,false,finance,Dublin
+Aviva,aviva.ie,2,false,finance,Dublin
+AXA Ireland,axa.ie,2,false,finance,
+Allianz Ireland,allianz.ie,2,false,finance,
+FBD Insurance,fbd.ie,2,true,finance,Irish insurer
+Irish Life,irishlife.ie,1,false,finance,Dublin
+New Ireland Assurance,newireland.ie,3,false,finance,
+Laya Healthcare,layahealthcare.ie,3,false,finance,Cork
+VHI,vhi.ie,2,false,finance,Dublin health insurer
+Chill Insurance,chill.ie,4,false,finance,
+Marsh Ireland,marsh.com,3,false,finance,
+Aon,aon.com,3,false,finance,Dublin
+Willis Towers Watson,wtwco.com,3,false,finance,Dublin
+Mercer,mercer.com,3,false,finance,Dublin
+Grant Thornton Ireland,grantthornton.ie,2,false,finance,
+Mazars Ireland,mazars.ie,3,false,finance,
+BDO Ireland,bdo.ie,3,false,finance,
+RSM Ireland,rsm.global,4,false,finance,
+Davy,davy.ie,2,false,finance,Dublin stockbrokers
+Goodbody,goodbody.ie,2,false,finance,Dublin
+Cantor Fitzgerald Ireland,cantorfitzgerald.ie,3,false,finance,
+Investec Ireland,investec.com,3,false,finance,
+AIB Merchant Services,aibms.com,4,false,finance,
+Fexco,fexco.com,2,false,finance,Kerry
+Elavon,elavon.com,2,false,finance,Arklow and Dublin
+Worldpay,worldpay.com,3,false,finance,
+Fiserv,fiserv.com,2,false,finance,Nenagh
+FIS,fisglobal.com,2,false,finance,Dublin
+Broadridge,broadridge.com,3,false,finance,Dublin
+SS&C Technologies,ssctech.com,2,false,finance,Dublin
+Clearstream,clearstream.com,3,false,finance,Cork
+Euronext Dublin,euronext.com,3,false,finance,
+Strategic Banking Corporation of Ireland,sbci.gov.ie,4,false,finance,
+Home Building Finance Ireland,hbfi.ie,4,false,finance,
+#
+# --- Pharmaceutical, biotech and medical devices ---------------------------------
+Pfizer,pfizer.com,1,false,pharma,Multiple Irish sites
+MSD Ireland,msd.ie,1,false,pharma,Merck outside North America
+Johnson & Johnson,jnj.com,1,false,pharma,
+Janssen Sciences Ireland,janssen.com,2,false,pharma,Cork
+AbbVie,abbvie.com,1,false,pharma,Sligo and Dublin
+Eli Lilly,lilly.com,2,false,pharma,Kinsale
+Novartis Ireland,novartis.com,2,false,pharma,
+Roche Ireland,roche.com,2,false,pharma,
+AstraZeneca,astrazeneca.com,2,false,pharma,
+GSK Ireland,gsk.com,2,false,pharma,Cork and Dungarvan
+Sanofi Ireland,sanofi.com,2,false,pharma,Waterford
+Takeda Ireland,takeda.com,2,false,pharma,Bray and Grange Castle
+Amgen Ireland,amgen.com,2,false,pharma,Dun Laoghaire
+Regeneron Ireland,regeneron.com,2,false,pharma,Limerick
+Bristol Myers Squibb,bms.com,2,false,pharma,Cruiserath Dublin
+Gilead Sciences,gilead.com,2,false,pharma,Cork
+Alexion,alexion.com,2,false,pharma,Dublin and Athlone
+Jazz Pharmaceuticals,jazzpharmaceuticals.com,2,false,pharma,Dublin HQ
+Horizon Therapeutics,horizontherapeutics.com,3,false,pharma,Dublin
+Endo International,endo.com,3,false,pharma,Dublin
+Perrigo,perrigo.com,3,false,pharma,Dublin
+Mallinckrodt,mallinckrodt.com,3,false,pharma,Dublin
+Viatris,viatris.com,3,false,pharma,
+Teva Ireland,tevapharm.com,3,false,pharma,Waterford
+APC Ltd,approcess.com,3,false,pharma,Dublin process engineering
+PCI Pharma Services,pciservices.com,3,false,pharma,Dublin
+Almac Group,almacgroup.com,3,false,pharma,Dundalk and Craigavon
+Medtronic,medtronic.com,1,false,medtech,Galway
+Boston Scientific,bostonscientific.com,1,false,medtech,Galway and Clonmel
+Stryker,stryker.com,1,false,medtech,Cork and Limerick
+Abbott,abbott.com,1,false,medtech,Multiple Irish sites
+Becton Dickinson,bd.com,2,false,medtech,Drogheda
+Baxter,baxter.com,2,false,medtech,Castlebar
+Zimmer Biomet,zimmerbiomet.com,2,false,medtech,Shannon
+Cook Medical,cookmedical.com,2,false,medtech,Limerick
+Teleflex,teleflex.com,2,false,medtech,Athlone
+Integra LifeSciences,integralife.com,3,false,medtech,
+West Pharmaceutical,westpharma.com,3,false,medtech,Waterford
+ICON plc,iconplc.com,1,true,pharma,Dublin CRO
+PPD,ppd.com,3,false,pharma,
+IQVIA,iqvia.com,2,false,pharma,Dublin
+Thermo Fisher Scientific,thermofisher.com,2,false,pharma,Multiple Irish sites
+Merck Millipore,merckgroup.com,3,false,pharma,Carrigtwohill
+Lonza,lonza.com,3,false,pharma,
+Charles River Laboratories,criver.com,3,false,pharma,Ballina
+Eurofins,eurofins.com,3,false,pharma,Dungarvan
+#
+# --- Professional services and consulting ----------------------------------------
+Accenture,accenture.com,1,false,consulting,Largest private employer in Ireland
+Deloitte Ireland,deloitte.ie,1,false,consulting,
+EY Ireland,ey.com,1,false,consulting,
+KPMG Ireland,kpmg.ie,1,false,consulting,
+PwC Ireland,pwc.ie,1,false,consulting,
+Capgemini,capgemini.com,2,false,consulting,Dublin
+Infosys,infosys.com,2,false,consulting,Dublin
+TCS,tcs.com,2,false,consulting,Dublin
+Wipro,wipro.com,3,false,consulting,
+Cognizant,cognizant.com,2,false,consulting,Dublin
+DXC Technology,dxc.com,2,false,consulting,Dublin
+Atos,atos.net,3,false,consulting,
+CGI,cgi.com,3,false,consulting,
+Sopra Steria,soprasteria.com,3,false,consulting,
+Expleo,expleogroup.com,3,false,consulting,Dublin
+A&L Goodbody,algoodbody.com,2,false,legal,Dublin law firm
+Arthur Cox,arthurcox.com,2,false,legal,Dublin law firm
+Matheson,matheson.com,2,false,legal,Dublin law firm
+McCann FitzGerald,mccannfitzgerald.com,2,false,legal,Dublin law firm
+William Fry,williamfry.com,2,false,legal,Dublin law firm
+Mason Hayes & Curran,mhc.ie,2,false,legal,Dublin law firm
+Eversheds Sutherland Ireland,eversheds-sutherland.com,3,false,legal,
+Dillon Eustace,dilloneustace.com,3,false,legal,
+Maples Group,maples.com,2,false,legal,Dublin
+Walkers Ireland,walkersglobal.com,3,false,legal,
+Ronan Daly Jermyn,rdj.ie,3,false,legal,Cork
+Byrne Wallace,byrnewallace.com,3,false,legal,
+#
+# --- Retail, FMCG, food and hospitality ------------------------------------------
+Kerry Group,kerrygroup.com,1,true,fmcg,Tralee and Naas
+Glanbia,glanbia.com,1,true,fmcg,Kilkenny
+Ornua,ornua.com,2,false,fmcg,Dublin
+Dairygold,dairygold.ie,3,false,fmcg,Mitchelstown
+Lakeland Dairies,lakeland.ie,3,false,fmcg,Cavan
+Tirlan,tirlan.com,3,false,fmcg,Kilkenny
+ABP Food Group,abpfoodgroup.com,3,false,fmcg,
+Dawn Meats,dawnmeats.com,3,false,fmcg,Waterford
+Kepak,kepak.com,3,false,fmcg,
+Musgrave Group,musgravegroup.com,1,false,retail,Cork SuperValu Centra
+Dunnes Stores,dunnesstores.com,2,false,retail,Dublin
+Tesco Ireland,tesco.ie,2,false,retail,
+SuperValu,supervalu.ie,3,false,retail,
+Lidl Ireland,lidl.ie,1,false,retail,
+Aldi Ireland,aldi.ie,1,false,retail,
+Penneys,primark.com,1,false,retail,Primark Irish HQ Dublin
+Brown Thomas Arnotts,brownthomas.com,2,false,retail,
+Woodie's,woodies.ie,3,false,retail,
+Harvey Norman Ireland,harveynorman.ie,3,false,retail,
+Currys Ireland,currys.ie,3,false,retail,
+Smyths Toys,smythstoys.com,2,false,retail,Galway
+McDonald's Ireland,mcdonalds.ie,3,false,hospitality,
+Supermac's,supermacs.ie,3,false,hospitality,Galway
+Applegreen,applegreen.com,2,false,retail,Dublin
+Circle K Ireland,circlek.ie,3,false,retail,
+Diageo Ireland,diageo.com,1,false,fmcg,St James's Gate Dublin
+C&C Group,candcgroupplc.com,2,true,fmcg,Bulmers Dublin
+Irish Distillers,irishdistillers.ie,2,false,fmcg,Pernod Ricard Midleton
+Coca-Cola HBC Ireland,coca-colahellenic.com,3,false,fmcg,
+PepsiCo Ireland,pepsico.com,2,false,fmcg,Cork concentrates
+Unilever Ireland,unilever.com,3,false,fmcg,
+Nestle Ireland,nestle.ie,3,false,fmcg,
+Danone Ireland,danone.com,3,false,fmcg,Macroom and Wexford
+Valeo Foods,valeofoods.com,3,false,fmcg,Dublin
+Largo Foods,largofoods.ie,4,false,fmcg,
+Flahavan's,flahavans.com,4,false,fmcg,Waterford
+Bewley's,bewleys.com,4,false,fmcg,
+Dalata Hotel Group,dalatahotelgroup.com,2,true,hospitality,Dublin
+The Doyle Collection,doylecollection.com,3,false,hospitality,
+Jurys Inn,jurysinns.com,3,false,hospitality,
+Fitzwilliam Hotel Group,fitzwilliamhotel.com,4,false,hospitality,
+#
+# --- Telecoms, utilities, energy and transport -----------------------------------
+Eir,eir.ie,1,false,telecom,Dublin
+Vodafone Ireland,vodafone.ie,1,false,telecom,
+Three Ireland,three.ie,1,false,telecom,Dublin
+Virgin Media Ireland,virginmedia.ie,2,false,telecom,
+Sky Ireland,sky.com,2,false,telecom,Dublin
+BT Ireland,bt.com,2,false,telecom,Dublin
+Open Eir,openeir.ie,3,false,telecom,
+Enet,enet.ie,3,false,telecom,Limerick
+SIRO,siro.ie,3,false,telecom,
+ESB,esb.ie,1,false,utilities,Electricity Supply Board
+EirGrid,eirgrid.ie,2,false,utilities,Dublin
+Bord Gais Energy,bordgaisenergy.ie,2,false,utilities,
+Gas Networks Ireland,gasnetworks.ie,2,false,utilities,
+Bord na Mona,bordnamona.ie,2,false,utilities,
+SSE Airtricity,sseairtricity.com,2,false,utilities,
+Energia,energia.ie,3,false,utilities,
+Uisce Eireann,water.ie,2,false,utilities,Irish Water
+Veolia Ireland,veolia.ie,3,false,utilities,
+Ryanair,ryanair.com,1,true,transport,Dublin HQ
+Aer Lingus,aerlingus.com,1,false,transport,Dublin
+Dublin Airport Authority,daa.ie,1,false,transport,
+Irish Rail,irishrail.ie,2,false,transport,Iarnrod Eireann
+Dublin Bus,dublinbus.ie,2,false,transport,
+Bus Eireann,buseireann.ie,3,false,transport,
+Transport Infrastructure Ireland,tii.ie,3,false,transport,
+Irish Ferries,irishferries.com,3,false,transport,
+Stena Line Ireland,stenaline.ie,3,false,transport,
+DHL Ireland,dhl.com,3,false,transport,
+An Post,anpost.ie,1,false,transport,Dublin
+Aircraft Leasing - AerCap,aercap.com,2,true,transport,Dublin aircraft leasing
+Avolon,avolon.aero,2,false,transport,Dublin aircraft leasing
+SMBC Aviation Capital,smbc.aero,3,false,transport,Dublin
+Aviation Capital Group,aviationcapitalgroup.com,4,false,transport,
+#
+# --- Construction, property and engineering --------------------------------------
+CRH,crh.com,1,true,construction,Dublin global building materials
+Kingspan,kingspan.com,1,true,construction,Cavan
+Cairn Homes,cairnhomes.com,2,true,construction,Dublin
+Glenveagh Properties,glenveagh.ie,2,true,construction,Dublin
+BAM Ireland,bamireland.ie,2,false,construction,
+John Sisk & Son,johnsiskandson.com,2,false,construction,Dublin
+Walls Construction,wallsconstruction.ie,3,false,construction,
+JJ Rhatigan,jjrhatigan.ie,3,false,construction,Galway
+Collen Construction,collen.com,3,false,construction,
+Mercury Engineering,mercuryeng.com,2,false,construction,Dublin
+Jones Engineering,joneseng.com,2,false,construction,Dublin
+Designer Group,designergrp.com,3,false,construction,
+Winthrop Technologies,winthroptechnologies.com,3,false,construction,Dublin
+Arup Ireland,arup.com,2,false,engineering,Dublin
+Jacobs Ireland,jacobs.com,2,false,engineering,Dublin
+RPS Group,rpsgroup.com,3,false,engineering,
+Byrne Looby,byrnelooby.com,4,false,engineering,
+PM Group,pmgroup-global.com,2,false,engineering,Dublin
+DPS Group,dpsgroupglobal.com,3,false,engineering,Cork
+Ethos Engineering,ethoseng.ie,3,false,engineering,Dublin
+IPUT Real Estate,iput.com,3,false,property,Dublin
+Hibernia REIT,hiberniareit.com,4,true,property,
+Green REIT,greenreitplc.com,4,false,property,
+Savills Ireland,savills.ie,3,false,property,
+CBRE Ireland,cbre.ie,3,false,property,
+Sherry FitzGerald,sherryfitz.ie,3,false,property,
+#
+# --- Public sector, semi-state and education -------------------------------------
+Public Appointments Service,publicjobs.ie,1,false,public-sector,Irish public sector recruitment
+Health Service Executive,hse.ie,1,false,public-sector,Largest employer in Ireland
+Revenue Commissioners,revenue.ie,2,false,public-sector,
+Department of Social Protection,gov.ie,3,false,public-sector,
+Enterprise Ireland,enterprise-ireland.com,2,false,public-sector,
+IDA Ireland,idaireland.com,2,false,public-sector,
+Science Foundation Ireland,sfi.ie,3,false,public-sector,
+Failte Ireland,failteireland.ie,3,false,public-sector,
+Tourism Ireland,tourismireland.com,3,false,public-sector,
+Teagasc,teagasc.ie,3,false,public-sector,
+Met Eireann,met.ie,4,false,public-sector,
+RTE,rte.ie,2,false,media,National broadcaster
+TG4,tg4.ie,4,false,media,
+Virgin Media Television,virginmediatelevision.ie,4,false,media,
+The Irish Times,irishtimes.com,3,false,media,
+Independent News & Media,independent.ie,3,false,media,
+Business Post,businesspost.ie,4,false,media,
+Dublin City Council,dublincity.ie,2,false,public-sector,
+Fingal County Council,fingal.ie,3,false,public-sector,
+South Dublin County Council,sdcc.ie,3,false,public-sector,
+Dun Laoghaire Rathdown County Council,dlrcoco.ie,3,false,public-sector,
+Cork City Council,corkcity.ie,3,false,public-sector,
+Trinity College Dublin,tcd.ie,1,false,education,
+University College Dublin,ucd.ie,1,false,education,
+Dublin City University,dcu.ie,1,false,education,
+Technological University Dublin,tudublin.ie,1,false,education,
+University College Cork,ucc.ie,2,false,education,
+University of Galway,universityofgalway.ie,2,false,education,
+University of Limerick,ul.ie,2,false,education,
+Maynooth University,maynoothuniversity.ie,2,false,education,
+Royal College of Surgeons in Ireland,rcsi.com,2,false,education,
+Munster Technological University,mtu.ie,3,false,education,
+Atlantic Technological University,atu.ie,3,false,education,
+South East Technological University,setu.ie,3,false,education,
+Dublin Institute for Advanced Studies,dias.ie,4,false,education,
+Tyndall National Institute,tyndall.ie,3,false,education,Cork
+#
+# --- Recruitment agencies and graduate programmes --------------------------------
+gradireland,gradireland.com,1,false,graduate,Irish graduate careers portal
+CPL Resources,cpl.com,1,false,recruitment,Dublin
+Morgan McKinley,morganmckinley.com,2,false,recruitment,
+Hays Ireland,hays.ie,2,false,recruitment,
+Sigmar Recruitment,sigmarrecruitment.com,2,false,recruitment,
+Recruiters,recruiters.ie,3,false,recruitment,
+Excel Recruitment,excelrecruitment.com,3,false,recruitment,
+Osborne Recruitment,osborne.ie,3,false,recruitment,
+FRS Recruitment,frsrecruitment.com,3,false,recruitment,
+Collins McNicholas,collinsmcnicholas.ie,3,false,recruitment,
+Matrix Recruitment,matrixrecruitment.ie,4,false,recruitment,
+Berkley Recruitment,berkley.ie,4,false,recruitment,
+ManpowerGroup Ireland,manpower.ie,3,false,recruitment,
+Adecco Ireland,adecco.ie,3,false,recruitment,
+Randstad Ireland,randstad.ie,3,false,recruitment,
+#
+# --- Additional big tech, MNCs and scale-ups with Irish operations ----------------
+Anthropic,anthropic.com,2,false,mnc-tech,Dublin EMEA office
+OpenAI,openai.com,2,false,mnc-tech,Dublin office
+Databricks,databricks.com,2,false,mnc-tech,Dublin
+Snowflake,snowflake.com,2,false,mnc-tech,Dublin
+Confluent,confluent.io,2,false,mnc-tech,Dublin
+HashiCorp,hashicorp.com,3,false,mnc-tech,
+Grafana Labs,grafana.com,3,false,mnc-tech,
+Sentry,sentry.io,3,false,mnc-tech,
+Vercel,vercel.com,3,false,mnc-tech,
+Netlify,netlify.com,3,false,mnc-tech,
+Supabase,supabase.com,3,false,mnc-tech,
+Ramp,ramp.com,3,false,mnc-tech,Dublin
+Brex,brex.com,3,false,mnc-tech,
+Plaid,plaid.com,3,false,mnc-tech,
+Checkout.com,checkout.com,2,false,mnc-tech,
+Adyen,adyen.com,2,false,mnc-tech,Dublin
+SumUp,sumup.com,3,false,mnc-tech,
+Wise,wise.com,2,false,mnc-tech,Dublin
+Remitly,remitly.com,3,false,mnc-tech,
+Marqeta,marqeta.com,3,false,mnc-tech,
+Nium,nium.com,3,false,mnc-tech,
+Modulr,modulrfinance.com,3,false,mnc-tech,Dublin
+Amplitude,amplitude.com,3,false,mnc-tech,
+Mixpanel,mixpanel.com,3,false,mnc-tech,
+Segment,segment.com,3,false,mnc-tech,
+Optimizely,optimizely.com,3,false,mnc-tech,
+Contentful,contentful.com,3,false,mnc-tech,
+Sanity,sanity.io,4,false,mnc-tech,
+Algolia,algolia.com,3,false,mnc-tech,
+Typeform,typeform.com,3,false,mnc-tech,
+Pipedrive,pipedrive.com,3,false,mnc-tech,
+Freshworks,freshworks.com,3,false,mnc-tech,Dublin
+Zoho,zoho.com,3,false,mnc-tech,
+Intercom Ireland,intercom.com,3,false,mnc-tech,Duplicate guard
+Mural,mural.co,3,false,mnc-tech,
+Airtable,airtable.com,3,false,mnc-tech,
+Loom,loom.com,4,false,mnc-tech,
+Grammarly,grammarly.com,3,false,mnc-tech,
+Duolingo,duolingo.com,3,false,mnc-tech,
+Deliveroo,deliveroo.ie,2,false,mnc-tech,Dublin
+Just Eat Takeaway,justeattakeaway.com,2,false,mnc-tech,Dublin
+Bolt,bolt.eu,2,false,mnc-tech,Dublin
+FreeNow,free-now.com,3,false,mnc-tech,Dublin
+Getir,getir.com,4,false,mnc-tech,
+Expedia,expedia.com,2,false,mnc-tech,Dublin
+TripAdvisor,tripadvisor.com,3,false,mnc-tech,Dublin
+Skyscanner,skyscanner.net,3,false,mnc-tech,
+eBay,ebay.com,2,false,mnc-tech,Dublin
+Etsy Ireland,etsy.com,4,false,mnc-tech,Duplicate guard
+Shutterstock,shutterstock.com,3,false,mnc-tech,Dublin
+Twitch,twitch.tv,3,false,mnc-tech,
+Unity,unity.com,3,false,mnc-tech,
+Epic Games,epicgames.com,3,false,mnc-tech,
+Roblox,roblox.com,3,false,mnc-tech,Dublin
+Scopely,scopely.com,3,false,mnc-tech,Dublin
+Jagex,jagex.com,4,false,mnc-tech,
+Havok,havok.com,4,false,irish-tech,Dublin games technology
+Demonware,demonware.net,3,false,irish-tech,Dublin - Activision Blizzard
+Digit Games,digitgaming.com,4,false,irish-tech,Dublin
+Romero Games,romerogames.com,4,false,irish-tech,Galway
+# --- Irish startups and scale-ups -------------------------------------------------
+Evervault,evervault.com,2,false,irish-tech,Dublin security infrastructure
+Nuvei Ireland,nuvei.com,3,false,irish-tech,
+Umba,umba.com,4,false,irish-tech,Dublin fintech
+Nory,nory.ai,3,false,irish-tech,Dublin restaurant AI
+Aiden,aiden.ai,4,false,irish-tech,
+Akkure,akkure.com,4,false,irish-tech,
+Ancestry Ireland,ancestry.com,4,false,mnc-tech,
+Artomatix,artomatix.com,4,false,irish-tech,Dublin - acquired by Unity
+Assure Hedge,assurehedge.com,4,false,irish-tech,Dublin
+Bearingpoint Ireland,bearingpoint.com,3,false,consulting,
+Beats Medical,beatsmedical.com,4,false,irish-tech,Dublin
+Bizimply,bizimply.com,3,false,irish-tech,Dublin workforce management
+Brightflag,brightflag.com,2,false,irish-tech,Dublin legal AI
+Cameo Systems,cameo.ie,4,false,irish-tech,
+Cantillon Group,cantillon.ie,4,false,irish-tech,
+Chargebee Ireland,chargebee.com,4,false,mnc-tech,
+Clark Energy,clarke-energy.com,4,false,engineering,
+CleverCards,clevercards.com,3,false,irish-tech,Dublin payments
+Codex,codex.ie,4,false,irish-tech,
+Container Centralen,container-centralen.com,4,false,irish-tech,
+Corlytics,corlytics.com,3,false,irish-tech,Dublin regtech
+Crowdcube Ireland,crowdcube.com,4,false,irish-tech,
+Cyc-Lok,cyc-lok.com,4,false,irish-tech,
+Danalto,danalto.com,4,false,irish-tech,Dublin
+Daon,daon.com,3,false,irish-tech,Dublin biometrics
+Decawave,decawave.com,3,false,irish-tech,Dublin - now Qorvo
+Deciphex,deciphex.com,3,false,irish-tech,Dublin digital pathology
+Dogpatch Labs,dogpatchlabs.com,4,false,irish-tech,Dublin startup hub
+Ding,ding.com,3,false,irish-tech,Dublin mobile top-up
+Diona,diona.com,4,false,irish-tech,Dublin
+Divilia,divilia.ie,4,false,irish-tech,
+Dropchip,dropchip.com,4,false,irish-tech,
+EdgeTier,edgetier.com,3,false,irish-tech,Dublin customer AI
+Emagine Ireland,emagine.ie,4,false,consulting,
+Emydex,emydex.com,4,false,irish-tech,Dublin
+Equal1,equal1.com,3,false,irish-tech,Dublin quantum computing
+Everseen,everseen.com,3,false,irish-tech,Cork computer vision
+Exergyn,exergyn.com,4,false,irish-tech,Dublin
+Fathom Technology,fathom.ie,4,false,irish-tech,
+Fexillon,fexillon.com,4,false,irish-tech,
+FlexiCapital,flexicapital.ie,4,false,irish-tech,
+Fonoa,fonoa.com,3,false,irish-tech,Dublin tax automation
+Fourtheorem,fourtheorem.com,4,false,irish-tech,Dublin AWS consultancy
+Freight Investor Services,freightinvestor.com,4,false,finance,
+Genomics Medicine Ireland,genomicsmed.ie,3,false,irish-tech,Dublin
+Getvisibility,getvisibility.com,3,false,irish-tech,Cork data security
+Glofox,glofox.com,3,false,irish-tech,Dublin fitness software
+Grid Finance,gridfinance.ie,4,false,finance,
+HealthTech Ireland,healthtechireland.ie,4,false,irish-tech,
+HiTech Cluster,hitechcluster.ie,4,false,irish-tech,
+Hostelworld,hostelworld.com,3,true,irish-tech,Dublin travel
+Inform3,inform3.com,4,false,irish-tech,
+Infosys Ireland,infosys.com,4,false,consulting,Duplicate guard
+Inhance,inhance.ie,4,false,irish-tech,
+Innopharma,innopharmalabs.com,4,false,pharma,Dublin
+Intercom Dublin,intercom.com,4,false,irish-tech,Duplicate guard
+Jaguar Land Rover Shannon,jaguarlandrover.com,3,false,mnc-tech,Shannon software centre
+Kastus,kastus.com,4,false,irish-tech,
+Keelvar,keelvar.com,3,false,irish-tech,Cork sourcing optimisation
+Kianda Technologies,kianda.com,4,false,irish-tech,
+Klearcom,klearcom.com,4,false,irish-tech,Dundalk
+Lightyear,lightyear.com,4,false,irish-tech,
+Logentries,logentries.com,4,false,irish-tech,Dublin - acquired by Rapid7
+Luzern eCommerce,luzern.co,4,false,irish-tech,
+Marino Software,marinosoftware.com,4,false,irish-tech,Dublin
+Mediquo,mediquo.com,4,false,irish-tech,
+MyWallSt,mywallst.com,4,false,irish-tech,Dublin
+Nathean Technologies,nathean.com,4,false,irish-tech,
+Netwatch,netwatchsystem.com,3,false,irish-tech,Carlow
+NewsWhip,newswhip.com,3,false,irish-tech,Dublin media analytics
+Nova Leah,novaleah.com,4,false,irish-tech,Dundalk
+Novaerus,novaerus.com,4,false,irish-tech,Dublin
+Ondaka,ondaka.com,4,false,irish-tech,
+Output Sports,outputsports.com,4,false,irish-tech,Dublin
+Ovagen,ovagen.com,4,false,irish-tech,Mayo
+Payslip,payslip.com,3,false,irish-tech,Mayo payroll automation
+Peblo,peblo.io,4,false,irish-tech,
+Phorest,phorest.com,2,false,irish-tech,Dublin salon software
+PlanNet21,plannet21.ie,4,false,irish-tech,
+Plynk,plynk.ie,4,false,irish-tech,Dublin
+Pointy Ireland,pointy.com,4,false,irish-tech,Duplicate guard
+PrecisionBiotics,precisionbiotics.com,4,false,pharma,Cork
+Profitero,profitero.com,3,false,irish-tech,Dublin ecommerce analytics
+Provision Camera,provisionthermal.com,4,false,irish-tech,
+Restored Hearing,restoredhearing.com,4,false,irish-tech,Sligo
+Ryanair Labs,ryanair.com,2,false,irish-tech,Dublin and Wroclaw technology arm
+Scurri,scurri.com,3,false,irish-tech,Wexford ecommerce delivery
+SilverCloud Health,silvercloudhealth.com,3,false,irish-tech,Dublin digital mental health
+Solo Energy,solo.energy,4,false,irish-tech,
+Spectrum.Life,spectrum.life,3,false,irish-tech,Dublin wellbeing
+Sports Interactive Ireland,sigames.com,4,false,irish-tech,
+Squarespace Ireland,squarespace.com,4,false,mnc-tech,Duplicate guard
+Sretaw,sretaw.com,4,false,irish-tech,
+Swiftcomm,swiftcomm.ie,4,false,irish-tech,
+Tapadoo,tapadoo.com,4,false,irish-tech,Dublin mobile
+Tender Scout,tenderscout.com,4,false,irish-tech,
+Tethras,tethras.com,4,false,irish-tech,Dublin localisation
+Threefold Systems,threefold.ie,4,false,irish-tech,
+TitanHQ,titanhq.com,3,false,irish-tech,Galway email security
+Toolbx,toolbx.com,4,false,irish-tech,
+Trilogy Technologies,trilogytechnologies.com,4,false,irish-tech,Dublin
+Truata,truata.com,3,false,irish-tech,Dublin data privacy
+Tucker Design,tuckerdesign.ie,4,false,irish-tech,
+Utmost,utmost.io,4,false,irish-tech,Dublin
+VideoDoc,videodoc.ie,4,false,irish-tech,
+Viatel,viatel.com,3,false,telecom,Dublin
+Vidatec,vidatec.com,4,false,irish-tech,
+Vivasure Medical,vivasuremedical.com,4,false,medtech,Galway
+Voxgig,voxgig.com,4,false,irish-tech,
+Waterford Technologies,waterfordtechnologies.com,4,false,irish-tech,
+Webio,webio.com,4,false,irish-tech,Dublin conversational AI
+WhatClinic,whatclinic.com,4,false,irish-tech,Dublin
+Wia,wia.io,4,false,irish-tech,Dublin IoT
+Wombat Invest,wombat.co.uk,4,false,irish-tech,
+Xanadu Consultancy,xanadu.ie,4,false,irish-tech,
+Yonder Digital,yonderdigital.com,4,false,irish-tech,
+Zeus Packaging,zeuspackaging.com,4,false,fmcg,Dublin
+Zinkworks,zinkworks.com,3,false,irish-tech,Athlone
+Zolvit,zolvit.com,4,false,irish-tech,

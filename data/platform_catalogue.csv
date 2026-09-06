@@ -1,0 +1,86 @@
+platform,kind,tier,access,status,notes
+# Every job platform relevant to hiring in Ireland, and whether this project can read it.
+# `status` is the honest verdict, not an aspiration:
+#   in use            - adapter written, sources registered, jobs flowing
+#   built             - adapter written and tested, no sources attached yet
+#   detected only     - detection names it, no adapter yet; falls back to jsonld
+#   open api          - public/free API confirmed to exist, adapter not written
+#   needs key         - licensed API, free tier available, needs registration
+#   scrape only       - no API; would need an HTML crawler or headless browser
+#   not accessible    - terms forbid it, or it is hard-blocked; deliberately excluded
+# Live counts come from the database at report time - see reports/platforms.csv.
+#
+# --- ATS platforms with public APIs (Tier 1: an employer's own board) -------------
+greenhouse,ats,1,public api,in use,Public board API; also detects embedded widgets
+workday,ats,1,public api,in use,Compound slug tenant:wdhost:site; dominant among Dublin MNCs
+ashby,ats,1,public api,in use,secondaryLocations expanded (per-posting)
+lever,ats,1,public api,in use,allLocations expanded (per-posting)
+workable,ats,1,public api,in use,Structured city/country so location is unambiguous
+smartrecruiters,ats,1,public api,in use,Native country=ie facet; unknown tenant returns 200 + empty
+recruitee,ats,1,public api,in use,Full advert in the list response; one request per board
+personio,ats,1,public api,built,XML feed; tenant may live on .de or .com
+teamtailor,ats,1,api key,detected only,Public API needs a key; job pages fall back to jsonld
+bamboohr,ats,1,public api,open api,{slug}.bamboohr.com/careers/list - common among Irish SMEs
+jazzhr,ats,1,public api,open api,Public board feed per employer
+breezy,ats,1,public api,open api,{slug}.breezy.hr/json
+comeet,ats,1,public api,open api,Public positions endpoint per employer
+pinpoint,ats,1,public api,open api,Growing among Irish scale-ups
+occupop,ats,1,scrape only,open api,Irish ATS (Dublin) - widely used by Irish SMEs
+hirehive,ats,1,public api,open api,Irish ATS (Cork) - public board JSON
+rezoomo,ats,1,scrape only,open api,Irish ATS - heavily used by Irish public and healthcare bodies
+zoho_recruit,ats,1,api key,open api,Used by smaller Irish employers
+jobscore,ats,1,public api,open api,Public board feed
+recruiterflow,ats,1,api key,open api,Agency-oriented
+manatal,ats,1,api key,open api,Agency-oriented
+# --- Enterprise ATS: recognised by detection, no adapter yet ----------------------
+oracle_recruiting,ats,1,scrape only,detected only,Oracle Recruiting Cloud - BNY Mellon/JPMorgan/Dell; highest-value adapter to write next
+successfactors,ats,1,scrape only,detected only,SAP SuccessFactors - common among European MNCs
+taleo,ats,1,scrape only,detected only,Oracle Taleo - legacy but still widespread
+icims,ats,1,scrape only,detected only,iCIMS
+avature,ats,1,scrape only,detected only,Avature - used by several Dublin professional-services firms
+eightfold,ats,1,scrape only,detected only,Eightfold AI - Boston Scientific among others
+phenom,ats,1,scrape only,detected only,Phenom People
+cornerstone,ats,1,scrape only,detected only,Cornerstone OnDemand
+jobvite,ats,1,scrape only,detected only,Jobvite
+dayforce,ats,1,scrape only,detected only,Ceridian Dayforce
+adp,ats,1,scrape only,detected only,ADP Recruiting
+ukg,ats,1,scrape only,detected only,UKG / Ultimate Software
+# --- Employers running their own careers platform (Tier 1b) -----------------------
+amazon,bespoke,1,public api,in use,country=IRL filter
+google,bespoke,1,scrape only,in use,No API but the careers page is server-rendered
+microsoft,bespoke,1,scrape only,scrape only,gcsservices API needs browser-level headers; Leopardstown campus
+apple,bespoke,1,scrape only,scrape only,jobs.apple.com search API returns 401 without a CSRF token
+meta,bespoke,1,scrape only,scrape only,metacareers GraphQL requires a session token
+salesforce,bespoke,1,scrape only,scrape only,Dublin tower; own careers platform
+ibm,bespoke,1,scrape only,scrape only,Own careers platform
+intel,bespoke,1,public api,in use,Via Workday
+# --- Generic extraction (Tier 3) --------------------------------------------------
+jsonld,generic,3,public,built,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
+# --- Aggregators and job boards (Tier 4) ------------------------------------------
+adzuna,aggregator,4,needs key,built,Official API; free tier; genuine Irish coverage. Set JOBFINDER_ADZUNA_APP_ID/KEY
+jooble,aggregator,4,needs key,needs key,Official API; free key on request; covers Ireland
+careerjet,aggregator,4,needs key,needs key,Public affiliate API; covers Ireland
+eures,aggregator,4,open api,open api,EU-run mobility portal; open API; strong for Ireland and EEA roles
+jobsireland,job board,4,scrape only,scrape only,Irish government board (Dept of Social Protection)
+publicjobs,job board,4,scrape only,scrape only,Public Appointments Service - all Irish civil and public service roles
+gradireland,job board,4,scrape only,scrape only,Irish graduate portal; robots.txt allows crawling; no JobPosting markup so needs a dedicated adapter
+irishjobs,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
+jobs_ie,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
+recruitireland,job board,4,not accessible,not accessible,Terms restrict automated access
+indeed,aggregator,4,not accessible,not accessible,Publisher API retired to new applicants; access only via employer/partner programmes
+linkedin,aggregator,4,not accessible,not accessible,Partner-only jobs data; terms prohibit scraping; hard-blocked and enforced. Most Dublin roles are syndicated from boards already crawled here
+glassdoor,aggregator,4,not accessible,not accessible,No public jobs API; scraping prohibited
+monster,job board,4,not accessible,not accessible,No public API for this use
+totaljobs,job board,4,not accessible,not accessible,StepStone group
+reed,job board,4,needs key,needs key,UK-centric but carries Irish roles; API key available
+talent_com,aggregator,4,needs key,needs key,Partner feed
+ziprecruiter,aggregator,4,needs key,needs key,Partner programme
+google_jobs,aggregator,4,needs key,needs key,Reachable via SerpAPI/JSearch (paid); useful for the long tail
+wellfound,job board,4,scrape only,scrape only,AngelList Talent - startup roles
+otta,job board,4,scrape only,scrape only,Now Welcome to the Jungle; strong startup coverage
+welcometothejungle,job board,4,needs key,needs key,Has an API for partners
+builtin,job board,4,scrape only,scrape only,Tech-focused
+techireland,directory,5,open api,open api,Not a job board - a company directory; useful for growing the registry
+idaireland,directory,5,scrape only,open api,IDA client list - the multinational universe
+enterpriseireland,directory,5,scrape only,open api,Enterprise Ireland portfolio - the indigenous universe
+cro,directory,5,needs key,needs key,Companies Registration Office - the full legal universe of Irish companies

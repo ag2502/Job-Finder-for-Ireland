@@ -35,6 +35,7 @@ from sqlalchemy.orm import Session
 from jobfinder.core.config import settings
 from jobfinder.core.models import (
     Company,
+    CoverageState,
     CrawlStatus,
     JobPosting,
     JobStatus,
@@ -42,7 +43,7 @@ from jobfinder.core.models import (
     SourceCrawl,
     utcnow,
 )
-from jobfinder.normalize.dedup import compute_dedup_key
+from jobfinder.normalize.dedup import compute_dedup_key, normalize_company_name
 from jobfinder.normalize.experience import analyze as analyze_experience
 from jobfinder.normalize.location import LocationResult, normalize_location
 from jobfinder.normalize.text import html_to_text
@@ -190,17 +191,22 @@ def _upsert_jobs(
 
     now = utcnow()
     seen: set[str] = set()
+    company_cache: dict[str, Company] = {}
 
     for raw in jobs:
         if not raw.source_job_id or not raw.title:
             continue
         seen.add(raw.source_job_id)
 
+        # Aggregator sources carry many employers under one source, so the company is a
+        # property of the posting rather than of the source.
+        job_company = _company_for(session, company, raw, company_cache)
+
         location = resolve_location(raw)
         description = html_to_text(raw.description)
         experience = analyze_experience(raw.title, description)
         dedup_key = compute_dedup_key(
-            company.name,
+            job_company.name,
             raw.title,
             is_dublin=location.is_dublin,
             is_remote=location.is_remote,
@@ -211,7 +217,7 @@ def _upsert_jobs(
         if job is None:
             session.add(
                 JobPosting(
-                    company_id=company.id,
+                    company_id=job_company.id,
                     source_id=source.id,
                     source_job_id=raw.source_job_id,
                     dedup_key=dedup_key,
@@ -245,6 +251,7 @@ def _upsert_jobs(
         else:
             stats.updated += 1
 
+        job.company_id = job_company.id
         job.title = raw.title
         job.description = description
         job.url = raw.url
@@ -265,6 +272,58 @@ def _upsert_jobs(
 
     stats.seen = len(seen)
     return seen
+
+
+def _company_for(
+    session: Session,
+    default: Company,
+    raw: RawJob,
+    cache: dict[str, Company],
+) -> Company:
+    """Which company a posting belongs to.
+
+    For a company's own board this is always the source's company. Aggregators are the
+    exception: one source carries postings from hundreds of employers, so the employer
+    named on the posting is resolved — and created if unseen — rather than filing every
+    aggregated job under a placeholder. Attributing jobs to the real company is what
+    lets `dedup_key` recognise that an aggregated posting and the same role from the
+    employer's own board are one job.
+
+    A company created this way enters as UNRESOLVED with no website. Detection only
+    probes companies that have one, so these are *not* picked up by the next sweep —
+    they sit in the registry as a record that the employer exists and is hiring in
+    Dublin, which is itself the useful part: they are the shortlist of employers worth
+    adding a website for, and `jobfinder coverage` reports them under the `aggregator`
+    origin.
+    """
+    if not raw.company_name:
+        return default
+
+    normalized = normalize_company_name(raw.company_name)
+    if not normalized:
+        return default
+
+    cached = cache.get(normalized)
+    if cached is not None:
+        return cached
+
+    company = session.execute(
+        select(Company).where(Company.normalized_name == normalized)
+    ).scalar_one_or_none()
+
+    if company is None:
+        company = Company(
+            name=raw.company_name.strip(),
+            normalized_name=normalized,
+            seed_source="aggregator",
+            coverage_state=CoverageState.UNRESOLVED,
+            coverage_priority=5,
+        )
+        session.add(company)
+        session.flush()
+
+    cache[normalized] = company
+    return company
 
 
 def _close_absent(

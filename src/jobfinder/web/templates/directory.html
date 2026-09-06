@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Employer directory &mdash; Dublin Job Finder{% endblock %}
+{% block content %}
+
+<div class="card">
+  <h1>Employer directory</h1>
+  <p class="muted" style="margin-top:4px">
+    Every employer in the registry &mdash; {{ "{:,}".format(total) }} of them.
+    <strong>{{ "{:,}".format(with_jobs) }}</strong> have live Dublin openings we crawl
+    directly. Another <strong>{{ "{:,}".format(linked) }}</strong> are linked straight
+    to their own careers page.
+  </p>
+  <p class="small muted">
+    No crawler reaches every Irish employer &mdash; some render their listings entirely
+    in JavaScript, some sit behind a bot wall. So the guarantee here is not that
+    everything is automated, it is that nothing is <em>hidden</em>: a company we cannot
+    crawl still appears, one click from its own jobs page.
+  </p>
+
+  <form method="get" action="/directory" style="margin-top:16px">
+    <div class="grid2">
+      <div>
+        <label for="q">Search employers</label>
+        <input type="text" id="q" name="q" value="{{ query }}" placeholder="e.g. Stripe, Bank, Pharma">
+      </div>
+      <div>
+        <label for="show">Show</label>
+        <select id="show" name="show">
+          <option value="all"    {% if show == 'all' %}selected{% endif %}>Everyone</option>
+          <option value="hiring" {% if show == 'hiring' %}selected{% endif %}>Only those hiring in Dublin now</option>
+          <option value="linked" {% if show == 'linked' %}selected{% endif %}>Only those we link out to</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-top:14px">
+      <button type="submit">Filter</button>
+      {% if query or show != 'all' %}
+        <a href="/directory" class="small muted" style="margin-left:12px">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  {% if not rows %}
+    <p class="muted">No employers match that filter.</p>
+  {% else %}
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Employer</th>
+            <th style="width:130px">Dublin roles</th>
+            <th style="width:150px">Coverage</th>
+            <th style="width:110px"></th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for row in rows %}
+          <tr>
+            <td>{{ row.name }}</td>
+            <td>
+              {% if row.jobs %}
+                <a href="/?q={{ row.name | urlencode }}"><strong>{{ row.jobs }}</strong> open</a>
+              {% else %}
+                <span class="muted">&mdash;</span>
+              {% endif %}
+            </td>
+            <td class="small muted">
+              {% if row.crawled %}crawled{% else %}{{ row.state | replace('_', ' ') }}{% endif %}
+            </td>
+            <td class="small">
+              {% if row.careers_url %}
+                <a href="{{ row.careers_url }}" target="_blank" rel="noopener noreferrer">Careers page &rarr;</a>
+              {% else %}
+                <span class="muted">no link yet</span>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if truncated %}
+      <p class="small muted" style="margin-top:12px">
+        {{ "{:,}".format(truncated) }} more not shown &mdash; narrow the search to see them.
+      </p>
+    {% endif %}
+  {% endif %}
+</div>
+
+{% endblock %}

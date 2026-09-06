@@ -1,0 +1,98 @@
+name: Registry
+
+# Growing the registry: import companies, resolve them to crawlable sources, and try
+# generic extraction on whatever detection could not read.
+#
+# Weekly, not six-hourly, because this is the slow half of the pipeline and the data it
+# reads barely moves. A company's website and choice of ATS change on a scale of months;
+# its job postings change hourly. Detection across a few hundred unknown hosts takes
+# 30-60 minutes and typically registers a handful of new sources, so running it four
+# times a day was almost entirely re-confirming what was already known.
+#
+# This workflow never triggers a crawl. New sources are registered with
+# `last_success_at = NULL`, which `select_sources` treats as always due, so the next
+# scheduled crawl collects them without being told to.
+
+on:
+  schedule:
+    # Sunday 02:00 UTC - off-peak, and a full day before the working week starts.
+    - cron: "0 2 * * 0"
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Only probe the first N companies (optional)"
+        required: false
+      skip_extraction:
+        description: "Skip the generic-extraction trial pass"
+        type: boolean
+        default: false
+
+concurrency:
+  # Shared with crawl.yml — see the note there. One writer at a time.
+  group: jobfinder-db
+  cancel-in-progress: false
+
+jobs:
+  registry:
+    runs-on: ubuntu-latest
+    # Detection is bounded internally by `detect_sweep_deadline_seconds`, so this ceiling
+    # is a backstop rather than the real limit.
+    timeout-minutes: 120
+
+    env:
+      JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
+      JOBFINDER_LOG_LEVEL: INFO
+      # Leaves room inside the job timeout for extraction and the coverage report.
+      JOBFINDER_DETECT_SWEEP_DEADLINE_SECONDS: "2700"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Fail fast if the database is not configured
+        run: |
+          if [ -z "$JOBFINDER_DATABASE_URL" ]; then
+            echo "::error::JOBFINDER_DATABASE_URL is not set. Add it under"
+            echo "::error::Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Seed and import companies
+        run: |
+          jobfinder seed
+          jobfinder import-universe
+
+      # Everything below is allowed to fail without failing the run. None of it closes
+      # jobs or alters existing sources — the worst case is that the registry grows more
+      # slowly this week — and a detection outage is not a reason to mark the run red.
+      - name: Resolve companies to sources
+        continue-on-error: true
+        run: |
+          if [ -n "${{ github.event.inputs.limit }}" ]; then
+            jobfinder detect-all --limit "${{ github.event.inputs.limit }}"
+          else
+            jobfinder detect-all
+          fi
+
+      - name: Try generic extraction on unresolved companies
+        if: ${{ github.event.inputs.skip_extraction != 'true' }}
+        continue-on-error: true
+        run: jobfinder extract-blocked
+
+      - name: Coverage summary
+        if: always()
+        run: |
+          {
+            echo "## Registry coverage"
+            echo '```'
+            jobfinder coverage
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

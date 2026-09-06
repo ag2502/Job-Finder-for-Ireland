@@ -1,18 +1,24 @@
 """Crawl orchestration.
 
-Walks the enabled sources, fetches each one, and hands the result to the reconciler.
-One source's failure is contained: it is recorded, its jobs are left untouched, and the
-crawl moves on.
+Selects the sources due this run, fetches them concurrently, and hands each result to
+the reconciler. One source's failure is contained: it is recorded, its jobs are left
+untouched, and the crawl moves on.
+
+Fetching is parallel (see `pipeline/fetcher.py`); reconciliation is not. Every database
+write still happens on this thread, one source at a time, so the state machine's
+guarantees are exactly what they were when the crawl was serial.
 """
 
 from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
+from jobfinder.core.config import settings
 from jobfinder.core.models import (
     Company,
     CrawlRun,
@@ -20,9 +26,9 @@ from jobfinder.core.models import (
     Source,
     utcnow,
 )
+from jobfinder.pipeline.fetcher import FetchJob, fetch_all
 from jobfinder.pipeline.state import reconcile
 from jobfinder.sources import load_adapters
-from jobfinder.sources.base import FetchResult, build_client, get_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +39,7 @@ CIRCUIT_BREAKER_THRESHOLD = 10
 @dataclass
 class RunSummary:
     run_id: int
+    sources_selected: int = 0
     sources_ok: int = 0
     sources_failed: int = 0
     sources_partial: int = 0
@@ -51,7 +58,57 @@ class RunSummary:
         )
 
 
-def crawl(session: Session, *, limit: int | None = None, adapter_name: str | None = None) -> RunSummary:
+def select_sources(
+    session: Session,
+    *,
+    limit: int | None = None,
+    adapter_name: str | None = None,
+    all_sources: bool = False,
+) -> list[tuple[Source, Company]]:
+    """Choose which sources are due.
+
+    High-priority companies run every time. The long tail runs only once its last
+    successful crawl has aged past `stale_after_hours`, which is what keeps a registry
+    of thousands inside a six-hour CI window. A source that has never succeeded is
+    always due — otherwise a newly-registered company would wait a day for its first
+    fetch, and a permanently broken one would never retry.
+    """
+    stmt = (
+        select(Source, Company)
+        .join(Company, Source.company_id == Company.id)
+        .where(Source.enabled.is_(True))
+    )
+
+    if adapter_name:
+        stmt = stmt.where(Source.adapter == adapter_name)
+
+    if not all_sources:
+        cutoff = utcnow() - timedelta(hours=settings.stale_after_hours)
+        stmt = stmt.where(
+            or_(
+                Company.coverage_priority <= settings.priority_always_crawl,
+                Source.last_success_at.is_(None),
+                Source.last_success_at < cutoff,
+            )
+        )
+
+    # Priority first so that if a run is cut short, it is the long tail that is lost.
+    stmt = stmt.order_by(Company.coverage_priority, Source.last_success_at.asc().nulls_first(), Source.id)
+
+    if limit:
+        stmt = stmt.limit(limit)
+
+    return list(session.execute(stmt).all())
+
+
+def crawl(
+    session: Session,
+    *,
+    limit: int | None = None,
+    adapter_name: str | None = None,
+    all_sources: bool = False,
+    max_workers: int | None = None,
+) -> RunSummary:
     load_adapters()
 
     run = CrawlRun()
@@ -59,57 +116,47 @@ def crawl(session: Session, *, limit: int | None = None, adapter_name: str | Non
     session.flush()
     summary = RunSummary(run_id=run.id)
 
-    stmt = (
-        select(Source, Company)
-        .join(Company, Source.company_id == Company.id)
-        .where(Source.enabled.is_(True))
-        .order_by(Company.coverage_priority, Source.id)
+    pairs = select_sources(
+        session, limit=limit, adapter_name=adapter_name, all_sources=all_sources
     )
-    if adapter_name:
-        stmt = stmt.where(Source.adapter == adapter_name)
-    if limit:
-        stmt = stmt.limit(limit)
+    summary.sources_selected = len(pairs)
+    logger.info(
+        "crawling %d sources with %d workers",
+        len(pairs),
+        max_workers or settings.crawl_max_workers,
+    )
 
-    pairs = list(session.execute(stmt).all())
-    logger.info("crawling %d sources", len(pairs))
+    fetch_jobs = [FetchJob(source=source, company=company) for source, company in pairs]
 
-    with build_client() as client:
-        for source, company in pairs:
-            adapter = get_adapter(source.adapter)
-            if adapter is None:
-                logger.error("no adapter registered for %r", source.adapter)
-                result = FetchResult.failed(f"unknown adapter {source.adapter!r}")
-            else:
-                logger.info("fetching %s:%s (%s)", source.adapter, source.slug, company.name)
-                result = adapter.fetch(source.slug, client=client)
-                adapter.polite_pause()
+    for fetch_job, result in fetch_all(fetch_jobs, max_workers=max_workers):
+        source, company = fetch_job.source, fetch_job.company
 
-            stats = reconcile(
-                session, source=source, company=company, result=result, run_id=run.id
+        stats = reconcile(
+            session, source=source, company=company, result=result, run_id=run.id
+        )
+
+        if stats.status is CrawlStatus.OK:
+            summary.sources_ok += 1
+        elif stats.status is CrawlStatus.PARTIAL:
+            summary.sources_partial += 1
+        else:
+            summary.sources_failed += 1
+
+        summary.created += stats.created
+        summary.updated += stats.updated
+        summary.closed += stats.closed
+        summary.reopened += stats.reopened
+
+        if source.consecutive_failures >= CIRCUIT_BREAKER_THRESHOLD:
+            source.enabled = False
+            logger.error(
+                "disabling %s:%s after %d consecutive failures",
+                source.adapter,
+                source.slug,
+                source.consecutive_failures,
             )
 
-            if stats.status is CrawlStatus.OK:
-                summary.sources_ok += 1
-            elif stats.status is CrawlStatus.PARTIAL:
-                summary.sources_partial += 1
-            else:
-                summary.sources_failed += 1
-
-            summary.created += stats.created
-            summary.updated += stats.updated
-            summary.closed += stats.closed
-            summary.reopened += stats.reopened
-
-            if source.consecutive_failures >= CIRCUIT_BREAKER_THRESHOLD:
-                source.enabled = False
-                logger.error(
-                    "disabling %s:%s after %d consecutive failures",
-                    source.adapter,
-                    source.slug,
-                    source.consecutive_failures,
-                )
-
-            session.flush()
+        session.flush()
 
     run.finished_at = utcnow()
     run.sources_ok = summary.sources_ok

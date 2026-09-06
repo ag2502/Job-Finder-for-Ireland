@@ -306,3 +306,152 @@ def test_reset_clears_the_profile(client):
     assert home.status_code == 200
     # With no profile the finder shows the form alone, no results table.
     assert "<th>Company</th>" not in home.text
+
+
+# ---------------------------------------------------------------------------
+# Employer directory
+# ---------------------------------------------------------------------------
+
+
+def test_directory_renders_and_reports_registry_size(client):
+    """The directory is the honest answer to "is my employer covered?"."""
+    response = client.get("/directory")
+    assert response.status_code == 200
+    assert "Employer directory" in response.text
+
+
+def test_directory_filters(client):
+    for show in ("all", "hiring", "linked"):
+        response = client.get("/directory", params={"show": show})
+        assert response.status_code == 200
+
+    response = client.get("/directory", params={"q": "zzz-no-such-employer"})
+    assert response.status_code == 200
+    assert "No employers match" in response.text
+
+
+def test_directory_is_linked_from_every_page(client):
+    """A company we cannot crawl is only "not missing" if the page is reachable."""
+    assert '/directory' in client.get("/").text
+
+
+# ---------------------------------------------------------------------------
+# Duplicate suppression
+# ---------------------------------------------------------------------------
+
+
+def test_direct_source_wins_over_an_aggregator_for_the_same_role():
+    """An aggregator copy is truncated and its apply URL is a redirect, so the
+    employer's own board must win whenever both carry a role."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session, sessionmaker
+
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+    from jobfinder.web.app import _prefer_direct_sources
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, future=True)() as session:
+        company = Company(
+            name="Acme", normalized_name="acme", coverage_state=CoverageState.ATS_DETECTED
+        )
+        session.add(company)
+        session.flush()
+
+        direct = Source(company_id=company.id, adapter="greenhouse", slug="acme", tier=1)
+        aggregated = Source(company_id=company.id, adapter="adzuna", slug="dublin", tier=4)
+        session.add_all([direct, aggregated])
+        session.flush()
+
+        shared_key = "same-role-key"
+        rows = [
+            JobPosting(
+                company_id=company.id, source_id=aggregated.id, source_job_id="agg-1",
+                dedup_key=shared_key, title="Backend Engineer", url="https://adzuna/x",
+                description="truncated…", is_dublin=True, is_remote=False,
+                needs_location_review=False, status=JobStatus.ACTIVE,
+                consecutive_misses=0,
+            ),
+            JobPosting(
+                company_id=company.id, source_id=direct.id, source_job_id="gh-1",
+                dedup_key=shared_key, title="Backend Engineer", url="https://acme/jobs/1",
+                description="the full advert, much longer", is_dublin=True,
+                is_remote=False, needs_location_review=False, status=JobStatus.ACTIVE,
+                consecutive_misses=0,
+            ),
+            JobPosting(
+                company_id=company.id, source_id=direct.id, source_job_id="gh-2",
+                dedup_key="a-different-role", title="Data Analyst", url="https://acme/jobs/2",
+                is_dublin=True, is_remote=False, needs_location_review=False,
+                status=JobStatus.ACTIVE, consecutive_misses=0,
+            ),
+        ]
+        session.add_all(rows)
+        session.flush()
+
+        kept = _prefer_direct_sources(session, rows)
+
+        assert len(kept) == 2, "the duplicate pair collapses, the distinct role stays"
+        backend = [job for job in kept if job.title == "Backend Engineer"]
+        assert len(backend) == 1
+        assert backend[0].source_id == direct.id
+        assert backend[0].url == "https://acme/jobs/1"
+
+
+def test_several_identical_titles_from_one_source_are_all_kept():
+    """Regression: dedup hid 37 genuine Dublin openings in the live database.
+
+    `dedup_key` is company + canonical title + location bucket, and it is deliberately
+    not unique — Amazon really does run four separate "Software Development Engineer,
+    AWS Database Migration Service" openings in Dublin. Collapsing a dedup group to one
+    posting deletes three real jobs from the searcher's list. Only copies from a *less
+    direct source* may be dropped.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+    from jobfinder.web.app import _prefer_direct_sources
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, future=True)() as session:
+        company = Company(
+            name="Amazon", normalized_name="amazon",
+            coverage_state=CoverageState.ATS_DETECTED,
+        )
+        session.add(company)
+        session.flush()
+
+        direct = Source(company_id=company.id, adapter="amazon", slug="IRL", tier=1)
+        aggregated = Source(company_id=company.id, adapter="adzuna", slug="dublin", tier=4)
+        session.add_all([direct, aggregated])
+        session.flush()
+
+        key = "sde-aws-dms-dublin"
+        rows = [
+            JobPosting(
+                company_id=company.id, source_id=direct.id, source_job_id=f"amz-{i}",
+                dedup_key=key, title="Software Development Engineer, AWS DMS",
+                url=f"https://amazon.jobs/{i}", description="full advert",
+                is_dublin=True, is_remote=False, needs_location_review=False,
+                status=JobStatus.ACTIVE, consecutive_misses=0,
+            )
+            for i in range(4)
+        ]
+        rows.append(
+            JobPosting(
+                company_id=company.id, source_id=aggregated.id, source_job_id="agg-1",
+                dedup_key=key, title="Software Development Engineer, AWS DMS",
+                url="https://adzuna/x", description="trunc",
+                is_dublin=True, is_remote=False, needs_location_review=False,
+                status=JobStatus.ACTIVE, consecutive_misses=0,
+            )
+        )
+        session.add_all(rows)
+        session.flush()
+
+        kept = _prefer_direct_sources(session, rows)
+
+        assert len(kept) == 4, "all four real openings survive"
+        assert {job.source_id for job in kept} == {direct.id}

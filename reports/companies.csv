@@ -1,0 +1,619 @@
+company,platform,platform_slug,how_covered,dublin_jobs_active,all_jobs_active,coverage_state,priority,sector,website,careers_url
+Amazon,amazon,IRL,crawled,205,220,ats_detected,1,bespoke,https://amazon.jobs,
+Google,google,"Dublin, Ireland",crawled,116,116,ats_detected,1,bespoke,https://google.com,
+PwC Ireland,workday,pwc:wd3:Global_Experienced_Careers,crawled,70,70,ats_detected,1,consulting,https://pwc.ie,https://www.pwc.ie/jobs
+Accenture,workday,accenture:wd103:AccentureCareers,crawled,65,65,ats_detected,1,ats-detection,https://accenture.com,
+MongoDB,greenhouse,mongodb,crawled,65,421,ats_detected,1,manual,https://mongodb.com,
+Stripe,greenhouse,stripe,crawled,56,635,ats_detected,1,manual,https://stripe.com,
+Intercom,greenhouse,intercom,crawled,44,132,ats_detected,1,manual,https://intercom.com,
+Citi,workday,citi:wd5:2,crawled,43,43,ats_detected,1,finance,https://citi.com,https://jobs.citi.com
+Version 1,smartrecruiters,Version1,crawled,43,44,ats_detected,1,irish-tech,https://version1.com,https://www.version1.com/careers/job-listings/
+Mastercard,workday,mastercard:wd1:CorporateCareers,crawled,37,37,ats_detected,1,mnc-tech,https://mastercard.com,https://careers.mastercard.com/us/en
+Workday,workday,workday:wd5:Workday,crawled,29,29,ats_detected,1,ats-detection,https://workday.com,
+Uniphar,workday,uniphar:wd3:uniphar_external_careers,crawled,25,31,ats_detected,1,euronext-dublin,,
+Datadog,greenhouse,datadog,crawled,24,452,ats_detected,1,manual,https://datadoghq.com,
+State Street,workday,statestreet:wd1:Global,crawled,24,24,ats_detected,1,finance,https://statestreet.com,https://careers.statestreet.com/global/en
+Davy,workable,davy,crawled,21,22,ats_detected,2,finance,https://davy.ie,https://www.davy.ie/working-at-davy/opportunities
+Toast,greenhouse,toast,crawled,20,331,ats_detected,2,manual,https://toasttab.com,
+Klaviyo,greenhouse,klaviyo,crawled,16,146,ats_detected,2,manual,https://klaviyo.com,
+Notion,ashby,notion,crawled,16,136,ats_detected,2,manual,https://notion.so,
+Fiserv,workday,fiserv:wd5:EXT,crawled,15,15,ats_detected,2,finance,https://fiserv.com,https://careers.fiserv.com/us/en/search-results
+Cairn Homes,workday,cairnhomes:wd502:External,crawled,10,20,ats_detected,1,euronext-dublin,https://cairnhomes.com,
+CarTrawler,lever,cartrawler,crawled,9,11,ats_detected,2,irish-tech,https://cartrawler.com,https://corporate.cartrawler.com/en-gb/careers/
+Elavon,workday,usbank:wd1:US_Bank_Careers,crawled,8,8,ats_detected,2,finance,https://elavon.com,https://careers.usbank.com/global/en
+Abbott,workday,abbott:wd5:abbottcareers,crawled,7,7,ats_detected,1,medtech,https://abbott.com,https://www.jobs.abbott/us/en
+Pinterest,greenhouse,pinterest,crawled,7,189,ats_detected,2,mnc-tech,https://pinterest.com,https://www.pinterestcareers.com/
+Squarespace,greenhouse,squarespace,crawled,7,28,ats_detected,2,mnc-tech,https://squarespace.com,https://www.squarespace.com/about/careers
+Asana,greenhouse,asana,crawled,6,123,ats_detected,3,manual,https://asana.com,
+Learnupon,greenhouse,learnupon,crawled,6,13,ats_detected,1,manual,https://learnupon.com,
+Udemy,greenhouse,udemy,crawled,6,13,ats_detected,2,manual,https://udemy.com,
+Gilead Sciences,workday,gilead:wd1:gileadcareers,crawled,5,5,ats_detected,2,pharma,https://gilead.com,https://www.gilead.com/
+Bristol Myers Squibb,workday,bristolmyerssquibb:wd5:BMS,crawled,4,4,ats_detected,2,pharma,https://bms.com,https://careers.bms.com
+Riot Games,greenhouse,riotgames,crawled,4,167,ats_detected,2,manual,https://riotgames.com,
+Barclays,workday,barclays:wd3:External_Career_Site_Barclays,crawled,3,3,ats_detected,2,finance,https://barclays.com,https://search.jobs.barclays/
+Bord Gais Energy,workday,centrica:wd3:Centrica,crawled,3,3,ats_detected,2,utilities,https://bordgaisenergy.ie,https://www.bordgaisenergy.ie/company/careers
+Fenergo,workable,fenergocareers,crawled,3,12,ats_detected,1,ats-detection,https://fenergo.com,
+Northern Trust,workday,ntrs:wd1:northerntrust,crawled,3,6,ats_detected,1,finance,https://northerntrust.com,https://ntrs.wd1.myworkdayjobs.com/northerntrust
+Pfizer,workday,pfizer:wd1:PfizerCareers,crawled,3,3,ats_detected,1,ats-detection,https://pfizer.com,
+Wayflyer,ashby,wayflyer,crawled,3,13,ats_detected,1,manual,https://wayflyer.com,
+Workhuman,ashby,workhuman,crawled,3,10,ats_detected,1,manual,https://workhuman.com,
+Baxter,workday,baxter:wd1:baxter,crawled,2,2,ats_detected,2,medtech,https://baxter.com,https://jobs.baxter.com/en
+Deloitte Ireland,workday,deloitteie:wd3:Early_Careers,crawled,2,2,ats_detected,1,ats-detection,https://deloitte.ie,
+MSD Ireland,workday,msd:wd5:SearchJobs,crawled,2,2,ats_detected,1,pharma,https://msd.ie,https://jobs.msd.com/ireland
+Tines,greenhouse,tines,crawled,2,20,ats_detected,1,manual,https://tines.com,
+Coinbase,greenhouse,coinbase,crawled,1,192,ats_detected,2,mnc-tech,https://coinbase.com,https://www.coinbase.com/careers
+Figma,greenhouse,figma,crawled,1,161,ats_detected,3,manual,https://figma.com,
+Flipdish,greenhouse,flipdish,crawled,1,8,ats_detected,1,manual,https://flipdish.com,
+Johnson & Johnson,workday,jj:wd5:JJ,crawled,1,1,ats_detected,1,pharma,https://jnj.com,https://www.careers.jnj.com/en/
+Qualtrics,greenhouse,qualtrics,crawled,1,56,ats_detected,2,manual,https://qualtrics.com,
+Zendesk,workday,zendesk:wd1:zendesk,crawled,1,1,ats_detected,2,mnc-tech,https://zendesk.com,https://www.zendesk.com/company/careers/
+Airbnb,greenhouse,airbnb,crawled,0,174,ats_detected,1,manual,https://airbnb.com,
+Amplitude,greenhouse,amplitude,crawled,0,37,ats_detected,3,manual,https://amplitude.com,
+Bank of America,workday,ghr:wd1:lateral-us,crawled,0,0,ats_detected,2,finance,https://bankofamerica.com,https://careers.bankofamerica.com/en-us
+Becton Dickinson,workday,bdx:wd1:EXTERNAL_CAREER_SITE_USA,crawled,0,0,ats_detected,2,medtech,https://bd.com,https://jobs.bd.com/en
+Confluent,ashby,confluent,crawled,0,23,ats_detected,2,manual,https://confluent.io,
+Dropbox,greenhouse,dropbox,crawled,0,44,ats_detected,3,manual,https://dropbox.com,
+DXC Technology,workday,dxctechnology:wd1:DXCJobs,crawled,0,0,ats_detected,2,consulting,https://dxc.com,https://careers.dxc.com
+Elastic,greenhouse,elastic,crawled,0,374,ats_detected,2,manual,https://elastic.co,
+Evervault,ashby,evervault,crawled,0,4,ats_detected,1,manual,https://evervault.com,
+EY Ireland,recruitee,ey,crawled,0,3,ats_detected,1,consulting,https://ey.com,https://careers.ey.com
+FIS,workday,fis:wd5:SearchJobs,crawled,0,0,ats_detected,2,finance,https://fisglobal.com,https://careers.fisglobal.com/us/en
+Genesys,workday,genesys:wd1:Genesys,crawled,0,0,ats_detected,2,mnc-tech,https://genesys.com,https://www.genesys.com/company/careers
+Grant Thornton Ireland,recruitee,grantthornton,crawled,0,85,ats_detected,2,finance,https://grantthornton.ie,https://www.grantthornton.ie/careers/
+Intel,workday,intel:wd1:External,crawled,0,0,ats_detected,1,ats-detection,https://intel.com,
+Jazz Pharmaceuticals,workday,vhr-jazz:wd1:JazzPharmaceuticals,crawled,0,0,ats_detected,2,pharma,https://jazzpharmaceuticals.com,https://careers.jazzpharma.com/
+LetsGetChecked,workday,alto:wd1:FuzeHealthCareerSite,crawled,0,0,ats_detected,2,irish-tech,https://letsgetchecked.com,https://www.letsgetchecked.com/careers/
+Miro,ashby,miro,crawled,0,38,ats_detected,3,manual,https://miro.com,
+Mural,ashby,mural,crawled,0,11,ats_detected,3,manual,https://mural.co,
+Poppulo,greenhouse,poppulo,crawled,0,11,ats_detected,2,irish-tech,https://poppulo.com,https://www.poppulo.com/careers
+Ramp,ashby,ramp,crawled,0,147,ats_detected,3,manual,https://ramp.com,
+Roche Ireland,workday,roche:wd3:roche-ext,crawled,0,0,ats_detected,2,pharma,https://roche.com,https://careers.roche.com/global/en/dach-region-jobs
+Slack,workday,salesforce:wd12:Slack,crawled,0,0,ats_detected,2,mnc-tech,https://slack.com,https://slack.com/intl/en-ie/careers
+Spotify,lever,spotify,crawled,0,86,ats_detected,2,manual,https://spotify.com,
+Stryker,workday,stryker:wd1:StrykerCareers,crawled,0,0,ats_detected,1,medtech,https://stryker.com,https://careers.stryker.com
+Twilio,greenhouse,twilio,crawled,0,154,ats_detected,2,manual,https://twilio.com,
+Vercel,greenhouse,vercel,crawled,0,88,ats_detected,3,manual,https://vercel.com,
+Virgin Media Ireland,workday,libertyglobal:wd3:VMIE_Careers,crawled,0,0,ats_detected,2,telecom,https://virginmedia.ie,https://www.virginmedia.ie/about-us/careers/
+Visa,workday,visa:wd5:Visa,crawled,0,0,ats_detected,1,mnc-tech,https://visa.com,https://corporate.visa.com/en/careers.html
+A&L Goodbody,,,directory link,0,0,blocked,2,legal,https://algoodbody.com,https://www.algoodbody.com/careers?roles=business-services
+AbbVie,,,directory link,0,0,blocked,1,pharma,https://abbvie.com,https://www.abbvie.com/join-us.html?utm_source=CAREERS-URL
+ABP Food Group,,,not yet resolved,0,0,unresolved,3,fmcg,https://abpfoodgroup.com,
+Activision Blizzard,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://activisionblizzard.com,
+Adecco Ireland,,,not yet resolved,0,0,unresolved,3,recruitment,https://adecco.ie,
+Adobe,,,directory link,0,0,blocked,2,mnc-tech,https://adobe.com,https://careers.adobe.com/us/en
+Adyen,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://adyen.com,
+Aer Lingus,,,directory link,0,0,no_careers_page,1,transport,https://aerlingus.com,https://aerlingus.com
+Aerogen,,,not yet resolved,0,0,unresolved,3,irish-tech,https://aerogen.com,
+AIB,,,directory link,0,0,blocked,1,finance,https://aib.ie,https://www.aib.ie/careers
+AIB Merchant Services,,,not yet resolved,0,0,unresolved,4,finance,https://aibms.com,
+Aiden,,,not yet resolved,0,0,unresolved,4,irish-tech,https://aiden.ai,
+Aircraft Leasing - AerCap,,,not yet resolved,0,0,unresolved,2,transport,https://aercap.com,
+Airtable,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://airtable.com,
+Akamai,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://akamai.com,
+Akkure,,,not yet resolved,0,0,unresolved,4,irish-tech,https://akkure.com,
+Aldi Ireland,,,directory link,0,0,no_careers_page,1,retail,https://aldi.ie,https://aldi.ie
+Alexion,,,directory link,0,0,blocked,2,pharma,https://alexion.com,https://careers.alexion.com/
+Algolia,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://algolia.com,
+Allianz Ireland,,,directory link,0,0,no_careers_page,2,finance,https://allianz.ie,https://allianz.ie
+Almac Group,,,not yet resolved,0,0,unresolved,3,pharma,https://almacgroup.com,
+Altada,,,not yet resolved,0,0,unresolved,4,irish-tech,https://altada.com,
+AMCS Group,,,directory link,0,0,blocked,2,irish-tech,https://amcsgroup.com,https://www.amcsgroup.com/careers/
+Amgen Ireland,,,directory link,0,0,blocked,2,pharma,https://amgen.com,https://careers.amgen.com/en
+An Post,,,directory link,0,0,no_careers_page,1,transport,https://anpost.ie,https://www.anpost.com/
+Analog Devices,,,directory link,0,0,no_careers_page,2,mnc-tech,https://analog.com,https://analog.com
+Ancestry Ireland,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://ancestry.com,
+Anthropic,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://anthropic.com,
+Aon,,,not yet resolved,0,0,unresolved,3,finance,https://aon.com,
+APC Ltd,,,not yet resolved,0,0,unresolved,3,pharma,https://approcess.com,
+Apple,,,directory link,0,0,blocked,1,mnc-tech,https://apple.com,https://www.apple.com/careers/us/
+Applegreen,,,directory link,0,0,no_careers_page,2,retail,https://applegreen.com,https://applegreen.com
+Arista Networks,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://arista.com,
+Arkphire,,,not yet resolved,0,0,unresolved,3,irish-tech,https://arkphire.com,
+Arthur Cox,,,not yet resolved,0,0,unresolved,2,legal,https://arthurcox.com,
+Artomatix,,,not yet resolved,0,0,unresolved,4,irish-tech,https://artomatix.com,
+Arup Ireland,,,not yet resolved,0,0,unresolved,2,engineering,https://arup.com,
+Assure Hedge,,,not yet resolved,0,0,unresolved,4,irish-tech,https://assurehedge.com,
+AstraZeneca,,,directory link,0,0,blocked,2,pharma,https://astrazeneca.com,https://careers.astrazeneca.com
+Asystec,,,not yet resolved,0,0,unresolved,3,irish-tech,https://asystec.ie,
+Atlantic Technological University,,,not yet resolved,0,0,unresolved,3,education,https://atu.ie,
+Atlassian,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://atlassian.com,
+Atos,,,not yet resolved,0,0,unresolved,3,consulting,https://atos.net,
+Auxilion,,,not yet resolved,0,0,unresolved,3,irish-tech,https://auxilion.com,
+Aviation Capital Group,,,not yet resolved,0,0,unresolved,4,transport,https://aviationcapitalgroup.com,
+Aviva,,,directory link,0,0,blocked,2,finance,https://aviva.ie,https://www.aviva.ie/group/careers/
+Avolon,,,not yet resolved,0,0,unresolved,2,transport,https://avolon.aero,
+AXA Ireland,,,directory link,0,0,blocked,2,finance,https://axa.ie,https://www.axa.ie/careers
+BAM Ireland,,,not yet resolved,0,0,unresolved,2,construction,https://bamireland.ie,
+Bank of Ireland,,,directory link,0,0,blocked,1,finance,https://bankofireland.com,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers
+BDO Ireland,,,not yet resolved,0,0,unresolved,3,finance,https://bdo.ie,
+Bearingpoint Ireland,,,not yet resolved,0,0,unresolved,3,consulting,https://bearingpoint.com,
+Beats Medical,,,not yet resolved,0,0,unresolved,4,irish-tech,https://beatsmedical.com,
+Berkley Recruitment,,,not yet resolved,0,0,unresolved,4,recruitment,https://berkley.ie,
+Bewley's,,,not yet resolved,0,0,unresolved,4,fmcg,https://bewleys.com,
+Bizimply,,,not yet resolved,0,0,unresolved,3,irish-tech,https://bizimply.com,
+BlackRock,,,directory link,0,0,blocked,2,finance,https://blackrock.com,https://careers.blackrock.com/
+Block,,,directory link,0,0,blocked,2,mnc-tech,https://block.xyz,https://block.xyz/careers/jobs
+BNY Mellon,,,directory link,0,0,blocked,1,finance,https://bny.com,https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/BNY-Careers
+Boards.ie,,,not yet resolved,0,0,unresolved,4,irish-tech,https://boards.ie,
+Bolt,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://bolt.eu,
+Booking.com,,,directory link,0,0,blocked,2,mnc-tech,https://booking.com,https://careers.booking.com
+Bord na Mona,,,not yet resolved,0,0,unresolved,2,utilities,https://bordnamona.ie,
+Boston Scientific,,,directory link,0,0,blocked,1,medtech,https://bostonscientific.com,https://bostonscientific.com/en-US/careers.html
+Box,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://box.com,
+Boxever,,,not yet resolved,0,0,unresolved,4,irish-tech,https://boxever.com,
+Brex,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://brex.com,
+Brightflag,,,not yet resolved,0,0,unresolved,2,irish-tech,https://brightflag.com,
+Broadridge,,,not yet resolved,0,0,unresolved,3,finance,https://broadridge.com,
+Brown Thomas Arnotts,,,not yet resolved,0,0,unresolved,2,retail,https://brownthomas.com,
+BT Ireland,,,not yet resolved,0,0,unresolved,2,telecom,https://bt.com,
+Bus Eireann,,,not yet resolved,0,0,unresolved,3,transport,https://buseireann.ie,
+Business Post,,,not yet resolved,0,0,unresolved,4,media,https://businesspost.ie,
+Byrne Looby,,,not yet resolved,0,0,unresolved,4,engineering,https://byrnelooby.com,
+Byrne Wallace,,,not yet resolved,0,0,unresolved,3,legal,https://byrnewallace.com,
+C&C Group,,,not yet resolved,0,0,unresolved,2,fmcg,https://candcgroupplc.com,
+Cameo Systems,,,not yet resolved,0,0,unresolved,4,irish-tech,https://cameo.ie,
+Cantillon Group,,,not yet resolved,0,0,unresolved,4,irish-tech,https://cantillon.ie,
+Cantor Fitzgerald Ireland,,,not yet resolved,0,0,unresolved,3,finance,https://cantorfitzgerald.ie,
+Canva,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://canva.com,
+Capgemini,,,directory link,0,0,blocked,2,consulting,https://capgemini.com,https://www.capgemini.com/careers/
+CBRE Ireland,,,not yet resolved,0,0,unresolved,3,property,https://cbre.ie,
+Central Bank of Ireland,,,directory link,0,0,blocked,1,finance,https://centralbank.ie,https://www.centralbank.ie/careers
+CGI,,,not yet resolved,0,0,unresolved,3,consulting,https://cgi.com,
+Chargebee Ireland,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://chargebee.com,
+Charles River Laboratories,,,not yet resolved,0,0,unresolved,3,pharma,https://criver.com,
+Checkout.com,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://checkout.com,
+Chill Insurance,,,not yet resolved,0,0,unresolved,4,finance,https://chill.ie,
+Circit,,,not yet resolved,0,0,unresolved,4,irish-tech,https://circit.io,
+Circle K Ireland,,,not yet resolved,0,0,unresolved,3,retail,https://circlek.ie,
+Cisco,,,directory link,0,0,blocked,1,mnc-tech,https://cisco.com,https://careers.cisco.com/global/en/home
+Clanwilliam Health,,,not yet resolved,0,0,unresolved,3,irish-tech,https://clanwilliamhealth.com,
+Clark Energy,,,not yet resolved,0,0,unresolved,4,engineering,https://clarke-energy.com,
+Clearstream,,,not yet resolved,0,0,unresolved,3,finance,https://clearstream.com,
+CleverCards,,,not yet resolved,0,0,unresolved,3,irish-tech,https://clevercards.com,
+Cloudflare,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://cloudflare.com,
+CluneTech,,,not yet resolved,0,0,unresolved,3,irish-tech,https://clunetech.com,
+Coca-Cola HBC Ireland,,,not yet resolved,0,0,unresolved,3,fmcg,https://coca-colahellenic.com,
+Codec,,,not yet resolved,0,0,unresolved,3,irish-tech,https://codec.ie,
+Codex,,,not yet resolved,0,0,unresolved,4,irish-tech,https://codex.ie,
+Cognizant,,,not yet resolved,0,0,unresolved,2,consulting,https://cognizant.com,
+Collen Construction,,,not yet resolved,0,0,unresolved,3,construction,https://collen.com,
+Collins McNicholas,,,not yet resolved,0,0,unresolved,3,recruitment,https://collinsmcnicholas.ie,
+Container Centralen,,,not yet resolved,0,0,unresolved,4,irish-tech,https://container-centralen.com,
+Contentful,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://contentful.com,
+Cook Medical,,,directory link,0,0,blocked,2,medtech,https://cookmedical.com,https://www.cookmedical.com/careers/
+Cora Systems,,,not yet resolved,0,0,unresolved,4,irish-tech,https://corasystems.com,
+Cork City Council,,,not yet resolved,0,0,unresolved,3,public-sector,https://corkcity.ie,
+Corlytics,,,not yet resolved,0,0,unresolved,3,irish-tech,https://corlytics.com,
+Corvil,,,not yet resolved,0,0,unresolved,4,irish-tech,https://corvil.com,
+Coursera,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://coursera.org,
+CPL Resources,,,directory link,0,0,blocked,1,recruitment,https://cpl.com,https://consent.youtube.com/ml?continue=https://www.youtube.com/user/CplJobsIreland?cbrd%3D1&gl=IE&hl=en-GB&cm=2&pc=yt&src=1&escs=ATu9isETLyaL85MR_5CYMZMfIOJM_UmOvejYIp2pybKGLRtzzQMujl_hODlkxcIEGGPMBGEubic6du343e93dsJzux0RfrPkCIkJ
+Credit Suisse,,,not yet resolved,0,0,unresolved,4,finance,https://ubs.com,
+CRH,,,directory link,0,0,no_careers_page,1,construction,https://crh.com,https://crh.com
+Crowdcube Ireland,,,not yet resolved,0,0,unresolved,4,irish-tech,https://crowdcube.com,
+CrowdStrike,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://crowdstrike.com,
+Cubic Telecom,,,directory link,0,0,no_careers_page,2,irish-tech,https://cubictelecom.com,https://cubictelecom.com
+CurrencyFair,,,not yet resolved,0,0,unresolved,3,irish-tech,https://currencyfair.com,
+Currys Ireland,,,not yet resolved,0,0,unresolved,3,retail,https://currys.ie,
+Cyc-Lok,,,not yet resolved,0,0,unresolved,4,irish-tech,https://cyc-lok.com,
+Dairygold,,,not yet resolved,0,0,unresolved,3,fmcg,https://dairygold.ie,
+Dalata Hotel Group,,,not yet resolved,0,0,unresolved,2,hospitality,https://dalatahotelgroup.com,
+Danalto,,,not yet resolved,0,0,unresolved,4,irish-tech,https://danalto.com,
+Danone Ireland,,,not yet resolved,0,0,unresolved,3,fmcg,https://danone.com,
+Daon,,,not yet resolved,0,0,unresolved,3,irish-tech,https://daon.com,
+Databricks,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://databricks.com,
+Datalex,,,not yet resolved,0,0,unresolved,3,irish-tech,https://datalex.com,
+Dawn Meats,,,not yet resolved,0,0,unresolved,3,fmcg,https://dawnmeats.com,
+Decawave,,,not yet resolved,0,0,unresolved,3,irish-tech,https://decawave.com,
+Deciphex,,,not yet resolved,0,0,unresolved,3,irish-tech,https://deciphex.com,
+Deliveroo,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://deliveroo.ie,
+Dell Technologies,,,directory link,0,0,blocked,1,mnc-tech,https://dell.com,https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers
+Demonware,,,not yet resolved,0,0,unresolved,3,irish-tech,https://demonware.net,
+Department of Social Protection,,,not yet resolved,0,0,unresolved,3,public-sector,https://gov.ie,
+Deposify,,,not yet resolved,0,0,unresolved,4,irish-tech,https://deposify.com,
+Designer Group,,,not yet resolved,0,0,unresolved,3,construction,https://designergrp.com,
+Deutsche Bank,,,not yet resolved,0,0,unresolved,3,finance,https://db.com,
+DHL Ireland,,,not yet resolved,0,0,unresolved,3,transport,https://dhl.com,
+Diageo Ireland,,,directory link,0,0,no_careers_page,1,fmcg,https://diageo.com,https://diageo.com
+Digit Games,,,not yet resolved,0,0,unresolved,4,irish-tech,https://digitgaming.com,
+Dillon Eustace,,,not yet resolved,0,0,unresolved,3,legal,https://dilloneustace.com,
+Ding,,,not yet resolved,0,0,unresolved,3,irish-tech,https://ding.com,
+Diona,,,not yet resolved,0,0,unresolved,4,irish-tech,https://diona.com,
+Divilia,,,not yet resolved,0,0,unresolved,4,irish-tech,https://divilia.ie,
+Docusign,,,directory link,0,0,blocked,2,mnc-tech,https://docusign.com,https://careers.docusign.com/careers-home
+Dogpatch Labs,,,not yet resolved,0,0,unresolved,4,irish-tech,https://dogpatchlabs.com,
+DPS Group,,,not yet resolved,0,0,unresolved,3,engineering,https://dpsgroupglobal.com,
+Dropchip,,,not yet resolved,0,0,unresolved,4,irish-tech,https://dropchip.com,
+Dublin Airport Authority,,,directory link,0,0,no_careers_page,1,transport,https://daa.ie,https://daa.ie
+Dublin Bus,,,not yet resolved,0,0,unresolved,2,transport,https://dublinbus.ie,
+Dublin City Council,,,not yet resolved,0,0,unresolved,2,public-sector,https://dublincity.ie,
+Dublin City University,,,directory link,0,0,blocked,1,education,https://dcu.ie,https://www.dcu.ie/careers
+Dublin Institute for Advanced Studies,,,not yet resolved,0,0,unresolved,4,education,https://dias.ie,
+Dun Laoghaire Rathdown County Council,,,not yet resolved,0,0,unresolved,3,public-sector,https://dlrcoco.ie,
+Dunnes Stores,,,directory link,0,0,blocked,2,retail,https://dunnesstores.com,https://www.dunnesstores.com/careers
+Duolingo,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://duolingo.com,
+eBay,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://ebay.com,
+EdgeTier,,,not yet resolved,0,0,unresolved,3,irish-tech,https://edgetier.com,
+Eir,,,directory link,0,0,no_careers_page,1,telecom,https://eir.ie,https://eir.ie
+EirGrid,,,not yet resolved,0,0,unresolved,2,utilities,https://eirgrid.ie,
+Electronic Arts,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://ea.com,
+Eli Lilly,,,directory link,0,0,no_careers_page,2,pharma,https://lilly.com,https://lilly.com
+Emagine Ireland,,,not yet resolved,0,0,unresolved,4,consulting,https://emagine.ie,
+Emydex,,,not yet resolved,0,0,unresolved,4,irish-tech,https://emydex.com,
+Endo International,,,not yet resolved,0,0,unresolved,3,pharma,https://endo.com,
+Energia,,,not yet resolved,0,0,unresolved,3,utilities,https://energia.ie,
+Enet,,,not yet resolved,0,0,unresolved,3,telecom,https://enet.ie,
+Enterprise Ireland,,,not yet resolved,0,0,unresolved,2,public-sector,https://enterprise-ireland.com,
+Epic Games,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://epicgames.com,
+Equal1,,,not yet resolved,0,0,unresolved,3,irish-tech,https://equal1.com,
+Ergo,,,directory link,0,0,blocked,2,irish-tech,https://ergogroup.ie,https://ergotechnologygroup.com/careers/
+Ericsson,,,directory link,0,0,blocked,2,mnc-tech,https://ericsson.com,https://jobs.ericsson.com/careers
+ESB,,,directory link,0,0,blocked,1,utilities,https://esb.ie,https://esb.ie/careers
+Escher Group,,,not yet resolved,0,0,unresolved,3,irish-tech,https://eschergroup.com,
+Ethos Engineering,,,not yet resolved,0,0,unresolved,3,engineering,https://ethoseng.ie,
+Etsy,,,directory link,0,0,blocked,2,mnc-tech,https://etsy.com,https://careers.etsy.com
+Eurofins,,,not yet resolved,0,0,unresolved,3,pharma,https://eurofins.com,
+Euronext Dublin,,,not yet resolved,0,0,unresolved,3,finance,https://euronext.com,
+Everseen,,,not yet resolved,0,0,unresolved,3,irish-tech,https://everseen.com,
+Eversheds Sutherland Ireland,,,not yet resolved,0,0,unresolved,3,legal,https://eversheds-sutherland.com,
+Evros Technology,,,not yet resolved,0,0,unresolved,3,irish-tech,https://evros.ie,
+Excel Recruitment,,,not yet resolved,0,0,unresolved,3,recruitment,https://excelrecruitment.com,
+Exergyn,,,not yet resolved,0,0,unresolved,4,irish-tech,https://exergyn.com,
+Expedia,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://expedia.com,
+Expleo,,,not yet resolved,0,0,unresolved,3,consulting,https://expleogroup.com,
+Failte Ireland,,,not yet resolved,0,0,unresolved,3,public-sector,https://failteireland.ie,
+Fastly,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://fastly.com,
+Fathom Technology,,,not yet resolved,0,0,unresolved,4,irish-tech,https://fathom.ie,
+FBD Insurance,,,directory link,0,0,blocked,2,finance,https://fbd.ie,https://www.fbd.ie/careers
+Fexco,,,directory link,0,0,blocked,2,finance,https://fexco.com,https://www.fexco.com/careers/
+Fexillon,,,not yet resolved,0,0,unresolved,4,irish-tech,https://fexillon.com,
+Fidelity Investments,,,directory link,0,0,blocked,1,finance,https://fidelity.com,https://jobs.fidelity.com/en/
+Fineos,,,directory link,0,0,blocked,2,irish-tech,https://fineos.com,https://careers.fineos.com?utm_campaign=CorporateSite
+Fingal County Council,,,not yet resolved,0,0,unresolved,3,public-sector,https://fingal.ie,
+Fitzwilliam Hotel Group,,,not yet resolved,0,0,unresolved,4,hospitality,https://fitzwilliamhotel.com,
+Flahavan's,,,not yet resolved,0,0,unresolved,4,fmcg,https://flahavans.com,
+FlexiCapital,,,not yet resolved,0,0,unresolved,4,irish-tech,https://flexicapital.ie,
+Fonoa,,,not yet resolved,0,0,unresolved,3,irish-tech,https://fonoa.com,
+Forcepoint,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://forcepoint.com,
+Fourtheorem,,,not yet resolved,0,0,unresolved,4,irish-tech,https://fourtheorem.com,
+FreeNow,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://free-now.com,
+Freight Investor Services,,,not yet resolved,0,0,unresolved,4,finance,https://freightinvestor.com,
+Freshworks,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://freshworks.com,
+FRS Recruitment,,,not yet resolved,0,0,unresolved,3,recruitment,https://frsrecruitment.com,
+Fund Recs,,,not yet resolved,0,0,unresolved,4,irish-tech,https://fundrecs.com,
+Gas Networks Ireland,,,not yet resolved,0,0,unresolved,2,utilities,https://gasnetworks.ie,
+Genomics Medicine Ireland,,,not yet resolved,0,0,unresolved,3,irish-tech,https://genomicsmed.ie,
+Getir,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://getir.com,
+Getvisibility,,,not yet resolved,0,0,unresolved,3,irish-tech,https://getvisibility.com,
+GitHub,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://github.com,
+GitLab,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://gitlab.com,
+Glanbia,,,directory link,0,0,no_careers_page,1,fmcg,https://glanbia.com,https://glanbia.com
+Glenveagh Properties,,,not yet resolved,0,0,unresolved,2,construction,https://glenveagh.ie,
+Global Shares,,,not yet resolved,0,0,unresolved,3,irish-tech,https://globalshares.com,
+Glofox,,,not yet resolved,0,0,unresolved,3,irish-tech,https://glofox.com,
+Goldman Sachs,,,directory link,0,0,blocked,2,finance,https://goldmansachs.com,https://www.goldmansachs.com/careers
+Goodbody,,,directory link,0,0,blocked,2,finance,https://goodbody.ie,https://www.goodbody.ie/careers/
+gradireland,,,directory link,0,0,blocked,1,graduate,https://gradireland.com,https://targetjobs.co.uk
+Grafana Labs,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://grafana.com,
+Grammarly,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://grammarly.com,
+Green REIT,,,not yet resolved,0,0,unresolved,4,property,https://greenreitplc.com,
+Grid Finance,,,not yet resolved,0,0,unresolved,4,finance,https://gridfinance.ie,
+GSK Ireland,,,directory link,0,0,blocked,2,pharma,https://gsk.com,https://www.gsk.com/en-gb/careers/
+Harvey Norman Ireland,,,not yet resolved,0,0,unresolved,3,retail,https://harveynorman.ie,
+HashiCorp,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://hashicorp.com,
+Havok,,,not yet resolved,0,0,unresolved,4,irish-tech,https://havok.com,
+Hays Ireland,,,not yet resolved,0,0,unresolved,2,recruitment,https://hays.ie,
+Health Service Executive,,,directory link,0,0,no_careers_page,1,public-sector,https://hse.ie,https://hse.ie
+HealthBeacon,,,not yet resolved,0,0,unresolved,4,irish-tech,https://healthbeacon.com,
+HealthTech Ireland,,,not yet resolved,0,0,unresolved,4,irish-tech,https://healthtechireland.ie,
+Hibernia REIT,,,not yet resolved,0,0,unresolved,4,property,https://hiberniareit.com,
+HiTech Cluster,,,not yet resolved,0,0,unresolved,4,irish-tech,https://hitechcluster.ie,
+Home Building Finance Ireland,,,not yet resolved,0,0,unresolved,4,finance,https://hbfi.ie,
+Horizon Therapeutics,,,not yet resolved,0,0,unresolved,3,pharma,https://horizontherapeutics.com,
+Hostelworld,,,not yet resolved,0,0,unresolved,3,irish-tech,https://hostelworld.com,
+HP,,,directory link,0,0,blocked,2,mnc-tech,https://hp.com,https://jobs.hp.com/
+HPE,,,directory link,0,0,blocked,2,mnc-tech,https://hpe.com,https://careers.hpe.com/us/en
+HSBC,,,not yet resolved,0,0,unresolved,3,finance,https://hsbc.com,
+HubSpot,,,directory link,0,0,blocked,1,mnc-tech,https://hubspot.com,https://www.hubspot.com/careers
+IBM,,,directory link,0,0,blocked,1,mnc-tech,https://ibm.com,https://careers.ibm.com/en_US/careers
+ICON plc,,,directory link,0,0,unresolved,1,pharma,https://iconplc.com,https://careers.iconplc.com
+IDA Ireland,,,not yet resolved,0,0,unresolved,2,public-sector,https://idaireland.com,
+IMC Trading,,,not yet resolved,0,0,unresolved,3,finance,https://imc.com,
+Immedis,,,not yet resolved,0,0,unresolved,3,irish-tech,https://immedis.com,
+Indeed,,,directory link,0,0,no_careers_page,1,mnc-tech,https://indeed.com,https://indeed.com
+Independent News & Media,,,not yet resolved,0,0,unresolved,3,media,https://independent.ie,
+Inform3,,,not yet resolved,0,0,unresolved,4,irish-tech,https://inform3.com,
+Infosys,,,directory link,0,0,no_careers_page,2,consulting,https://infosys.com,https://infosys.com
+Inhance,,,not yet resolved,0,0,unresolved,4,irish-tech,https://inhance.ie,
+Innopharma,,,not yet resolved,0,0,unresolved,4,pharma,https://innopharmalabs.com,
+Integra LifeSciences,,,not yet resolved,0,0,unresolved,3,medtech,https://integralife.com,
+Integrity360,,,not yet resolved,0,0,unresolved,3,irish-tech,https://integrity360.com,
+Intercom Dublin,,,not yet resolved,0,0,unresolved,4,irish-tech,https://intercom.com,
+Investec Ireland,,,not yet resolved,0,0,unresolved,3,finance,https://investec.com,
+IPUT Real Estate,,,not yet resolved,0,0,unresolved,3,property,https://iput.com,
+IQVIA,,,directory link,0,0,blocked,2,pharma,https://iqvia.com,https://careers.usnews.com/companies/iqvia-39103858
+Irish Distillers,,,not yet resolved,0,0,unresolved,2,fmcg,https://irishdistillers.ie,
+Irish Ferries,,,not yet resolved,0,0,unresolved,3,transport,https://irishferries.com,
+Irish Life,,,directory link,0,0,blocked,1,finance,https://irishlife.ie,https://irishlife.ie/careers/
+Irish Rail,,,not yet resolved,0,0,unresolved,2,transport,https://irishrail.ie,
+Jacobs Ireland,,,not yet resolved,0,0,unresolved,2,engineering,https://jacobs.com,
+Jagex,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://jagex.com,
+Jaguar Land Rover Shannon,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://jaguarlandrover.com,
+Janssen Sciences Ireland,,,directory link,0,0,ats_detected,2,pharma,https://janssen.com,https://www.careers.jnj.com/en/
+JJ Rhatigan,,,not yet resolved,0,0,unresolved,3,construction,https://jjrhatigan.ie,
+John Sisk & Son,,,not yet resolved,0,0,unresolved,2,construction,https://johnsiskandson.com,
+Jones Engineering,,,not yet resolved,0,0,unresolved,2,construction,https://joneseng.com,
+JPMorgan Chase,,,directory link,0,0,blocked,1,finance,https://jpmorganchase.com,https://www.jpmorganchase.com/careers
+Jurys Inn,,,not yet resolved,0,0,unresolved,3,hospitality,https://jurysinns.com,
+Just Eat Takeaway,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://justeattakeaway.com,
+Kastus,,,not yet resolved,0,0,unresolved,4,irish-tech,https://kastus.com,
+Keelvar,,,not yet resolved,0,0,unresolved,3,irish-tech,https://keelvar.com,
+Kepak,,,not yet resolved,0,0,unresolved,3,fmcg,https://kepak.com,
+Kerry Group,,,directory link,0,0,no_careers_page,1,fmcg,https://kerrygroup.com,https://kerrygroup.com
+Keywords Studios,,,directory link,0,0,blocked,2,mnc-tech,https://keywordsstudios.com,https://www.keywordsstudios.com/en/careers/browse-careers/
+Kianda,,,not yet resolved,0,0,unresolved,4,irish-tech,https://kianda.com,
+Kingspan,,,directory link,0,0,no_careers_page,1,construction,https://kingspan.com,https://www.kingspan.com/
+Kinzen,,,not yet resolved,0,0,unresolved,4,irish-tech,https://kinzen.com,
+Klarna,,,directory link,0,0,blocked,2,mnc-tech,https://klarna.com,https://www.klarna.com/careers/
+Klearcom,,,not yet resolved,0,0,unresolved,4,irish-tech,https://klearcom.com,
+KPMG Ireland,,,directory link,0,0,blocked,1,consulting,https://kpmg.ie,https://kpmg.ie/careers/
+Lakeland Dairies,,,not yet resolved,0,0,unresolved,3,fmcg,https://lakeland.ie,
+Largo Foods,,,not yet resolved,0,0,unresolved,4,fmcg,https://largofoods.ie,
+Laya Healthcare,,,not yet resolved,0,0,unresolved,3,finance,https://layahealthcare.ie,
+Lidl Ireland,,,directory link,0,0,blocked,1,retail,https://lidl.ie,https://jobs.lidl.ie
+Lightyear,,,not yet resolved,0,0,unresolved,4,irish-tech,https://lightyear.com,
+LinkedIn,,,directory link,0,0,blocked,1,mnc-tech,https://linkedin.com,https://www.linkedin.com/top-content/career/
+Logentries,,,not yet resolved,0,0,unresolved,4,irish-tech,https://logentries.com,
+Lonza,,,not yet resolved,0,0,unresolved,3,pharma,https://lonza.com,
+Loom,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://loom.com,
+Luzern eCommerce,,,not yet resolved,0,0,unresolved,4,irish-tech,https://luzern.co,
+Mallinckrodt,,,not yet resolved,0,0,unresolved,3,pharma,https://mallinckrodt.com,
+Manna,,,not yet resolved,0,0,unresolved,3,irish-tech,https://manna.aero,
+ManpowerGroup Ireland,,,not yet resolved,0,0,unresolved,3,recruitment,https://manpower.ie,
+Maples Group,,,directory link,0,0,blocked,2,legal,https://maples.com,https://maplesgroupcareers.ttcportals.com/
+Marino Software,,,not yet resolved,0,0,unresolved,4,irish-tech,https://marinosoftware.com,
+Marqeta,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://marqeta.com,
+Marsh Ireland,,,not yet resolved,0,0,unresolved,3,finance,https://marsh.com,
+Mason Hayes & Curran,,,directory link,0,0,blocked,2,legal,https://mhc.ie,https://www.mhc.ie/careers
+Matheson,,,directory link,0,0,blocked,2,legal,https://matheson.com,https://www.matheson.com/
+Matrix Recruitment,,,not yet resolved,0,0,unresolved,4,recruitment,https://matrixrecruitment.ie,
+Maynooth University,,,not yet resolved,0,0,unresolved,2,education,https://maynoothuniversity.ie,
+Mazars Ireland,,,not yet resolved,0,0,unresolved,3,finance,https://mazars.ie,
+McAfee,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://mcafee.com,
+McCann FitzGerald,,,not yet resolved,0,0,unresolved,2,legal,https://mccannfitzgerald.com,
+McDonald's Ireland,,,not yet resolved,0,0,unresolved,3,hospitality,https://mcdonalds.ie,
+Mediquo,,,not yet resolved,0,0,unresolved,4,irish-tech,https://mediquo.com,
+Medtronic,,,directory link,0,0,no_careers_page,1,medtech,https://medtronic.com,https://medtronic.com
+Mercer,,,not yet resolved,0,0,unresolved,3,finance,https://mercer.com,
+Merck Millipore,,,not yet resolved,0,0,unresolved,3,pharma,https://merckgroup.com,
+Mercury Engineering,,,not yet resolved,0,0,unresolved,2,construction,https://mercuryeng.com,
+Met Eireann,,,not yet resolved,0,0,unresolved,4,public-sector,https://met.ie,
+Meta,,,directory link,0,0,unresolved,1,mnc-tech,https://meta.com,https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect
+Microsoft,,,directory link,0,0,blocked,1,mnc-tech,https://microsoft.com,https://careers.microsoft.com/v2/global/en/home.html
+Mixpanel,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://mixpanel.com,
+Modulr,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://modulrfinance.com,
+Morgan McKinley,,,not yet resolved,0,0,unresolved,2,recruitment,https://morganmckinley.com,
+Morgan Stanley,,,directory link,0,0,blocked,2,finance,https://morganstanley.com,https://www.morganstanley.com/people-opportunities/eeo
+Munster Technological University,,,not yet resolved,0,0,unresolved,3,education,https://mtu.ie,
+Musgrave Group,,,directory link,0,0,blocked,1,retail,https://musgravegroup.com,https://musgravegroup.com/careers/
+MyWallSt,,,not yet resolved,0,0,unresolved,4,irish-tech,https://mywallst.com,
+N26,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://n26.com,
+Nathean Technologies,,,not yet resolved,0,0,unresolved,4,irish-tech,https://nathean.com,
+Nearform,,,not yet resolved,0,0,unresolved,3,irish-tech,https://nearform.com,
+Nestle Ireland,,,not yet resolved,0,0,unresolved,3,fmcg,https://nestle.ie,
+Netflix,,,directory link,0,0,blocked,2,mnc-tech,https://netflix.com,https://jobs.netflix.com
+Netlify,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://netlify.com,
+Netwatch,,,not yet resolved,0,0,unresolved,3,irish-tech,https://netwatchsystem.com,
+New Ireland Assurance,,,not yet resolved,0,0,unresolved,3,finance,https://newireland.ie,
+Newsweaver,,,not yet resolved,0,0,unresolved,4,irish-tech,https://poppulo.com,
+NewsWhip,,,not yet resolved,0,0,unresolved,3,irish-tech,https://newswhip.com,
+Nium,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://nium.com,
+Nokia,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://nokia.com,
+Nory,,,not yet resolved,0,0,unresolved,3,irish-tech,https://nory.ai,
+Nostra,,,not yet resolved,0,0,unresolved,4,irish-tech,https://nostra.ie,
+Nova Leah,,,not yet resolved,0,0,unresolved,4,irish-tech,https://novaleah.com,
+Novaerus,,,not yet resolved,0,0,unresolved,4,irish-tech,https://novaerus.com,
+Novartis Ireland,,,directory link,0,0,blocked,2,pharma,https://novartis.com,https://www.novartis.com/careers
+Nuritas,,,not yet resolved,0,0,unresolved,3,irish-tech,https://nuritas.com,
+Nuvei Ireland,,,not yet resolved,0,0,unresolved,3,irish-tech,https://nuvei.com,
+Ocuco,,,not yet resolved,0,0,unresolved,3,irish-tech,https://ocuco.com,
+Okta,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://okta.com,
+Ondaka,,,not yet resolved,0,0,unresolved,4,irish-tech,https://ondaka.com,
+Oneview Healthcare,,,not yet resolved,0,0,unresolved,3,irish-tech,https://oneviewhealthcare.com,
+Open Eir,,,not yet resolved,0,0,unresolved,3,telecom,https://openeir.ie,
+OpenAI,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://openai.com,
+Openet,,,not yet resolved,0,0,unresolved,3,irish-tech,https://openet.com,
+Openjaw Technologies,,,not yet resolved,0,0,unresolved,3,irish-tech,https://openjawtech.com,
+Optimizely,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://optimizely.com,
+Optiver,,,not yet resolved,0,0,unresolved,3,finance,https://optiver.com,
+Oracle,,,directory link,0,0,blocked,1,mnc-tech,https://oracle.com,https://careers.oracle.com/en/sites/jobsearch
+Ornua,,,not yet resolved,0,0,unresolved,2,fmcg,https://ornua.com,
+Osborne Recruitment,,,not yet resolved,0,0,unresolved,3,recruitment,https://osborne.ie,
+Output Sports,,,not yet resolved,0,0,unresolved,4,irish-tech,https://outputsports.com,
+Ovagen,,,not yet resolved,0,0,unresolved,4,irish-tech,https://ovagen.com,
+Palo Alto Networks,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://paloaltonetworks.com,
+Patient MPower,,,not yet resolved,0,0,unresolved,4,irish-tech,https://patientmpower.com,
+PayPal,,,directory link,0,0,blocked,1,mnc-tech,https://paypal.com,https://careers.pypl.com/home/
+Payslip,,,not yet resolved,0,0,unresolved,3,irish-tech,https://payslip.com,
+PCI Pharma Services,,,not yet resolved,0,0,unresolved,3,pharma,https://pciservices.com,
+Peblo,,,not yet resolved,0,0,unresolved,4,irish-tech,https://peblo.io,
+Penneys,,,directory link,0,0,blocked,1,retail,https://primark.com,https://careers.primark.com/en
+PepsiCo Ireland,,,not yet resolved,0,0,unresolved,2,fmcg,https://pepsico.com,
+Permanent TSB,,,directory link,0,0,no_careers_page,2,finance,https://permanenttsb.ie,https://permanenttsb.ie
+Perrigo,,,not yet resolved,0,0,unresolved,3,pharma,https://perrigo.com,
+Personio,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://personio.com,
+Phorest,,,not yet resolved,0,0,unresolved,2,irish-tech,https://phorest.com,
+Pipedrive,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://pipedrive.com,
+Plaid,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://plaid.com,
+PlanNet21,,,not yet resolved,0,0,unresolved,4,irish-tech,https://plannet21.ie,
+Plynk,,,not yet resolved,0,0,unresolved,4,irish-tech,https://plynk.ie,
+PM Group,,,not yet resolved,0,0,unresolved,2,engineering,https://pmgroup-global.com,
+Pointy,,,not yet resolved,0,0,unresolved,4,irish-tech,https://pointy.com,
+PPD,,,not yet resolved,0,0,unresolved,3,pharma,https://ppd.com,
+PrecisionBiotics,,,not yet resolved,0,0,unresolved,4,pharma,https://precisionbiotics.com,
+Priviti,,,not yet resolved,0,0,unresolved,4,irish-tech,https://priviti.com,
+Profitero,,,not yet resolved,0,0,unresolved,3,irish-tech,https://profitero.com,
+Provision Camera,,,not yet resolved,0,0,unresolved,4,irish-tech,https://provisionthermal.com,
+Public Appointments Service,,,directory link,0,0,blocked,1,public-sector,https://publicjobs.ie,https://www.tiktok.com/@publicjobs/
+Qualcomm,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://qualcomm.com,
+Qualio,,,not yet resolved,0,0,unresolved,3,irish-tech,https://qualio.com,
+Randstad Ireland,,,not yet resolved,0,0,unresolved,3,recruitment,https://randstad.ie,
+Rapid7,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://rapid7.com,
+Recruiters,,,not yet resolved,0,0,unresolved,3,recruitment,https://recruiters.ie,
+Regeneron Ireland,,,directory link,0,0,blocked,2,pharma,https://regeneron.com,https://careers.regeneron.com/en/
+Remitly,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://remitly.com,
+Restored Hearing,,,not yet resolved,0,0,unresolved,4,irish-tech,https://restoredhearing.com,
+Revenue Commissioners,,,not yet resolved,0,0,unresolved,2,public-sector,https://revenue.ie,
+Revolut,,,directory link,0,0,no_careers_page,1,mnc-tech,https://revolut.com,https://revolut.com
+Roblox,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://roblox.com,
+Romero Games,,,not yet resolved,0,0,unresolved,4,irish-tech,https://romerogames.com,
+Ronan Daly Jermyn,,,not yet resolved,0,0,unresolved,3,legal,https://rdj.ie,
+Royal College of Surgeons in Ireland,,,not yet resolved,0,0,unresolved,2,education,https://rcsi.com,
+RPS Group,,,not yet resolved,0,0,unresolved,3,engineering,https://rpsgroup.com,
+RSM Ireland,,,not yet resolved,0,0,unresolved,4,finance,https://rsm.global,
+RTE,,,not yet resolved,0,0,unresolved,2,media,https://rte.ie,
+Ryanair,,,directory link,0,0,no_careers_page,1,transport,https://ryanair.com,https://www.ryanair.com/ie/en
+Ryanair Labs,,,not yet resolved,0,0,unresolved,2,irish-tech,https://ryanair.com,
+Salesforce,,,directory link,0,0,blocked,1,mnc-tech,https://salesforce.com,https://trailhead.salesforce.com/career-path/
+Sanity,,,not yet resolved,0,0,unresolved,4,mnc-tech,https://sanity.io,
+Sanofi Ireland,,,directory link,0,0,blocked,2,pharma,https://sanofi.com,https://jobs.sanofi.com/en
+SAP,,,directory link,0,0,blocked,1,mnc-tech,https://sap.com,https://jobs.sap.com
+Savills Ireland,,,not yet resolved,0,0,unresolved,3,property,https://savills.ie,
+Science Foundation Ireland,,,not yet resolved,0,0,unresolved,3,public-sector,https://sfi.ie,
+Scopely,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://scopely.com,
+Scurri,,,not yet resolved,0,0,unresolved,3,irish-tech,https://scurri.com,
+Sedicii,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sedicii.com,
+Segment,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://segment.com,
+Sentry,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://sentry.io,
+ServiceNow,,,directory link,0,0,blocked,1,mnc-tech,https://servicenow.com,https://careers.servicenow.com
+Sherry FitzGerald,,,not yet resolved,0,0,unresolved,3,property,https://sherryfitz.ie,
+Shopify,,,directory link,0,0,blocked,2,mnc-tech,https://shopify.com,https://www.shopify.com/careers
+Shutterstock,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://shutterstock.com,
+Sidero,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sidero.ie,
+Sigmar Recruitment,,,not yet resolved,0,0,unresolved,2,recruitment,https://sigmarrecruitment.com,
+SilverCloud Health,,,not yet resolved,0,0,unresolved,3,irish-tech,https://silvercloudhealth.com,
+SIRO,,,not yet resolved,0,0,unresolved,3,telecom,https://siro.ie,
+Sky Ireland,,,not yet resolved,0,0,unresolved,2,telecom,https://sky.com,
+Skyscanner,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://skyscanner.net,
+Smarttech247,,,not yet resolved,0,0,unresolved,3,irish-tech,https://smarttech247.com,
+SMBC Aviation Capital,,,not yet resolved,0,0,unresolved,3,transport,https://smbc.aero,
+Smyths Toys,,,directory link,0,0,blocked,2,retail,https://smythstoys.com,https://careers.smythstoys.com
+Snap,,,directory link,0,0,blocked,2,mnc-tech,https://snap.com,https://careers.snap.com/?lang=en-US
+Snowflake,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://snowflake.com,
+SoapBox Labs,,,not yet resolved,0,0,unresolved,3,irish-tech,https://soapboxlabs.com,
+Solo Energy,,,not yet resolved,0,0,unresolved,4,irish-tech,https://solo.energy,
+Sonic Healthcare Ireland,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sonichealthcare.ie,
+Sonru,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sonru.com,
+Sopra Steria,,,not yet resolved,0,0,unresolved,3,consulting,https://soprasteria.com,
+South Dublin County Council,,,not yet resolved,0,0,unresolved,3,public-sector,https://sdcc.ie,
+South East Technological University,,,not yet resolved,0,0,unresolved,3,education,https://setu.ie,
+Spectrum.Life,,,not yet resolved,0,0,unresolved,3,irish-tech,https://spectrum.life,
+Sports Interactive Ireland,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sigames.com,
+Sretaw,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sretaw.com,
+SS&C Technologies,,,directory link,0,0,blocked,2,finance,https://ssctech.com,https://www.ssctech.com/careers/why-ssc
+SSE Airtricity,,,not yet resolved,0,0,unresolved,2,utilities,https://sseairtricity.com,
+Stena Line Ireland,,,not yet resolved,0,0,unresolved,3,transport,https://stenaline.ie,
+Storm Technology,,,not yet resolved,0,0,unresolved,3,irish-tech,https://storm.ie,
+Strategic Banking Corporation of Ireland,,,not yet resolved,0,0,unresolved,4,finance,https://sbci.gov.ie,
+SumUp,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://sumup.com,
+Supabase,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://supabase.com,
+Supermac's,,,not yet resolved,0,0,unresolved,3,hospitality,https://supermacs.ie,
+SuperValu,,,not yet resolved,0,0,unresolved,3,retail,https://supervalu.ie,
+Susquehanna,,,directory link,0,0,blocked,2,finance,https://sig.com,https://sig.com/careers/
+Swiftcomm,,,not yet resolved,0,0,unresolved,4,irish-tech,https://swiftcomm.ie,
+Swrve,,,not yet resolved,0,0,unresolved,4,irish-tech,https://swrve.com,
+Sysdoc,,,not yet resolved,0,0,unresolved,4,irish-tech,https://sysdoc.com,
+Sysnet Global Solutions,,,not yet resolved,0,0,unresolved,3,irish-tech,https://sysnetgs.com,
+Takeda Ireland,,,directory link,0,0,blocked,2,pharma,https://takeda.com,https://www.takeda.com/careers/
+Tapadoo,,,not yet resolved,0,0,unresolved,4,irish-tech,https://tapadoo.com,
+Taxamo,,,not yet resolved,0,0,unresolved,4,irish-tech,https://taxamo.com,
+TCS,,,directory link,0,0,no_careers_page,2,consulting,https://tcs.com,https://tcs.com
+Teagasc,,,not yet resolved,0,0,unresolved,3,public-sector,https://teagasc.ie,
+Teamwork,,,directory link,0,0,unresolved,2,irish-tech,https://teamwork.com,https://www.teamwork.com/careers/
+Technological University Dublin,,,directory link,0,0,blocked,1,education,https://tudublin.ie,https://www.tudublin.ie/explore/jobs/
+Teleflex,,,directory link,0,0,blocked,2,medtech,https://teleflex.com,https://teleflex.com/emea/en/careers/index.html
+Tenable,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://tenable.com,
+Tender Scout,,,not yet resolved,0,0,unresolved,4,irish-tech,https://tenderscout.com,
+Tesco Ireland,,,directory link,0,0,no_careers_page,2,retail,https://tesco.ie,https://tesco.ie
+Tethras,,,not yet resolved,0,0,unresolved,4,irish-tech,https://tethras.com,
+Teva Ireland,,,not yet resolved,0,0,unresolved,3,pharma,https://tevapharm.com,
+TG4,,,not yet resolved,0,0,unresolved,4,media,https://tg4.ie,
+The Doyle Collection,,,not yet resolved,0,0,unresolved,3,hospitality,https://doylecollection.com,
+The Irish Times,,,not yet resolved,0,0,unresolved,3,media,https://irishtimes.com,
+Thermo Fisher Scientific,,,not yet resolved,0,0,unresolved,2,pharma,https://thermofisher.com,
+Three Ireland,,,directory link,0,0,no_careers_page,1,telecom,https://three.ie,https://www.three.ie/
+Threefold Systems,,,not yet resolved,0,0,unresolved,4,irish-tech,https://threefold.ie,
+TikTok,,,directory link,0,0,blocked,1,mnc-tech,https://tiktok.com,https://lifeattiktok.com/
+Tirlan,,,not yet resolved,0,0,unresolved,3,fmcg,https://tirlan.com,
+TitanHQ,,,not yet resolved,0,0,unresolved,3,irish-tech,https://titanhq.com,
+Toolbx,,,not yet resolved,0,0,unresolved,4,irish-tech,https://toolbx.com,
+Tourism Ireland,,,not yet resolved,0,0,unresolved,3,public-sector,https://tourismireland.com,
+TransferMate,,,not yet resolved,0,0,unresolved,3,irish-tech,https://transfermate.com,
+Transport Infrastructure Ireland,,,not yet resolved,0,0,unresolved,3,transport,https://tii.ie,
+Trend Micro,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://trendmicro.com,
+Trilogy Technologies,,,not yet resolved,0,0,unresolved,4,irish-tech,https://trilogytechnologies.com,
+Trinity College Dublin,,,directory link,0,0,no_careers_page,1,education,https://tcd.ie,https://www.tcd.ie/
+TripAdvisor,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://tripadvisor.com,
+Truata,,,not yet resolved,0,0,unresolved,3,irish-tech,https://truata.com,
+Trustev,,,not yet resolved,0,0,unresolved,4,irish-tech,https://trustev.com,
+Tucker Design,,,not yet resolved,0,0,unresolved,4,irish-tech,https://tuckerdesign.ie,
+Twitch,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://twitch.tv,
+Tyndall National Institute,,,not yet resolved,0,0,unresolved,3,education,https://tyndall.ie,
+Typeform,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://typeform.com,
+Uber,,,directory link,0,0,blocked,2,mnc-tech,https://uber.com,https://jobs.uber.com/en/
+UBS,,,not yet resolved,0,0,unresolved,3,finance,https://ubs.com,
+Uisce Eireann,,,not yet resolved,0,0,unresolved,2,utilities,https://water.ie,
+Umba,,,not yet resolved,0,0,unresolved,4,irish-tech,https://umba.com,
+Unilever Ireland,,,not yet resolved,0,0,unresolved,3,fmcg,https://unilever.com,
+Unity,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://unity.com,
+University College Cork,,,not yet resolved,0,0,unresolved,2,education,https://ucc.ie,
+University College Dublin,,,directory link,0,0,no_careers_page,1,education,https://ucd.ie,https://ucd.ie
+University of Galway,,,not yet resolved,0,0,unresolved,2,education,https://universityofgalway.ie,
+University of Limerick,,,not yet resolved,0,0,unresolved,2,education,https://ul.ie,
+UrbanVolt,,,not yet resolved,0,0,unresolved,4,irish-tech,https://urbanvolt.com,
+Utmost,,,not yet resolved,0,0,unresolved,4,irish-tech,https://utmost.io,
+Valeo Foods,,,not yet resolved,0,0,unresolved,3,fmcg,https://valeofoods.com,
+Veolia Ireland,,,not yet resolved,0,0,unresolved,3,utilities,https://veolia.ie,
+Verizon,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://verizon.com,
+Vertical Bridge,,,not yet resolved,0,0,unresolved,4,irish-tech,https://verticalbridge.ie,
+VHI,,,directory link,0,0,blocked,2,finance,https://vhi.ie,https://www1.vhi.ie/about/careers
+Viatel,,,not yet resolved,0,0,unresolved,3,telecom,https://viatel.com,
+Viatris,,,not yet resolved,0,0,unresolved,3,pharma,https://viatris.com,
+Vidatec,,,not yet resolved,0,0,unresolved,4,irish-tech,https://vidatec.com,
+VideoDoc,,,not yet resolved,0,0,unresolved,4,irish-tech,https://videodoc.ie,
+Virgin Media Television,,,not yet resolved,0,0,unresolved,4,media,https://virginmediatelevision.ie,
+Vivasure Medical,,,not yet resolved,0,0,unresolved,4,medtech,https://vivasuremedical.com,
+VMware,,,directory link,0,0,blocked,2,mnc-tech,https://vmware.com,https://www.vmware.com/careers
+Vodafone Ireland,,,directory link,0,0,no_careers_page,1,telecom,https://vodafone.ie,https://www.vodafone.ie/
+Voxgig,,,not yet resolved,0,0,unresolved,4,irish-tech,https://voxgig.com,
+VoxPro,,,not yet resolved,0,0,unresolved,3,irish-tech,https://voxprogroup.com,
+Walkers Ireland,,,not yet resolved,0,0,unresolved,3,legal,https://walkersglobal.com,
+Walls Construction,,,not yet resolved,0,0,unresolved,3,construction,https://wallsconstruction.ie,
+Waterford Technologies,,,not yet resolved,0,0,unresolved,4,irish-tech,https://waterfordtechnologies.com,
+Webio,,,not yet resolved,0,0,unresolved,4,irish-tech,https://webio.com,
+West Pharmaceutical,,,not yet resolved,0,0,unresolved,3,medtech,https://westpharma.com,
+WhatClinic,,,not yet resolved,0,0,unresolved,4,irish-tech,https://whatclinic.com,
+Wia,,,not yet resolved,0,0,unresolved,4,irish-tech,https://wia.io,
+William Fry,,,directory link,0,0,blocked,2,legal,https://williamfry.com,https://www.williamfry.com/careers/
+Willis Towers Watson,,,not yet resolved,0,0,unresolved,3,finance,https://wtwco.com,
+Winthrop Technologies,,,not yet resolved,0,0,unresolved,3,construction,https://winthroptechnologies.com,
+Wipro,,,not yet resolved,0,0,unresolved,3,consulting,https://wipro.com,
+Wise,,,not yet resolved,0,0,unresolved,2,mnc-tech,https://wise.com,
+Wombat Invest,,,not yet resolved,0,0,unresolved,4,irish-tech,https://wombat.co.uk,
+Woodie's,,,not yet resolved,0,0,unresolved,3,retail,https://woodies.ie,
+Worldpay,,,not yet resolved,0,0,unresolved,3,finance,https://worldpay.com,
+X Corp,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://x.com,
+Xanadu Consultancy,,,not yet resolved,0,0,unresolved,4,irish-tech,https://xanadu.ie,
+Xilinx,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://amd.com,
+Xtremepush,,,not yet resolved,0,0,unresolved,3,irish-tech,https://xtremepush.com,
+Yelp,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://yelp.com,
+Yonder Digital,,,not yet resolved,0,0,unresolved,4,irish-tech,https://yonderdigital.com,
+Zalando Ireland,,,not yet resolved,0,0,unresolved,4,irish-tech,https://zalando.ie,
+Zartis,,,not yet resolved,0,0,unresolved,3,irish-tech,https://zartis.com,
+Zeus Packaging,,,not yet resolved,0,0,unresolved,4,fmcg,https://zeuspackaging.com,
+Zimmer Biomet,,,directory link,0,0,blocked,2,medtech,https://zimmerbiomet.com,https://careers.zimmerbiomet.com/us/en?utm_source=CorporateSite&utm_medium=Nav
+Zinkworks,,,not yet resolved,0,0,unresolved,3,irish-tech,https://zinkworks.com,
+Zoho,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://zoho.com,
+Zolvit,,,not yet resolved,0,0,unresolved,4,irish-tech,https://zolvit.com,
+Zoom,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://zoom.us,
+Zurich Insurance,,,directory link,0,0,blocked,2,finance,https://zurich.ie,https://www.zurich.ie/careers/
+Zynga,,,not yet resolved,0,0,unresolved,3,mnc-tech,https://zynga.com,

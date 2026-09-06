@@ -241,6 +241,42 @@ def _experience_label(job: JobPosting) -> str | None:
     return f"{job.min_years_required}{suffix}"
 
 
+def _prefer_direct_sources(session, rows: list[JobPosting]) -> list[JobPosting]:
+    """Drop copies of a role that a more direct source also carries.
+
+    `Source.tier` orders sources by how close each sits to the employer — an ATS API (1)
+    over a generic extraction (3) over an aggregator (4) — so within a dedup group the
+    lowest tier is the best copy of the job. Ties break on description length, a good
+    proxy for which copy was truncated.
+
+    **The unit of choice is the source, not the posting.** `dedup_key` is company plus
+    canonical title plus location bucket, and that is deliberately not unique: Amazon
+    really does have four separate "Software Development Engineer, AWS Database
+    Migration Service" openings in Dublin, and MongoDB three "Technical Services
+    Engineer". Keeping one posting per dedup group would have hidden 37 genuine Dublin
+    openings in the live database. So a group keeps *every* posting from its winning
+    source and discards only the copies that came from elsewhere — which is exactly the
+    aggregator-duplicate case this exists to solve.
+    """
+    if not rows:
+        return rows
+
+    tiers = dict(session.execute(select(Source.id, Source.tier)).all())
+
+    def rank(job: JobPosting) -> tuple[int, int]:
+        return (tiers.get(job.source_id, 9), -len(job.description or ""))
+
+    # dedup_key -> (best rank seen, the source that achieved it)
+    winner: dict[str, tuple[tuple[int, int], int]] = {}
+    for row in rows:
+        scored = rank(row)
+        current = winner.get(row.dedup_key)
+        if current is None or scored < current[0]:
+            winner[row.dedup_key] = (scored, row.source_id)
+
+    return [row for row in rows if winner[row.dedup_key][1] == row.source_id]
+
+
 def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -> dict:
     """Rank the active jobs against a profile and build the template context."""
     candidate = Candidate(
@@ -263,6 +299,12 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
             stmt = stmt.where(JobPosting.title.ilike(f"%{query}%"))
 
         rows = session.execute(stmt).scalars().all()
+
+        # The same role reaches the database more than once: an aggregator carries a
+        # posting the employer's own board also carries. `dedup_key` groups them and the
+        # direct source wins, so the searcher gets the full description and the real
+        # apply URL rather than a redirect.
+        rows = _prefer_direct_sources(session, rows)
 
         # Eligibility filtering happens here rather than in SQL so the rule lives in
         # one place; the candidate set for a single city is small enough that it costs
@@ -433,6 +475,87 @@ def admin(request: Request):
         states=[s.value for s in CoverageState],
     )
     return templates.TemplateResponse(request, "admin.html", context)
+
+
+@app.get("/directory", response_class=HTMLResponse)
+def directory(request: Request, q: str = "", show: str = "all"):
+    """Every employer in the registry, crawlable or not.
+
+    This is the honest answer to "is my company covered?". No crawler will ever reach
+    100% of Irish employers — some render their listings entirely in JavaScript, some
+    sit behind a bot wall, some have no careers page at all. What *is* achievable is
+    that no employer is silently absent: every company in the registry appears here
+    with either its live Dublin openings or a direct link to its careers page, and its
+    coverage state says which and why.
+
+    A company with a careers link and no crawled jobs is one click from the searcher,
+    which is the whole difference between "missing" and "not automated".
+    """
+    query = (q or "").strip()
+
+    with session_scope() as session:
+        live_counts = dict(
+            session.execute(
+                select(JobPosting.company_id, func.count())
+                .where(
+                    JobPosting.status == JobStatus.ACTIVE,
+                    JobPosting.is_dublin.is_(True),
+                )
+                .group_by(JobPosting.company_id)
+            ).all()
+        )
+
+        stmt = select(Company)
+        if query:
+            stmt = stmt.where(Company.name.ilike(f"%{query}%"))
+        companies = session.execute(stmt).scalars().all()
+
+        crawled_states = {
+            CoverageState.ATS_DETECTED,
+            CoverageState.BESPOKE_ADAPTER,
+            CoverageState.GENERIC_EXTRACTION,
+        }
+
+        rows = []
+        for company in companies:
+            count = live_counts.get(company.id, 0)
+            rows.append(
+                {
+                    "name": company.name,
+                    "jobs": count,
+                    "careers_url": company.careers_url or company.website,
+                    "state": company.coverage_state.value,
+                    "crawled": company.coverage_state in crawled_states,
+                    "priority": company.coverage_priority,
+                }
+            )
+
+        if show == "hiring":
+            rows = [r for r in rows if r["jobs"]]
+        elif show == "linked":
+            rows = [r for r in rows if not r["jobs"] and r["careers_url"]]
+
+        # Employers with live roles lead, then those with the most complete coverage,
+        # then alphabetically. A searcher scanning this wants the actionable rows first.
+        rows.sort(key=lambda r: (-r["jobs"], not r["crawled"], r["name"].lower()))
+
+        total = len(companies)
+        with_jobs = sum(1 for r in rows if r["jobs"])
+        linked = sum(1 for r in rows if not r["jobs"] and r["careers_url"])
+
+    context = _base_context(request)
+    context.update(
+        {
+            "rows": rows[:400],
+            "truncated": max(0, len(rows) - 400),
+            "total": total,
+            "with_jobs": with_jobs,
+            "linked": linked,
+            "query": query,
+            "show": show,
+        }
+    )
+    return templates.TemplateResponse(request, "directory.html", context)
 
 
 @app.get("/privacy", response_class=HTMLResponse)

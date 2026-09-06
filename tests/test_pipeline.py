@@ -1,5 +1,11 @@
 """End-to-end pipeline tests through the real orchestrator.
 
+These tests pass `all_sources=True` throughout. Each `crawl()` here stands for a
+source's *next scheduled run* — usually "the next day" — whereas the default staleness
+filter exists to stop a source being re-fetched seconds after it succeeded. Scheduling
+is covered separately in `test_selection.py`; bypassing it here keeps these tests about
+reconciliation, which is what they are for.
+
 The headline case is `test_acceptance_yesterdays_jobs_survive_todays_outage`, which is
 the product requirement stated directly as a test.
 """
@@ -92,13 +98,13 @@ def test_acceptance_yesterdays_jobs_survive_todays_outage(
         FetchResult.failed("timeout"),     # day 3: still down
     ]
 
-    crawl(session)
+    crawl(session, all_sources=True)
     session.flush()
     day_one = _active_ids(session)
     assert day_one == {"a", "b", "c", "d"}
 
-    crawl(session)
-    crawl(session)
+    crawl(session, all_sources=True)
+    crawl(session, all_sources=True)
     session.flush()
 
     assert _active_ids(session) == day_one, "an outage must never close jobs"
@@ -110,11 +116,11 @@ def test_new_and_existing_jobs_coexist_across_days(session, adapter, scripted_so
         _ok("a", "b", "c"),  # 'c' appears; a and b continue
     ]
 
-    crawl(session)
+    crawl(session, all_sources=True)
     session.flush()
     day_one = _active_ids(session)
 
-    crawl(session)
+    crawl(session, all_sources=True)
     session.flush()
     day_two = _active_ids(session)
 
@@ -127,9 +133,9 @@ def test_genuinely_removed_job_closes_after_confirmed_absence(
 ):
     adapter.script = [_ok("a", "b"), _ok("a"), _ok("a")]
 
-    crawl(session)
-    crawl(session)
-    crawl(session)
+    crawl(session, all_sources=True)
+    crawl(session, all_sources=True)
+    crawl(session, all_sources=True)
     session.flush()
 
     job_b = session.execute(
@@ -144,12 +150,12 @@ def test_genuinely_removed_job_closes_after_confirmed_absence(
 def test_summary_counts_reflect_reality(session, adapter, scripted_source):
     adapter.script = [_ok("a", "b"), _ok("a", "b", "c")]
 
-    first = crawl(session)
+    first = crawl(session, all_sources=True)
     session.flush()
     assert first.created == 2
     assert first.sources_ok == 1
 
-    second = crawl(session)
+    second = crawl(session, all_sources=True)
     session.flush()
     assert second.created == 1
     assert second.updated == 2
@@ -162,7 +168,7 @@ def test_circuit_breaker_disables_a_persistently_failing_source(
     adapter.script = [FetchResult.failed("boom")]
 
     for _ in range(CIRCUIT_BREAKER_THRESHOLD):
-        crawl(session)
+        crawl(session, all_sources=True)
     session.flush()
 
     assert scripted_source.enabled is False, "a dead source should stop being hammered"
@@ -192,11 +198,11 @@ def test_failure_in_one_source_does_not_affect_another(session, adapter, scripte
 
     adapter.script = [_ok("a"), FetchResult.failed("broken")]
 
-    crawl(session)
+    crawl(session, all_sources=True)
     session.flush()
     assert _active_ids(session) == {"a", "h1", "h2"}
 
-    summary = crawl(session)
+    summary = crawl(session, all_sources=True)
     session.flush()
 
     assert summary.sources_failed == 1
@@ -213,5 +219,5 @@ def test_unknown_adapter_is_recorded_as_failure_not_a_crash(session):
     session.add(Source(company_id=company.id, adapter="does-not-exist", slug="x"))
     session.flush()
 
-    summary = crawl(session)
+    summary = crawl(session, all_sources=True)
     assert summary.sources_failed == 1

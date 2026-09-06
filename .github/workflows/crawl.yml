@@ -1,28 +1,50 @@
 name: Crawl
 
-# GitHub Actions is the crawler host: free on public repositories, 2,000 minutes a
-# month on private ones, and it needs no server to maintain. Runs are staggered so
-# Tier 1 ATS sources refresh often while heavier sources run less frequently.
+# Fetching only. This workflow does one thing — pull current openings and reconcile them
+# — because that is the only part of the pipeline whose underlying data changes hourly.
+#
+# Growing the registry (import, detection, extraction) lives in `registry.yml` on a
+# weekly schedule. Splitting them matters: detection takes 30-60 minutes across a few
+# hundred unknown hosts and almost never finds anything new, so running it four times a
+# day spent most of the CI budget re-confirming what was already known and pushed this
+# job toward its timeout for no benefit.
+#
+# The two workflows never call each other. `registry.yml` registers sources with
+# `last_success_at = NULL`, which `select_sources` treats as always due, so the next
+# crawl picks them up on its own.
+
 on:
   schedule:
-    - cron: "0 */6 * * *"   # every six hours
+    # Roughly every six hours. GitHub queues scheduled workflows with everyone else's,
+    # so expect drift of minutes to tens of minutes; nothing here depends on exact times.
+    - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
       adapter:
         description: "Restrict the run to one adapter (optional)"
         required: false
+      all_sources:
+        description: "Ignore the staleness schedule and crawl everything"
+        type: boolean
+        default: false
 
 concurrency:
-  # Never let two crawls reconcile against the same database at once.
-  group: crawl
+  # Shared with registry.yml. Both write to the same database, and the reconciler's
+  # guarantees assume one writer: two runs interleaving could close jobs that the other
+  # run had just seen as open.
+  group: jobfinder-db
   cancel-in-progress: false
 
 jobs:
   crawl:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    # Steady-state runs take 5-10 minutes because the staleness rule skips most sources.
+    # The headroom is for a cold start, where every source is due at once.
+    timeout-minutes: 60
 
     env:
+      # Without this the run gets a fresh empty SQLite file in a throwaway container,
+      # and "yesterday's still-open roles are still there" silently becomes false.
       JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
       JOBFINDER_LOG_LEVEL: INFO
 
@@ -38,23 +60,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Run tests
-        # A broken reconciler must never reach the production database: a bug here
-        # could close jobs that are still open, which is the one failure this project
-        # exists to prevent.
-        run: pytest -q
+      - name: Fail fast if the database is not configured
+        # A missing secret would otherwise crawl into a local SQLite file that is
+        # discarded when the container exits — a run that looks green and does nothing.
+        run: |
+          if [ -z "$JOBFINDER_DATABASE_URL" ]; then
+            echo "::error::JOBFINDER_DATABASE_URL is not set. Add it under"
+            echo "::error::Settings > Secrets and variables > Actions."
+            exit 1
+          fi
 
-      - name: Seed registry
-        run: jobfinder seed
+      - name: Run tests
+        # A broken reconciler must never reach the production database: a bug here could
+        # close jobs that are still open, and that is the one failure this project exists
+        # to prevent. Three minutes is cheap insurance against an unrecoverable mistake.
+        run: pytest -q
 
       - name: Crawl
         run: |
+          args=""
           if [ -n "${{ github.event.inputs.adapter }}" ]; then
-            jobfinder crawl --adapter "${{ github.event.inputs.adapter }}"
-          else
-            jobfinder crawl
+            args="$args --adapter ${{ github.event.inputs.adapter }}"
           fi
+          if [ "${{ github.event.inputs.all_sources }}" = "true" ]; then
+            args="$args --all"
+          fi
+          jobfinder crawl $args
 
       - name: Summary
         if: always()
-        run: jobfinder stats >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          {
+            echo "## Crawl"
+            echo '```'
+            jobfinder stats
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
