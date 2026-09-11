@@ -26,6 +26,7 @@ than disappearing.
 
 from __future__ import annotations
 
+import copy
 import logging
 import queue
 import threading
@@ -36,6 +37,7 @@ from datetime import timedelta
 
 import httpx
 from sqlalchemy import func, or_, select
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
 from jobfinder.core.config import settings
@@ -56,6 +58,10 @@ def _verify_smartrecruiters(slug: str, client: httpx.Client) -> bool:
 
 
 SLUG_VALIDATORS = {"smartrecruiters": _verify_smartrecruiters}
+
+# How many companies to process between commits. Small enough that little is lost to a
+# dropped connection, large enough that the write cost stays negligible.
+COMMIT_EVERY = 25
 
 # Adapters this project can actually crawl. Detection recognises more platforms than it
 # has adapters for — that is deliberate, because knowing a company is on Teamtailor is
@@ -246,42 +252,115 @@ def sweep(
     # which is about to exit anyway.
     abandoned = threading.Event()
     client = build_client()
+
+    # Probe everything first, touching no database at all; write once at the end.
+    #
+    # Three earlier designs failed against hosted Postgres, each for the same underlying
+    # reason: the connection was alive across the *probing*, which takes tens of minutes,
+    # and Neon's free tier suspends an idle compute and drops its connections. Writing
+    # per result held a transaction open the whole sweep. Writing per batch of 25 still
+    # left ten-minute gaps between commits. Neither is survivable by retrying, because a
+    # SELECT inside `_apply` triggers autoflush of the pending writes, so the failure
+    # lands mid-query rather than at a commit boundary where it could be caught cleanly.
+    #
+    # Separating the phases removes the problem rather than defending against it. During
+    # probing there is no connection to lose. The write is then a few seconds of work,
+    # short enough that a suspended compute simply wakes for it, and short enough that a
+    # single retry genuinely fixes a dropped link instead of racing the next drop.
+    #
+    # The cost is that a crash mid-probe loses the sweep's findings. That is acceptable:
+    # detection is idempotent and re-running costs time, not correctness.
+    results: list[tuple[int, Detection | Exception]] = []
+
     try:
-        for company_id, name, outcome in _probe_all(
+        for company_id, _name, outcome in _probe_all(
             companies,
             max_workers=max_workers,
             client=client,
             deadline_seconds=deadline_seconds or settings.detect_sweep_deadline_seconds,
             abandoned=abandoned,
         ):
-            stats.checked += 1
-            company = by_id[company_id]
-
-            if isinstance(outcome, Exception):
-                stats.unreachable += 1
-                company.coverage_state = CoverageState.UNRESOLVED
-                company.detection_checked_at = utcnow()
-                continue
-
-            _apply(
-                session,
-                company=company,
-                detection=outcome,
-                stats=stats,
-                known_adapters=known_adapters,
-                client=client,
-                dry_run=dry_run,
-            )
-
-            if stats.checked % 50 == 0:
-                session.flush()
-                logger.info("… %d checked, %d registered", stats.checked, stats.registered)
+            results.append((company_id, outcome))
+            if len(results) % 50 == 0:
+                logger.info("… %d of %d probed", len(results), len(companies))
     finally:
         if not abandoned.is_set():
             client.close()
 
-    session.flush()
+    logger.info("probing done (%d results); writing to the database", len(results))
+    for offset in range(0, len(results), COMMIT_EVERY):
+        _apply_batch(
+            session,
+            results[offset : offset + COMMIT_EVERY],
+            by_id=by_id,
+            stats=stats,
+            known_adapters=known_adapters,
+            client=None,
+            dry_run=dry_run,
+        )
+    logger.info("wrote %d results, %d registered", stats.checked, stats.registered)
     return stats
+
+
+def _apply_batch(
+    session: Session,
+    batch: list[tuple[int, "Detection | Exception"]],
+    *,
+    by_id: dict[int, Company],
+    stats: SweepStats,
+    known_adapters: set[str],
+    client: httpx.Client | None,
+    dry_run: bool,
+) -> None:
+    """Apply one batch of probe results and commit, retrying once on a dropped link.
+
+    The retry exists because the failure it handles is expected rather than
+    exceptional: a pooled connection that has gone stale announces itself only when the
+    next statement is sent. `rollback()` returns the dead connection to the pool, where
+    pre-ping discards it, so the second attempt runs on a fresh one. Retrying twice
+    would be papering over a real outage; retrying once turns a routine reconnect into a
+    non-event.
+    """
+    for attempt in (1, 2):
+        # Every counter is restored before a retry, not just `checked`. A batch that
+        # fails halfway has already incremented `registered`, `blocked` and the
+        # per-adapter tally for the rows it got through, and replaying it would count
+        # those twice — quietly inflating the very numbers the coverage report exists to
+        # be trusted on.
+        snapshot = copy.deepcopy(stats.__dict__)
+        try:
+            for company_id, outcome in batch:
+                company = by_id[company_id]
+                stats.checked += 1
+
+                if isinstance(outcome, Exception):
+                    stats.unreachable += 1
+                    company.coverage_state = CoverageState.UNRESOLVED
+                    company.detection_checked_at = utcnow()
+                    continue
+
+                _apply(
+                    session,
+                    company=company,
+                    detection=outcome,
+                    stats=stats,
+                    known_adapters=known_adapters,
+                    client=client,
+                    dry_run=dry_run,
+                )
+            session.commit()
+            return
+        except OperationalError:
+            # `invalidate`, not just `rollback`. Rollback hands the connection back to
+            # the pool, and a connection the server has already closed can be handed
+            # straight back out — pre-ping only checks connections it is asked for, and
+            # a mid-transaction failure never releases it cleanly. Invalidating discards
+            # it outright, so the retry is guaranteed a new one.
+            session.invalidate()
+            if attempt == 2:
+                raise
+            stats.__dict__.update(copy.deepcopy(snapshot))
+            logger.warning("database connection lost; retrying this batch")
 
 
 def _apply(

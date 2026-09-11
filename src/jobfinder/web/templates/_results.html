@@ -1,4 +1,13 @@
 {# Results table. Rendered standalone for HTMX swaps and inlined on a full page load. #}
+{#
+  What the sort and paging controls re-submit. The CV file input is left out on purpose:
+  these controls sit outside the multipart form, so htmx url-encodes them and a selected
+  file would go up as the string "[object File]", which the server rejects with a 422
+  that htmx then silently declines to swap. The CV signals already live in the session.
+  The sort select is named explicitly because it sits outside the form, and without it
+  paging would quietly revert to "Best match".
+#}
+{% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort]" %}
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline">
     <h2 style="margin:0">
@@ -18,7 +27,7 @@
       </span>
       <label class="muted small" style="display:flex;align-items:center;gap:6px">
         Sort
-        <select name="sort" hx-post="/search" hx-include="#finder-form"
+        <select name="sort" hx-post="/search" hx-include="{{ rerun_include }}"
                 hx-target="#results" hx-swap="innerHTML" hx-trigger="change">
           {% for key, label in sorts.items() %}
           <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
@@ -79,12 +88,12 @@
   {% if pages > 1 %}
   <div class="row" style="justify-content:center;gap:14px;margin-top:16px">
     {% if page > 1 %}
-      <a href="#" hx-post="/search?page={{ page - 1 }}" hx-include="#finder-form"
+      <a href="#" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
          hx-target="#results" hx-swap="innerHTML">&larr; Previous</a>
     {% endif %}
     <span class="muted small">Page {{ page }} of {{ pages }}</span>
     {% if page < pages %}
-      <a href="#" hx-post="/search?page={{ page + 1 }}" hx-include="#finder-form"
+      <a href="#" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
          hx-target="#results" hx-swap="innerHTML">Next &rarr;</a>
     {% endif %}
   </div>

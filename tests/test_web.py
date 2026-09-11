@@ -160,6 +160,37 @@ def test_paging_keeps_cv_signals_from_the_session(client):
     assert "skills from your CV" in page_two.text
 
 
+def test_sort_and_paging_controls_do_not_resend_the_cv_input(client):
+    """The sort select and paging links sit outside the multipart form, so htmx
+    url-encodes them. Including the file input sent "[object File]", the server answered
+    422, and htmx silently dropped the response - both controls appeared dead."""
+    response = client.post(
+        "/search",
+        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
+        data={"chosen_fields": ["backend"]},
+        headers={"HX-Request": "true"},
+    )
+    assert 'hx-include="#finder-form"' not in response.text
+    assert "input:not([type=file])" in response.text
+    # Paging must carry the chosen sort, which lives outside the form.
+    assert "#results select[name=sort]" in response.text
+
+
+def test_paging_keeps_the_chosen_sort(client):
+    client.post(
+        "/search",
+        data={"chosen_fields": ["backend"], "sort": "newest"},
+        headers={"HX-Request": "true"},
+    )
+    page_two = client.post(
+        "/search?page=2",
+        data={"chosen_fields": ["backend"], "sort": "newest"},
+        headers={"HX-Request": "true"},
+    )
+    assert page_two.status_code == 200
+    assert '<option value="newest" selected>' in page_two.text
+
+
 def test_uploaded_cv_is_not_retained_in_the_session(client):
     """The GDPR property: derived signals are kept, the document is not.
 

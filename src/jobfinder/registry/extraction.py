@@ -46,6 +46,9 @@ logger = logging.getLogger(__name__)
 # source that reports one phantom role forever.
 MIN_TRIAL_JOBS = 2
 
+# Companies between commits; see the note in `registry/bulk_detect.py`.
+COMMIT_EVERY = 25
+
 
 @dataclass
 class ExtractionStats:
@@ -123,6 +126,14 @@ def promote_blocked(
                 stats.tried += 1
                 company = by_id[company_id]
                 company.detection_checked_at = utcnow()
+
+                # Committed in batches for the same reason as the detection sweep: this
+                # runs long enough that a pooled connection can be closed underneath it.
+                # Placed before the branches below, which all `continue` — a batch of
+                # nothing but failures still advances `detection_checked_at`, and that
+                # progress is worth keeping too.
+                if stats.tried % COMMIT_EVERY == 0:
+                    session.commit()
 
                 if not result.ok:
                     stats.failed += 1

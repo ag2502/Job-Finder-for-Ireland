@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -18,6 +19,25 @@ class Settings(BaseSettings):
     # SQLite by default so the pipeline runs with no external services. Production
     # points this at Neon Postgres; nothing else in the codebase needs to change.
     database_url: str = f"sqlite:///{PROJECT_ROOT / 'jobfinder.db'}"
+
+    @field_validator("database_url")
+    @classmethod
+    def _pin_postgres_driver(cls, url: str) -> str:
+        """Name the Postgres driver explicitly in the URL.
+
+        Hosted providers hand out a bare `postgresql://...` string, and SQLAlchemy maps
+        that to psycopg2 — a different, unlisted package. The pasted URL then fails at
+        connect time with `ModuleNotFoundError: psycopg2`, which reads like a broken
+        install rather than a URL that needs a suffix. Rewriting the scheme here means
+        the string copied out of the Neon dashboard works unedited.
+
+        `postgres://` is accepted too: several providers still emit that older form,
+        which SQLAlchemy rejects outright.
+        """
+        for prefix in ("postgresql://", "postgres://"):
+            if url.startswith(prefix):
+                return "postgresql+psycopg://" + url[len(prefix):]
+        return url
 
     # A crawl that returns less than this fraction of the previous run's job count is
     # treated as PARTIAL rather than OK, so a silent upstream degradation cannot close

@@ -13,6 +13,9 @@ dependencies = [
     "selectolax>=0.3.21",
     "tenacity>=8.3",
     "python-dateutil>=2.9",
+    # Postgres driver. SQLite is the local default, but the deployed crawler runs
+    # against hosted Postgres and SQLAlchemy cannot connect without a driver present.
+    "psycopg[binary]>=3.1",
 ]
 
 [project.optional-dependencies]
