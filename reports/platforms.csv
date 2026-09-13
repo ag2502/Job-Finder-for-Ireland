@@ -1,17 +1,17 @@
 platform,kind,tier,access,status,companies,sources,dublin_jobs_active,notes
-workday,ats,1,public api,in use,35,35,362,Compound slug tenant:wdhost:site; dominant among Dublin MNCs
-greenhouse,ats,1,public api,in use,24,24,267,Public board API; also detects embedded widgets
-amazon,bespoke,1,public api,in use,1,1,205,country=IRL filter
-google,bespoke,1,scrape only,in use,1,1,116,No API but the careers page is server-rendered
-smartrecruiters,ats,1,public api,in use,1,1,43,Native country=ie facet; unknown tenant returns 200 + empty
-workable,ats,1,public api,in use,2,2,24,Structured city/country so location is unambiguous
-ashby,ats,1,public api,in use,8,8,22,secondaryLocations expanded (per-posting)
-lever,ats,1,public api,in use,2,2,9,allLocations expanded (per-posting)
+greenhouse,ats,1,public api,in use,52,52,283,Public board API; also detects embedded widgets
+workday,ats,1,public api,in use,46,46,258,Compound slug tenant:wdhost:site; dominant among Dublin MNCs
+amazon,bespoke,1,public api,in use,1,1,207,country=IRL filter
+smartrecruiters,ats,1,public api,in use,4,4,44,Native country=ie facet; unknown tenant returns 200 + empty
+google,bespoke,1,scrape only,in use,1,1,41,No API but the careers page is server-rendered
+workable,ats,1,public api,in use,6,6,26,Structured city/country so location is unambiguous
+ashby,ats,1,public api,in use,19,19,22,secondaryLocations expanded (per-posting)
+lever,ats,1,public api,in use,5,5,10,allLocations expanded (per-posting)
+jsonld,generic,3,public,in use,46,46,7,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
 intel,bespoke,1,public api,in use,0,0,0,Via Workday
-recruitee,ats,1,public api,in use,2,2,0,Full advert in the list response; one request per board
+personio,ats,1,public api,in use,8,8,0,XML feed; tenant may live on .de or .com
+recruitee,ats,1,public api,in use,0,0,0,Full advert in the list response; one request per board
 adzuna,aggregator,4,needs key,built,0,0,0,Official API; free tier; genuine Irish coverage. Set JOBFINDER_ADZUNA_APP_ID/KEY
-jsonld,generic,3,public,built,0,0,0,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
-personio,ats,1,public api,built,0,0,0,XML feed; tenant may live on .de or .com
 bamboohr,ats,1,public api,open api,0,0,0,{slug}.bamboohr.com/careers/list - common among Irish SMEs
 breezy,ats,1,public api,open api,0,0,0,{slug}.breezy.hr/json
 comeet,ats,1,public api,open api,0,0,0,Public positions endpoint per employer

@@ -56,6 +56,10 @@
         <input type="checkbox" name="internships_only" value="1"
                {% if profile and profile.internships_only %}checked{% endif %}> Internships only
       </label>
+      <label class="chip">
+        <input type="checkbox" name="graduate_only" value="1"
+               {% if profile and profile.graduate_only %}checked{% endif %}> Graduate programmes only
+      </label>
     </div>
 
     <label>

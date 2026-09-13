@@ -39,6 +39,7 @@ import httpx
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from jobfinder.core.config import settings
 from jobfinder.core.models import Company, CoverageState, Source, utcnow
@@ -82,6 +83,7 @@ class SweepStats:
     already_registered: int = 0
     no_adapter: int = 0
     rejected_slug: int = 0
+    write_failed: int = 0
     by_adapter: dict[str, int] = field(default_factory=dict)
 
     def __str__(self) -> str:
@@ -90,6 +92,7 @@ class SweepStats:
                 self.by_adapter.items(), key=lambda kv: -kv[1]
             )
         )
+        failed = f" | {self.write_failed} skipped (db unreachable)" if self.write_failed else ""
         return (
             f"checked {self.checked}: {self.detected} ATS found, "
             f"{self.registered} newly registered "
@@ -97,6 +100,7 @@ class SweepStats:
             f"{self.rejected_slug} slug rejected) | "
             f"{self.blocked} blocked, {self.no_careers_page} no careers page, "
             f"{self.unreachable} unreachable"
+            + failed
             + (f"\n  {adapters}" if adapters else "")
         )
 
@@ -350,16 +354,56 @@ def _apply_batch(
                 )
             session.commit()
             return
-        except OperationalError:
+        except (OperationalError, DetachedInstanceError):
             # `invalidate`, not just `rollback`. Rollback hands the connection back to
             # the pool, and a connection the server has already closed can be handed
             # straight back out — pre-ping only checks connections it is asked for, and
             # a mid-transaction failure never releases it cleanly. Invalidating discards
             # it outright, so the retry is guaranteed a new one.
+            #
+            # It also expunges every object the session knows about, which detaches the
+            # `Company` rows this batch is holding in `by_id`. Reusing those same
+            # detached instances on retry raises `DetachedInstanceError` the moment an
+            # unloaded attribute is touched (`company.id` in `_apply`) - hence that
+            # exception is caught here too, and `by_id` is refreshed with session-
+            # attached rows before the retry runs.
+            #
+            # None of this is guaranteed to work: a connection that keeps dropping (a
+            # burst of drops from the same underlying outage) can detach the very
+            # objects this handler just re-fetched, or fail the re-fetch itself. A
+            # sweep that raises here loses every batch queued after it - including
+            # results from companies that were probed successfully over the network
+            # and only failed to *write* - so a batch that still cannot land after one
+            # retry is logged and skipped rather than fatal. Its companies simply keep
+            # their prior coverage_state and are picked up by the next sweep.
             session.invalidate()
-            if attempt == 2:
-                raise
             stats.__dict__.update(copy.deepcopy(snapshot))
+            if attempt == 2:
+                stats.write_failed += len(batch)
+                logger.error(
+                    "database connection would not recover; skipping %d companies "
+                    "this run (they keep their prior state and are retried next sweep)",
+                    len(batch),
+                )
+                return
+            try:
+                ids = [company_id for company_id, _ in batch]
+                by_id.update(
+                    {
+                        company.id: company
+                        for company in session.execute(
+                            select(Company).where(Company.id.in_(ids))
+                        ).scalars()
+                    }
+                )
+            except OperationalError:
+                stats.write_failed += len(batch)
+                logger.error(
+                    "database connection would not recover; skipping %d companies "
+                    "this run (they keep their prior state and are retried next sweep)",
+                    len(batch),
+                )
+                return
             logger.warning("database connection lost; retrying this batch")
 
 

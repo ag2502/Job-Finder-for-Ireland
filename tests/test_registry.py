@@ -275,6 +275,64 @@ def test_a_company_that_already_has_a_source_is_not_re_detected(session: Session
     assert sweep(session, max_workers=1).checked == 0
 
 
+def test_a_dropped_connection_mid_write_does_not_abort_the_sweep(
+    session: Session, monkeypatch
+):
+    """Regression: a dropped connection during the write phase crashed the whole sweep.
+
+    `_apply_batch` retries an `OperationalError` by calling `session.invalidate()` to
+    guarantee a fresh connection - but `invalidate()` also expunges every object the
+    session knows about, detaching the `Company` rows the retry still holds in `by_id`.
+    Reusing a detached instance raises `DetachedInstanceError` the moment an unloaded
+    attribute is touched, which aborted the sweep entirely: not just this batch, but
+    every batch after it, discarding a completed network probe of the whole registry
+    over one flaky commit.
+    """
+    from sqlalchemy.exc import OperationalError
+
+    from jobfinder.registry import bulk_detect
+
+    acme = _pending(session, "Acme", "https://acme.ie")
+
+    # Mimics the real failure: a genuine `Session.invalidate()` leaves an instance that
+    # was mid-flush both expired (its column state must be reloaded) and detached (no
+    # session left to reload it from) - the exact combination `_load_expired` raises
+    # `DetachedInstanceError` on. Plain `expunge_all()` alone does not reproduce this,
+    # because an instance's already-loaded attributes survive detachment untouched.
+    def fake_invalidate():
+        session.expire(acme)
+        session.expunge_all()
+
+    monkeypatch.setattr(session, "invalidate", fake_invalidate)
+
+    real_commit = session.commit
+    calls = {"n": 0}
+
+    def flaky_commit():
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise OperationalError("commit", {}, Exception("connection lost"))
+        return real_commit()
+
+    monkeypatch.setattr(session, "commit", flaky_commit)
+
+    def fake_detect(website, client=None, name=None):
+        from jobfinder.registry.detect import Detection
+
+        return Detection(
+            adapter="greenhouse", slug="acmeco", careers_url=website, confidence="high"
+        )
+
+    monkeypatch.setattr(bulk_detect, "detect_for_website", fake_detect)
+
+    stats = bulk_detect.sweep(session, max_workers=1)
+
+    assert calls["n"] == 2  # the flaky commit actually fired and was retried
+    assert stats.registered == 1
+    source = session.execute(select(Source)).scalar_one()
+    assert (source.adapter, source.slug) == ("greenhouse", "acmeco")
+
+
 # ---------------------------------------------------------------------------
 # Promoting blocked companies to generic extraction
 # ---------------------------------------------------------------------------
@@ -322,6 +380,42 @@ def test_a_site_with_real_job_markup_is_promoted_to_generic_extraction(session: 
     assert source.adapter == "jsonld"
     assert source.slug == "https://bespoke.ie/careers"
     assert source.tier == 3
+
+
+@respx.mock
+def test_two_companies_sharing_one_careers_page_register_it_once(session: Session):
+    """Regression: the second registration raised IntegrityError and killed the run.
+
+    A parent and its Irish arm usually share a careers page, and detection hands both
+    the same URL. `sources` is unique on (adapter, slug), so registering it twice does
+    not merely duplicate a row - it fails the next flush and takes down the whole
+    extraction pass, including every company queued behind it.
+    """
+    from jobfinder.registry.extraction import promote_blocked
+
+    parent = _blocked(session, "Amgen", "https://careers.amgen.com/en")
+    irish = _blocked(session, "Amgen Ireland", "https://careers.amgen.com/en")
+    respx.get("https://careers.amgen.com/robots.txt").mock(
+        return_value=httpx.Response(404)
+    )
+    respx.get("https://careers.amgen.com/sitemap.xml").mock(
+        return_value=httpx.Response(404)
+    )
+    respx.get("https://careers.amgen.com/sitemap_index.xml").mock(
+        return_value=httpx.Response(404)
+    )
+    respx.get("https://careers.amgen.com/en").mock(
+        return_value=httpx.Response(200, html=_ld("Engineer", 1) + _ld("Analyst", 2))
+    )
+
+    stats = promote_blocked(session, max_workers=1)
+
+    assert stats.registered == 1
+    assert stats.already_registered == 1
+    # Both are covered: the page is crawled once and serves each of them.
+    assert parent.coverage_state is CoverageState.GENERIC_EXTRACTION
+    assert irish.coverage_state is CoverageState.GENERIC_EXTRACTION
+    assert len(session.execute(select(Source)).scalars().all()) == 1
 
 
 @respx.mock

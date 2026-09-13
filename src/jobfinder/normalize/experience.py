@@ -59,10 +59,13 @@ _INTERNSHIP = re.compile(
     re.I,
 )
 
+# Matched against the title only. Bare "graduate" is enough there - "Graduate Software
+# Engineer", "... Graduate Opportunities" - except where it names the recruiting job
+# rather than the hire ("Graduate Recruiter"). "Trainee" covers the Irish accountancy
+# route ("Trainee Accountant"), which is a graduate intake in all but name.
 _GRADUATE = re.compile(
-    r"\b(graduate programme|graduate program|graduate scheme|graduate role|"
-    r"graduate engineer|graduate analyst|new grad|new graduate|early career|"
-    r"early careers|apprentice|apprenticeship|trainee programme|entry[- ]level|"
+    r"\b(graduates?(?!\s+(?:recruit|talent|admission))|new grad|early careers?|"
+    r"apprentice|apprenticeship|trainee|entry[- ]level|"
     r"fresher|campus hire|university hire)\b",
     re.I,
 )
@@ -160,6 +163,7 @@ def matches_experience(
     job_is_graduate: bool,
     candidate_years: int | None,
     want_internships: bool = False,
+    want_graduate: bool = False,
 ) -> bool:
     """Is this posting appropriate for a searcher with `candidate_years` experience?
 
@@ -169,9 +173,15 @@ def matches_experience(
 
     Early-career roles are surfaced for searchers at or below two years and hidden
     above it, where they would be a waste of the reader's attention.
+
+    The internship and graduate switches narrow to exactly those roles; ticked together
+    they mean either. Experience is ignored under both, since each is an entry point by
+    definition.
     """
-    if want_internships:
-        return job_is_internship
+    if want_internships or want_graduate:
+        return (want_internships and job_is_internship) or (
+            want_graduate and job_is_graduate
+        )
 
     # Internships are never mixed into a general search; they are opted into.
     if job_is_internship:

@@ -54,12 +54,18 @@ COMMIT_EVERY = 25
 class ExtractionStats:
     tried: int = 0
     registered: int = 0
+    already_registered: int = 0
     empty: int = 0
     failed: int = 0
 
     def __str__(self) -> str:
+        shared = (
+            f", {self.already_registered} already covered by a shared page"
+            if self.already_registered
+            else ""
+        )
         return (
-            f"tried {self.tried}: {self.registered} now extractable, "
+            f"tried {self.tried}: {self.registered} now extractable{shared}, "
             f"{self.empty} no usable markup, {self.failed} unreachable or disallowed"
         )
 
@@ -142,6 +148,20 @@ def promote_blocked(
 
                 if len(result.jobs) < MIN_TRIAL_JOBS:
                     stats.empty += 1
+                    continue
+
+                # Two companies can share one careers page - a parent and its Irish
+                # arm usually do, and detection hands both the same URL. `sources` is
+                # unique on (adapter, slug), so a second registration is not merely
+                # redundant: it raises IntegrityError on the next flush and takes the
+                # whole run down with it. The page is already crawled, so the jobs are
+                # not missing; only the duplicate row is.
+                existing = session.execute(
+                    select(Source).where(Source.adapter == "jsonld", Source.slug == url)
+                ).scalars().first()
+                if existing is not None:
+                    company.coverage_state = CoverageState.GENERIC_EXTRACTION
+                    stats.already_registered += 1
                     continue
 
                 if not dry_run:

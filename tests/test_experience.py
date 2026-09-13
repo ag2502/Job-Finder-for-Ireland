@@ -164,6 +164,9 @@ def test_a_mention_of_an_intern_programme_is_not_an_internship():
         "Graduate Programme 2027",
         "Software Engineer, Early Career (AI)",
         "Entry-Level Data Analyst",
+        "Graduate Software Engineer",
+        "2027 Future Leaders Academy: ROI Audit & Assurance Graduate Opportunities",
+        "Trainee Accountant",
     ],
 )
 def test_graduate_roles_detected(title: str) -> None:
@@ -172,18 +175,30 @@ def test_graduate_roles_detected(title: str) -> None:
     assert profile.min_years == 0
 
 
+@pytest.mark.parametrize(
+    "title",
+    ["Graduate Recruiter", "Graduate Talent Acquisition Partner", "Postgraduate Researcher"],
+)
+def test_graduate_recruiting_jobs_are_not_graduate_roles(title: str) -> None:
+    """The person hiring graduates is not a graduate hire."""
+    assert not analyze(title).is_graduate
+
+
 # --------------------------------------------------------------------------
 # Eligibility
 # --------------------------------------------------------------------------
 
 
-def _eligible(years, *, job_years=None, intern=False, grad=False, want_interns=False):
+def _eligible(
+    years, *, job_years=None, intern=False, grad=False, want_interns=False, want_grads=False
+):
     return matches_experience(
         job_min_years=job_years,
         job_is_internship=intern,
         job_is_graduate=grad,
         candidate_years=years,
         want_internships=want_interns,
+        want_graduate=want_grads,
     )
 
 
@@ -235,3 +250,19 @@ def test_internships_only_returns_internships():
     # ...and nothing else.
     assert not _eligible(None, job_years=0, want_interns=True)
     assert not _eligible(None, grad=True, want_interns=True)
+
+
+def test_graduate_only_returns_graduate_roles():
+    # Experience is ignored: a graduate programme is an entry point by definition.
+    assert _eligible(None, grad=True, job_years=0, want_grads=True)
+    assert _eligible(6, grad=True, job_years=0, want_grads=True)
+    # ...and nothing else, internships included.
+    assert not _eligible(None, job_years=0, want_grads=True)
+    assert not _eligible(None, job_years=None, want_grads=True)
+    assert not _eligible(None, intern=True, want_grads=True)
+
+
+def test_both_early_career_switches_mean_either():
+    assert _eligible(None, intern=True, want_interns=True, want_grads=True)
+    assert _eligible(None, grad=True, want_interns=True, want_grads=True)
+    assert not _eligible(None, job_years=0, want_interns=True, want_grads=True)

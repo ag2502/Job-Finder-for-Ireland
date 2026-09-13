@@ -295,6 +295,25 @@ def test_internships_only_switches_the_result_set(client):
     assert "internship" in response.text.lower()
 
 
+def test_graduate_only_switch_is_offered(client):
+    response = client.get("/")
+    assert 'name="graduate_only"' in response.text
+
+
+def test_graduate_only_switches_the_result_set(client):
+    response = client.post(
+        "/search",
+        data={"chosen_fields": ["software-engineering"], "graduate_only": "1", "years": "6"},
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    # Found graduate roles or the seasonal empty state - never ordinary roles, and the
+    # typed experience must not narrow a graduate search.
+    assert "graduate" in response.text.lower()
+    assert "matching role" not in response.text
+    assert "up to 6 years" not in response.text
+
+
 def test_typed_experience_overrides_the_cv(client):
     """The CV says six years; the box says one. The box wins."""
     response = client.post(

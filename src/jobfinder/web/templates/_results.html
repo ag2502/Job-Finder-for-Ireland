@@ -8,11 +8,17 @@
   paging would quietly revert to "Best match".
 #}
 {% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort]" %}
+{# Either early-career switch replaces the experience filter rather than adding to it. #}
+{% set early_only = internships_only or graduate_only %}
 <div class="card">
   <div class="row" style="justify-content:space-between;align-items:baseline">
     <h2 style="margin:0">
-      {% if internships_only %}
+      {% if internships_only and graduate_only %}
+        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }} &amp; graduate role{{ "" if total == 1 else "s" }}
+      {% elif internships_only %}
         {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }}
+      {% elif graduate_only %}
+        {{ "{:,}".format(total) }} graduate role{{ "" if total == 1 else "s" }}
       {% else %}
         {{ "{:,}".format(total) }} matching role{{ "" if total == 1 else "s" }}
       {% endif %}
@@ -20,7 +26,7 @@
     <div class="row" style="gap:12px;align-items:baseline">
       <span class="muted small">
         {% if new_count %}<span class="badge">{{ new_count }} new</span>&nbsp;{% endif %}
-        {% if candidate_years is not none and not internships_only %}
+        {% if candidate_years is not none and not early_only %}
           up to {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} experience &middot;
         {% endif %}
         {% if skill_count %}ranked against {{ skill_count }} skills from your CV{% else %}ranked by field{% endif %}
@@ -39,7 +45,7 @@
     </div>
   </div>
 
-  {% if candidate_years is not none and candidate_years <= 2 and not internships_only %}
+  {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
   <p class="small muted" style="margin:8px 0 0">
     Graduate and entry-level openings are included at this experience level.
   </p>
@@ -101,10 +107,14 @@
 
   {% else %}
   <p class="muted" style="margin:12px 0 0">
-    {% if internships_only %}
-      No active internships match those fields right now. Internship postings are
-      seasonal, so this varies a lot through the year &mdash; try more fields, or
+    {% if graduate_only and not internships_only %}
+      No active graduate programmes match those fields right now. Graduate intakes
+      are seasonal, so this varies a lot through the year &mdash; try more fields, or
       include remote roles.
+    {% elif internships_only %}
+      No active {{ "internships or graduate roles" if graduate_only else "internships" }}
+      match those fields right now. These postings are seasonal, so this varies a lot
+      through the year &mdash; try more fields, or include remote roles.
     {% else %}
       No roles matched. Try raising the years of experience, selecting more fields,
       clearing the title filter, or including remote roles.

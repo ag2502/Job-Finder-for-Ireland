@@ -119,6 +119,7 @@ async def search(
     chosen_fields: list[str] = Form(default=[]),
     include_remote: str | None = Form(default=None),
     internships_only: str | None = Form(default=None),
+    graduate_only: str | None = Form(default=None),
     years: str | None = Form(default=None),
     q: str | None = Form(default=None),
     sort: str | None = Form(default=None),
@@ -188,6 +189,7 @@ async def search(
         "cv_years": parsed.years_experience if parsed else previous.get("cv_years"),
         "corpus_terms": cv_corpus_terms or previous.get("corpus_terms", []),
         "internships_only": bool(internships_only),
+        "graduate_only": bool(graduate_only),
         # A trimmed excerpt is kept for lexical scoring; it is not the document.
         "text": (parsed.text[:6000] if parsed else previous.get("text", "")),
         "include_remote": bool(include_remote),
@@ -311,6 +313,7 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         # nothing.
         candidate_years = profile.get("years")
         want_internships = bool(profile.get("internships_only"))
+        want_graduate = bool(profile.get("graduate_only"))
         rows = [
             row
             for row in rows
@@ -320,6 +323,7 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
                 job_is_graduate=row.is_graduate,
                 candidate_years=candidate_years,
                 want_internships=want_internships,
+                want_graduate=want_graduate,
             )
         ]
         companies = {c.id: c.name for c in session.execute(select(Company)).scalars()}
@@ -391,6 +395,7 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         "skill_count": len(profile.get("skills") or []),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),
+        "graduate_only": bool(profile.get("graduate_only")),
     }
 
 
