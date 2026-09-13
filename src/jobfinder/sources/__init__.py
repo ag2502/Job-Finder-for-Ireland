@@ -26,12 +26,19 @@ def load_adapters() -> None:
     # Tier 1: standard ATS platforms.
     from jobfinder.sources import (  # noqa: F401
         ashby,
+        bamboohr,
+        candidatemanager,
         greenhouse,
+        icims,
         jsonld,
         lever,
+        oleeo,
+        oracle_recruiting,
         personio,
         recruitee,
         smartrecruiters,
+        successfactors,
+        teamtailor,
         workable,
         workday,
     )

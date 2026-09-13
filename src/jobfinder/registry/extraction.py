@@ -35,7 +35,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from jobfinder.core.config import settings
-from jobfinder.core.models import Company, CoverageState, Source, utcnow
+from jobfinder.core.models import Company, CoverageState, CrawlStatus, Source, utcnow
 from jobfinder.sources.base import build_client, get_adapter
 from jobfinder.sources import load_adapters
 
@@ -141,7 +141,9 @@ def promote_blocked(
                 if stats.tried % COMMIT_EVERY == 0:
                     session.commit()
 
-                if not result.ok:
+                # PARTIAL is a real board read up to the crawl ceiling - exactly the
+                # large employers most worth promoting - so only FAILED is a miss.
+                if result.status is CrawlStatus.FAILED:
                     stats.failed += 1
                     logger.debug("extraction trial failed for %s: %s", url, result.error)
                     continue

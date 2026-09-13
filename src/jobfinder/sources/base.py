@@ -45,6 +45,17 @@ class RawJob:
     company_name: str | None = None
 
 
+class PartialJobs(list):
+    """A job list its adapter knows is incomplete.
+
+    Returned from `_fetch` when an adapter deliberately stopped short of the whole board
+    - a crawl ceiling, a sampled sitemap. The reconciler closes a job only when a fetch
+    is OK, on the grounds that absence from a complete list means the role is gone.
+    Absence from a *sample* means nothing, and treating a sample as complete closes real
+    jobs every time a different sample comes back: Cisco lost 48 postings that way.
+    """
+
+
 @dataclass
 class FetchResult:
     status: CrawlStatus
@@ -107,8 +118,8 @@ class BaseAdapter:
                 client.close()
 
         return FetchResult(
-            status=CrawlStatus.OK,
-            jobs=jobs,
+            status=CrawlStatus.PARTIAL if isinstance(jobs, PartialJobs) else CrawlStatus.OK,
+            jobs=list(jobs),
             duration_seconds=time.monotonic() - started,
         )
 

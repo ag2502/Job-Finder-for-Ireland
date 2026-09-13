@@ -83,6 +83,9 @@ WORKDAY_PATTERN = re.compile(
     re.I,
 )
 
+# Path segments after a Workday tenant host that are app routes, not site names.
+WORKDAY_NON_SITES = {"wday", "login", "userhome", "cxs", "static", "assets"}
+
 # Slugs that appear in boilerplate and never identify a real board.
 SLUG_BLOCKLIST = {
     "embed", "js", "api", "www", "assets", "static", "images", "css",
@@ -107,6 +110,35 @@ CAREERS_WORDS = re.compile(
     r"|employment|open[-_ ]?roles|open[-_ ]?positions",
     re.I,
 )
+
+# Off-site hosts a "careers" link can point at without being a careers page. Off-site
+# links score highest in `careers_links`, because an off-site careers link is usually the
+# ATS — which made these the *top* pick whenever a footer carried them: CPL's careers URL
+# was recorded as its YouTube channel, Morgan McKinley's as its Facebook page, and
+# Phorest's as Teamtailor's "powered by" marketing page. Vendor entries are the marketing
+# apex only; a vendor's board hosts (`boards.greenhouse.io`, `apply.workable.com`) are
+# exactly the links detection wants and stay allowed.
+NON_CAREERS_HOSTS = {
+    "facebook.com", "instagram.com", "linkedin.com", "twitter.com", "x.com",
+    "youtube.com", "tiktok.com", "threads.net", "pinterest.com",
+    "teamtailor.com", "greenhouse.io", "greenhouse.com", "lever.co", "workable.com",
+    "bamboohr.com", "personio.com", "personio.de", "ashbyhq.com",
+    "smartrecruiters.com", "recruitee.com", "workday.com",
+}
+NON_CAREERS_HOST_FRAGMENTS = ("glassdoor.", "indeed.")
+
+
+def _is_non_careers_host(host: str) -> bool:
+    host = host.lower().split(":")[0].removeprefix("www.")
+    if host in NON_CAREERS_HOSTS:
+        return True
+    if any(host.endswith("." + social) for social in (
+        "facebook.com", "instagram.com", "linkedin.com", "twitter.com",
+        "youtube.com", "tiktok.com",
+    )):
+        return True
+    return any(fragment in host for fragment in NON_CAREERS_HOST_FRAGMENTS)
+
 
 ANCHOR = re.compile(r"<a\b[^>]*href=[\"']([^\"'#]+)[\"'][^>]*>(.*?)</a>", re.I | re.S)
 TAGS = re.compile(r"<[^>]+>")
@@ -221,11 +253,23 @@ class Detection:
 
 def detect_in_text(text: str) -> tuple[str, str] | None:
     """Find an ATS fingerprint in a page's markup."""
-    match = WORKDAY_PATTERN.search(text)
-    if match:
+    for match in WORKDAY_PATTERN.finditer(text):
         tenant, host, site = match.group(1), match.group(2), match.group(3)
-        if site.lower() not in SLUG_BLOCKLIST:
+        # Not SLUG_BLOCKLIST: that list filters boilerplate out of single-slug boards,
+        # where `boards.greenhouse.io/careers` names nothing. A Workday tenant host is
+        # already specific, and "Careers" and "Jobs" are among the commonest real site
+        # names - Broadridge's board is `broadridge.wd5.myworkdayjobs.com/Careers`, and
+        # every tenant named that way was invisible to detection.
+        if site.lower() not in WORKDAY_NON_SITES:
             return "workday", f"{tenant}:{host}:{site}"
+
+    # Oracle, like Workday, is addressed by more than one part: the host *and* the site
+    # number. The generic pattern below captures only the pod, which no request can use.
+    from jobfinder.sources.oracle_recruiting import slug_from_url
+
+    oracle = slug_from_url(text)
+    if oracle:
+        return "oracle_recruiting", oracle
 
     for adapter, pattern in ATS_PATTERNS:
         for found in pattern.finditer(text):
@@ -270,6 +314,8 @@ def careers_links(html: str, base_url: str) -> list[str]:
             continue
 
         host = urlsplit(absolute).netloc.lower()
+        if _is_non_careers_host(host):
+            continue
         # An off-site careers link usually *is* the ATS, which is the best case there is.
         offsite = host != base_host and base_host not in host and host not in base_host
 

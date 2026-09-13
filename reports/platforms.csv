@@ -1,18 +1,22 @@
 platform,kind,tier,access,status,companies,sources,dublin_jobs_active,notes
-greenhouse,ats,1,public api,in use,52,52,283,Public board API; also detects embedded widgets
-workday,ats,1,public api,in use,46,46,258,Compound slug tenant:wdhost:site; dominant among Dublin MNCs
-amazon,bespoke,1,public api,in use,1,1,207,country=IRL filter
-smartrecruiters,ats,1,public api,in use,4,4,44,Native country=ie facet; unknown tenant returns 200 + empty
-google,bespoke,1,scrape only,in use,1,1,41,No API but the careers page is server-rendered
-workable,ats,1,public api,in use,6,6,26,Structured city/country so location is unambiguous
-ashby,ats,1,public api,in use,19,19,22,secondaryLocations expanded (per-posting)
-lever,ats,1,public api,in use,5,5,10,allLocations expanded (per-posting)
-jsonld,generic,3,public,in use,46,46,7,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
+workday,ats,1,public api,in use,49,49,399,Compound slug tenant:wdhost:site; dominant among Dublin MNCs
+greenhouse,ats,1,public api,in use,55,55,306,Public board API; also detects embedded widgets
+amazon,bespoke,1,public api,in use,1,1,193,country=IRL filter
+oracle_recruiting,ats,1,scrape only,in use,3,3,123,Oracle Recruiting Cloud - BNY Mellon/JPMorgan/Dell; highest-value adapter to write next
+successfactors,ats,1,scrape only,in use,14,14,75,SAP SuccessFactors - common among European MNCs
+jsonld,generic,3,public,in use,46,46,61,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
+workable,ats,1,public api,in use,6,6,58,Structured city/country so location is unambiguous
+smartrecruiters,ats,1,public api,in use,4,4,53,Native country=ie facet; unknown tenant returns 200 + empty
+icims,ats,1,scrape only,in use,5,5,38,iCIMS
+ashby,ats,1,public api,in use,19,19,30,secondaryLocations expanded (per-posting)
+bamboohr,ats,1,public api,in use,9,9,26,{slug}.bamboohr.com/careers/list - common among Irish SMEs
+lever,ats,1,public api,in use,5,5,12,allLocations expanded (per-posting)
+google,bespoke,1,scrape only,in use,1,1,11,No API but the careers page is server-rendered
+teamtailor,ats,1,api key,in use,5,5,9,Public API needs a key; job pages fall back to jsonld
 intel,bespoke,1,public api,in use,0,0,0,Via Workday
 personio,ats,1,public api,in use,8,8,0,XML feed; tenant may live on .de or .com
 recruitee,ats,1,public api,in use,0,0,0,Full advert in the list response; one request per board
 adzuna,aggregator,4,needs key,built,0,0,0,Official API; free tier; genuine Irish coverage. Set JOBFINDER_ADZUNA_APP_ID/KEY
-bamboohr,ats,1,public api,open api,0,0,0,{slug}.bamboohr.com/careers/list - common among Irish SMEs
 breezy,ats,1,public api,open api,0,0,0,{slug}.breezy.hr/json
 comeet,ats,1,public api,open api,0,0,0,Public positions endpoint per employer
 enterpriseireland,directory,5,scrape only,open api,0,0,0,Enterprise Ireland portfolio - the indigenous universe
@@ -41,13 +45,9 @@ avature,ats,1,scrape only,detected only,0,0,0,Avature - used by several Dublin p
 cornerstone,ats,1,scrape only,detected only,0,0,0,Cornerstone OnDemand
 dayforce,ats,1,scrape only,detected only,0,0,0,Ceridian Dayforce
 eightfold,ats,1,scrape only,detected only,0,0,0,Eightfold AI - Boston Scientific among others
-icims,ats,1,scrape only,detected only,0,0,0,iCIMS
 jobvite,ats,1,scrape only,detected only,0,0,0,Jobvite
-oracle_recruiting,ats,1,scrape only,detected only,0,0,0,Oracle Recruiting Cloud - BNY Mellon/JPMorgan/Dell; highest-value adapter to write next
 phenom,ats,1,scrape only,detected only,0,0,0,Phenom People
-successfactors,ats,1,scrape only,detected only,0,0,0,SAP SuccessFactors - common among European MNCs
 taleo,ats,1,scrape only,detected only,0,0,0,Oracle Taleo - legacy but still widespread
-teamtailor,ats,1,api key,detected only,0,0,0,Public API needs a key; job pages fall back to jsonld
 ukg,ats,1,scrape only,detected only,0,0,0,UKG / Ultimate Software
 apple,bespoke,1,scrape only,scrape only,0,0,0,jobs.apple.com search API returns 401 without a CSRF token
 builtin,job board,4,scrape only,scrape only,0,0,0,Tech-focused

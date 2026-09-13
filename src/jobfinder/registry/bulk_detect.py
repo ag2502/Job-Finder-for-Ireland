@@ -58,7 +58,36 @@ def _verify_smartrecruiters(slug: str, client: httpx.Client) -> bool:
     return verify_slug(slug, client=client)
 
 
-SLUG_VALIDATORS = {"smartrecruiters": _verify_smartrecruiters}
+def _verify_by_fetch(adapter_name: str):
+    """A validator that accepts a slug only if a real fetch returns postings.
+
+    Detection's fingerprints for these platforms predate their adapters and capture what
+    the page shows, which is not always what the adapter addresses: an Oracle pod name
+    without its site number, a SuccessFactors company id rather than the careers host.
+    Registering those would add sources that fail every crawl until the breaker trips. A
+    populated fetch is proof the slug works; anything less is refused.
+    """
+
+    def verify(slug: str, client: httpx.Client | None) -> bool:
+        from jobfinder.core.models import CrawlStatus
+        from jobfinder.sources.base import get_adapter
+
+        adapter = get_adapter(adapter_name)
+        if adapter is None:
+            return False
+        result = adapter.fetch(slug, client=client)
+        return result.status is not CrawlStatus.FAILED and bool(result.jobs)
+
+    return verify
+
+
+SLUG_VALIDATORS = {
+    "smartrecruiters": _verify_smartrecruiters,
+    **{
+        name: _verify_by_fetch(name)
+        for name in ("bamboohr", "icims", "oracle_recruiting", "successfactors", "teamtailor")
+    },
+}
 
 # How many companies to process between commits. Small enough that little is lost to a
 # dropped connection, large enough that the write cost stays negligible.

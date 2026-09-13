@@ -44,7 +44,7 @@ import httpx
 from dateutil import parser as date_parser
 
 from jobfinder.core.config import settings
-from jobfinder.sources.base import BaseAdapter, RawJob, register
+from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 
 logger = logging.getLogger(__name__)
 
@@ -295,7 +295,7 @@ class JsonLdAdapter(BaseAdapter):
         if not robots.allows(careers_url):
             raise PermissionError(f"robots.txt disallows {careers_url}")
 
-        candidates = self._discover(careers_url, origin, client, robots)
+        candidates, discovery_truncated = self._discover(careers_url, origin, client, robots)
         if not candidates:
             raise ValueError(f"no job pages discovered under {careers_url}")
 
@@ -309,6 +309,11 @@ class JsonLdAdapter(BaseAdapter):
 
         if not jobs:
             raise ValueError(f"no JobPosting markup found under {careers_url}")
+
+        # The ceilings above make this a sample on any large site. A sample must not be
+        # reported as the whole board, or every job outside it is closed.
+        if discovery_truncated or len(candidates) > MAX_JOB_PAGES:
+            return PartialJobs(jobs.values())
         return list(jobs.values())
 
     def _extract_page(self, url: str, client: httpx.Client) -> list[RawJob]:
@@ -334,40 +339,45 @@ class JsonLdAdapter(BaseAdapter):
         origin: str,
         client: httpx.Client,
         robots: RobotsPolicy,
-    ) -> list[str]:
-        """Job page URLs, from the sitemap if there is one and the page if not."""
-        urls = self._from_sitemap(origin, client, robots)
+    ) -> tuple[list[str], bool]:
+        """Job page URLs, and whether discovery stopped before reading everything.
+
+        From the sitemap if there is one and the page if not.
+        """
+        urls, truncated = self._from_sitemap(origin, client, robots)
         if urls:
             logger.debug("jsonld: %d job URLs from sitemap for %s", len(urls), origin)
-            return urls
+            return urls, truncated
 
         urls = self._from_listing(careers_url, client, robots)
         logger.debug("jsonld: %d job URLs from listing for %s", len(urls), careers_url)
 
         # The careers page itself sometimes carries the postings inline, so it is always
         # worth reading even when it yielded no links.
-        return [careers_url] + urls
+        return [careers_url] + urls, False
 
     def _from_sitemap(
         self, origin: str, client: httpx.Client, robots: RobotsPolicy
-    ) -> list[str]:
-        """Job URLs listed in the site's sitemap.
+    ) -> tuple[list[str], bool]:
+        """Job URLs listed in the site's sitemap, and whether some sitemaps went unread.
 
         Sitemap indexes point at further sitemaps; those whose own URL mentions jobs are
         followed first, since a large site's job sitemap is the only one worth fetching.
         """
         found: list[str] = []
+        fallbacks = [f"{origin}/sitemap.xml", f"{origin}/sitemap_index.xml"]
         # Declared sitemaps first; the conventional locations are only a fallback.
-        queue = robots.sitemaps() + [
-            f"{origin}/sitemap.xml",
-            f"{origin}/sitemap_index.xml",
-        ]
+        queue = robots.sitemaps() + fallbacks
+        visited: set[str] = set()
         fetched = 0
 
         while queue and fetched < MAX_SITEMAP_FETCHES:
             url = queue.pop(0)
-            if not robots.allows(url):
+            # A declared sitemap is usually also one of the fallbacks; fetching it twice
+            # spends the fetch budget on nothing.
+            if url in visited or not robots.allows(url):
                 continue
+            visited.add(url)
             try:
                 response = client.get(url)
                 if response.status_code != 200:
@@ -387,7 +397,10 @@ class JsonLdAdapter(BaseAdapter):
             if len(found) >= MAX_JOB_PAGES:
                 break
 
-        return _dedupe(found)
+        # Declared or nested sitemaps still queued mean job URLs may have gone unseen.
+        # Leftover fallbacks do not: they only exist in case nothing was declared.
+        unread = [url for url in queue if url not in visited and url not in fallbacks]
+        return _dedupe(found), bool(unread)
 
     def _from_listing(
         self, careers_url: str, client: httpx.Client, robots: RobotsPolicy

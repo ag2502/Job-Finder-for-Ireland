@@ -391,3 +391,386 @@ def test_personio_server_error_is_not_mistaken_for_a_missing_tenant():
 
     assert result.status is CrawlStatus.FAILED
     assert not com.called, "a 500 must not fall through to the other host"
+
+
+# ---------------------------------------------------------------------------
+# BambooHR, Teamtailor, iCIMS, Oracle Recruiting, SuccessFactors
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_bamboohr_reads_the_list_and_builds_locations():
+    from jobfinder.sources.bamboohr import BambooHRAdapter
+
+    respx.get("https://acme.bamboohr.com/careers/list").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "meta": {"totalCount": 2},
+                "result": [
+                    {"id": "445", "jobOpeningName": "Security Consultant",
+                     "departmentLabel": "Services", "location": {"city": "Dublin", "state": None},
+                     "atsLocation": {"country": "Ireland", "state": None, "province": None, "city": None},
+                     "isRemote": None},
+                    {"id": "446", "jobOpeningName": "Support Engineer",
+                     "location": {"city": None, "state": None}, "atsLocation": {}, "isRemote": True},
+                ],
+            },
+        )
+    )
+
+    result = BambooHRAdapter().fetch("acme")
+
+    assert result.status is CrawlStatus.OK
+    first, second = result.jobs
+    assert (first.source_job_id, first.location_raw) == ("445", "Dublin, Ireland")
+    assert first.url == "https://acme.bamboohr.com/careers/445"
+    assert first.department == "Services"
+    assert second.location_raw == "Remote"
+
+
+@respx.mock
+def test_bamboohr_unknown_tenant_fails_rather_than_emptying_the_board():
+    """An unknown tenant is redirected to BambooHR's marketing HTML, not a 404."""
+    from jobfinder.sources.bamboohr import BambooHRAdapter
+
+    respx.get("https://nobody.bamboohr.com/careers/list").mock(
+        return_value=httpx.Response(200, text="<html>Try BambooHR free</html>")
+    )
+    assert BambooHRAdapter().fetch("nobody").status is CrawlStatus.FAILED
+
+
+TEAMTAILOR_FEED = """<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:tt="https://teamtailor.com/rss">
+  <channel>
+    <item>
+      <title>Director, Customer Operations</title>
+      <description>&lt;p&gt;Lead support&lt;/p&gt;</description>
+      <pubDate>Wed, 02 Sep 2026 05:53:00 +0100</pubDate>
+      <link>https://careers.acme.ie/jobs/8306207-director-customer-operations</link>
+      <remoteStatus>none</remoteStatus>
+      <guid>972fcd39</guid>
+      <tt:department>Operations</tt:department>
+      <tt:locations>
+        <tt:location><tt:name>HQ</tt:name><tt:city>Dublin</tt:city><tt:country>Ireland</tt:country></tt:location>
+        <tt:location><tt:name>US</tt:name><tt:city>Philadelphia</tt:city><tt:country>United States</tt:country></tt:location>
+      </tt:locations>
+    </item>
+    <item>
+      <title>Remote Engineer</title>
+      <link>https://careers.acme.ie/jobs/8306208-remote-engineer</link>
+      <remoteStatus>fully</remoteStatus>
+      <guid>972fcd40</guid>
+    </item>
+  </channel>
+</rss>"""
+
+
+@respx.mock
+def test_teamtailor_expands_namespaced_locations_and_marks_remote():
+    from jobfinder.sources.teamtailor import TeamtailorAdapter
+
+    respx.get("https://careers.acme.ie/jobs.rss").mock(
+        return_value=httpx.Response(200, text=TEAMTAILOR_FEED)
+    )
+
+    result = TeamtailorAdapter().fetch("careers.acme.ie")
+
+    assert result.status is CrawlStatus.OK
+    director, remote = result.jobs
+    assert director.source_job_id == "8306207"
+    assert director.location_raw == "Dublin, Ireland"
+    assert director.extra_locations == ["Philadelphia, United States"]
+    assert director.department == "Operations"
+    assert remote.location_raw == "Remote"
+
+
+def test_teamtailor_bare_subdomain_and_custom_host_both_address_a_feed():
+    from jobfinder.sources.teamtailor import feed_url
+
+    assert feed_url("acme") == "https://acme.teamtailor.com/jobs.rss"
+    assert feed_url("careers.acme.ie") == "https://careers.acme.ie/jobs.rss"
+
+
+def _icims_page(ids: list[int], total: int) -> dict:
+    return {
+        "totalCount": total,
+        "jobs": [
+            {"data": {"req_id": str(i), "slug": str(i), "title": f"Role {i}",
+                      "full_location": "Dublin, Ireland", "description": "Do things",
+                      "qualifications": "Know things", "posted_date": "2026-09-11T13:14:00+0000"}}
+            for i in ids
+        ],
+    }
+
+
+@respx.mock
+def test_icims_resolves_a_bare_portal_and_pages_to_the_stated_total():
+    from jobfinder.sources.icims import ICIMSAdapter
+
+    respx.get("https://careers-acme.icims.com/jobs/search?ss=1").mock(
+        return_value=httpx.Response(
+            200, text="<script>window.top.location.href = 'https:\\/\\/careers.acme.ie\\/jobs';</script>"
+        )
+    )
+    respx.get("https://careers.acme.ie/api/jobs", params={"page": "1"}).mock(
+        return_value=httpx.Response(200, json=_icims_page([1, 2], total=3))
+    )
+    respx.get("https://careers.acme.ie/api/jobs", params={"page": "2"}).mock(
+        return_value=httpx.Response(200, json=_icims_page([3], total=3))
+    )
+
+    result = ICIMSAdapter().fetch("careers-acme")
+
+    assert result.status is CrawlStatus.OK
+    assert [job.source_job_id for job in result.jobs] == ["1", "2", "3"]
+    assert result.jobs[0].url == "https://careers.acme.ie/jobs/1"
+    assert "Know things" in result.jobs[0].description
+
+
+@respx.mock
+def test_icims_incomplete_read_fails_instead_of_closing_unread_jobs():
+    """A board that stops paging far short of its own total is not a complete board."""
+    from jobfinder.sources.icims import ICIMSAdapter
+
+    respx.get("https://careers.acme.ie/api/jobs", params={"page": "1"}).mock(
+        return_value=httpx.Response(200, json=_icims_page([1, 2], total=50))
+    )
+    respx.get("https://careers.acme.ie/api/jobs", params={"page": "2"}).mock(
+        return_value=httpx.Response(200, json=_icims_page([], total=50))
+    )
+
+    result = ICIMSAdapter().fetch("careers.acme.ie")
+
+    assert result.status is CrawlStatus.FAILED
+    assert "incomplete" in (result.error or "")
+
+
+ORACLE_ENDPOINT = "https://jobs.acme.com/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
+
+
+def _oracle_page(ids: list[str], total: int) -> dict:
+    return {
+        "items": [
+            {
+                "TotalJobsCount": total,
+                "requisitionList": [
+                    {"Id": i, "Title": f"Engineer {i}", "PostedDate": "2026-09-11",
+                     "PrimaryLocation": "Dublin, Ireland",
+                     "secondaryLocations": [{"Name": "Cork, Ireland"}]}
+                    for i in ids
+                ],
+            }
+        ]
+    }
+
+
+@respx.mock
+def test_oracle_recruiting_reads_requisitions_with_their_site_urls():
+    from jobfinder.sources.oracle_recruiting import OracleRecruitingAdapter
+
+    respx.get(url__startswith=ORACLE_ENDPOINT).mock(
+        return_value=httpx.Response(200, json=_oracle_page(["R1", "R2"], total=2))
+    )
+
+    result = OracleRecruitingAdapter().fetch("jobs.acme.com|CX_1")
+
+    assert result.status is CrawlStatus.OK
+    first = result.jobs[0]
+    assert first.source_job_id == "R1"
+    assert first.location_raw == "Dublin, Ireland"
+    assert first.extra_locations == ["Cork, Ireland"]
+    assert first.url == "https://jobs.acme.com/hcmUI/CandidateExperience/en/sites/CX_1/job/R1"
+
+
+def test_oracle_recruiting_rejects_a_slug_without_its_site_number():
+    """A pod name alone - what the old fingerprint captured - addresses nothing."""
+    from jobfinder.sources.oracle_recruiting import OracleRecruitingAdapter
+
+    assert OracleRecruitingAdapter().fetch("jobs.acme.com").status is CrawlStatus.FAILED
+
+
+def test_oracle_slug_is_read_from_a_candidate_experience_url():
+    from jobfinder.sources.oracle_recruiting import slug_from_url
+
+    url = "https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers/jobs"
+    assert slug_from_url(url) == "enterpriseplatform.dell.com|careers"
+
+
+def _rmk_page(ids: list[int], total: int) -> str:
+    rows = "".join(
+        f'<tr class="data-row"><td class="colTitle">'
+        f'<span class="jobTitle hidden-phone"><a href="/job/Dublin-Analyst/{i}/" class="jobTitle-link">'
+        f"Analyst &amp; Planner {i}</a></span>"
+        f'<span class="jobTitle visible-phone"><a class="jobTitle-link" href="/job/Dublin-Analyst/{i}/">'
+        f"Analyst &amp; Planner {i}</a></span></td>"
+        f'<td class="colLocation"><span class="jobLocation"> Dublin, IE </span></td></tr>'
+        for i in ids
+    )
+    return f'<span class="paginationLabel">Results <b>1 – 2</b> of <b>{total}</b></span><table><tbody>{rows}</tbody></table>'
+
+
+@respx.mock
+def test_successfactors_pages_the_search_results_and_dedupes_phone_links():
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    pages = {"0": _rmk_page([101, 102], total=3), "2": _rmk_page([103], total=3)}
+    respx.get(url__startswith="https://careers.acme.ie/search/").mock(
+        side_effect=lambda request: httpx.Response(200, text=pages[request.url.params["startrow"]])
+    )
+
+    result = SuccessFactorsAdapter().fetch("careers.acme.ie")
+
+    assert result.status is CrawlStatus.OK
+    assert [job.source_job_id for job in result.jobs] == ["101", "102", "103"]
+    assert result.jobs[0].title == "Analyst & Planner 101"
+    assert result.jobs[0].location_raw == "Dublin, IE"
+    assert result.jobs[0].url == "https://careers.acme.ie/job/Dublin-Analyst/101/"
+
+
+@respx.mock
+def test_successfactors_board_beyond_the_page_ceiling_is_partial(monkeypatch):
+    """SAP-sized boards are read newest-first to the ceiling and must not close the rest."""
+    from jobfinder.sources import successfactors
+
+    monkeypatch.setattr(successfactors, "MAX_PAGES", 2)
+    counter = iter(range(1000, 2000, 2))
+    respx.get(url__startswith="https://jobs.acme.com/search/").mock(
+        side_effect=lambda request: httpx.Response(
+            200, text=_rmk_page([next(counter), next(counter)], total=5000)
+        )
+    )
+
+    result = successfactors.SuccessFactorsAdapter().fetch("jobs.acme.com")
+
+    assert result.status is CrawlStatus.PARTIAL
+    assert len(result.jobs) == 4
+
+
+@respx.mock
+def test_successfactors_read_that_breaks_off_early_fails():
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    pages = {"0": _rmk_page([101, 102], total=40), "2": "<table><tbody></tbody></table>"}
+    respx.get(url__startswith="https://careers.acme.ie/search/").mock(
+        side_effect=lambda request: httpx.Response(200, text=pages[request.url.params["startrow"]])
+    )
+
+    assert SuccessFactorsAdapter().fetch("careers.acme.ie").status is CrawlStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# CandidateManager and Oleeo (TAL.net)
+# ---------------------------------------------------------------------------
+
+CM_URL = "https://www.candidatemanager.net/cm/p/pJobs.aspx"
+
+
+def _cm_page(headers: list[str], rows: list[list[str]], extra: str = "") -> str:
+    head = "".join(f"<th>{h} </th>" for h in headers)
+    body = "".join(
+        "<tr><td><a href=\"https://www.candidatemanager.net/cm/p/pJobDetails.aspx?mid=M&amp;sid=S&amp;"
+        f"jid={cells[0]}&amp;a=x\"> {cells[1]} </a><small>(REF{cells[0]})</small></td>"
+        + "".join(f"<td> {c} </td>" for c in cells[2:])
+        + "</tr>"
+        for cells in rows
+    )
+    return f"<table class=\"table\"><tr>{head}</tr>{body}</table>{extra}"
+
+
+@respx.mock
+def test_candidatemanager_maps_columns_by_header_not_position():
+    """Boards pick their own columns; EirGrid and RTÉ order them differently."""
+    from jobfinder.sources.candidatemanager import CandidateManagerAdapter
+
+    page = _cm_page(
+        ["Current Vacancies", "Job Type", "Location", "Category"],
+        [["J1", "Head of Outage Management", "Full-Time", "Dublin City, County Dublin, Ireland", "Engineering"]],
+    )
+    respx.get(CM_URL, params={"mid": "M", "sid": "S"}).mock(return_value=httpx.Response(200, text=page))
+
+    result = CandidateManagerAdapter().fetch("M|S")
+
+    assert result.status is CrawlStatus.OK
+    (job,) = result.jobs
+    assert job.source_job_id == "J1"
+    assert job.location_raw == "Dublin City, County Dublin, Ireland"
+    assert job.department == "Engineering"
+    assert "jid=J1" in job.url and "&amp;" not in job.url
+
+
+@respx.mock
+def test_candidatemanager_board_without_a_location_column_reports_none():
+    from jobfinder.sources.candidatemanager import CandidateManagerAdapter
+
+    page = _cm_page(["Current Vacancies", "Job Type"], [["J2", "Associate Supervisor", "Permanent"]])
+    respx.get(CM_URL, params={"mid": "M", "sid": "S"}).mock(return_value=httpx.Response(200, text=page))
+
+    (job,) = CandidateManagerAdapter().fetch("M|S").jobs
+    assert job.location_raw is None
+
+
+@respx.mock
+def test_candidatemanager_retired_board_fails_instead_of_closing_everything():
+    from jobfinder.sources.candidatemanager import CandidateManagerAdapter
+
+    respx.get(CM_URL, params={"mid": "M", "sid": "S"}).mock(
+        return_value=httpx.Response(200, text="<html><body>Session expired</body></html>")
+    )
+    assert CandidateManagerAdapter().fetch("M|S").status is CrawlStatus.FAILED
+
+
+def test_candidatemanager_slug_is_read_from_a_job_link():
+    from jobfinder.sources.candidatemanager import slug_from_url
+
+    url = "https://www.candidatemanager.net/cm/p/pJobDetails.aspx?mid=YGTAZW&amp;sid=BEVDEV&amp;jid=X"
+    assert slug_from_url(url) == "YGTAZW|BEVDEV"
+
+
+OLEEO_FEED = """<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <entry>
+    <id>https://acme.tal.net/vx/candidate/so/pm/1/pl/3/opp/12954-Supply-Chain-Planner/en-GB</id>
+    <link rel="alternate" href="https://acme.tal.net/vx/candidate/so/pm/1/pl/3/opp/12954-Supply-Chain-Planner/en-GB?instant=apply"/>
+    <title>Supply Chain Planner</title>
+    <published>2026-09-11T15:50:00Z</published>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">ID:12954<br/>
+      Closing Date:30 Oct 2026 23:55 GMT<br/>County:Dublin<br/>Employment Type:Full Time<br/>Role Type:Head Office<br/></div></content>
+  </entry>
+  <entry>
+    <id>https://acme.tal.net/vx/candidate/so/pm/1/pl/3/opp/12949-Cleaning-Assistant/en-GB</id>
+    <title>Cleaning Assistant - Ballincollig</title>
+    <content type="xhtml"><div xmlns="http://www.w3.org/1999/xhtml">County:Cork<br/></div></content>
+  </entry>
+</feed>"""
+
+
+@respx.mock
+def test_oleeo_reads_county_and_fields_from_the_atom_feed():
+    from jobfinder.sources.oleeo import OleeoAdapter, feed_url
+
+    respx.get(feed_url("acme.tal.net|3")).mock(return_value=httpx.Response(200, text=OLEEO_FEED))
+
+    result = OleeoAdapter().fetch("acme.tal.net|3")
+
+    assert result.status is CrawlStatus.OK
+    planner, cleaner = result.jobs
+    assert (planner.source_job_id, planner.location_raw, planner.department) == ("12954", "Dublin", "Head Office")
+    assert planner.url.endswith("/en-GB")
+    assert "Closing Date: 30 Oct 2026" in planner.description
+    assert (cleaner.source_job_id, cleaner.location_raw) == ("12949", "Cork")
+
+
+@respx.mock
+def test_oleeo_non_feed_response_fails():
+    from jobfinder.sources.oleeo import OleeoAdapter, feed_url
+
+    respx.get(feed_url("acme.tal.net|3")).mock(return_value=httpx.Response(200, text="<html>Maintenance</html>"))
+    assert OleeoAdapter().fetch("acme.tal.net|3").status is CrawlStatus.FAILED
+
+
+def test_oleeo_slug_is_read_from_a_board_url():
+    from jobfinder.sources.oleeo import slug_from_url
+
+    url = "https://dunnes.tal.net/vx/lang-en-GB/mobile-0/appcentre-ext/brand-4/candidate/jobboard/vacancy/3/adv/"
+    assert slug_from_url(url) == "dunnes.tal.net|3"

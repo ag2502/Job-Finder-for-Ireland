@@ -291,3 +291,86 @@ def test_a_site_with_no_job_markup_fails_rather_than_reporting_zero_jobs():
     )
 
     assert JsonLdAdapter().fetch("https://acme.ie/careers").status is CrawlStatus.FAILED
+
+
+@respx.mock
+def test_a_capped_crawl_is_partial_so_jobs_outside_the_sample_are_not_closed(monkeypatch):
+    """Regression: a 60-page sample was reported as the whole board.
+
+    The reconciler closes a job only on an OK fetch, reading absence as removal. On a large
+    site the extractor reads a *sample* of job pages, and every crawl that sampled
+    differently closed the roles it happened to skip - Cisco lost 48 real postings.
+    """
+    from jobfinder.sources import jsonld
+
+    monkeypatch.setattr(JsonLdAdapter, "polite_pause", staticmethod(lambda: None))
+    total = jsonld.MAX_JOB_PAGES + 5
+
+    respx.get("https://acme.ie/robots.txt").mock(return_value=httpx.Response(404))
+    respx.get("https://acme.ie/sitemap.xml").mock(
+        return_value=httpx.Response(
+            200,
+            text="<urlset>"
+            + "".join(f"<url><loc>https://acme.ie/jobs/role-{i}</loc></url>" for i in range(total))
+            + "</urlset>",
+        )
+    )
+    respx.get("https://acme.ie/sitemap_index.xml").mock(return_value=httpx.Response(404))
+    respx.get(url__regex=r"https://acme\.ie/jobs/role-\d+").mock(
+        side_effect=lambda request: httpx.Response(
+            200,
+            text=_page(
+                '{"@type":"JobPosting","title":"Role","identifier":%s}'
+                % request.url.path.rsplit("-", 1)[-1]
+            ),
+        )
+    )
+
+    result = JsonLdAdapter().fetch("https://acme.ie/careers")
+
+    assert result.status is CrawlStatus.PARTIAL
+    assert len(result.jobs) == jsonld.MAX_JOB_PAGES
+
+
+@respx.mock
+def test_unread_nested_sitemaps_make_a_small_sample_partial_too(monkeypatch):
+    """Fewer than the page ceiling is still a sample when job sitemaps went unfetched."""
+    from jobfinder.sources import jsonld
+
+    monkeypatch.setattr(JsonLdAdapter, "polite_pause", staticmethod(lambda: None))
+    nested = jsonld.MAX_SITEMAP_FETCHES + 2
+
+    respx.get("https://acme.ie/robots.txt").mock(return_value=httpx.Response(404))
+    respx.get("https://acme.ie/sitemap.xml").mock(
+        return_value=httpx.Response(
+            200,
+            text="<sitemapindex>"
+            + "".join(
+                f"<sitemap><loc>https://acme.ie/jobs/sitemap-{i}.xml</loc></sitemap>"
+                for i in range(nested)
+            )
+            + "</sitemapindex>",
+        )
+    )
+    respx.get("https://acme.ie/sitemap_index.xml").mock(return_value=httpx.Response(404))
+    respx.get(url__regex=r"https://acme\.ie/jobs/sitemap-\d+\.xml").mock(
+        side_effect=lambda request: httpx.Response(
+            200,
+            text="<urlset><url><loc>https://acme.ie/jobs/role-%s</loc></url></urlset>"
+            % request.url.path.rsplit("-", 1)[-1].removesuffix(".xml"),
+        )
+    )
+    respx.get(url__regex=r"https://acme\.ie/jobs/role-\d+").mock(
+        side_effect=lambda request: httpx.Response(
+            200,
+            text=_page(
+                '{"@type":"JobPosting","title":"Role","identifier":%s}'
+                % request.url.path.rsplit("-", 1)[-1]
+            ),
+        )
+    )
+
+    result = JsonLdAdapter().fetch("https://acme.ie/careers")
+
+    assert result.status is CrawlStatus.PARTIAL
+    assert 0 < len(result.jobs) < jsonld.MAX_JOB_PAGES

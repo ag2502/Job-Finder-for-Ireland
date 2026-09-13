@@ -140,6 +140,30 @@ def test_offsite_careers_link_outranks_an_onsite_one():
     assert ranked[0] == "https://jobs.example.io/acme"
 
 
+def test_social_and_vendor_marketing_links_are_never_the_careers_page():
+    """Regression: the off-site bonus made a footer's social links the top pick.
+
+    CPL's careers URL was recorded as its YouTube channel, Morgan McKinley's as its
+    Facebook page, and Phorest's as Teamtailor's "powered by" marketing page - each
+    off-site and mentioning jobs, so each outranked the real careers page.
+    """
+    html = (
+        '<a href="https://www.facebook.com/acmejobs">Jobs at Acme</a>'
+        '<a href="https://www.youtube.com/user/AcmeCareers">Careers channel</a>'
+        '<a href="https://www.teamtailor.com/en/?utm_content=careers.acme.ie">'
+        "Powered by Teamtailor careers</a>"
+        '<a href="https://ie.indeed.com/cmp/acme/jobs">Jobs</a>'
+        '<a href="/careers">Careers</a>'
+    )
+    assert careers_links(html, "https://acme.ie") == ["https://acme.ie/careers"]
+
+
+def test_a_vendor_board_host_is_still_followed():
+    """Only the vendor's marketing apex is excluded, never its board."""
+    html = '<a href="https://apply.workable.com/acme/">See open roles</a>'
+    assert careers_links(html, "https://acme.ie") == ["https://apply.workable.com/acme/"]
+
+
 def test_slug_candidates_prefer_the_domain_then_the_name():
     """Datadog's domain is datadoghq.com but its board slug is datadog."""
     assert slug_candidates("https://datadoghq.com", "Datadog") == ["datadoghq", "datadog"]
@@ -214,10 +238,10 @@ def test_a_recognised_platform_with_no_adapter_is_recorded_not_registered(
     session: Session,
 ):
     """A source with no adapter fails every crawl until the breaker disables it."""
-    _pending(session, "Tailor Co", "https://tailor.ie")
-    respx.get("https://tailor.ie").mock(
+    _pending(session, "Taleo Co", "https://taleoco.ie")
+    respx.get("https://taleoco.ie").mock(
         return_value=httpx.Response(
-            200, html='<a href="https://tailorco.teamtailor.com/jobs">Careers</a>'
+            200, html='<a href="https://taleoco.taleo.net/careersection/jobs">Careers</a>'
         )
     )
 
@@ -564,8 +588,9 @@ def test_an_unverifiable_but_distinctive_slug_is_accepted():
     "markup,expected",
     [
         (
+            # Oracle now has an adapter, which needs the host and site, not the pod.
             "https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/X",
-            ("oracle_recruiting", "eofe"),
+            ("oracle_recruiting", "eofe.fa.us2.oraclecloud.com|X"),
         ),
         ("https://bostonscientific.eightfold.ai/careers", ("eightfold", "bostonscientific")),
         ("https://acme.taleo.net/careersection/x", ("taleo", "acme")),
@@ -588,11 +613,11 @@ def test_platforms_without_adapters_are_still_named(markup: str, expected: tuple
 def test_a_named_platform_with_no_adapter_is_not_registered_as_a_source(session: Session):
     from jobfinder.registry.bulk_detect import sweep
 
-    _pending(session, "Oracle Shop", "https://oshop.ie")
-    respx.get("https://oshop.ie").mock(
+    _pending(session, "Avature Shop", "https://ashop.ie")
+    respx.get("https://ashop.ie").mock(
         return_value=httpx.Response(
             200,
-            html='<a href="https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/X">Careers</a>',
+            html='<a href="https://ashop.avature.net/careers">Careers</a>',
         )
     )
 
@@ -657,3 +682,82 @@ def test_company_name_equivalence(declared: str, expected: str, same: bool):
     from jobfinder.registry.detect import _same_company
 
     assert _same_company(declared, expected) is same
+
+
+def test_an_oracle_careers_url_yields_a_usable_host_and_site_slug():
+    """The old fingerprint captured only the pod, which no request can address."""
+    markup = (
+        '<a href="https://eofe.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/'
+        'BNY-Careers">Careers</a>'
+    )
+    assert detect_in_text(markup) == (
+        "oracle_recruiting",
+        "eofe.fa.us2.oraclecloud.com|BNY-Careers",
+    )
+
+
+@respx.mock
+def test_a_supported_platform_is_registered_only_once_a_real_fetch_returns_jobs(
+    session: Session,
+):
+    """Detection's slug for a newly supported platform must prove itself before it lands.
+
+    These fingerprints predate their adapters and do not always capture what the adapter
+    addresses. An unproven slug would add a source that fails every crawl.
+    """
+    _pending(session, "Empty Tailor", "https://emptytailor.ie")
+    respx.get("https://emptytailor.ie").mock(
+        return_value=httpx.Response(
+            200, html='<a href="https://emptytailor.teamtailor.com/jobs">Careers</a>'
+        )
+    )
+    respx.get("https://emptytailor.teamtailor.com/jobs.rss").mock(
+        return_value=httpx.Response(404)
+    )
+
+    stats = sweep(session, max_workers=1)
+
+    assert stats.detected == 1
+    assert stats.rejected_slug == 1
+    assert session.execute(select(Source)).scalars().all() == []
+
+
+@respx.mock
+def test_a_supported_platform_with_a_live_board_is_registered(session: Session):
+    _pending(session, "Live Tailor", "https://livetailor.ie")
+    respx.get("https://livetailor.ie").mock(
+        return_value=httpx.Response(
+            200, html='<a href="https://livetailor.teamtailor.com/jobs">Careers</a>'
+        )
+    )
+    respx.get("https://livetailor.teamtailor.com/jobs.rss").mock(
+        return_value=httpx.Response(
+            200,
+            text=(
+                "<rss><channel><item><title>Engineer</title>"
+                "<link>https://livetailor.teamtailor.com/jobs/1-engineer</link>"
+                "</item></channel></rss>"
+            ),
+        )
+    )
+
+    stats = sweep(session, max_workers=1)
+
+    assert stats.registered == 1
+    source = session.execute(select(Source)).scalar_one()
+    assert (source.adapter, source.slug) == ("teamtailor", "livetailor")
+
+
+@pytest.mark.parametrize("site", ["Careers", "jobs", "External"])
+def test_a_workday_site_with_a_common_name_is_still_detected(site: str):
+    """Regression: the single-slug blocklist was applied to Workday's site segment.
+
+    "careers" and "jobs" are boilerplate on a Greenhouse or Lever URL but ordinary site
+    names on Workday, so `broadridge.wd5.myworkdayjobs.com/Careers` was never detected.
+    """
+    markup = f'<a href="https://broadridge.wd5.myworkdayjobs.com/{site}">Open roles</a>'
+    assert detect_in_text(markup) == ("workday", f"broadridge:wd5:{site}")
+
+
+def test_the_generic_blocklist_still_applies_to_single_slug_boards():
+    assert detect_in_text('<a href="https://boards.greenhouse.io/careers">x</a>') is None
