@@ -16,7 +16,8 @@
         hx-target="#results"
         hx-swap="innerHTML"
         hx-encoding="multipart/form-data"
-        hx-indicator="#spinner">
+        hx-indicator="#search-loading, #results"
+        hx-disabled-elt="#find-btn">
 
     <div class="grid2">
       <div>
@@ -83,7 +84,6 @@
     <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
       <button type="submit" id="find-btn" disabled>Find jobs</button>
       <span id="find-hint" class="muted small">Pick at least one role above</span>
-      <span id="spinner" class="htmx-indicator muted small">Searching&hellip;</span>
     </div>
   </form>
 </div>
@@ -109,6 +109,32 @@
       if (event.target.name === 'chosen_fields') sync();
     });
     sync();
+  })();
+</script>
+
+<div id="search-loading" class="loading" role="status" aria-live="polite">
+  <span class="spinner" aria-hidden="true"></span>
+  <div>
+    <strong>Searching Dublin openings&hellip; <span id="search-elapsed" class="muted small"></span></strong>
+    <span class="muted small">Matching your roles and CV against every active job. This usually takes a few seconds, a little longer on the first search.</span>
+  </div>
+</div>
+
+<script>
+  // A seconds counter, so a long search reads as working rather than stuck.
+  (function () {
+    var elapsed = document.getElementById('search-elapsed');
+    var timer = null;
+    function stop() { clearInterval(timer); timer = null; elapsed.textContent = ''; }
+    document.body.addEventListener('htmx:beforeRequest', function (event) {
+      if (!event.detail.target || event.detail.target.id !== 'results') return;
+      var started = Date.now();
+      stop();
+      timer = setInterval(function () {
+        elapsed.textContent = Math.floor((Date.now() - started) / 1000) + 's';
+      }, 1000);
+    });
+    document.body.addEventListener('htmx:afterRequest', stop);
   })();
 </script>
 

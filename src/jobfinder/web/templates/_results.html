@@ -34,7 +34,7 @@
       <label class="muted small" style="display:flex;align-items:center;gap:6px">
         Sort
         <select name="sort" hx-post="/search" hx-include="{{ rerun_include }}"
-                hx-target="#results" hx-swap="innerHTML" hx-trigger="change">
+                hx-target="#results" hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
           {% for key, label in sorts.items() %}
           <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
             {{ label }}
@@ -95,12 +95,12 @@
   <div class="row" style="justify-content:center;gap:14px;margin-top:16px">
     {% if page > 1 %}
       <a href="#" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
-         hx-target="#results" hx-swap="innerHTML">&larr; Previous</a>
+         hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">&larr; Previous</a>
     {% endif %}
     <span class="muted small">Page {{ page }} of {{ pages }}</span>
     {% if page < pages %}
       <a href="#" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
-         hx-target="#results" hx-swap="innerHTML">Next &rarr;</a>
+         hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Next &rarr;</a>
     {% endif %}
   </div>
   {% endif %}

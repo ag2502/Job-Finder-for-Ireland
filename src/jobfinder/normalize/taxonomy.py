@@ -298,7 +298,10 @@ def classify_title(title: str) -> list[str]:
 
 
 _SKILL_PATTERNS = {
-    skill: re.compile(rf"(?<![\w+#.]){re.escape(skill)}(?![\w+#])", re.IGNORECASE)
+    skill: (
+        skill.lower(),
+        re.compile(rf"(?<![\w+#.]){re.escape(skill)}(?![\w+#])", re.IGNORECASE),
+    )
     for skill in ALL_SKILLS
 }
 
@@ -308,7 +311,19 @@ def extract_skills(text: str) -> set[str]:
 
     Word-boundary matching that tolerates the punctuation in real technology names -
     "C++", "C#", ".NET", "Node.js" - which a plain ``\\b`` boundary silently misses.
+
+    Every search runs this over every candidate job's full description, and a regex with
+    a lookbehind cannot skip ahead the way a plain substring scan does: 188 patterns over
+    ~1,500 descriptions was 10 of a search's 13 seconds. So each pattern only runs when
+    its skill appears in the text at all. That test cannot change the result: every
+    skill is ASCII, so a case-insensitive match of the escaped literal implies the
+    lowercased skill is a substring of the lowercased text.
     """
     if not text:
         return set()
-    return {skill for skill, pattern in _SKILL_PATTERNS.items() if pattern.search(text)}
+    lowered = text.lower()
+    return {
+        skill
+        for skill, (needle, pattern) in _SKILL_PATTERNS.items()
+        if needle in lowered and pattern.search(text)
+    }

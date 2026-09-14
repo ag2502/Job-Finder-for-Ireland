@@ -203,3 +203,25 @@ def test_bm25_ranks_by_term_overlap():
 def test_tokenize_drops_stopwords():
     assert "the" not in tokenize("The engineer works with the team")
     assert "engineer" in tokenize("The engineer works with the team")
+
+
+def test_skill_prefilter_never_changes_what_is_found():
+    """The substring pre-check only skips regexes that could not have matched.
+
+    It exists for speed - every search runs skill extraction over every candidate job -
+    so it must be invisible in the results, including for case changes and punctuated
+    names where a naive substring test and a boundary-aware regex disagree.
+    """
+    from jobfinder.normalize.taxonomy import _SKILL_PATTERNS
+
+    samples = [
+        "Senior PYTHON developer, Node.JS and C# on .NET Core; some c++ and Go-lang",
+        "We value trust and good algorithms in a googly way",
+        "Kubernetes/Terraform on AWS. SQL, NoSQL, PostgreSQL. A/B Testing and Agile.",
+        "ReactJS, React Native, TypeScript; javascript not Java. R and Rust.",
+        "",
+        "accessibility, ACCA and AML compliance; Adobe XD prototypes",
+    ]
+    for text in samples:
+        brute_force = {s for s, (_, pattern) in _SKILL_PATTERNS.items() if pattern.search(text)}
+        assert extract_skills(text) == brute_force, text

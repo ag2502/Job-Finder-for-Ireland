@@ -10,3 +10,6 @@ __pycache__/
 dist/
 build/
 .DS_Store
+.env.vercel
+.vercel
+.env*

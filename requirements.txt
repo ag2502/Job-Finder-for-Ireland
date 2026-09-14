@@ -1,0 +1,18 @@
+# Runtime dependencies for the Vercel deployment of the web finder. Kept in step with
+# `[project] dependencies` in pyproject.toml; development tools are not listed.
+httpx>=0.27
+sqlalchemy>=2.0
+alembic>=1.13
+pydantic>=2.7
+pydantic-settings>=2.3
+selectolax>=0.3.21
+tenacity>=8.3
+python-dateutil>=2.9
+psycopg[binary]>=3.1
+fastapi>=0.110
+uvicorn>=0.29
+jinja2>=3.1
+python-multipart>=0.0.9
+itsdangerous>=2.1
+pypdf>=4.0
+python-docx>=1.1

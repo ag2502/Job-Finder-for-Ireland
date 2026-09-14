@@ -16,6 +16,16 @@ dependencies = [
     # Postgres driver. SQLite is the local default, but the deployed crawler runs
     # against hosted Postgres and SQLAlchemy cannot connect without a driver present.
     "psycopg[binary]>=3.1",
+    # The web finder. Previously installed by hand and never declared, so a fresh
+    # install - a CI runner, a Vercel build - could crawl but not serve.
+    "fastapi>=0.110",
+    "uvicorn>=0.29",
+    "jinja2>=3.1",
+    "python-multipart>=0.0.9",
+    "itsdangerous>=2.1",
+    # CV parsing, imported lazily when a PDF or DOCX is uploaded.
+    "pypdf>=4.0",
+    "python-docx>=1.1",
 ]
 
 [project.optional-dependencies]

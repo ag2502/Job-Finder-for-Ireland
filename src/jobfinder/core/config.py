@@ -116,5 +116,8 @@ class Settings(BaseSettings):
     # production via JOBFINDER_SESSION_SECRET; the default is for local use only.
     session_secret: str = "dev-only-change-me"
 
+    # Required to open /admin on a public deployment; see `web/app.py`.
+    admin_token: str = ""
+
 
 settings = Settings()

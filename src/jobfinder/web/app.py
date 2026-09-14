@@ -14,13 +14,15 @@ liability outright while losing nothing a searcher would notice.
 
 from __future__ import annotations
 
+import hmac
 import json
 import logging
+import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from fastapi import FastAPI, Form, Request, UploadFile
+from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import func, select
@@ -66,9 +68,37 @@ async def lifespan(_: FastAPI):
     yield
 
 
+# Vercel sets VERCEL on every deployment. Locally the finder is a personal tool; there it
+# is a public site, so the defaults that are harmless on a laptop become holes.
+PUBLIC_DEPLOYMENT = bool(os.environ.get("VERCEL"))
+
+if PUBLIC_DEPLOYMENT and settings.session_secret == "dev-only-change-me":
+    # The session cookie carries a visitor's search profile, including terms read from
+    # their CV. Signed with a secret published in this repository, anyone could forge one.
+    # Refusing to start is louder than any warning.
+    raise RuntimeError(
+        "JOBFINDER_SESSION_SECRET is not set. Add a long random value in the Vercel "
+        "project's environment variables before deploying."
+    )
+
 app = FastAPI(title="Dublin Job Finder", lifespan=lifespan)
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret)
 templates = Jinja2Templates(directory=str(TEMPLATES))
+templates.env.globals["show_admin_link"] = not PUBLIC_DEPLOYMENT
+
+
+def _admin_allowed(request: Request) -> bool:
+    """Whether this request may see the coverage dashboard.
+
+    The dashboard lists every source slug and recent crawl errors, and each load runs a
+    set of whole-table aggregates. On a laptop that is a useful tool; on a public site it
+    is operational detail nobody outside needs and a cheap way to burn the database's
+    free compute. So a public deployment serves it only with the configured token.
+    """
+    if settings.admin_token:
+        supplied = request.query_params.get("token", "")
+        return hmac.compare_digest(supplied, settings.admin_token)
+    return not PUBLIC_DEPLOYMENT
 
 
 def _profile(request: Request) -> dict | None:
@@ -407,6 +437,9 @@ def reset(request: Request):
 
 @app.get("/admin", response_class=HTMLResponse)
 def admin(request: Request):
+    if not _admin_allowed(request):
+        # 404 rather than 403: a locked page need not announce that it exists.
+        raise HTTPException(status_code=404)
     with session_scope() as session:
         totals = {
             "companies": session.scalar(select(func.count()).select_from(Company)) or 0,

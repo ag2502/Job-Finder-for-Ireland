@@ -1,0 +1,16 @@
+job/
+tests/
+reports/
+scripts/
+.github/
+.claude/
+*.db
+*.db-journal
+*.log
+.env
+.pytest_cache/
+__pycache__/
+.env.vercel
+.env.local
+.env*
+.vercel

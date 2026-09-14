@@ -34,7 +34,13 @@ def refresh() -> corpus.Vocabulary:
     """Rebuild from the current corpus and persist. Called after a crawl."""
     global _cached
     vocabulary = build_from_database()
-    corpus.save(vocabulary)
+    try:
+        corpus.save(vocabulary)
+    except OSError as exc:
+        # A serverless deployment has a read-only filesystem. The rebuilt vocabulary is
+        # still correct for this process; failing the request over a cache write would
+        # turn a missing file into an outage.
+        logger.warning("could not persist vocabulary cache (%s); using it in memory", exc)
     _cached = vocabulary
     return vocabulary
 

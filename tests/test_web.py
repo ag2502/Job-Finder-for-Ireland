@@ -505,3 +505,54 @@ def test_several_identical_titles_from_one_source_are_all_kept():
 
         assert len(kept) == 4, "all four real openings survive"
         assert {job.source_id for job in kept} == {direct.id}
+
+
+# ---------------------------------------------------------------------------
+# Public deployment hardening
+# ---------------------------------------------------------------------------
+
+
+def test_admin_is_hidden_on_a_public_deployment_without_a_token(client, monkeypatch):
+    """The dashboard exposes source slugs and crawl errors, and is expensive to load."""
+    from jobfinder.core.config import settings
+    from jobfinder.web import app as web_app
+
+    monkeypatch.setattr(web_app, "PUBLIC_DEPLOYMENT", True)
+    monkeypatch.setattr(settings, "admin_token", "")
+
+    assert client.get("/admin").status_code == 404
+
+
+def test_admin_opens_only_with_the_configured_token(client, monkeypatch):
+    from jobfinder.core.config import settings
+    from jobfinder.web import app as web_app
+
+    monkeypatch.setattr(web_app, "PUBLIC_DEPLOYMENT", True)
+    monkeypatch.setattr(settings, "admin_token", "s3cret-token")
+
+    assert client.get("/admin?token=wrong").status_code == 404
+    assert client.get("/admin").status_code == 404
+    assert client.get("/admin?token=s3cret-token").status_code == 200
+
+
+def test_a_public_deployment_refuses_to_start_with_the_default_session_secret(tmp_path):
+    """A published default secret would let anyone forge a visitor's session cookie."""
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if not k.startswith("JOBFINDER_")}
+    env.update(VERCEL="1", JOBFINDER_DATABASE_URL=f"sqlite:///{tmp_path / 'x.db'}")
+    refused = subprocess.run(
+        [sys.executable, "-c", "import jobfinder.web.app"],
+        cwd=tmp_path, env=env, capture_output=True, text=True,
+    )
+    assert refused.returncode != 0
+    assert "JOBFINDER_SESSION_SECRET" in refused.stderr
+
+    env["JOBFINDER_SESSION_SECRET"] = "a-long-random-production-secret"
+    started = subprocess.run(
+        [sys.executable, "-c", "import jobfinder.web.app"],
+        cwd=tmp_path, env=env, capture_output=True, text=True,
+    )
+    assert started.returncode == 0, started.stderr
