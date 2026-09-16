@@ -19,8 +19,24 @@ logger = logging.getLogger(__name__)
 _connect_args = {}
 _engine_kwargs = {}
 
+#: True when the URL names a SQLite file opened read-only or immutable.
+#:
+#: The deployed site serves a prebuilt snapshot (see `scripts/export_snapshot.py`) from a
+#: filesystem that is read-only anyway, so any write is a bug rather than something to
+#: attempt and fail at. `immutable=1` additionally tells SQLite the file cannot change
+#: underneath it, which skips locking entirely — correct here because the snapshot is
+#: replaced by a deployment, never edited in place.
+IS_READ_ONLY = settings.database_url.startswith("sqlite") and (
+    "mode=ro" in settings.database_url or "immutable=1" in settings.database_url
+)
+
 if settings.database_url.startswith("sqlite"):
     _connect_args["check_same_thread"] = False
+    if "uri=true" in settings.database_url:
+        # SQLAlchemy passes the path through to sqlite3 verbatim; without this the
+        # `file:...?mode=ro` form is taken as a literal filename and SQLite creates a new
+        # empty database with a very strange name instead of opening the snapshot.
+        _connect_args["uri"] = True
 else:
     # Hosted Postgres sits behind a connection pooler that closes connections it
     # considers stale, and this pipeline holds them for a long time — a detection sweep
@@ -88,6 +104,11 @@ def wait_for_database(attempts: int = 5, delay: float = 2.0) -> None:
 
 def init_db() -> None:
     wait_for_database()
+    if IS_READ_ONLY:
+        # `create_all` issues DDL even when every table already exists, which fails
+        # against a read-only file. The snapshot ships with its schema already built, so
+        # there is nothing to create.
+        return
     Base.metadata.create_all(engine)
 
 

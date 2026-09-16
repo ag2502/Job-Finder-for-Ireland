@@ -13,3 +13,7 @@ build/
 .env.vercel
 .vercel
 .env*
+
+# The website serves this prebuilt read-only snapshot, so unlike every other
+# *.db it belongs in the repository. See scripts/export_snapshot.py.
+!data/jobfinder.db

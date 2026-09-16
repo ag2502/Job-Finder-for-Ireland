@@ -10,15 +10,33 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DATA_DIR = PROJECT_ROOT / "data"
 
+#: The read-only snapshot the website serves, when it has been built.
+SNAPSHOT_PATH = DATA_DIR / "jobfinder.db"
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
         env_file=".env", env_prefix="JOBFINDER_", extra="ignore"
     )
 
-    # SQLite by default so the pipeline runs with no external services. Production
-    # points this at Neon Postgres; nothing else in the codebase needs to change.
-    database_url: str = f"sqlite:///{PROJECT_ROOT / 'jobfinder.db'}"
+    # The deployed site serves the prebuilt snapshot committed at `data/jobfinder.db`
+    # (see `scripts/export_snapshot.py`), so the default prefers it when present. That
+    # keeps the website off the network entirely: no connection pooler, no cold-start
+    # resume, no egress, and no way for a database outage to take the site down.
+    #
+    # Resolving it here rather than as a deployment environment variable matters,
+    # because the absolute path differs between a laptop and a Vercel function — naming
+    # it in the environment would mean a URL that is wrong in one place or the other.
+    #
+    # `mode=ro&immutable=1` is what makes it safe to serve from a read-only filesystem:
+    # SQLite skips locking and journal files, neither of which it could create there.
+    # Writers (the two crawl workflows) set JOBFINDER_DATABASE_URL explicitly and so are
+    # unaffected by this default.
+    database_url: str = (
+        f"sqlite:///file:{SNAPSHOT_PATH}?mode=ro&immutable=1&uri=true"
+        if SNAPSHOT_PATH.exists()
+        else f"sqlite:///{PROJECT_ROOT / 'jobfinder.db'}"
+    )
 
     @field_validator("database_url")
     @classmethod
