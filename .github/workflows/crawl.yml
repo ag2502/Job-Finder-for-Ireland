@@ -28,11 +28,6 @@ on:
         type: boolean
         default: false
 
-permissions:
-  # The snapshot the website serves is committed back to the repository at the end of
-  # the run, which needs write access to contents.
-  contents: write
-
 concurrency:
   # Shared with registry.yml. Both write to the same database, and the reconciler's
   # guarantees assume one writer: two runs interleaving could close jobs that the other
@@ -102,27 +97,34 @@ jobs:
       - name: Refresh the snapshot the website serves
         env:
           JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
-        # The site reads the committed file, never the database, so a crawl does not
-        # reach visitors until the snapshot is rebuilt and pushed — the push is what
-        # triggers the Vercel deployment that picks it up.
+        # The site reads a bundled file, never the database, so a crawl does not reach
+        # visitors until this rebuilds it and the next step ships it.
         run: python scripts/export_snapshot.py
 
-      - name: Commit the snapshot
+      - name: Deploy the refreshed snapshot
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          # Read automatically by the Vercel CLI. They have to be supplied because
+          # `.vercel/project.json`, where a local checkout keeps them, is not committed.
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        # The site serves the snapshot baked into its bundle, so a crawl reaches visitors
+        # only when a new deployment carries the rebuilt file. The project is not
+        # connected to this repository — a push deploys nothing — so the deployment is
+        # made here rather than left to a Git trigger that does not exist.
+        #
+        # The snapshot is deliberately NOT committed. It is a 12 MB binary that changes
+        # completely every run, so committing it four times a day would add roughly
+        # 50 MB of pack objects daily to a repository that gains nothing from the
+        # history: only the newest snapshot is ever served.
         run: |
-          if git diff --quiet -- data/jobfinder.db; then
-            echo "snapshot unchanged; nothing to commit"
-            exit 0
+          if [ -z "$VERCEL_TOKEN" ]; then
+            echo "::error::VERCEL_TOKEN is not set. Create one at"
+            echo "::error::https://vercel.com/account/tokens and add it under"
+            echo "::error::Settings > Secrets and variables > Actions."
+            exit 1
           fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/jobfinder.db
-          git commit -m "Refresh job snapshot"
-          # registry.yml pushes to this branch too, and the shared concurrency group only
-          # serialises whole runs — it does not guarantee the remote is where checkout
-          # left it. Rebasing avoids a non-fast-forward rejection at the end of an
-          # otherwise successful hour-long crawl.
-          git pull --rebase --autostash origin main
-          git push
+          npx --yes vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
 
       - name: Summary
         env:
