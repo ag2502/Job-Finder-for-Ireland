@@ -28,6 +28,10 @@ on:
         type: boolean
         default: false
 
+permissions:
+  # Publishing the crawler's database as a Release asset needs write access to contents.
+  contents: write
+
 concurrency:
   # Shared with registry.yml. Both write to the same database, and the reconciler's
   # guarantees assume one writer: two runs interleaving could close jobs that the other
@@ -44,6 +48,11 @@ jobs:
 
     env:
       JOBFINDER_LOG_LEVEL: INFO
+      # The crawler's database is a file in the workspace, pulled from and pushed back to
+      # a Release by scripts/state_db.sh. Steps that touch it name this URL; the test step
+      # deliberately does not, so it falls through to the committed snapshot.
+      STATE_DB_URL: sqlite:///${{ github.workspace }}/jobfinder.db
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # JOBFINDER_DATABASE_URL is deliberately NOT set job-wide. It used to be, and that
       # meant `pytest` ran the web tests against the production database: when Neon hit
       # its data-transfer quota the tests could not connect, the run failed, and the
@@ -63,27 +72,18 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
 
-      - name: Fail fast if the database is not configured
-        env:
-          JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
-        # A missing secret would otherwise crawl into a local SQLite file that is
-        # discarded when the container exits — a run that looks green and does nothing.
-        run: |
-          if [ -z "$JOBFINDER_DATABASE_URL" ]; then
-            echo "::error::JOBFINDER_DATABASE_URL is not set. Add it under"
-            echo "::error::Settings > Secrets and variables > Actions."
-            exit 1
-          fi
-
       - name: Run tests
         # A broken reconciler must never reach the production database: a bug here could
         # close jobs that are still open, and that is the one failure this project exists
         # to prevent. Three minutes is cheap insurance against an unrecoverable mistake.
         run: pytest -q
 
+      - name: Restore the crawler state
+        run: bash scripts/state_db.sh pull
+
       - name: Crawl
         env:
-          JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
         run: |
           args=""
           if [ -n "${{ github.event.inputs.adapter }}" ]; then
@@ -94,9 +94,16 @@ jobs:
           fi
           jobfinder crawl $args
 
+      - name: Publish the crawler state
+        # Only on success. A run that failed part-way through has a database that reflects
+        # neither the previous state nor a complete crawl, and overwriting the release with
+        # it would make the damage permanent — the reconciler would treat the missing jobs
+        # as absences and start closing them.
+        run: bash scripts/state_db.sh push
+
       - name: Refresh the snapshot the website serves
         env:
-          JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
         # The site reads a bundled file, never the database, so a crawl does not reach
         # visitors until this rebuilds it and the next step ships it.
         run: python scripts/export_snapshot.py
@@ -128,7 +135,7 @@ jobs:
 
       - name: Summary
         env:
-          JOBFINDER_DATABASE_URL: ${{ secrets.JOBFINDER_DATABASE_URL }}
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
         if: always()
         run: |
           {
