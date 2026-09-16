@@ -1,16 +1,31 @@
+# Upload rules for Vercel. This file REPLACES .gitignore for deployments, which is the
+# point: .gitignore excludes *.db and re-includes the snapshot with `!data/jobfinder.db`,
+# and Vercel's uploader does not honour that negation. The snapshot was silently left out
+# of the bundle, so the function fell back to a database path that did not exist and died
+# during startup — every route returning 500, including ones that do not exist.
+#
+# data/jobfinder.db is deliberately absent from this file. It is the only reason the site
+# has anything to serve.
+
+# The local virtualenv and the full crawl database: large, and neither is served.
 job/
+/jobfinder.db
+*.db-journal
+
+# Secrets never belong in a bundle; Vercel injects its own environment.
+.env
+.env.*
+
+# Nothing here runs in production.
 tests/
 reports/
 scripts/
 .github/
-.claude/
-*.db
-*.db-journal
-*.log
-.env
-.pytest_cache/
+
 __pycache__/
-.env.vercel
-.env.local
-.env*
-.vercel
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+.git/
+.DS_Store
