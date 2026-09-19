@@ -74,6 +74,28 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("eightfold", re.compile(r"([a-z0-9_-]+)\.eightfold\.ai", re.I)),
     ("icims", re.compile(r"([a-z0-9_-]+)\.icims\.com", re.I)),
     ("avature", re.compile(r"([a-z0-9_-]+)\.avature\.net", re.I)),
+
+    # Found by scanning the careers pages left BLOCKED: each of these is where a real
+    # company's "view vacancies" link actually goes. Most are small or Irish systems that
+    # no fingerprint list had named, so those companies looked like sites with nothing
+    # to read.
+    ("bamboohr", re.compile(r"([a-z0-9_-]+)\.bamboohr\.com", re.I)),
+    ("hirehive", re.compile(r"([a-z0-9_-]+)\.hirehive\.com", re.I)),
+    ("occupop", re.compile(r"([a-z0-9_-]+)\.occupop-careers\.com", re.I)),
+    ("breezy", re.compile(r"([a-z0-9_-]+)\.breezy\.hr", re.I)),
+    ("pinpoint", re.compile(r"([a-z0-9_-]+)\.pinpointhq\.com", re.I)),
+    ("jazzhr", re.compile(r"([a-z0-9_-]+)\.applytojob\.com", re.I)),
+    ("comeet", re.compile(r"comeet\.(?:com|co)/jobs/([a-z0-9_-]+)", re.I)),
+    ("jobvite", re.compile(r"jobs\.jobvite\.com/([a-z0-9_-]+)", re.I)),
+    ("dayforce", re.compile(r"jobs\.dayforcehcm\.com/(?:[a-z]{2}-[a-z]{2}/)?([a-z0-9_-]+)", re.I)),
+    ("ukg", re.compile(r"recruiting2?\.ultipro\.com/([a-z0-9]+)", re.I)),
+    ("adp", re.compile(r"workforcenow\.adp\.com/[^\"'\s<>]*?[?&](?:amp;)?cid=([0-9a-f-]{36})", re.I)),
+    ("cornerstone", re.compile(r"([a-z0-9_-]+)\.csod\.com", re.I)),
+    ("peoplehr", re.compile(r"([a-z0-9_-]+)\.peoplehr\.net", re.I)),
+    ("njoyn", re.compile(r"([a-z0-9_-]+)\.njoyn\.com", re.I)),
+    ("keyhire", re.compile(r"([a-z0-9_-]+)\.keyhire\.ie", re.I)),
+    ("peoplefirst", re.compile(r"([a-z0-9_-]+)\.jobs\.people-first\.com", re.I)),
+    ("reach_ats", re.compile(r"([a-z0-9_-]+)\.reach-ats\.com", re.I)),
 ]
 
 # Workday: tenant.wdNN.myworkdayjobs.com/<locale>/<Site> - the site segment is the last
@@ -91,6 +113,9 @@ SLUG_BLOCKLIST = {
     "embed", "js", "api", "www", "assets", "static", "images", "css",
     "board", "boards", "jobs", "job", "careers", "search", "v1", "v0",
     "help", "support", "docs", "blog", "app", "cdn", "media", "static2",
+    # Vendor infrastructure hosts: `cdn1.hirehive.com` serves a widget script and
+    # `clients.njoyn.com` is Njoyn's shared login, neither of them a customer's board.
+    "cdn1", "cdn2", "clients", "login", "secure",
 }
 
 # Personio's slug pattern also matches its own marketing domain.
@@ -124,6 +149,7 @@ NON_CAREERS_HOSTS = {
     "teamtailor.com", "greenhouse.io", "greenhouse.com", "lever.co", "workable.com",
     "bamboohr.com", "personio.com", "personio.de", "ashbyhq.com",
     "smartrecruiters.com", "recruitee.com", "workday.com",
+    "hirehive.com", "occupop.com", "breezy.hr", "pinpointhq.com", "jazzhr.com",
 }
 NON_CAREERS_HOST_FRAGMENTS = ("glassdoor.", "indeed.")
 
@@ -270,6 +296,16 @@ def detect_in_text(text: str) -> tuple[str, str] | None:
     oracle = slug_from_url(text)
     if oracle:
         return "oracle_recruiting", oracle
+
+    # Oleeo and CandidateManager are also two-part addresses. Both host the boards of
+    # Irish public bodies and retailers, linked from careers pages that carry no other
+    # fingerprint, so without these the companies read as having nothing to crawl.
+    from jobfinder.sources import candidatemanager, oleeo
+
+    for adapter, module in (("oleeo", oleeo), ("candidatemanager", candidatemanager)):
+        found = module.slug_from_url(text)
+        if found:
+            return adapter, found
 
     for adapter, pattern in ATS_PATTERNS:
         for found in pattern.finditer(text):

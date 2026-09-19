@@ -595,6 +595,21 @@ def test_an_unverifiable_but_distinctive_slug_is_accepted():
         ("https://bostonscientific.eightfold.ai/careers", ("eightfold", "bostonscientific")),
         ("https://acme.taleo.net/careersection/x", ("taleo", "acme")),
         ("https://acme.icims.com/jobs", ("icims", "acme")),
+        # Hosts found behind the careers pages left blocked.
+        ("https://nuritas.hirehive.com/", ("hirehive", "nuritas")),
+        ("https://titanhq.occupop-careers.com/", ("occupop", "titanhq")),
+        ("https://viatel.peoplehr.net/Pages/JobBoard", ("peoplehr", "viatel")),
+        ("https://bnm.keyhire.ie/", ("keyhire", "bnm")),
+        ("https://acme.breezy.hr/", ("breezy", "acme")),
+        ("https://jobs.jobvite.com/acme/jobs", ("jobvite", "acme")),
+        (
+            "https://dunnes.tal.net/vx/lang-en-GB/candidate/jobboard/vacancy/3/adv/",
+            ("oleeo", "dunnes.tal.net|3"),
+        ),
+        (
+            "https://www.candidatemanager.net/cm/p/pJobs.aspx?mid=YUYF&sid=BDCXCX",
+            ("candidatemanager", "YUYF|BDCXCX"),
+        ),
     ],
 )
 def test_platforms_without_adapters_are_still_named(markup: str, expected: tuple):
@@ -757,6 +772,14 @@ def test_a_workday_site_with_a_common_name_is_still_detected(site: str):
     """
     markup = f'<a href="https://broadridge.wd5.myworkdayjobs.com/{site}">Open roles</a>'
     assert detect_in_text(markup) == ("workday", f"broadridge:wd5:{site}")
+
+
+def test_a_vendor_cdn_host_is_not_taken_for_a_customer_board():
+    markup = (
+        '<script src="https://cdn1.hirehive.com/widget.js"></script>'
+        '<a href="https://nuritas.hirehive.com/">Vacancies</a>'
+    )
+    assert detect_in_text(markup) == ("hirehive", "nuritas")
 
 
 def test_the_generic_blocklist_still_applies_to_single_slug_boards():

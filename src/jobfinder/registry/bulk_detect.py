@@ -85,7 +85,10 @@ SLUG_VALIDATORS = {
     "smartrecruiters": _verify_smartrecruiters,
     **{
         name: _verify_by_fetch(name)
-        for name in ("bamboohr", "icims", "oracle_recruiting", "successfactors", "teamtailor")
+        for name in (
+            "bamboohr", "candidatemanager", "icims", "oleeo", "oracle_recruiting",
+            "successfactors", "teamtailor",
+        )
     },
 }
 
