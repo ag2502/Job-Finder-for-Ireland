@@ -119,7 +119,10 @@ SLUG_BLOCKLIST = {
 }
 
 # Personio's slug pattern also matches its own marketing domain.
-HOST_BLOCKLIST = {"personio", "recruitee", "teamtailor", "greenhouse", "lever", "ashby"}
+HOST_BLOCKLIST = {
+    "personio", "recruitee", "teamtailor", "greenhouse", "lever", "ashby",
+    "hirehive", "breezy", "pinpoint", "occupop", "workwithus",
+}
 
 CAREERS_PATHS = (
     "/careers", "/careers/", "/jobs", "/jobs/", "/en/careers",
@@ -544,16 +547,23 @@ PLATFORM_PROBES: list[tuple[str, str]] = [
     ("ashby", "https://api.ashbyhq.com/posting-api/job-board/{slug}"),
     ("recruitee", "https://{slug}.recruitee.com/api/offers/"),
     ("personio", "https://{slug}.jobs.personio.de/xml"),
+    ("hirehive", "https://{slug}.hirehive.com/api/v2/jobs"),
+    ("breezy", "https://{slug}.breezy.hr/json"),
+    ("pinpoint", "https://{slug}.pinpointhq.com/postings.json"),
 ]
 
 
 def _probe_count(adapter: str, payload) -> int:
-    if adapter == "lever":
+    if adapter in ("lever", "breezy"):
         return len(payload) if isinstance(payload, list) else 0
     if not isinstance(payload, dict):
         return 0
     if adapter == "recruitee":
         return len(payload.get("offers") or [])
+    if adapter == "hirehive":
+        return len(payload.get("items") or [])
+    if adapter == "pinpoint":
+        return len(payload.get("data") or [])
     return len(payload.get("jobs") or [])
 
 
@@ -570,6 +580,10 @@ def _declared_owner(adapter: str, payload) -> str | None:
         offers = payload.get("offers") or []
         if offers and isinstance(offers[0], dict):
             return offers[0].get("company_name")
+    if adapter == "breezy":
+        from jobfinder.sources.breezy import board_owner
+
+        return board_owner(payload)
     return None
 
 

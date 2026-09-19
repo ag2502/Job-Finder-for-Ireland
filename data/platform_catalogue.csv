@@ -22,12 +22,12 @@ personio,ats,1,public api,built,XML feed; tenant may live on .de or .com
 teamtailor,ats,1,api key,detected only,Public API needs a key; job pages fall back to jsonld
 bamboohr,ats,1,public api,open api,{slug}.bamboohr.com/careers/list - common among Irish SMEs
 jazzhr,ats,1,public api,open api,Public board feed per employer
-breezy,ats,1,public api,open api,{slug}.breezy.hr/json
+breezy,ats,1,public api,in use,{slug}.breezy.hr/json; descriptions read from each position page; board names its owner
 comeet,ats,1,public api,open api,Public positions endpoint per employer
-pinpoint,ats,1,public api,open api,Growing among Irish scale-ups
-occupop,ats,1,scrape only,open api,Irish ATS (Dublin) - widely used by Irish SMEs
-hirehive,ats,1,public api,open api,Irish ATS (Cork) - public board JSON
-rezoomo,ats,1,scrape only,open api,Irish ATS - heavily used by Irish public and healthcare bodies
+pinpoint,ats,1,public api,in use,{slug}.pinpointhq.com/postings.json; found by probing (BDO, Arthur Cox, Jones Engineering)
+occupop,ats,1,public api,in use,Irish ATS (Dublin) - public GraphQL gateway behind {slug}.occupop-careers.com; names the hiring company
+hirehive,ats,1,public api,in use,Irish ATS (Cork) - paginated public board API; slug must resemble the company
+rezoomo,ats,1,scrape only,open api,Irish ATS - job pages carry JobPosting markup, so careers pages listing them are read by careers_html
 zoho_recruit,ats,1,api key,open api,Used by smaller Irish employers
 jobscore,ats,1,public api,open api,Public board feed
 recruiterflow,ats,1,api key,open api,Agency-oriented

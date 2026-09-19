@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import re
 import queue
 import threading
 import time
@@ -36,7 +37,7 @@ from dataclasses import dataclass, field
 from datetime import timedelta
 
 import httpx
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -86,11 +87,67 @@ SLUG_VALIDATORS = {
     **{
         name: _verify_by_fetch(name)
         for name in (
-            "bamboohr", "candidatemanager", "icims", "oleeo", "oracle_recruiting",
-            "successfactors", "teamtailor",
+            "bamboohr", "breezy", "candidatemanager", "hirehive", "icims", "occupop",
+            "oleeo", "oracle_recruiting", "pinpoint", "successfactors", "teamtailor",
         )
     },
 }
+
+def _owner_named_by_board(adapter: str, slug: str, client: httpx.Client | None) -> str | None:
+    """The employer a board says it belongs to, for platforms that publish one."""
+    from jobfinder.sources.base import build_client
+
+    owns = client is None
+    client = client or build_client()
+    try:
+        if adapter == "breezy":
+            from jobfinder.sources.breezy import board_owner
+
+            return board_owner(client.get(f"https://{slug}.breezy.hr/json").json())
+        if adapter == "occupop":
+            from jobfinder.sources.occupop import board_owner, live_jobs
+
+            return board_owner(live_jobs(slug, client))
+    except (httpx.HTTPError, ValueError):
+        return None
+    finally:
+        if owns:
+            client.close()
+    return None
+
+
+def board_belongs_to(adapter: str, slug: str, company: Company, client) -> bool:
+    """Is a board found on a company's careers page actually that company's?
+
+    A careers page links to more than its own board. TitanHQ's links to its sister
+    brand's Occupop board, and a hop from Zoom's careers page reached a Workday board
+    belonging to a news site. For the platforms added from the blocked scan, a board is
+    accepted only if it names this company as its owner or, where the platform names
+    nobody, its slug resembles the company's own name or domain.
+    """
+    if adapter not in OWNERSHIP_CHECKED:
+        return True
+
+    declared = _owner_named_by_board(adapter, slug, client)
+    if declared:
+        from jobfinder.registry.detect import _same_company
+
+        return _same_company(declared, company.name)
+
+    from jobfinder.registry.detect import NAME_NOISE, slug_candidates
+
+    board = NON_ALNUM.sub("", slug.lower())
+    for candidate in slug_candidates(company.website or company.careers_url or "", company.name):
+        if len(candidate) >= 3 and (candidate in board or board in candidate):
+            return True
+    # Word by word, for slugs that spell out what the name abbreviates:
+    # `mason-hayes-and-curran` for "Mason Hayes & Curran".
+    words = [w for w in NON_ALNUM.split(NAME_NOISE.sub(" ", company.name.lower())) if len(w) >= 3]
+    return bool(words) and any(len(w) >= 4 for w in words) and all(w in board for w in words)
+
+
+OWNERSHIP_CHECKED = {"breezy", "hirehive", "occupop", "pinpoint"}
+NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 # How many companies to process between commits. Small enough that little is lost to a
 # dropped connection, large enough that the write cost stays negligible.
@@ -143,6 +200,7 @@ def pending_companies(
     limit: int | None = None,
     recheck_after_days: int = 30,
     include_detected: bool = False,
+    blocked_recheck_after_days: int = 6,
 ) -> list[Company]:
     """Companies worth probing.
 
@@ -150,8 +208,13 @@ def pending_companies(
     re-detecting it would only risk replacing a working source with a worse guess.
     Everything else is retried once its last check has aged out, because sites get
     rebuilt and a company that had no careers page last quarter may have one now.
+
+    BLOCKED companies age out within a week. They are the work queue: each has a careers
+    page detection could not yet read, and detection itself keeps learning new platforms,
+    so a month-long wait would hold back every fingerprint and adapter added since.
     """
     cutoff = utcnow() - timedelta(days=recheck_after_days)
+    blocked_cutoff = utcnow() - timedelta(days=blocked_recheck_after_days)
 
     has_source = (
         select(func.count())
@@ -168,6 +231,10 @@ def pending_companies(
         or_(
             Company.detection_checked_at.is_(None),
             Company.detection_checked_at < cutoff,
+            and_(
+                Company.coverage_state == CoverageState.BLOCKED,
+                Company.detection_checked_at < blocked_cutoff,
+            ),
         )
     )
     # Highest-value companies first, so a truncated sweep loses the least.
@@ -476,6 +543,12 @@ def _apply(
         company.coverage_state = CoverageState.BLOCKED
         stats.no_adapter += 1
         logger.info("%s uses %s (%s) - no adapter yet", company.name, adapter, slug)
+        return
+
+    if not board_belongs_to(adapter, slug, company, client):
+        company.coverage_state = CoverageState.BLOCKED
+        stats.rejected_slug += 1
+        logger.info("%s: %s board %r belongs to someone else", company.name, adapter, slug)
         return
 
     validator = SLUG_VALIDATORS.get(adapter)
