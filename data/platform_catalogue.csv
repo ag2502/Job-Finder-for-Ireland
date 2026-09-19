@@ -37,7 +37,7 @@ oracle_recruiting,ats,1,scrape only,detected only,Oracle Recruiting Cloud - BNY 
 successfactors,ats,1,scrape only,detected only,SAP SuccessFactors - common among European MNCs
 taleo,ats,1,scrape only,detected only,Oracle Taleo - legacy but still widespread
 icims,ats,1,scrape only,detected only,iCIMS
-avature,ats,1,scrape only,detected only,Avature - used by several Dublin professional-services firms
+avature,ats,1,scrape only,detected only,RSS feed at /careers/SearchJobs/feed/ has no locations; IBM and Jacobs sit behind a bot challenge (HTTP 202)
 eightfold,ats,1,public api,in use,PCS X search API filtered to Ireland; tenant+domain (PayPal, Qualcomm, Boston Scientific, Morgan Stanley, HP)
 phenom,ats,1,scrape only,detected only,Phenom People
 cornerstone,ats,1,scrape only,detected only,Cornerstone OnDemand
@@ -48,11 +48,11 @@ ukg,ats,1,scrape only,detected only,UKG / Ultimate Software
 # --- Employers running their own careers platform (Tier 1b) -----------------------
 amazon,bespoke,1,public api,in use,country=IRL filter
 google,bespoke,1,scrape only,in use,No API but the careers page is server-rendered
-microsoft,bespoke,1,scrape only,scrape only,gcsservices API needs browser-level headers; Leopardstown campus
+microsoft,bespoke,1,public api,in use,careers.microsoft.com moved to Eightfold - read by the eightfold adapter (tenant microsoft)
 apple,bespoke,1,scrape only,scrape only,jobs.apple.com search API returns 401 without a CSRF token
-meta,bespoke,1,scrape only,scrape only,metacareers GraphQL requires a session token
-salesforce,bespoke,1,scrape only,scrape only,Dublin tower; own careers platform
-ibm,bespoke,1,scrape only,scrape only,Own careers platform
+meta,bespoke,1,scrape only,in use,metacareers.com read by jsonld (JobPosting markup on each role)
+salesforce,bespoke,1,public api,in use,Dublin tower; read through its Workday board
+ibm,bespoke,1,scrape only,not accessible,careers.ibm.com is Avature behind a bot challenge (HTTP 202 to non-browsers)
 intel,bespoke,1,public api,in use,Via Workday
 # --- Generic extraction (Tier 3) --------------------------------------------------
 jsonld,generic,3,public,built,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter

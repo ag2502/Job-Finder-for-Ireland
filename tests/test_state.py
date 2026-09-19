@@ -270,3 +270,16 @@ def test_distinct_roles_with_same_title_are_not_merged(session, source, company,
     assert len(jobs) == 2
     assert jobs[0].dedup_key == jobs[1].dedup_key  # grouped...
     assert jobs[0].id != jobs[1].id  # ...but not collapsed
+
+
+def test_a_refresh_without_the_advert_keeps_the_one_already_stored(session, source, company, run):
+    """Adapters that fetch adverts separately cap or skip them; the text must not vanish."""
+    with_advert = make_job("1")
+    with_advert.description = "<p>Build payment systems in Python</p>"
+    _reconcile(session, source, company, run, FetchResult(status=CrawlStatus.OK, jobs=[with_advert]))
+    session.flush()
+
+    _reconcile(session, source, company, run, ok_result("1"))
+    session.flush()
+
+    assert "Build payment systems" in (_by_id(session, "1").description or "")

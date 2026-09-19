@@ -60,6 +60,11 @@ def _epoch(value) -> datetime | None:
     return datetime.fromtimestamp(value, tz=timezone.utc)
 
 
+class RateLimited(Exception):
+    """Eightfold answered 429. It limits by caller across all tenants, so the only
+    useful response is to stop asking for now."""
+
+
 class EightfoldAdapter(BaseAdapter):
     name = "eightfold"
     tier = 1
@@ -78,6 +83,8 @@ class EightfoldAdapter(BaseAdapter):
                 f"{base}/api/pcsx/search",
                 params={"domain": domain, "location": COUNTRY, "start": len(positions)},
             )
+            # A throttled search is a failed fetch, never an empty board: reporting it
+            # as empty would close every role the board has.
             response.raise_for_status()
             data = (response.json() or {}).get("data") or {}
             batch = data.get("positions") or []
@@ -89,16 +96,21 @@ class EightfoldAdapter(BaseAdapter):
             truncated = True
 
         jobs: list[RawJob] = []
+        throttled = False
         for index, item in enumerate(positions):
             job_id = item.get("id")
             if not job_id:
                 continue
             locations = [loc for loc in item.get("locations") or [] if loc]
-            description = (
-                self._description(base, domain, job_id, client)
-                if index < MAX_DESCRIPTIONS
-                else None
-            )
+            description = None
+            if index < MAX_DESCRIPTIONS and not throttled:
+                try:
+                    description = self._description(base, domain, job_id, client)
+                except RateLimited:
+                    # The postings are already in hand; only the adverts are skipped,
+                    # and the next crawl fills them in.
+                    throttled = True
+                    logger.info("eightfold: %s throttled; skipping remaining descriptions", base)
             jobs.append(
                 RawJob(
                     source_job_id=str(job_id),
@@ -119,6 +131,8 @@ class EightfoldAdapter(BaseAdapter):
                 f"{base}/api/pcsx/position_details",
                 params={"position_id": job_id, "domain": domain},
             )
+            if response.status_code == 429:
+                raise RateLimited(base)
             response.raise_for_status()
             return ((response.json() or {}).get("data") or {}).get("jobDescription")
         except (httpx.HTTPError, ValueError) as exc:

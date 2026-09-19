@@ -251,6 +251,13 @@ def _upsert_jobs(
         else:
             stats.updated += 1
 
+        # Several adapters fetch adverts separately and cap or skip them (a throttled
+        # Eightfold tenant, a board past its description ceiling). A posting seen without
+        # its advert this time keeps the one it already had rather than losing it.
+        if not description and job.description:
+            description = job.description
+            experience = analyze_experience(raw.title, description)
+
         job.company_id = job_company.id
         job.title = raw.title
         job.description = description
