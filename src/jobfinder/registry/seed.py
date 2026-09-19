@@ -50,6 +50,14 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
                 "true", "yes", "1",
             }
 
+            # A `jsonld` source is a careers page read by the generic extractor, not an
+            # ATS, and the coverage report should say so.
+            generic = adapter == "jsonld"
+            state = (
+                CoverageState.GENERIC_EXTRACTION if generic else CoverageState.ATS_DETECTED
+            )
+            careers_url = (row.get("careers_url") or "").strip() or None
+
             if company is None:
                 company = Company(
                     name=name,
@@ -57,15 +65,18 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
                     seed_source=(row.get("seed_source") or "seed").strip(),
                     coverage_priority=int(row.get("coverage_priority") or 5),
                     is_public_listed=listed,
-                    coverage_state=CoverageState.ATS_DETECTED,
+                    coverage_state=state,
+                    careers_url=careers_url,
                 )
                 session.add(company)
                 session.flush()
                 companies_added += 1
             else:
-                company.coverage_state = CoverageState.ATS_DETECTED
+                company.coverage_state = state
                 company.is_public_listed = listed
                 company.coverage_priority = int(row.get("coverage_priority") or 5)
+                if careers_url and not company.careers_url:
+                    company.careers_url = careers_url
 
             source = session.execute(
                 select(Source).where(Source.adapter == adapter, Source.slug == slug)
@@ -77,7 +88,7 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
                         company_id=company.id,
                         adapter=adapter,
                         slug=slug,
-                        tier=1,
+                        tier=3 if generic else 1,
                         enabled=True,
                     )
                 )
