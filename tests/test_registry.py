@@ -407,6 +407,42 @@ def test_a_site_with_real_job_markup_is_promoted_to_generic_extraction(session: 
 
 
 @respx.mock
+def test_a_plain_vacancy_list_is_read_when_there_is_no_markup(session: Session, monkeypatch):
+    """The page `jsonld` cannot read falls through to reading its HTML."""
+    from jobfinder.registry.extraction import promote_blocked
+    from jobfinder.sources.base import BaseAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    company = _blocked(session, "Council Co", "https://council.ie/careers")
+    respx.get("https://council.ie/robots.txt").mock(return_value=httpx.Response(404))
+    respx.get("https://council.ie/sitemap.xml").mock(return_value=httpx.Response(404))
+    respx.get("https://council.ie/sitemap_index.xml").mock(return_value=httpx.Response(404))
+    respx.get("https://council.ie/careers").mock(
+        return_value=httpx.Response(
+            200,
+            html='<ul><li><a href="/vacancy/1">Executive Engineer</a></li>'
+            '<li><a href="/vacancy/2">Assistant Staff Officer</a></li></ul>',
+        )
+    )
+    for n in (1, 2):
+        respx.get(f"https://council.ie/vacancy/{n}").mock(
+            return_value=httpx.Response(
+                200, html="<main><h1>Role</h1><p>Location: Cork</p><a>Apply</a></main>"
+            )
+        )
+
+    stats = promote_blocked(session, max_workers=1)
+
+    assert stats.registered == 1
+    assert stats.by_adapter == {"careers_html": 1}
+    assert company.coverage_state is CoverageState.GENERIC_EXTRACTION
+    source = session.execute(select(Source)).scalar_one()
+    assert (source.adapter, source.slug, source.tier) == (
+        "careers_html", "https://council.ie/careers", 3,
+    )
+
+
+@respx.mock
 def test_two_companies_sharing_one_careers_page_register_it_once(session: Session):
     """Regression: the second registration raised IntegrityError and killed the run.
 

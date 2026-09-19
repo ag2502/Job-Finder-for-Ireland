@@ -56,6 +56,7 @@ ibm,bespoke,1,scrape only,scrape only,Own careers platform
 intel,bespoke,1,public api,in use,Via Workday
 # --- Generic extraction (Tier 3) --------------------------------------------------
 jsonld,generic,3,public,built,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
+careers_html,generic,3,public,in use,Reads a plain vacancy list from a careers page's HTML; confirms each advert before counting it
 # --- Aggregators and job boards (Tier 4) ------------------------------------------
 adzuna,aggregator,4,needs key,built,Official API; free tier; genuine Irish coverage. Set JOBFINDER_ADZUNA_APP_ID/KEY
 jooble,aggregator,4,needs key,needs key,Official API; free key on request; covers Ireland

@@ -7,7 +7,9 @@ bespoke careers site, and no fingerprint will ever match one.
 Many of them still publish `schema.org/JobPosting` markup, because Google requires it for
 a role to appear in Google's jobs results. This step finds the ones that do and registers
 a `jsonld` source pointed at their careers URL, moving them from `BLOCKED` to
-`GENERIC_EXTRACTION`.
+`GENERIC_EXTRACTION`. A page with no markup is then tried with `careers_html`, which reads
+a plain vacancy list from the page's own HTML — councils, law firms and retailers whose
+careers page is a list of links and nothing more.
 
 ## Why it probes before registering
 
@@ -29,7 +31,7 @@ from __future__ import annotations
 
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -49,12 +51,17 @@ MIN_TRIAL_JOBS = 2
 # Companies between commits; see the note in `registry/bulk_detect.py`.
 COMMIT_EVERY = 25
 
+# Generic readers, most reliable first. Structured markup says exactly what a posting
+# is; reading a page's own HTML infers it, so it is tried only where there is no markup.
+EXTRACTORS = ("jsonld", "careers_html")
+
 
 @dataclass
 class ExtractionStats:
     tried: int = 0
     registered: int = 0
     already_registered: int = 0
+    by_adapter: dict[str, int] = field(default_factory=dict)
     empty: int = 0
     failed: int = 0
 
@@ -64,9 +71,14 @@ class ExtractionStats:
             if self.already_registered
             else ""
         )
+        adapters = (
+            " (" + ", ".join(f"{n} {a}" for a, n in sorted(self.by_adapter.items())) + ")"
+            if self.by_adapter
+            else ""
+        )
         return (
-            f"tried {self.tried}: {self.registered} now extractable{shared}, "
-            f"{self.empty} no usable markup, {self.failed} unreachable or disallowed"
+            f"tried {self.tried}: {self.registered} now extractable{adapters}{shared}, "
+            f"{self.empty} no usable markup, {self.failed} with no readable vacancy list"
         )
 
 
@@ -103,9 +115,9 @@ def promote_blocked(
 ) -> ExtractionStats:
     """Trial-extract each blocked company and register the ones that work."""
     load_adapters()
-    adapter = get_adapter("jsonld")
-    if adapter is None:  # pragma: no cover - registration is unconditional
-        raise RuntimeError("jsonld adapter is not registered")
+    extractors = [(name, get_adapter(name)) for name in EXTRACTORS]
+    if any(adapter is None for _, adapter in extractors):  # pragma: no cover
+        raise RuntimeError("a generic extractor is not registered")
 
     companies = blocked_candidates(session, limit=limit)
     stats = ExtractionStats()
@@ -122,13 +134,24 @@ def promote_blocked(
 
     with build_client() as client:
         def trial(target: tuple[int, str]):
+            """The first extractor that reads real postings from the page."""
             company_id, url = target
-            return company_id, url, adapter.fetch(url, client=client)
+            # A page that was read but held too little outranks one that could not be
+            # read at all, so a miss is reported as the most informative of the two.
+            best = None
+            for name, adapter in extractors:
+                result = adapter.fetch(url, client=client)
+                read = result.status is not CrawlStatus.FAILED
+                if read and len(result.jobs) >= MIN_TRIAL_JOBS:
+                    return company_id, url, name, result
+                if best is None or (read and best[1].status is CrawlStatus.FAILED):
+                    best = (name, result)
+            return company_id, url, best[0], best[1]
 
         with ThreadPoolExecutor(max_workers=max_workers) as pool:
             futures = [pool.submit(trial, target) for target in targets]
             for future in as_completed(futures):
-                company_id, url, result = future.result()
+                company_id, url, adapter_name, result = future.result()
                 stats.tried += 1
                 company = by_id[company_id]
                 company.detection_checked_at = utcnow()
@@ -159,7 +182,7 @@ def promote_blocked(
                 # whole run down with it. The page is already crawled, so the jobs are
                 # not missing; only the duplicate row is.
                 existing = session.execute(
-                    select(Source).where(Source.adapter == "jsonld", Source.slug == url)
+                    select(Source).where(Source.adapter == adapter_name, Source.slug == url)
                 ).scalars().first()
                 if existing is not None:
                     company.coverage_state = CoverageState.GENERIC_EXTRACTION
@@ -170,16 +193,18 @@ def promote_blocked(
                     session.add(
                         Source(
                             company_id=company.id,
-                            adapter="jsonld",
+                            adapter=adapter_name,
                             slug=url,
                             tier=3,
                         )
                     )
                 company.coverage_state = CoverageState.GENERIC_EXTRACTION
                 stats.registered += 1
+                stats.by_adapter[adapter_name] = stats.by_adapter.get(adapter_name, 0) + 1
                 logger.info(
-                    "%s now extractable: %d jobs from %s",
+                    "%s now extractable via %s: %d jobs from %s",
                     company.name,
+                    adapter_name,
                     len(result.jobs),
                     url,
                 )

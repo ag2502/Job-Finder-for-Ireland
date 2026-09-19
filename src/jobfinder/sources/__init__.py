@@ -28,6 +28,7 @@ def load_adapters() -> None:
         ashby,
         bamboohr,
         candidatemanager,
+        careers_html,
         greenhouse,
         icims,
         jsonld,
