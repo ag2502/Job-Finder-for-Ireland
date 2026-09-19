@@ -101,9 +101,10 @@ def blocked_candidates(session: Session, *, limit: int | None = None) -> list[Co
         )
         .order_by(Company.coverage_priority, Company.id)
     )
-    if limit:
-        stmt = stmt.limit(limit)
-    return list(session.execute(stmt).scalars())
+    from jobfinder.sources.policy import is_excluded
+
+    candidates = [c for c in session.execute(stmt).scalars() if not is_excluded(c.careers_url or "")]
+    return candidates[:limit] if limit else candidates
 
 
 def promote_blocked(

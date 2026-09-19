@@ -42,6 +42,7 @@ import httpx
 from selectolax.parser import HTMLParser
 
 from jobfinder.normalize.text import html_to_text
+from jobfinder.sources.policy import ExcludedSite, is_excluded
 from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 from jobfinder.sources.jsonld import (
     MAX_JOB_PAGES,
@@ -299,7 +300,7 @@ class CareersHtmlAdapter(BaseAdapter):
         robots = _robots(listing, client, robots_cache)
         jobs: dict[str, RawJob] = {}
         for link in candidates[:MAX_JOB_PAGES]:
-            if not robots.allows(link.url):
+            if is_excluded(link.url) or not robots.allows(link.url):
                 continue
             try:
                 response = client.get(link.url)
@@ -325,6 +326,8 @@ class CareersHtmlAdapter(BaseAdapter):
         robots_cache: dict[str, RobotsPolicy] | None = None,
     ) -> tuple[str, list[Link], bool]:
         """(listing URL, job links on it, whether the list is paginated)."""
+        if is_excluded(start):
+            raise ExcludedSite(f"{start} is on a site this project does not crawl")
         cache = robots_cache if robots_cache is not None else {}
         robots = _robots(start, client, cache)
         if not robots.allows(start):
@@ -338,7 +341,7 @@ class CareersHtmlAdapter(BaseAdapter):
         if found:
             return page_url, found, _has_pagination(links)
 
-        for hop in listing_links(links)[:MAX_LISTING_HOPS]:
+        for hop in [url for url in listing_links(links) if not is_excluded(url)][:MAX_LISTING_HOPS]:
             hop_robots = _robots(hop, client, cache)
             if not hop_robots.allows(hop):
                 continue

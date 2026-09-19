@@ -166,8 +166,10 @@ NON_CAREERS_HOST_FRAGMENTS = ("glassdoor.", "indeed.")
 
 
 def _is_non_careers_host(host: str) -> bool:
+    from jobfinder.sources.policy import is_excluded
+
     host = host.lower().split(":")[0].removeprefix("www.")
-    if host in NON_CAREERS_HOSTS:
+    if host in NON_CAREERS_HOSTS or is_excluded(host):
         return True
     if any(host.endswith("." + social) for social in (
         "facebook.com", "instagram.com", "linkedin.com", "twitter.com",
@@ -428,11 +430,29 @@ def detect_for_website(
     the careers URL is still reported: that is what the portal links to for companies
     it cannot crawl, so they stay visible instead of silently vanishing.
     """
+    from jobfinder.sources.policy import is_excluded
+
     website = normalize_website(website)
     budget = Budget()
 
     owns = client is None
     client = client or build_client()
+
+    # A company whose own site is on the exclusion list (LinkedIn, Indeed) is still an
+    # employer, and its hiring board may be an ordinary ATS - LinkedIn's is Greenhouse.
+    # Its site is never fetched; the boards are asked directly instead.
+    if is_excluded(website):
+        try:
+            probed = probe_platforms(
+                slug_candidates(website, name), client=client, budget=budget, expected_name=name
+            )
+            if probed.found:
+                return probed
+            return Detection(note="own site excluded from crawling; no board found by probing")
+        finally:
+            if owns:
+                client.close()
+
     try:
         # 1. The homepage. Often carries the ATS fingerprint directly in a footer or a
         #    "we're hiring" widget, in which case one request is the whole job. Its body

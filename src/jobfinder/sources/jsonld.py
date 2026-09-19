@@ -45,6 +45,7 @@ from dateutil import parser as date_parser
 
 from jobfinder.core.config import settings
 from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
+from jobfinder.sources.policy import ExcludedSite, is_excluded
 
 logger = logging.getLogger(__name__)
 
@@ -289,6 +290,8 @@ class JsonLdAdapter(BaseAdapter):
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
         careers_url = slug if "//" in slug else f"https://{slug}"
+        if is_excluded(careers_url):
+            raise ExcludedSite(f"{careers_url} is on a site this project does not crawl")
         origin = _origin(careers_url)
 
         robots = RobotsPolicy(origin, client)
@@ -430,7 +433,7 @@ class JsonLdAdapter(BaseAdapter):
                 continue
             if not JOB_URL_HINT.search(absolute):
                 continue
-            if not robots.allows(absolute):
+            if is_excluded(absolute) or not robots.allows(absolute):
                 continue
             found.append(absolute)
 
