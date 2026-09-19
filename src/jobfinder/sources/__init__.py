@@ -30,6 +30,7 @@ def load_adapters() -> None:
         breezy,
         candidatemanager,
         careers_html,
+        eightfold,
         greenhouse,
         hirehive,
         icims,

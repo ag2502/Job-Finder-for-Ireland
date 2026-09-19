@@ -239,3 +239,60 @@ def test_blocked_companies_are_rechecked_weekly_not_monthly(session: Session):
     session.flush()
 
     assert [c.name for c in pending_companies(session)] == ["Blocked Co"]
+
+
+# ---------------------------------------------------------------------------
+# Eightfold
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_eightfold_reads_irish_roles_with_the_domain_from_the_careers_page():
+    from jobfinder.sources.eightfold import EightfoldAdapter
+
+    respx.get("https://acme.eightfold.ai/careers").mock(
+        return_value=httpx.Response(200, html='<a href="/careers?domain=acme.com">x</a>' * 3)
+    )
+    search = respx.get("https://acme.eightfold.ai/api/pcsx/search").mock(
+        return_value=httpx.Response(
+            200,
+            json={
+                "data": {
+                    "count": 1,
+                    "positions": [
+                        {
+                            "id": 7,
+                            "name": "Quality Engineer",
+                            "locations": ["Galway, Ireland", "Dublin, Ireland"],
+                            "postedTs": 1788393600,
+                            "department": "Quality",
+                            "positionUrl": "/careers/job/7",
+                        }
+                    ],
+                }
+            },
+        )
+    )
+    respx.get("https://acme.eightfold.ai/api/pcsx/position_details").mock(
+        return_value=httpx.Response(200, json={"data": {"jobDescription": "<p>Test things</p>"}})
+    )
+
+    job = EightfoldAdapter().fetch("acme").jobs[0]
+
+    params = search.calls[0].request.url.params
+    assert (params["domain"], params["location"]) == ("acme.com", "Ireland")
+    assert job.url == "https://acme.eightfold.ai/careers/job/7"
+    assert job.extra_locations == ["Dublin, Ireland"]
+    assert job.description == "<p>Test things</p>"
+
+
+def test_eightfold_sandbox_link_resolves_to_the_live_tenant():
+    from jobfinder.registry.detect import detect_in_text
+
+    assert detect_in_text("https://hp-sandbox.eightfold.ai/careers") == ("eightfold", "hp")
+
+
+def test_an_eightfold_test_tenant_is_never_crawled():
+    from jobfinder.sources.eightfold import EightfoldAdapter
+
+    assert EightfoldAdapter().fetch("hp-sandbox").status is CrawlStatus.FAILED

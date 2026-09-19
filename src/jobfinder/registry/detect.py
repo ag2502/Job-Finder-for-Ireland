@@ -118,6 +118,8 @@ SLUG_BLOCKLIST = {
     "cdn1", "cdn2", "clients", "login", "secure",
 }
 
+TEST_TENANT_SUFFIX = re.compile(r"-(sandbox|demo|staging|test)$", re.I)
+
 # Personio's slug pattern also matches its own marketing domain.
 HOST_BLOCKLIST = {
     "personio", "recruitee", "teamtailor", "greenhouse", "lever", "ashby",
@@ -320,6 +322,9 @@ def detect_in_text(text: str) -> tuple[str, str] | None:
             # footer, which would register the vendor instead of the customer.
             if adapter in HOST_BLOCKLIST and lowered in HOST_BLOCKLIST:
                 continue
+            if adapter == "eightfold":
+                # `hp-sandbox.eightfold.ai` is linked from hp.com; the live site is `hp`.
+                slug = TEST_TENANT_SUFFIX.sub("", slug)
             return adapter, slug
     return None
 

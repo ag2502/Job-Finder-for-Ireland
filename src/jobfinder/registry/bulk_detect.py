@@ -87,7 +87,7 @@ SLUG_VALIDATORS = {
     **{
         name: _verify_by_fetch(name)
         for name in (
-            "bamboohr", "breezy", "candidatemanager", "hirehive", "icims", "occupop",
+            "bamboohr", "breezy", "candidatemanager", "eightfold", "hirehive", "icims", "occupop",
             "oleeo", "oracle_recruiting", "pinpoint", "successfactors", "teamtailor",
         )
     },
@@ -146,7 +146,7 @@ def board_belongs_to(adapter: str, slug: str, company: Company, client) -> bool:
     return bool(words) and any(len(w) >= 4 for w in words) and all(w in board for w in words)
 
 
-OWNERSHIP_CHECKED = {"breezy", "hirehive", "occupop", "pinpoint"}
+OWNERSHIP_CHECKED = {"breezy", "eightfold", "hirehive", "occupop", "pinpoint"}
 NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 # How many companies to process between commits. Small enough that little is lost to a

@@ -38,7 +38,7 @@ successfactors,ats,1,scrape only,detected only,SAP SuccessFactors - common among
 taleo,ats,1,scrape only,detected only,Oracle Taleo - legacy but still widespread
 icims,ats,1,scrape only,detected only,iCIMS
 avature,ats,1,scrape only,detected only,Avature - used by several Dublin professional-services firms
-eightfold,ats,1,scrape only,detected only,Eightfold AI - Boston Scientific among others
+eightfold,ats,1,public api,in use,PCS X search API filtered to Ireland; tenant+domain (PayPal, Qualcomm, Boston Scientific, Morgan Stanley, HP)
 phenom,ats,1,scrape only,detected only,Phenom People
 cornerstone,ats,1,scrape only,detected only,Cornerstone OnDemand
 jobvite,ats,1,scrape only,detected only,Jobvite
