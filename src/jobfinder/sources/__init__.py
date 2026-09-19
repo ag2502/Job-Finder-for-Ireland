@@ -59,6 +59,6 @@ def load_adapters() -> None:
     from jobfinder.sources.aggregators import adzuna  # noqa: F401
 
     # Public-sector boards of record, also one source for many employers.
-    from jobfinder.sources.boards import publicjobs  # noqa: F401
+    from jobfinder.sources.boards import gradireland, publicjobs  # noqa: F401
 
     _loaded = True
