@@ -175,3 +175,6 @@ Wise,jsonld,https://wise.jobs/,2,false,recovered,Registered by the 2026-09-13 re
 Xilinx,jsonld,https://careers.amd.com/careers-home/jobs,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.amd.com/careers-home/jobs
 Zimmer Biomet,jsonld,https://careers.zimmerbiomet.com/us/en,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.zimmerbiomet.com/us/en
 Zinkworks,teamtailor,zinkworks,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.zinkworks.com/careers/
+Public Appointments Service,publicjobs,3,1,false,board,publicjobs.ie main board - every civil and public service competition,https://www.publicjobs.ie/en/
+Public Appointments Service,publicjobs,6,1,false,board,publicjobs.ie medical consultants board,https://www.publicjobs.ie/en/
+Public Appointments Service,publicjobs,7,1,false,board,publicjobs.ie state boards,https://www.publicjobs.ie/en/

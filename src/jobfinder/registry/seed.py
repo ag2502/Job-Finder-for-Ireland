@@ -16,6 +16,8 @@ from sqlalchemy.orm import Session
 from jobfinder.core.config import DATA_DIR
 from jobfinder.core.models import Company, CoverageState, Source
 from jobfinder.normalize.dedup import normalize_company_name
+from jobfinder.sources import load_adapters
+from jobfinder.sources.base import get_adapter
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +30,7 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
     if not path.exists():
         raise FileNotFoundError(f"seed file not found: {path}")
 
+    load_adapters()
     companies_added = 0
     sources_added = 0
 
@@ -50,12 +53,14 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
                 "true", "yes", "1",
             }
 
-            # A `jsonld` source is a careers page read by the generic extractor, not an
-            # ATS, and the coverage report should say so.
-            generic = adapter == "jsonld"
+            # A `jsonld` or `careers_html` source is a careers page read by a generic
+            # extractor, not an ATS, and the coverage report should say so.
+            generic = adapter in ("jsonld", "careers_html")
             state = (
                 CoverageState.GENERIC_EXTRACTION if generic else CoverageState.ATS_DETECTED
             )
+            registered = get_adapter(adapter)
+            tier = registered.tier if registered is not None else (3 if generic else 1)
             careers_url = (row.get("careers_url") or "").strip() or None
 
             if company is None:
@@ -88,7 +93,7 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
                         company_id=company.id,
                         adapter=adapter,
                         slug=slug,
-                        tier=3 if generic else 1,
+                        tier=tier,
                         enabled=True,
                     )
                 )

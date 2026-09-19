@@ -69,6 +69,9 @@ _DUBLIN_LOCALITIES = {
     "ballycoolin", "damastown", "clondalkin", "malahide", "howth", "blackrock",
     "stillorgan", "booterstown", "ranelagh", "rathmines", "smithfield",
     "the liberties", "temple bar", "spencer dock", "north wall", "ringsend",
+    # County Dublin's local authority areas, which public-sector boards give as the
+    # location of a council role.
+    "fingal", "dún laoghaire-rathdown", "dun laoghaire-rathdown",
 }
 
 _REMOTE_PATTERNS = re.compile(

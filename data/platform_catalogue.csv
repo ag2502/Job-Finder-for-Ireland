@@ -63,7 +63,7 @@ jooble,aggregator,4,needs key,needs key,Official API; free key on request; cover
 careerjet,aggregator,4,needs key,needs key,Public affiliate API; covers Ireland
 eures,aggregator,4,open api,open api,EU-run mobility portal; open API; strong for Ireland and EEA roles
 jobsireland,job board,4,scrape only,scrape only,Irish government board (Dept of Social Protection)
-publicjobs,job board,4,scrape only,scrape only,Public Appointments Service - all Irish civil and public service roles
+publicjobs,job board,4,scrape only,in use,Public Appointments Service (Oleeo) - results pages read directly, feed is off; boards 3/6/7; robots crawl-delay 10s honoured
 gradireland,job board,4,scrape only,scrape only,Irish graduate portal; robots.txt allows crawling; no JobPosting markup so needs a dedicated adapter
 irishjobs,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
 jobs_ie,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
