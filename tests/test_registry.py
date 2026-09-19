@@ -820,3 +820,11 @@ def test_a_vendor_cdn_host_is_not_taken_for_a_customer_board():
 
 def test_the_generic_blocklist_still_applies_to_single_slug_boards():
     assert detect_in_text('<a href="https://boards.greenhouse.io/careers">x</a>') is None
+
+
+def test_a_workable_job_link_is_not_taken_for_an_account():
+    """`apply.workable.com/j/ABC123` registered Glenveagh as account "j"."""
+    assert detect_in_text('<a href="https://apply.workable.com/j/4F2A9C1B7E">Apply</a>') is None
+    assert detect_in_text('<a href="https://apply.workable.com/glenveagh/">Jobs</a>') == (
+        "workable", "glenveagh",
+    )

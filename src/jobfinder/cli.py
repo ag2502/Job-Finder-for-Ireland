@@ -277,6 +277,19 @@ def cmd_extract_blocked(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_render_blocked(args: argparse.Namespace) -> int:
+    """Render blocked careers pages in a browser to find the job board they load."""
+    from jobfinder.registry.render_probe import render_blocked
+
+    init_db()
+    with session_scope() as session:
+        stats = render_blocked(session, limit=args.limit, dry_run=args.dry_run)
+    print(stats)
+    if args.dry_run:
+        print("\n(dry run: no sources were registered)")
+    return 0
+
+
 def cmd_coverage(args: argparse.Namespace) -> int:
     """Report what fraction of the registry is actually crawled, and what is not.
 
@@ -443,6 +456,16 @@ def main(argv: list[str] | None = None) -> int:
         "--dry-run", action="store_true", help="report findings without registering them"
     )
     p_extract.set_defaults(func=cmd_extract_blocked)
+
+    p_render = sub.add_parser(
+        "render-blocked",
+        help="render blocked careers pages in a headless browser to find their job board",
+    )
+    p_render.add_argument("--limit", type=int, help="only render the first N companies")
+    p_render.add_argument(
+        "--dry-run", action="store_true", help="report findings without registering them"
+    )
+    p_render.set_defaults(func=cmd_render_blocked)
 
     p_coverage = sub.add_parser(
         "coverage", help="what fraction of the registry is crawled, and what is not"

@@ -26,6 +26,10 @@ on:
         description: "Skip the generic-extraction trial pass"
         type: boolean
         default: false
+      skip_render:
+        description: "Skip browser-assisted detection"
+        type: boolean
+        default: false
 
 permissions:
   # Publishing the crawler's database as a Release asset needs write access to contents.
@@ -88,6 +92,25 @@ jobs:
         if: ${{ github.event.inputs.skip_extraction != 'true' }}
         continue-on-error: true
         run: jobfinder extract-blocked
+
+      # Browser-assisted detection: render the careers pages still blocked after
+      # extraction and read which job board their scripts load. Only here, weekly - the
+      # crawl never starts a browser, because what this finds is always a board it can
+      # read over plain HTTP. Chromium is cached between runs.
+      - name: Cache the headless browser
+        if: ${{ github.event.inputs.skip_render != 'true' }}
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pyproject.toml') }}
+
+      - name: Find job boards behind JavaScript careers pages
+        if: ${{ github.event.inputs.skip_render != 'true' }}
+        continue-on-error: true
+        run: |
+          pip install -e ".[render]"
+          python -m playwright install --with-deps chromium
+          jobfinder render-blocked
 
       - name: Publish the crawler state
         # After the detection passes, so a week's newly resolved sources are kept, but

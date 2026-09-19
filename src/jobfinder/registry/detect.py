@@ -116,7 +116,13 @@ SLUG_BLOCKLIST = {
     # Vendor infrastructure hosts: `cdn1.hirehive.com` serves a widget script and
     # `clients.njoyn.com` is Njoyn's shared login, neither of them a customer's board.
     "cdn1", "cdn2", "clients", "login", "secure",
+    # Workable's job links are `apply.workable.com/j/<shortcode>`, whose first segment is
+    # a route, not an account.
+    "j",
 }
+
+# `cdn13.icims.com` serves a vendor's scripts to every customer's page.
+CDN_HOST = re.compile(r"^(cdn|static|assets)\d*$")
 
 TEST_TENANT_SUFFIX = re.compile(r"-(sandbox|demo|staging|test)$", re.I)
 
@@ -316,7 +322,7 @@ def detect_in_text(text: str) -> tuple[str, str] | None:
         for found in pattern.finditer(text):
             slug = found.group(1)
             lowered = slug.lower()
-            if lowered in SLUG_BLOCKLIST:
+            if lowered in SLUG_BLOCKLIST or CDN_HOST.match(lowered):
                 continue
             # `{slug}.personio.de` also matches Personio's own site in a "powered by"
             # footer, which would register the vendor instead of the customer.

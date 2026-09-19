@@ -87,7 +87,8 @@ SLUG_VALIDATORS = {
     **{
         name: _verify_by_fetch(name)
         for name in (
-            "bamboohr", "breezy", "candidatemanager", "eightfold", "hirehive", "icims", "occupop",
+            "ashby", "bamboohr", "breezy", "candidatemanager", "eightfold", "hirehive", "icims",
+            "occupop", "workable",
             "oleeo", "oracle_recruiting", "pinpoint", "successfactors", "teamtailor",
         )
     },
@@ -138,7 +139,8 @@ def board_belongs_to(adapter: str, slug: str, company: Company, client) -> bool:
 
     board = NON_ALNUM.sub("", slug.lower())
     for candidate in slug_candidates(company.website or company.careers_url or "", company.name):
-        if len(candidate) >= 3 and (candidate in board or board in candidate):
+        # An exact match needs no length floor: HP's tenant is `hp`.
+        if candidate == board or (len(candidate) >= 3 and (candidate in board or board in candidate)):
             return True
     # Word by word, for slugs that spell out what the name abbreviates:
     # `mason-hayes-and-curran` for "Mason Hayes & Curran".

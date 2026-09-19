@@ -296,3 +296,15 @@ def test_an_eightfold_test_tenant_is_never_crawled():
     from jobfinder.sources.eightfold import EightfoldAdapter
 
     assert EightfoldAdapter().fetch("hp-sandbox").status is CrawlStatus.FAILED
+
+
+def test_a_two_letter_tenant_that_is_the_companys_domain_is_theirs():
+    from jobfinder.registry.bulk_detect import board_belongs_to
+
+    assert board_belongs_to("eightfold", "hp", _company("HP", "https://hp.com"), None)
+
+
+def test_a_vendor_cdn_host_is_never_a_slug():
+    from jobfinder.registry.detect import detect_in_text
+
+    assert detect_in_text('<script src="https://cdn13.icims.com/x.js"></script>') is None

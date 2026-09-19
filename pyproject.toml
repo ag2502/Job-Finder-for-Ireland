@@ -29,6 +29,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Browser-assisted detection only (`jobfinder render-blocked`), run weekly in CI. Never
+# needed by the crawl or the website.
+render = [
+    "playwright>=1.44",
+]
 dev = [
     "pytest>=8.2",
     "pytest-asyncio>=0.23",
