@@ -51,6 +51,15 @@
   </p>
   {% endif %}
 
+  {% if fallback %}
+  {# Nothing cleared the relevance bar. Showing the closest anyway beats a blank page,
+     but presenting them as matches would claim something the filter just ruled out. #}
+  <p class="small muted" style="margin:8px 0 0">
+    Nothing matched those roles closely. These are the closest openings we found &mdash;
+    try more fields, or include remote roles.
+  </p>
+  {% endif %}
+
   {% if items %}
   <div class="scroll">
     <table class="jobs">
@@ -64,11 +73,21 @@
       </thead>
       <tbody>
         {% for item in items %}
+        {% if tiered and item.tier > 0 and (loop.first or items[loop.index0 - 1].tier == 0) %}
+        {# Everything above sits in a field that was actually ticked. Below are one hop
+           away - worth offering, never worth ranking above what was asked for. #}
+        <tr class="tier-break">
+          <td colspan="4" class="muted small">
+            Related fields{% if page > 1 %} (continued){% endif %}
+          </td>
+        </tr>
+        {% endif %}
         <tr>
           <td class="co">{{ item.company }}</td>
           <td>
             <span class="pos">{{ item.job.title }}</span>
             {% if item.is_new %}<span class="badge">NEW</span>{% endif %}
+            {% if item.stretch %}<span class="tag" title="A level above the experience you stated">stretch role</span>{% endif %}
             <div class="sub muted">
               {{ item.job.location_raw or "Dublin" }}
               {%- if item.job.is_remote %} &middot; remote{% endif %}

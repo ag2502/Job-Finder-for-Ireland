@@ -81,8 +81,35 @@ _SENIORITY_YEARS: list[tuple[re.Pattern[str], int]] = [
     (re.compile(r"\b(intern|internship|placement)\b", re.I), 0),
     (re.compile(r"\b(graduate|new grad|junior|jnr|entry[- ]level|trainee|apprentice)\b", re.I), 0),
     (re.compile(r"\b(vp|vice president|head of|chief|director)\b", re.I), 10),
-    (re.compile(r"\b(principal|distinguished|staff engineer|staff product)\b", re.I), 8),
+    # "staff" is separated from its noun by the specialism in most real titles - "Staff
+    # Backend Engineer", "Staff Software Engineer", "Staff Web Automation Engineer" - so
+    # the adjacent-words form matched none of them. Since only about 66% of adverts state
+    # a number, that miss was the entire floor for those roles: they stored no minimum at
+    # all and so passed the filter for a searcher with one year of experience.
+    (re.compile(r"\b(principal|distinguished)\b", re.I), 8),
+    (
+        re.compile(
+            r"\bstaff\s+(?:[\w/&+-]+\s+){0,2}"
+            r"(engineer|developer|scientist|designer|architect|manager|analyst)\b",
+            re.I,
+        ),
+        8,
+    ),
     (re.compile(r"\b(team lead|tech lead|technical lead|engineering manager)\b", re.I), 6),
+    # Compound manager forms that unambiguously mean leading engineers, not the job
+    # function that bare "manager" names below.
+    (
+        re.compile(
+            r"\b(software|platform|engineering|technology)\s+development\s+manager\b"
+            r"|\bmanager,?\s+(software|data|platform|security|engineering)\b",
+            re.I,
+        ),
+        6,
+    ),
+    # An architect title is a senior individual-contributor rung everywhere it appears;
+    # the graduate and junior patterns above already claim the rare entry-level use.
+    (re.compile(r"\b(solutions?|enterprise|data|cloud|security|technical)\s+architect\b", re.I), 6),
+    (re.compile(r"\barchitect\b", re.I), 5),
     (re.compile(r"\b(senior|snr|sr\.?|lead)\b", re.I), 5),
 ]
 

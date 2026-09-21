@@ -287,14 +287,35 @@ def skills_for(keys: list[str] | tuple[str, ...]) -> set[str]:
     return {skill for key in keys if key in FIELDS for skill in FIELDS[key].skills}
 
 
+# A term must begin at a word boundary, but need not end at one. The asymmetry is the
+# point: "software dev" has to keep matching "Software Development" and "product design"
+# has to keep matching "Product Designer", so the right-hand side stays open for
+# inflections. Leaving the left side open too made this a raw substring test, which read
+# "ux" out of "(Benelux)", "sales" out of "Presales", "ios" out of "Studios" and "aws"
+# out of "Laws" - filing those roles under fields they have nothing to do with.
+_FIELD_TERMS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
+    key: [
+        (term, re.compile(r"(?<![a-z0-9])" + re.escape(term)))
+        for term in field_obj.terms
+    ]
+    for key, field_obj in FIELDS.items()
+}
+
+
 def classify_title(title: str) -> list[str]:
     """Guess which fields a job title belongs to."""
+    if not title:
+        return []
     lowered = f" {title.lower()} "
-    matched: list[str] = []
-    for key, field_obj in FIELDS.items():
-        if any(term in lowered for term in field_obj.terms):
-            matched.append(key)
-    return matched
+    # The substring test first, for the same reason as extract_skills: this runs for
+    # every candidate job on every search, and a regex cannot skip ahead the way a plain
+    # scan does. It never changes the outcome - every term is lowercase ASCII, so a
+    # pattern can only match where the bare substring is already present.
+    return [
+        key
+        for key, terms in _FIELD_TERMS.items()
+        if any(term in lowered and pattern.search(lowered) for term, pattern in terms)
+    ]
 
 
 _SKILL_PATTERNS = {

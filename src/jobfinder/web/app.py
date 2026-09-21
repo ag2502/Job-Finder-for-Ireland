@@ -317,6 +317,11 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         seniority=profile.get("seniority"),
         text=profile.get("text") or "",
         corpus_terms=set(profile.get("corpus_terms") or []),
+        # The stated years rank as well as filter. Eligibility alone let every role the
+        # searcher was not disqualified from score identically on seniority, so a
+        # one-year search ranked Staff roles first whenever their advert stated no
+        # minimum. See Candidate.level.
+        years=profile.get("years"),
     )
 
     with session_scope() as session:
@@ -392,6 +397,12 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
                     "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
                     "first_seen": first_seen.strftime("%d %b") if first_seen else "",
                     "experience": _experience_label(job),
+                    # 0 = a field the searcher ticked, 1 = one hop away. The template
+                    # rules off between the two so adjacent work is offered rather than
+                    # passed off as what they asked for.
+                    "tier": entry.tier,
+                    "fallback": entry.fallback,
+                    "stretch": entry.seniority_fit == "stretch",
                 }
             )
 
@@ -400,6 +411,9 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         # a first-seen fallback - vanishingly rare) sink to the end either way, since
         # there is nothing to confidently call oldest or newest about them.
         sort_mode = profile.get("sort") or DEFAULT_SORT
+        # Tiers are a property of the relevance order. A date sort deliberately discards
+        # that order, so the divider would fall in a meaningless place and is suppressed.
+        tiered = sort_mode == DEFAULT_SORT
         if sort_mode in ("newest", "oldest"):
             dated = [i for i in items if i["job"].posted_at or i["job"].first_seen_at]
             undated = [i for i in items if not (i["job"].posted_at or i["job"].first_seen_at)]
@@ -422,6 +436,8 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         "pages": max(1, (total + per_page - 1) // per_page),
         "query": query or "",
         "new_count": sum(1 for i in items if i["is_new"]),
+        "tiered": tiered,
+        "fallback": bool(page_items and all(i["fallback"] for i in page_items)),
         "skill_count": len(profile.get("skills") or []),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),

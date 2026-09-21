@@ -86,8 +86,30 @@ def test_bare_manager_is_not_a_seniority_signal(title: str) -> None:
     assert infer_years_from_title(title) is None
 
 
+def test_staff_titles_infer_through_the_specialism():
+    """"Staff" is separated from its noun in nearly every real title, and the
+    adjacent-words pattern matched none of them. Since only ~66% of adverts state a
+    number, that miss was the whole floor: these roles stored no minimum and so were
+    shown to searchers with one year of experience.
+    """
+    assert infer_years_from_title("Staff Backend Engineer, Datalake Platform") == 8
+    assert infer_years_from_title("Staff Software Engineer") == 8
+    assert infer_years_from_title("Staff Web Automation Engineer") == 8
+    assert infer_years_from_title("Staff Engineer") == 8
+
+
+def test_architect_titles_infer():
+    assert infer_years_from_title("Solutions Architect") == 6
+    assert infer_years_from_title("Enterprise Architect") == 6
+    assert infer_years_from_title("Architect") == 5
+    # An explicitly early-career architect role is still early-career.
+    assert infer_years_from_title("Graduate Solutions Architect") == 0
+
+
 def test_compound_leadership_titles_still_infer():
     assert infer_years_from_title("Engineering Manager") == 6
+    assert infer_years_from_title("Software Development Manager") == 6
+    assert infer_years_from_title("Manager, Software Engineering") == 6
     assert infer_years_from_title("Tech Lead") == 6
 
 

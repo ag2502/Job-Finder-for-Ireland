@@ -80,10 +80,25 @@ class Candidate:
     seniority: str | None = None
     text: str = ""
     corpus_terms: set[str] = field(default_factory=set)
+    # What the searcher typed in the years box. None means they stated nothing.
+    years: int | None = None
 
     @property
     def expanded_fields(self) -> list[str]:
         return expand_fields(self.fields)
+
+    @property
+    def level(self) -> str | None:
+        """The searcher's seniority: what they typed wins over what their CV implies.
+
+        `detect_seniority` reads the whole CV body and the first pattern to hit wins, so a
+        line like "I lead the migration project" resolves a graduate to `lead`. A number
+        in the box is a statement of fact about the searcher; the CV is an inference from
+        prose, so the explicit figure takes precedence wherever there is one.
+        """
+        from jobfinder.matching.resume import seniority_from_years
+
+        return seniority_from_years(self.years) or self.seniority
 
     @property
     def query_tokens(self) -> list[str]:
@@ -115,6 +130,14 @@ class ScoredJob:
     # interested in. Ranking alone is not enough: sorting an Art Director role to the
     # bottom still leaves it in a list the searcher has to read past.
     relevant: bool = True
+    # 0 = in a field the searcher ticked, 1 = one hop away, 2 = kept on skill overlap
+    # alone. Compared *before* the score, so a related role can never outrank a chosen
+    # one on text-score noise. A 0.4 gap in the field signal is worth 12 points, which
+    # the 20-point text term overwhelmed: picking "Backend" put ".Net Developer" and
+    # "Front End Developer" above real backend roles.
+    tier: int = 0
+    # True when this job survived only because the relevance filter emptied the list.
+    fallback: bool = False
 
     def explain(self) -> str:
         return "; ".join(self.reasons) if self.reasons else "weak match"
@@ -185,7 +208,14 @@ class BM25Index:
 
 
 def seniority_fit(candidate_level: str | None, title: str) -> tuple[float, str]:
-    """Compare the searcher's level against the level implied by a job title."""
+    """Compare the searcher's level against the level implied by a job title.
+
+    The comparison is **signed**, not a distance. A one-year searcher looking at a Staff
+    role and a Staff engineer looking at a one-year role are not the same situation: the
+    first cannot get the job, the second is merely overqualified and may still want it.
+    So roles at or below the searcher's level stay near the top, one level up is a
+    reachable stretch, and anything further up is a mismatch the caller drops outright.
+    """
     if not candidate_level:
         return 0.5, "unknown"
 
@@ -196,18 +226,16 @@ def seniority_fit(candidate_level: str | None, title: str) -> tuple[float, str]:
         return 0.6, "unspecified"
 
     try:
-        distance = abs(
-            SENIORITY_ORDER.index(candidate_level) - SENIORITY_ORDER.index(job_level)
-        )
+        gap = SENIORITY_ORDER.index(job_level) - SENIORITY_ORDER.index(candidate_level)
     except ValueError:
         return 0.5, "unknown"
 
-    if distance == 0:
+    if gap == 0:
         return 1.0, "exact"
-    if distance == 1:
-        return 0.7, "close"
-    if distance == 2:
-        return 0.35, "distant"
+    if gap < 0:
+        return 0.75, "below"
+    if gap == 1:
+        return 0.55, "stretch"
     return 0.1, "mismatch"
 
 
@@ -292,27 +320,39 @@ def score_job(
 
     if direct:
         field_score = 1.0
+        result.tier = 0
     elif nearby:
         field_score = 0.6
+        result.tier = 1
     elif not chosen:
         field_score = 0.5
+        result.tier = 0
     else:
         field_score = 0.0
+        result.tier = 2
 
     # 3. Text
     raw_text = index.score(job_id, candidate.query_tokens)
     text_score = min(raw_text / max_text_score, 1.0) if max_text_score > 0 else 0.0
 
     # 4. Seniority
-    sen_score, sen_label = seniority_fit(candidate.seniority, title)
+    sen_score, sen_label = seniority_fit(candidate.level, title)
     result.seniority_fit = sen_label
 
-    blended = (
-        WEIGHT_SKILLS * skill_score
-        + WEIGHT_FIELD * field_score
-        + WEIGHT_TEXT * text_score
-        + WEIGHT_SENIORITY * sen_score
-    )
+    # The weights are renormalised over the signals this search actually has. Without a
+    # CV there is no skills signal at all, and leaving its weight in the blend spent 40%
+    # of every score on a constant zero - capping the best possible match at 55 and
+    # handing the ranking to the 20% text term, which is largely noise.
+    contributions = [
+        (WEIGHT_FIELD, field_score),
+        (WEIGHT_TEXT, text_score),
+        (WEIGHT_SENIORITY, sen_score),
+    ]
+    if candidate.skills or candidate.corpus_terms:
+        contributions.append((WEIGHT_SKILLS, skill_score))
+
+    total_weight = sum(weight for weight, _ in contributions)
+    blended = sum(weight * value for weight, value in contributions) / total_weight
     result.score = round(min(blended * recency_multiplier(posted_at), 1.0) * 100, 1)
 
     # Relevance is a filter, not a ranking nudge. A searcher who uploads a backend CV
@@ -330,6 +370,19 @@ def score_job(
     else:
         result.relevant = False
 
+    # A role two or more levels above the searcher is not a stretch, it is a different
+    # job. Demoting it still leaves it in a list they have to read past, which is how a
+    # searcher with one year of experience was being shown Staff and Principal roles.
+    # One level up stays - that is a reachable stretch, and 0.55 already ranks it below
+    # the roles at their own level.
+    #
+    # Only a figure the searcher actually typed may remove a job. A level inferred from
+    # CV prose is far too unreliable to hide work on: `detect_seniority` reads the whole
+    # document and takes the first hit, so one sentence containing "lead" would silently
+    # cut every Principal role. It still moves the score, as it always has.
+    if result.relevant and sen_label == "mismatch" and candidate.years is not None:
+        result.relevant = False
+
     if matches:
         shown = sorted(matches)[:6]
         result.reasons.append(
@@ -343,7 +396,12 @@ def score_job(
         result.reasons.append(f"related field: {FIELDS[nearby[0]].label}")
     if sen_label == "exact":
         result.reasons.append("seniority matches")
+    elif sen_label == "stretch":
+        result.reasons.append("a level above your experience")
+    elif sen_label == "below":
+        result.reasons.append("below your experience level")
     elif sen_label == "mismatch":
+        # Only reachable when the searcher stated no years; with a figure it is filtered.
         result.reasons.append("seniority looks off")
     if posted_at and (datetime.now(timezone.utc) - (
         posted_at if posted_at.tzinfo else posted_at.replace(tzinfo=timezone.utc)
@@ -414,8 +472,15 @@ def rank_jobs(
         filtered = [s for s in scored if s.relevant]
         # Never return an empty page when something was found: if the filter removes
         # everything, fall back to the best-scoring jobs so the searcher sees the
-        # closest matches rather than a blank result they cannot act on.
-        scored = filtered or sorted(scored, key=lambda s: s.score, reverse=True)[:25]
+        # closest matches rather than a blank result they cannot act on. They are
+        # flagged, because presenting them as ordinary results claims a match that the
+        # filter just decided was not there.
+        if not filtered:
+            filtered = sorted(scored, key=lambda s: s.score, reverse=True)[:25]
+            for entry in filtered:
+                entry.fallback = True
+        scored = filtered
 
-    scored.sort(key=lambda s: s.score, reverse=True)
+    # Tier before score: see ScoredJob.tier.
+    scored.sort(key=lambda s: (s.tier, -s.score))
     return scored[:limit]

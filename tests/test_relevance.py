@@ -128,3 +128,26 @@ def test_ordering_is_still_by_score():
     ]
     scored = rank_jobs(jobs, BACKEND, only_relevant=True)
     assert scored[0].score >= scored[1].score
+
+
+def test_the_closest_matches_fallback_is_flagged():
+    """When nothing clears the bar the closest are shown anyway - a blank page is not
+    something a searcher can act on - but they are marked, because presenting them as
+    matches would claim exactly what the filter just ruled out."""
+    jobs = [
+        FakeJob(1, "Art Director", "Lead our brand and visual identity"),
+        FakeJob(2, "Veterinary Nurse", "Care for animals"),
+    ]
+    scored = rank_jobs(jobs, BACKEND, only_relevant=True)
+    assert scored, "a blank result is worse than an honest approximation"
+    assert all(s.fallback for s in scored)
+
+
+def test_ordinary_results_are_not_flagged_as_a_fallback():
+    jobs = [
+        FakeJob(1, "Senior Backend Engineer", "Python, Kafka, Kubernetes"),
+        FakeJob(2, "Art Director", "Lead our brand and visual identity"),
+    ]
+    scored = rank_jobs(jobs, BACKEND, only_relevant=True)
+    assert [s.job_id for s in scored] == [1]
+    assert not scored[0].fallback

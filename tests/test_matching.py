@@ -65,6 +65,23 @@ def test_classify_title():
     assert "finance" in classify_title("Financial Analyst")
 
 
+def test_a_term_must_start_at_a_word_boundary():
+    """A raw substring test read "ux" out of "(Benelux)" and "sales" out of "Presales",
+    filing those roles under fields they have nothing to do with."""
+    assert "design" not in classify_title("Account Executive, SMB (Benelux)")
+    assert "sales" not in classify_title("Solutions Architect, Platforms (Presales)")
+    assert "mobile" not in classify_title("Senior Engineer, Studios")
+    assert "cloud" not in classify_title("Legal Counsel - Employment Laws")
+
+
+def test_terms_still_match_their_inflections():
+    """The boundary is deliberately one-sided: the right-hand end stays open so a term
+    keeps matching the longer word it heads."""
+    assert "software-engineering" in classify_title("Software Development Engineer")
+    assert "design" in classify_title("Senior Product Designer")
+    assert "marketing" in classify_title("Integrated Campaigns Manager")
+
+
 def test_skill_extraction_handles_punctuated_technology_names():
     """A plain \\b boundary silently misses C++, C#, .NET and Node.js."""
     found = extract_skills("Experienced in C++, C#, .NET and Node.js plus Python")
@@ -173,9 +190,100 @@ def test_recency_boost_favours_fresh_postings():
 
 def test_seniority_fit_scoring():
     assert seniority_fit("senior", "Senior Engineer")[1] == "exact"
-    assert seniority_fit("senior", "Lead Engineer")[1] == "close"
+    assert seniority_fit("senior", "Lead Engineer")[1] == "stretch"
     assert seniority_fit("intern", "Director of Engineering")[1] == "mismatch"
     assert seniority_fit(None, "Senior Engineer")[1] == "unknown"
+
+
+def test_seniority_fit_is_signed_not_a_distance():
+    """Being under-levelled and over-levelled are not the same problem.
+
+    A junior cannot get a Staff role; a Staff engineer can take a mid-level one and may
+    well want to. An absolute distance scored both alike.
+    """
+    over = seniority_fit("junior", "Principal Engineer")
+    under = seniority_fit("principal", "Junior Engineer")
+    assert over[1] == "mismatch"
+    assert under[1] == "below"
+    assert under[0] > over[0]
+
+
+def test_mid_is_reachable_so_distances_are_not_inflated():
+    """`mid` sat in SENIORITY_ORDER with no pattern to produce it, so it padded every
+    gap that spanned it: junior against senior read as two levels apart."""
+    assert detect_seniority("Software Engineer II") == "mid"
+    assert detect_seniority("Mid-Level Developer") == "mid"
+    # "Senior" still wins where both could match.
+    assert detect_seniority("Senior Engineer II") == "senior"
+    # One rung apart is now genuinely one rung, rather than two with a hole in between.
+    assert seniority_fit("mid", "Senior Engineer")[1] == "stretch"
+
+
+def test_typed_years_outrank_a_cv_that_says_otherwise():
+    """`detect_seniority` reads CV prose first-match-wins, so a line like "I lead the
+    migration" makes a graduate `lead`. An explicit figure is a statement of fact."""
+    assert Candidate(seniority="lead", years=1).level == "junior"
+    # With nothing typed the CV is still all there is to go on.
+    assert Candidate(seniority="lead", years=None).level == "lead"
+
+
+def test_stated_years_hide_roles_well_above_the_searcher():
+    """The reported bug: one year of experience, and Staff roles ranked first.
+
+    These titles carry no stated minimum, so the eligibility filter passes them through
+    on the advert alone; the level implied by the title is the only thing left to catch
+    them.
+    """
+    jobs = [
+        FakeJob(1, "Backend Engineer", "python"),
+        FakeJob(2, "Staff Backend Engineer", "python"),
+        FakeJob(3, "Principal Backend Engineer", "python"),
+        FakeJob(4, "Director of Backend Engineering", "python"),
+    ]
+    kept = {
+        s.job_id
+        for s in rank_jobs(jobs, Candidate(fields=["backend"], years=1), only_relevant=True)
+    }
+    assert kept == {1}
+
+
+def test_one_level_up_is_kept_as_a_stretch_and_demoted():
+    """Near-miss seniority is offered rather than hidden - it is reachable - but it
+    never outranks work at the searcher's own level."""
+    jobs = [
+        FakeJob(1, "Backend Engineer", "python"),
+        FakeJob(2, "Senior Backend Engineer", "python"),
+    ]
+    scored = rank_jobs(jobs, Candidate(fields=["backend"], years=4), only_relevant=True)
+    assert {s.job_id for s in scored} == {1, 2}
+    assert [s.job_id for s in scored] == [1, 2], "the stretch role ranks below"
+    assert next(s for s in scored if s.job_id == 2).seniority_fit == "stretch"
+
+
+def test_an_inferred_level_never_hides_a_job():
+    """Only a figure the searcher typed may remove work. A blank box must still show
+    everything, even when the CV implies a level."""
+    jobs = [
+        FakeJob(1, "Backend Engineer", "python"),
+        FakeJob(2, "Principal Backend Engineer", "python"),
+    ]
+    candidate = Candidate(fields=["backend"], seniority="junior", years=None)
+    kept = {s.job_id for s in rank_jobs(jobs, candidate, only_relevant=True)}
+    assert kept == {1, 2}
+
+
+def test_chosen_fields_always_outrank_related_ones():
+    """The reported bug: picking Backend put ".Net Developer" and "Front End Developer"
+    above real backend roles, because a 12-point field gap lost to a 20-point text term.
+    """
+    jobs = [
+        # Nothing in the description to score on - only the title places it.
+        FakeJob(1, "Backend Engineer", ""),
+        # A related field (software-engineering) with everything going for it.
+        FakeJob(2, "Front End Developer", "python go kafka aws kubernetes " * 20),
+    ]
+    order = [s.job_id for s in rank_jobs(jobs, Candidate(fields=["backend"]))]
+    assert order == [1, 2]
 
 
 def test_ranking_empty_input_is_safe():

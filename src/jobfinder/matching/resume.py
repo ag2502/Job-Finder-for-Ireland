@@ -26,13 +26,52 @@ MAX_TEXT_CHARS = 200_000
 
 SENIORITY_ORDER = ["intern", "junior", "mid", "senior", "lead", "principal", "director"]
 
+# Ordered most-senior-first; the first hit wins. "mid" sits below "senior" so
+# "Senior Engineer II" still resolves to senior rather than mid.
+#
+# A pattern for "mid" is essential rather than cosmetic: without one the level was
+# unreachable, yet it still occupied an index in SENIORITY_ORDER, so every distance
+# spanning it was inflated by one - junior against senior read as two levels apart.
 _SENIORITY_PATTERNS = [
     ("director", re.compile(r"\b(director|vp|vice president|head of|chief)\b", re.I)),
-    ("principal", re.compile(r"\b(principal|staff engineer|distinguished)\b", re.I)),
+    # "staff" is separated from its noun in most real titles - "Staff Backend Engineer",
+    # "Staff Web Automation Engineer" - so requiring the two words to be adjacent matched
+    # almost none of them. Mirrors _SENIORITY_YEARS in normalize/experience.py.
+    (
+        "principal",
+        re.compile(
+            r"\b(principal|distinguished)\b"
+            r"|\bstaff\s+(?:[\w/&+-]+\s+){0,2}"
+            r"(?:engineer|developer|scientist|designer|architect|manager|analyst)\b",
+            re.I,
+        ),
+    ),
     ("lead", re.compile(r"\b(lead|team lead|tech lead|manager)\b", re.I)),
     ("senior", re.compile(r"\b(senior|snr|sr\.?)\b", re.I)),
     ("junior", re.compile(r"\b(junior|jnr|jr\.?|graduate|entry.level)\b", re.I)),
     ("intern", re.compile(r"\b(intern|internship|placement|trainee)\b", re.I)),
+    # The numeral forms must stay anchored to a role noun. A bare "2" or "II" appears in
+    # dates, addresses and phone numbers throughout a CV, and since this pattern is the
+    # last to be tried it would otherwise catch every document that matched nothing else.
+    (
+        "mid",
+        re.compile(
+            r"\b(mid[- ]level|mid[- ]senior|intermediate)\b"
+            r"|\b(?:engineer|developer|analyst|scientist|designer|consultant)\s*"
+            r"(?:I{2}|2)\b",
+            re.I,
+        ),
+    ),
+]
+
+# Bands, not a formula: the point is to keep a one-year searcher away from Staff roles,
+# not to claim four years and five years are different kinds of person. Read as
+# "fewer than N years means this level".
+_YEARS_TO_LEVEL: list[tuple[int, str]] = [
+    (2, "junior"),
+    (5, "mid"),
+    (8, "senior"),
+    (12, "lead"),
 ]
 
 _YEARS_PATTERNS = [
@@ -113,6 +152,16 @@ def detect_seniority(text: str) -> str | None:
         if pattern.search(text):
             return level
     return None
+
+
+def seniority_from_years(years: int | None) -> str | None:
+    """The level implied by a stated number of years, or None if nothing was stated."""
+    if years is None:
+        return None
+    for ceiling, level in _YEARS_TO_LEVEL:
+        if years < ceiling:
+            return level
+    return "principal"
 
 
 def detect_years(text: str) -> int | None:
