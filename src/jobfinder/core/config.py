@@ -148,5 +148,21 @@ class Settings(BaseSettings):
     supabase_url: str = ""
     supabase_anon_key: str = ""
 
+    @field_validator("supabase_url")
+    @classmethod
+    def _trim_api_path(cls, url: str) -> str:
+        """Keep only the project origin.
+
+        The dashboard shows the Data API endpoint - `https://<ref>.supabase.co/rest/v1/` -
+        more prominently than the bare project URL, and that is the string people copy.
+        The client appends `/rest/v1/...` and `/auth/v1/...` itself, so pasting the
+        endpoint would ask for `/rest/v1/rest/v1/applications` and 404 on every call.
+        """
+        url = url.strip().rstrip("/")
+        for suffix in ("/rest/v1", "/auth/v1"):
+            if url.endswith(suffix):
+                url = url[: -len(suffix)]
+        return url
+
 
 settings = Settings()

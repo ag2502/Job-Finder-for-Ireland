@@ -314,3 +314,101 @@ def test_a_dead_refresh_token_signs_the_person_out_cleanly(
     page = client.get("/")
     assert page.status_code == 200
     assert "Sign in" in page.text
+
+
+# --------------------------------------------------------------- wire format
+#
+# These assert what actually goes out on the wire. The stub above is faithful to how
+# Supabase *behaves*, which is exactly why it missed a real bug: marking the same advert
+# twice worked against the fake and failed against the live project, because PostgREST
+# needs to be told which constraint counts as a duplicate. A fake cannot catch that; only
+# looking at the request can.
+
+
+def _capture(monkeypatch: pytest.MonkeyPatch) -> list[httpx.Request]:
+    """Record outgoing requests and answer them with a bare success."""
+    seen: list[httpx.Request] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request)
+        if request.url.path.endswith("/applications") and request.method == "GET":
+            return httpx.Response(200, json=[])
+        return httpx.Response(201, json={})
+
+    real_client = httpx.Client
+
+    def fake_client(*args, **kwargs):
+        kwargs["transport"] = httpx.MockTransport(handler)
+        return real_client(*args, **kwargs)
+
+    monkeypatch.setattr(supabase.settings, "supabase_url", "https://proj.supabase.co")
+    monkeypatch.setattr(supabase.settings, "supabase_anon_key", "sb_publishable_abc")
+    monkeypatch.setattr(httpx, "Client", fake_client)
+    return seen
+
+
+def test_marking_names_the_constraint_that_counts_as_a_duplicate(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Regression: a second Apply click raised a unique-constraint error.
+
+    `resolution=merge-duplicates` asks for an upsert, but PostgREST infers the conflict
+    target from the primary key - `id`, a fresh uuid every insert, which never conflicts
+    - so the unique constraint on (user_id, advert_key) raised instead of merging.
+    """
+    seen = _capture(monkeypatch)
+    supabase.add_application(
+        _account(), advert_key="a" * 32, title="t", company="c", url="u"
+    )
+
+    request = seen[-1]
+    assert request.url.params["on_conflict"] == "user_id,advert_key"
+    assert "merge-duplicates" in request.headers["Prefer"]
+
+
+def test_a_publishable_key_is_not_sent_as_a_bearer_token(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """`sb_publishable_...` keys are opaque handles, not credentials. Presenting one as
+    a bearer token is rejected; it belongs in `apikey` alone."""
+    seen = _capture(monkeypatch)
+    supabase.sign_in("jane@example.com", "hunter2hunter2")
+
+    request = seen[-1]
+    assert request.headers["apikey"] == "sb_publishable_abc"
+    assert "authorization" not in request.headers
+
+
+def test_a_legacy_anon_key_is_still_sent_as_a_bearer_token(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The older `anon` key is itself a JWT, and sending it is what tells PostgREST to
+    act as the anon role."""
+    seen = _capture(monkeypatch)
+    monkeypatch.setattr(supabase.settings, "supabase_anon_key", "eyJhbGciOiJIUzI1NiJ9.x.y")
+    supabase.sign_in("jane@example.com", "hunter2hunter2")
+
+    assert seen[-1].headers["authorization"] == "Bearer eyJhbGciOiJIUzI1NiJ9.x.y"
+
+
+def test_a_signed_in_call_carries_the_persons_own_token(monkeypatch: pytest.MonkeyPatch):
+    """Row level security reads this header. Sending the project key instead would make
+    every request anonymous, and the searcher would see an empty history."""
+    seen = _capture(monkeypatch)
+    supabase.list_applications(_account())
+
+    assert seen[-1].headers["authorization"] == "Bearer access-token"
+
+
+def test_the_data_api_endpoint_is_accepted_where_the_project_url_is_wanted():
+    """The dashboard shows `.../rest/v1/` more prominently than the bare project URL,
+    so that is what gets pasted. Appending to it would give `/rest/v1/rest/v1/...`."""
+    from jobfinder.core.config import Settings
+
+    for pasted in (
+        "https://proj.supabase.co/rest/v1/",
+        "https://proj.supabase.co/rest/v1",
+        "https://proj.supabase.co/",
+        "  https://proj.supabase.co  ",
+    ):
+        assert Settings(supabase_url=pasted).supabase_url == "https://proj.supabase.co"

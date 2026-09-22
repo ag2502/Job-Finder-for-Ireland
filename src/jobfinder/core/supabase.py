@@ -105,14 +105,30 @@ def _require_config() -> tuple[str, str]:
 
 
 def _auth_headers(token: str | None = None) -> dict[str, str]:
-    _, anon = _require_config()
-    # The anon key identifies the project; the bearer token identifies the person. When
-    # there is no person yet - signing up, signing in - the anon key serves as both.
-    return {
-        "apikey": anon,
-        "Authorization": f"Bearer {token or anon}",
-        "Content-Type": "application/json",
-    }
+    """Headers for a call made as `token`, or as nobody in particular.
+
+    `apikey` names the project and is always sent. `Authorization` names the person, and
+    is what row level security reads to decide which rows exist.
+
+    Supabase issues two shapes of project key and they cannot be used the same way. The
+    legacy `anon` key is itself a JWT, so sending it as the bearer token is what tells
+    PostgREST to act as the `anon` role. The newer `sb_publishable_...` keys are opaque
+    handles, not tokens - presenting one as a bearer credential is rejected, because it
+    is not a credential. So it goes in `apikey` alone, which is all it was ever meant
+    for, and the Authorization header is left off until there is a real user token.
+    """
+    _, project_key = _require_config()
+    headers = {"apikey": project_key, "Content-Type": "application/json"}
+
+    bearer = token or (project_key if _is_jwt(project_key) else None)
+    if bearer:
+        headers["Authorization"] = f"Bearer {bearer}"
+    return headers
+
+
+def _is_jwt(value: str) -> bool:
+    """Whether a key is a JWT, and so usable as a bearer token in its own right."""
+    return value.startswith("eyJ")
 
 
 def _message_from(response: httpx.Response) -> str:
@@ -258,13 +274,18 @@ def add_application(
     of the employer closing it - and a history that blanks out as jobs close would be
     worth very little to the person reading it.
 
-    `resolution=merge-duplicates` makes a second click harmless: the unique constraint on
-    (user_id, advert_key) turns it into an update rather than an error.
+    Clicking Apply twice is an ordinary thing to do, so the second write updates rather
+    than failing. That takes both halves: `resolution=merge-duplicates` asks for an
+    upsert, and `on_conflict` names which constraint counts as a duplicate. Without the
+    second, PostgREST infers the conflict target from the primary key - `id`, a fresh
+    uuid on every insert, which therefore never conflicts - and the unique constraint on
+    (user_id, advert_key) raises instead of merging.
     """
     base, _ = _require_config()
     with httpx.Client(timeout=TIMEOUT) as client:
         response = client.post(
             f"{base}/rest/v1/applications",
+            params={"on_conflict": "user_id,advert_key"},
             headers={
                 **_auth_headers(account.access_token),
                 "Prefer": "resolution=merge-duplicates,return=minimal",
