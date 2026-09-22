@@ -137,5 +137,16 @@ class Settings(BaseSettings):
     # Required to open /admin on a public deployment; see `web/app.py`.
     admin_token: str = ""
 
+    # Supabase holds accounts and the record of what someone has applied to - nothing
+    # else. The job data stays in the local snapshot, so these being unset costs the
+    # deployment only its sign-in: see `core/supabase.configured`.
+    #
+    # The anon key is meant to be public. It identifies the project, not a person, and
+    # every table it can reach is governed by the row level security policies in
+    # `schema.sql`. The service role key bypasses those policies entirely and must never
+    # be given to this function.
+    supabase_url: str = ""
+    supabase_anon_key: str = ""
+
 
 settings = Settings()

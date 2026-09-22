@@ -108,6 +108,26 @@ jobs:
         # visitors until this rebuilds it and the next step ships it.
         run: python scripts/export_snapshot.py
 
+      - name: Keep the accounts project awake
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        # Supabase pauses a free project after about a week without traffic, and the
+        # first request after that fails - which for a job site means someone cannot
+        # sign in at the exact moment they came back to look. This crawl already runs
+        # every six hours, so one request from it is enough to keep the project awake
+        # and costs nothing.
+        #
+        # Never fails the crawl. The jobs are what this workflow is for; sign-in being
+        # briefly unavailable is not a reason to skip publishing a day's postings.
+        if: ${{ env.SUPABASE_URL != '' }}
+        continue-on-error: true
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            "$SUPABASE_URL/rest/v1/applications?select=id&limit=1" || echo 000)
+          echo "Supabase responded $code"
+
       - name: Deploy the refreshed snapshot
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}

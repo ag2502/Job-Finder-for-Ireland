@@ -28,6 +28,9 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, func, select
 from starlette.middleware.sessions import SessionMiddleware
 
+import httpx
+
+from jobfinder.core import supabase
 from jobfinder.core.config import settings
 from jobfinder.core.db import init_db, session_scope
 from jobfinder.core.models import (
@@ -45,6 +48,7 @@ from jobfinder.matching import vocabulary
 from jobfinder.matching.resume import parse_resume
 from jobfinder.normalize.dedup import (
     canonical_title,
+    key_for,
     location_bucket,
     normalize_company_name,
     same_employer,
@@ -112,12 +116,53 @@ def _profile(request: Request) -> dict | None:
     return json.loads(raw) if raw else None
 
 
+def _account(request: Request) -> supabase.Account | None:
+    """The signed-in searcher, refreshing the access token when it has aged out.
+
+    Supabase access tokens last an hour. Rather than make someone sign in again every
+    hour, the refresh token stored beside it buys a new one; only if that also fails is
+    the session cleared, which is the real "you are signed out" case.
+    """
+    account = supabase.Account.from_session(request.session.get("account"))
+    if account is None:
+        return None
+
+    if account.expired:
+        try:
+            account = supabase.refresh(account)
+        except (supabase.SupabaseError, httpx.HTTPError):
+            request.session.pop("account", None)
+            return None
+        request.session["account"] = account.to_session()
+
+    return account
+
+
+def _applied_keys(account: supabase.Account | None) -> set[str]:
+    """The adverts this account has applied to.
+
+    An outage here must not take the search down with it: the worst case of failing open
+    is that a job the searcher has already applied to appears in the list, which is the
+    behaviour they had before accounts existed.
+    """
+    if account is None:
+        return set()
+    try:
+        return {row["advert_key"] for row in supabase.list_applications(account)}
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not load applications; showing every job", exc_info=True)
+        return set()
+
+
 def _base_context(request: Request) -> dict:
+    account = _account(request)
     return {
         "request": request,
         "fields": sorted(FIELDS.values(), key=lambda f: f.label),
         "profile": _profile(request),
         "sorts": SORTS,
+        "account": account,
+        "accounts_enabled": supabase.configured(),
     }
 
 
@@ -162,7 +207,15 @@ def home(request: Request):
     context = _index_context(request)
     profile = _profile(request)
     if profile:
-        context.update(_search_results(profile, query=profile.get("query")))
+        account = _account(request)
+        context.update(
+            _search_results(
+                profile,
+                query=profile.get("query"),
+                applied_keys=_applied_keys(account),
+                show_applied=bool(profile.get("show_applied")),
+            )
+        )
     return templates.TemplateResponse(request, "finder.html", context)
 
 
@@ -178,6 +231,7 @@ async def search(
     years: str | None = Form(default=None),
     q: str | None = Form(default=None),
     sort: str | None = Form(default=None),
+    show_applied: str | None = Form(default=None),
 ):
     previous_profile = _profile(request) or {}
 
@@ -255,11 +309,21 @@ async def search(
         # An unrecognised value falls back to relevance rather than erroring: the sort
         # is a presentation choice, not something worth failing a search over.
         "sort": sort if sort in SORTS else DEFAULT_SORT,
+        # Remembered so paging and re-sorting keep the choice, like every other control.
+        "show_applied": bool(show_applied),
     }
     request.session["profile"] = json.dumps(profile)
 
     context = _base_context(request)
-    context.update(_search_results(profile, query=q, page=page))
+    context.update(
+        _search_results(
+            profile,
+            query=q,
+            page=page,
+            applied_keys=_applied_keys(_account(request)),
+            show_applied=bool(show_applied),
+        )
+    )
 
     # HTMX asks for the table alone; a normal form post gets the whole page back.
     if request.headers.get("HX-Request"):
@@ -319,7 +383,9 @@ def _is_offerable():
     )
 
 
-def _prefer_direct_sources(session, rows: list[JobPosting]) -> list[JobPosting]:
+def _prefer_direct_sources(
+    session, rows: list[JobPosting], keys: dict[int, tuple[str, str, str]] | None = None
+) -> list[JobPosting]:
     """Drop copies of a role that a more direct source also carries.
 
     `Source.tier` orders sources by how close each sits to the employer — an ATS API (1)
@@ -344,7 +410,12 @@ def _prefer_direct_sources(session, rows: list[JobPosting]) -> list[JobPosting]:
     def rank(job: JobPosting) -> tuple[int, int]:
         return (tiers.get(job.source_id, 9), -len(job.description or ""))
 
-    keys = _grouping_keys(session, rows)
+    # The caller may already have these. Search does, because it needs the *folded*
+    # company name - the one every copy of an advert agrees on - to build the key it
+    # stores against an application. Recomputing after the losing copies are dropped
+    # would hash whichever spelling happened to survive instead.
+    if keys is None:
+        keys = _grouping_keys(session, rows)
 
     # group key -> (best rank seen, the source that achieved it)
     winner: dict[tuple[str, str, str], tuple[tuple[int, int], int]] = {}
@@ -407,7 +478,14 @@ def _grouping_keys(
     }
 
 
-def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -> dict:
+def _search_results(
+    profile: dict,
+    *,
+    query: str | None = None,
+    page: int = 1,
+    applied_keys: set[str] | None = None,
+    show_applied: bool = False,
+) -> dict:
     """Rank the active jobs against a profile and build the template context."""
     candidate = Candidate(
         skills=set(profile.get("skills") or []),
@@ -441,7 +519,16 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         # posting the employer's own board also carries. `dedup_key` groups them and the
         # direct source wins, so the searcher gets the full description and the real
         # apply URL rather than a redirect.
-        rows = _prefer_direct_sources(session, rows)
+        grouping = _grouping_keys(session, rows)
+        rows = _prefer_direct_sources(session, rows, grouping)
+        advert_keys = {job_id: key_for(*parts) for job_id, parts in grouping.items()}
+
+        # Jobs already applied to drop out entirely, which is the point: a list that
+        # still offers them leaves the searcher wondering, days later, whether they
+        # applied or not. The toggle brings them back for anyone who wants to re-read a
+        # posting or undo a mis-click.
+        if applied_keys and not show_applied:
+            rows = [row for row in rows if advert_keys[row.id] not in applied_keys]
 
         # Eligibility filtering happens here rather than in SQL so the rule lives in
         # one place; the candidate set for a single city is small enough that it costs
@@ -503,6 +590,10 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
                     "tier": entry.tier,
                     "fallback": entry.fallback,
                     "stretch": entry.seniority_fit == "stretch",
+                    # What an application is recorded against. Identifies the advert
+                    # rather than the row, so every copy of it counts as the same job.
+                    "advert_key": advert_keys[job.id],
+                    "applied": advert_keys[job.id] in (applied_keys or set()),
                 }
             )
 
@@ -538,11 +629,189 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         "new_count": sum(1 for i in items if i["is_new"]),
         "tiered": tiered,
         "fallback": bool(page_items and all(i["fallback"] for i in page_items)),
+        "show_applied": show_applied,
+        "applied_count": len(applied_keys or set()),
         "skill_count": len(profile.get("skills") or []),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),
         "graduate_only": bool(profile.get("graduate_only")),
     }
+
+
+# --------------------------------------------------------------------- accounts
+
+
+def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = "",
+               email: str = "", status: int = 200):
+    context = _base_context(request)
+    context.update(mode=mode, error=error, notice=notice, email=email)
+    return templates.TemplateResponse(request, "account.html", context, status_code=status)
+
+
+@app.get("/login", response_class=HTMLResponse)
+def login_form(request: Request):
+    if _account(request):
+        return RedirectResponse("/applications", status_code=303)
+    return _auth_page(request, mode="login")
+
+
+@app.get("/signup", response_class=HTMLResponse)
+def signup_form(request: Request):
+    if _account(request):
+        return RedirectResponse("/applications", status_code=303)
+    return _auth_page(request, mode="signup")
+
+
+@app.post("/login", response_class=HTMLResponse)
+def login(request: Request, email: str = Form(...), password: str = Form(...)):
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
+    try:
+        account = supabase.sign_in(email.strip(), password)
+    except supabase.SupabaseError as exc:
+        return _auth_page(request, mode="login", error=str(exc), email=email, status=401)
+    except httpx.HTTPError:
+        logger.warning("supabase unreachable during sign-in", exc_info=True)
+        return _auth_page(
+            request,
+            mode="login",
+            error="Could not reach the accounts service. Please try again.",
+            email=email,
+            status=503,
+        )
+
+    request.session["account"] = account.to_session()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/signup", response_class=HTMLResponse)
+def signup(request: Request, email: str = Form(...), password: str = Form(...)):
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
+    if len(password) < 8:
+        return _auth_page(
+            request,
+            mode="signup",
+            error="Please use a password of at least 8 characters.",
+            email=email,
+            status=422,
+        )
+    try:
+        account = supabase.sign_up(email.strip(), password)
+    except supabase.SupabaseError as exc:
+        return _auth_page(request, mode="signup", error=str(exc), email=email, status=422)
+    except httpx.HTTPError:
+        logger.warning("supabase unreachable during sign-up", exc_info=True)
+        return _auth_page(
+            request,
+            mode="signup",
+            error="Could not reach the accounts service. Please try again.",
+            email=email,
+            status=503,
+        )
+
+    # No session comes back when the project asks people to confirm their address. Say
+    # so, rather than showing a signed-out page that looks like the sign-up failed.
+    if account is None:
+        return _auth_page(
+            request,
+            mode="login",
+            notice="Account created. Check your email for a confirmation link, then sign in.",
+            email=email,
+        )
+
+    request.session["account"] = account.to_session()
+    return RedirectResponse("/", status_code=303)
+
+
+@app.post("/logout")
+def logout(request: Request):
+    account = supabase.Account.from_session(request.session.get("account"))
+    if account is not None:
+        supabase.sign_out(account)
+    request.session.pop("account", None)
+    return RedirectResponse("/", status_code=303)
+
+
+@app.get("/applications", response_class=HTMLResponse)
+def applications(request: Request):
+    account = _account(request)
+    context = _base_context(request)
+    if account is None:
+        context["error"] = "Sign in to see the jobs you have applied to."
+        return templates.TemplateResponse(
+            request, "applications.html", context, status_code=401
+        )
+
+    try:
+        rows = supabase.list_applications(account)
+    except (supabase.SupabaseError, httpx.HTTPError) as exc:
+        logger.warning("could not list applications", exc_info=True)
+        rows = []
+        context["error"] = f"Could not load your applications: {exc}"
+
+    for row in rows:
+        row["applied_on"] = _format_applied_at(row.get("applied_at"))
+    context["applications"] = rows
+    return templates.TemplateResponse(request, "applications.html", context)
+
+
+def _format_applied_at(value: str | None) -> str:
+    if not value:
+        return ""
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")).strftime("%d %b %Y")
+    except ValueError:
+        return ""
+
+
+@app.post("/applications", response_class=HTMLResponse)
+def mark_applied(
+    request: Request,
+    advert_key: str = Form(...),
+    title: str = Form(""),
+    company: str = Form(""),
+    url: str = Form(""),
+):
+    """Record an Apply click.
+
+    The response is the little "Marked / Undo" control that replaces the button, so the
+    row stays put until the next search rather than vanishing under the cursor of
+    someone who has just clicked it.
+    """
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to track applications.")
+    try:
+        supabase.add_application(
+            account, advert_key=advert_key, title=title, company=company, url=url
+        )
+    except (supabase.SupabaseError, httpx.HTTPError) as exc:
+        logger.warning("could not record an application", exc_info=True)
+        return HTMLResponse(
+            f'<span class="muted small" title="{exc}">could not save</span>',
+            status_code=502,
+        )
+
+    return templates.TemplateResponse(
+        request, "_applied_tag.html", {"request": request, "advert_key": advert_key}
+    )
+
+
+@app.post("/applications/remove", response_class=HTMLResponse)
+def unmark_applied(request: Request, advert_key: str = Form(...)):
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to track applications.")
+    try:
+        supabase.remove_application(account, advert_key)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not remove an application", exc_info=True)
+        return HTMLResponse('<span class="muted small">could not undo</span>', status_code=502)
+
+    if request.headers.get("HX-Request"):
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    return RedirectResponse("/applications", status_code=303)
 
 
 @app.post("/reset")

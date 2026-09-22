@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="max-width:420px;margin:0 auto">
+  <h2 style="margin-top:0">{{ "Create an account" if mode == "signup" else "Sign in" }}</h2>
+  <p class="muted small">
+    An account keeps a record of the jobs you have applied to, and leaves them out of
+    your results so you never have to wonder whether you already applied.
+  </p>
+
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+
+  <form method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+    <label class="small">Email
+      <input type="email" name="email" value="{{ email }}" required autocomplete="email">
+    </label>
+    <label class="small">Password
+      <input type="password" name="password" required minlength="8"
+             autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
+    </label>
+    {% if mode == "signup" %}<p class="muted small">At least 8 characters.</p>{% endif %}
+    <button type="submit">{{ "Create account" if mode == "signup" else "Sign in" }}</button>
+  </form>
+
+  <p class="small muted" style="margin-bottom:0">
+    {% if mode == "signup" %}
+      Already have an account? <a href="/login">Sign in</a>.
+    {% else %}
+      No account yet? <a href="/signup">Create one</a>.
+    {% endif %}
+  </p>
+</div>
+{% endblock %}

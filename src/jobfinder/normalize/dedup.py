@@ -60,6 +60,18 @@ def location_bucket(is_dublin: bool, is_remote: bool, location_norm: str | None)
     return _WHITESPACE.sub(" ", (location_norm or "unknown").lower()).strip()
 
 
+def key_for(company_normalized: str, title_canonical: str, place: str) -> str:
+    """Hash an already-normalised (company, title, location) triple.
+
+    The single place these three become a key. An application record stores one of these
+    to say "this searcher applied to this advert", and the search compares against the
+    same value to leave it out - so the two must be produced by identical rules, and the
+    surest way to guarantee that is for there to be only one rule.
+    """
+    parts = "|".join((company_normalized, title_canonical, place))
+    return hashlib.sha256(parts.encode("utf-8")).hexdigest()[:32]
+
+
 def compute_dedup_key(
     company_name: str,
     title: str,
@@ -68,14 +80,11 @@ def compute_dedup_key(
     is_remote: bool = False,
     location_norm: str | None = None,
 ) -> str:
-    parts = "|".join(
-        (
-            normalize_company_name(company_name),
-            canonical_title(title),
-            location_bucket(is_dublin, is_remote, location_norm),
-        )
+    return key_for(
+        normalize_company_name(company_name),
+        canonical_title(title),
+        location_bucket(is_dublin, is_remote, location_norm),
     )
-    return hashlib.sha256(parts.encode("utf-8")).hexdigest()[:32]
 
 
 def same_employer(a: str, b: str) -> bool:

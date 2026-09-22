@@ -13,11 +13,35 @@
     <li>Skill keywords found in your CV (e.g. <em>python</em>, <em>kubernetes</em>)</li>
     <li>A seniority guess and rough years of experience</li>
     <li>The fields you chose</li>
-    <li>A short excerpt of CV text used for keyword scoring</li>
   </ul>
+  <p class="muted">The text of your CV is not among them. Earlier versions kept a short
+  excerpt for keyword scoring; it turned out to change no results, and it carried
+  whatever the document said &mdash; including your email address &mdash; so it is gone.</p>
   <p class="muted">Clearing your session with <strong>Start over</strong>, or clearing
-  your browser cookies, removes all of it. There is no account and no server-side copy
-  to request or delete.</p>
+  your browser cookies, removes all of it.</p>
+
+  {% if accounts_enabled %}
+  <h2 style="margin-top:22px">If you create an account</h2>
+  <p class="muted">An account is optional. Searching, ranking and applying all work
+  without one, and nothing about your CV changes if you have one &mdash; it is still
+  never stored.</p>
+  <p class="muted">An account exists to answer one question: have I already applied to
+  this? So it keeps, on a server:</p>
+  <ul class="muted">
+    <li>Your email address and a password hash, held by
+      <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a>
+      in the EU. Your password itself is never seen by this site.</li>
+    <li>For each job you mark as applied: its title, employer, link and the date.</li>
+  </ul>
+  <p class="muted">That is the whole of it &mdash; no tracking, no analytics tied to you,
+  nothing shared with employers or anyone else. You can remove any application from the
+  <a href="/applications">Applications</a> page at any time, and removing one deletes
+  the row outright rather than archiving it.</p>
+  {# TODO: GDPR gives people the right to erasure of the account itself, not only of the
+     rows in it, and that needs a contact route a person can actually use. There is no
+     contact address anywhere on this site yet, so none is promised here. Add one and
+     say so in this paragraph. #}
+  {% endif %}
 
   <h2 style="margin-top:22px">Why it is built this way</h2>
   <p class="muted">A CV is personal data. Under GDPR, storing one makes the operator a

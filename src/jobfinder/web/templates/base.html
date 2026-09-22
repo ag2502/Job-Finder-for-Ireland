@@ -73,6 +73,22 @@
   /* Rules off the roles the searcher asked for from the ones merely adjacent to them. */
   .tier-break td{background:var(--bg);font-weight:600;text-transform:uppercase;
     letter-spacing:.05em;font-size:11px;padding-top:10px;padding-bottom:10px}
+  /* A button that reads as a link: used for sign-out and undo, which must be POSTs
+     rather than links because they change something. */
+  .linkish{background:none;border:0;padding:0;font:inherit;color:var(--accent);
+    cursor:pointer;text-decoration:underline}
+  .linkish:hover{opacity:.8}
+  .applied-mark{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+  .error{color:#b3261e;background:#fde8e6;border-radius:6px;padding:9px 12px;font-size:14px}
+  .notice{color:var(--accent);background:var(--accent-soft);border-radius:6px;
+    padding:9px 12px;font-size:14px}
+  @media (prefers-color-scheme: dark){
+    .error{color:#ffb4ab;background:#3b1a17}
+  }
+  form label{display:block;margin:12px 0 4px}
+  form label input{display:block;width:100%;margin-top:4px;padding:8px 10px;
+    border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);
+    font:inherit;box-sizing:border-box}
   .tag{border:1px solid var(--warn);color:var(--warn);border-radius:4px;padding:0 5px;
     font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
     vertical-align:middle;white-space:nowrap}
@@ -106,6 +122,16 @@
     <a href="/directory">Employers</a>
     {% if show_admin_link %}<a href="/admin">Coverage</a>{% endif %}
     <a href="/privacy">Privacy</a>
+    {% if accounts_enabled %}
+      {% if account %}
+        <a href="/applications">Applications</a>
+        <form method="post" action="/logout" style="display:inline">
+          <button class="linkish" title="Signed in as {{ account.email }}">Sign out</button>
+        </form>
+      {% else %}
+        <a href="/login">Sign in</a>
+      {% endif %}
+    {% endif %}
   </nav>
 </div></header>
 <main><div class="wrap">{% block content %}{% endblock %}</div></main>

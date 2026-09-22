@@ -7,7 +7,7 @@
   The sort select is named explicitly because it sits outside the form, and without it
   paging would quietly revert to "Best match".
 #}
-{% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort]" %}
+{% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort], #results input[name=show_applied]" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 <div class="card">
@@ -31,6 +31,15 @@
         {% endif %}
         {% if skill_count %}ranked against {{ skill_count }} skills from your CV{% else %}ranked by field{% endif %}
       </span>
+      {% if account and applied_count %}
+      <label class="muted small" style="display:flex;align-items:center;gap:6px"
+             title="{{ applied_count }} job{{ '' if applied_count == 1 else 's' }} you have applied to">
+        <input type="checkbox" name="show_applied" value="1" {% if show_applied %}checked{% endif %}
+               hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
+               hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+        show applied
+      </label>
+      {% endif %}
       <label class="muted small" style="display:flex;align-items:center;gap:6px">
         Sort
         <select name="sort" hx-post="/search" hx-include="{{ rerun_include }}"
@@ -103,7 +112,26 @@
               <div class="sub muted">seen {{ item.first_seen }}</div>
             {% endif %}
           </td>
-          <td><a class="apply" href="{{ item.job.url }}" target="_blank" rel="noopener">Apply &rarr;</a></td>
+          <td>
+            {% if item.applied %}
+              {# The partial names the advert itself, not the row it came from, so the
+                 same include serves the results table and the applications page. #}
+              {% with advert_key = item.advert_key %}{% include "_applied_tag.html" %}{% endwith %}
+            {% else %}
+            <span class="applied-mark">
+              <a class="apply" href="{{ item.job.url }}" target="_blank" rel="noopener"
+                 {% if account %}
+                 {# Clicking Apply is the moment someone actually acts, so that is when
+                    it is recorded. The link still opens the posting in a new tab; this
+                    only swaps the button for an Undo control. #}
+                 hx-post="/applications"
+                 hx-vals='{{ {"advert_key": item.advert_key, "title": item.job.title,
+                              "company": item.company, "url": item.job.url}|tojson }}'
+                 hx-target="closest .applied-mark" hx-swap="outerHTML"
+                 {% endif %}>Apply &rarr;</a>
+            </span>
+            {% endif %}
+          </td>
         </tr>
         {% endfor %}
       </tbody>
