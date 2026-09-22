@@ -85,8 +85,12 @@
   @media (prefers-color-scheme: dark){
     .error{color:#ffb4ab;background:#3b1a17}
   }
-  form label{display:block;margin:12px 0 4px}
-  form label input{display:block;width:100%;margin-top:4px;padding:8px 10px;
+  /* Scoped to the sign-in form on purpose. As a bare `form label` this also caught the
+     finder's role chips - every one of which is a label inside a form - and stacked the
+     checkbox above its own text at full width, turning a compact grid into a column of
+     three-line boxes. */
+  .auth-form label{display:block;margin:12px 0 4px}
+  .auth-form input{display:block;width:100%;margin-top:4px;padding:8px 10px;
     border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);
     font:inherit;box-sizing:border-box}
   .tag{border:1px solid var(--warn);color:var(--warn);border-radius:4px;padding:0 5px;

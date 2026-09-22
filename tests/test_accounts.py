@@ -215,9 +215,9 @@ def test_applications_page_lists_what_was_applied_to(client: TestClient, fake):
 
 
 def test_applications_page_asks_a_stranger_to_sign_in(client: TestClient):
-    page = client.get("/applications")
-    assert page.status_code == 401
-    assert "Sign in" in page.text
+    page = client.get("/applications", follow_redirects=False)
+    assert page.status_code == 303
+    assert page.headers["location"] == "/login"
 
 
 def test_history_is_kept_even_after_the_job_closes(client: TestClient, fake):
@@ -270,9 +270,12 @@ def test_a_failed_mark_says_so_instead_of_claiming_success(client: TestClient, f
 
 
 def test_marking_requires_an_account(client: TestClient):
+    """A POST gets a status, not a redirect. htmx would follow a redirect and swap a
+    whole sign-in page into the Apply button that made the request."""
     response = client.post(
         "/applications",
         data={"advert_key": "a" * 32, "title": "x", "company": "y", "url": "z"},
+        follow_redirects=False,
     )
     assert response.status_code == 401
 
@@ -296,7 +299,10 @@ def test_an_expired_token_is_refreshed_rather_than_signing_someone_out(
 
     page = client.get("/")
     assert page.status_code == 200
-    assert calls == ["refresh-token"], "the stale token should have been refreshed once"
+    # Once, not twice. The gate and the page context both want the account, and Supabase
+    # rotates refresh tokens - a second refresh would present a spent one and sign the
+    # searcher out in the middle of a request that was working.
+    assert calls == ["refresh-token"]
 
 
 def test_a_dead_refresh_token_signs_the_person_out_cleanly(
@@ -412,3 +418,44 @@ def test_the_data_api_endpoint_is_accepted_where_the_project_url_is_wanted():
         "  https://proj.supabase.co  ",
     ):
         assert Settings(supabase_url=pasted).supabase_url == "https://proj.supabase.co"
+
+
+# ------------------------------------------------------------- the login gate
+
+
+def test_a_signed_out_visitor_is_sent_to_sign_in(client: TestClient):
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/login"
+
+
+def test_signing_in_opens_the_site(client: TestClient):
+    _signed_in(client)
+    response = client.get("/", follow_redirects=False)
+    assert response.status_code == 200
+    assert "Find your next role" in response.text
+
+
+@pytest.mark.parametrize("path", ["/login", "/signup", "/privacy"])
+def test_the_pages_needed_before_signing_up_stay_public(client: TestClient, path: str):
+    """Privacy especially: someone must be able to read what an account will store
+    about them before being asked to create one."""
+    response = client.get(path, follow_redirects=False)
+    assert response.status_code == 200
+
+
+def test_the_gate_cannot_lock_everyone_out_when_accounts_are_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """The failure this guard exists to prevent.
+
+    With no accounts service there is no `/login` to redirect to, so gating would send
+    every visitor to a 404. Environment variables going missing should cost the sign-in
+    button, not the job search.
+    """
+    monkeypatch.setattr(supabase, "configured", lambda: False)
+    init_db()
+    with TestClient(app) as c:
+        response = c.get("/", follow_redirects=False)
+        assert response.status_code == 200
+        assert "Find your next role" in response.text

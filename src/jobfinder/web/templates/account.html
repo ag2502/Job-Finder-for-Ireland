@@ -10,7 +10,7 @@
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
 
-  <form method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+  <form class="auth-form" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
     <label class="small">Email
       <input type="email" name="email" value="{{ email }}" required autocomplete="email">
     </label>

@@ -23,7 +23,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, func, select
 from starlette.middleware.sessions import SessionMiddleware
@@ -92,6 +92,37 @@ if PUBLIC_DEPLOYMENT and settings.session_secret == "dev-only-change-me":
     )
 
 app = FastAPI(title="Dublin Job Finder", lifespan=lifespan)
+
+# Everything a signed-out visitor may still reach. Privacy is on the list deliberately:
+# someone has to be able to read what an account will store about them *before* being
+# asked to create one, and a policy you can only see once you have signed up is no use
+# to the person deciding whether to.
+PUBLIC_PATHS = frozenset({"/login", "/signup", "/logout", "/privacy", "/healthz"})
+
+
+@app.middleware("http")
+async def _require_account(request: Request, call_next):
+    """Send signed-out visitors to the sign-in page.
+
+    The site is only gated when there is actually an accounts service to sign in to.
+    Without one `/login` does not exist, so gating would redirect every visitor to a 404
+    and take the whole site down - the environment variables going missing should cost
+    the sign-in button, not the job search.
+    """
+    if supabase.configured() and request.url.path not in PUBLIC_PATHS:
+        if _account(request) is None:
+            # A redirect is right for someone typing an address, and wrong for anything
+            # else: htmx would follow it and swap a whole sign-in page into whatever
+            # element made the request - a table cell, or an Apply button.
+            if request.method == "GET" and not request.headers.get("HX-Request"):
+                return RedirectResponse("/login", status_code=303)
+            return PlainTextResponse("Sign in to continue.", status_code=401)
+    return await call_next(request)
+
+
+# Added last, so it wraps the middleware above: Starlette runs the most recently added
+# first, and `_require_account` reads `request.session`, which does not exist until this
+# one has run.
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret)
 templates = Jinja2Templates(directory=str(TEMPLATES))
 templates.env.globals["show_admin_link"] = not PUBLIC_DEPLOYMENT
@@ -122,19 +153,26 @@ def _account(request: Request) -> supabase.Account | None:
     Supabase access tokens last an hour. Rather than make someone sign in again every
     hour, the refresh token stored beside it buys a new one; only if that also fails is
     the session cleared, which is the real "you are signed out" case.
-    """
-    account = supabase.Account.from_session(request.session.get("account"))
-    if account is None:
-        return None
 
-    if account.expired:
+    Resolved at most once per request and remembered on `request.state`. Both the sign-in
+    gate and the page context need the account, and refreshing twice would spend the
+    refresh token twice - Supabase rotates them, so the second attempt presents one that
+    has already been used and the searcher is signed out mid-request for no reason.
+    """
+    if hasattr(request.state, "account"):
+        return request.state.account
+
+    account = supabase.Account.from_session(request.session.get("account"))
+    if account is not None and account.expired:
         try:
             account = supabase.refresh(account)
         except (supabase.SupabaseError, httpx.HTTPError):
             request.session.pop("account", None)
-            return None
-        request.session["account"] = account.to_session()
+            account = None
+        else:
+            request.session["account"] = account.to_session()
 
+    request.state.account = account
     return account
 
 
