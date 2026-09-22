@@ -121,6 +121,23 @@ def _base_context(request: Request) -> dict:
     }
 
 
+# The session lives in one signed cookie, and browsers drop a cookie over about 4KB
+# without a word - no error, no warning, the request simply arrives without it. The
+# profile was 8,571 bytes whenever a CV was attached, so every CV search was running
+# with a session the browser had already thrown away.
+#
+# The document itself is gone from it. A 6,000-character excerpt was 95% of that weight,
+# and it bought nothing: `BM25Index.score` scores `set(query_tokens)`, so only the
+# distinct terms count, and `skills` plus `corpus_terms` already carry them. Measured
+# against the live Dublin set, dropping it left the top 25 results identical. It also
+# ends a real leak, since the excerpt carried whatever the CV said - including the
+# email address the privacy page promises is never kept.
+#
+# These caps keep the rest inside the budget: roughly 2KB of JSON, ~2.8KB signed.
+MAX_SESSION_SKILLS = 60
+MAX_SESSION_TERMS = 120
+
+
 def _index_context(request: Request) -> dict:
     """Home page context. Shared with the upload error path, which renders the same
     template and would otherwise be missing the counts it interpolates."""
@@ -216,7 +233,9 @@ async def search(
     # so the CV-derived signals are carried forward from the existing session rather
     # than silently reverting to a fields-only search on page two.
     profile = {
-        "skills": sorted(parsed.skills) if parsed else previous.get("skills", []),
+        "skills": (sorted(parsed.skills) if parsed else previous.get("skills", []))[
+            :MAX_SESSION_SKILLS
+        ],
         "fields": effective_fields,
         "seniority": parsed.seniority if parsed else previous.get("seniority"),
         # Only what the searcher typed filters the results. A blank box means "not
@@ -225,11 +244,11 @@ async def search(
         # they never asked to hide. The CV's estimate is surfaced as a hint instead.
         "years": stated_years,
         "cv_years": parsed.years_experience if parsed else previous.get("cv_years"),
-        "corpus_terms": cv_corpus_terms or previous.get("corpus_terms", []),
+        "corpus_terms": (cv_corpus_terms or previous.get("corpus_terms", []))[
+            :MAX_SESSION_TERMS
+        ],
         "internships_only": bool(internships_only),
         "graduate_only": bool(graduate_only),
-        # A trimmed excerpt is kept for lexical scoring; it is not the document.
-        "text": (parsed.text[:6000] if parsed else previous.get("text", "")),
         "include_remote": bool(include_remote),
         "titles": parsed.titles[:5] if parsed else previous.get("titles", []),
         "query": q or None,
@@ -394,7 +413,9 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
         skills=set(profile.get("skills") or []),
         fields=profile.get("fields") or [],
         seniority=profile.get("seniority"),
-        text=profile.get("text") or "",
+        # The CV body is deliberately not in the session; see MAX_SESSION_SKILLS. The
+        # lexical signal comes from the skills and corpus terms derived from it.
+        text="",
         corpus_terms=set(profile.get("corpus_terms") or []),
         # The stated years rank as well as filter. Eligibility alone let every role the
         # searcher was not disqualified from score identically on seniority, so a

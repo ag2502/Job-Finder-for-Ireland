@@ -217,10 +217,41 @@ def test_uploaded_cv_is_not_retained_in_the_session(client):
 
     assert "python" in profile["skills"]
     assert profile["seniority"] == "senior"
-    # The parsed email must not be carried into the session.
-    assert "jane@example.com" not in json.dumps(profile).lower() or True
-    # The excerpt kept for scoring is capped, never the whole document.
-    assert len(profile.get("text", "")) <= 6000
+    # The parsed email must not be carried into the session. This assertion used to end
+    # in `or True`, which made it pass no matter what - and it was failing, because the
+    # 6,000-character CV excerpt the session carried had the address inside it.
+    assert "jane@example.com" not in json.dumps(profile).lower()
+    # The document does not go into the session at all now, in any length.
+    assert not profile.get("text")
+
+
+def test_the_session_cookie_fits_in_a_browser(client):
+    """Regression: with a CV attached the cookie was 8,571 bytes.
+
+    Browsers drop a cookie over about 4KB silently - no error, the next request simply
+    arrives without it - so every CV-backed search was running against a session that
+    had already been discarded, and paging quietly fell back to a fields-only search.
+    """
+    import base64
+
+    from itsdangerous import TimestampSigner
+
+    from jobfinder.core.config import settings
+
+    client.post(
+        "/search",
+        files={"resume": ("cv.txt", CV_BYTES * 40, "text/plain")},
+        data={"chosen_fields": ["backend"], "years": "6"},
+    )
+    cookie = client.cookies.get("session")
+    assert cookie and len(cookie) <= 4096, f"cookie is {len(cookie)} bytes"
+
+    payload = json.loads(
+        base64.urlsafe_b64decode(TimestampSigner(settings.session_secret).unsign(cookie))
+    )
+    profile = json.loads(payload["profile"])
+    assert len(profile["skills"]) <= 60
+    assert len(profile["corpus_terms"]) <= 120
 
 
 def test_oversized_upload_is_rejected(client):
