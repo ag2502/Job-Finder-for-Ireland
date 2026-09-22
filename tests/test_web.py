@@ -556,3 +556,180 @@ def test_a_public_deployment_refuses_to_start_with_the_default_session_secret(tm
         cwd=tmp_path, env=env, capture_output=True, text=True,
     )
     assert started.returncode == 0, started.stderr
+
+
+def test_one_employer_spelled_three_ways_is_listed_once():
+    """Regression: ByrneWallace's graduate advert appeared three times in the results.
+
+    An aggregator carries the employer's name however it was typed into it, so one firm
+    arrived as "Byrne Wallace", "Byrne Wallace Shields" and "Byrne Wallace Shields LLP",
+    each hashing to a different `dedup_key` and none of them grouping.
+
+    The LLP spelling is no longer reachable here: `normalized_name` is unique and now
+    strips the suffix, so that variant lands on the existing company row at ingest. The
+    two that survive as separate companies are the ones this pass has to join.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+    from jobfinder.normalize.dedup import normalize_company_name
+    from jobfinder.web.app import _prefer_direct_sources
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, future=True)() as session:
+        rows = []
+        for index, name in enumerate(
+            ["Byrne Wallace", "Byrne Wallace Shields"]
+        ):
+            company = Company(
+                name=name,
+                normalized_name=normalize_company_name(name),
+                coverage_state=CoverageState.UNRESOLVED,
+            )
+            session.add(company)
+            session.flush()
+            source = Source(
+                company_id=company.id, adapter="adzuna", slug=f"agg-{index}", tier=4
+            )
+            session.add(source)
+            session.flush()
+            rows.append(
+                JobPosting(
+                    company_id=company.id,
+                    source_id=source.id,
+                    source_job_id=f"j-{index}",
+                    # Each was hashed from its own spelling, so no two agree.
+                    dedup_key=f"stale-key-{index}",
+                    title="Graduate AI Automation Engineer",
+                    url=f"https://example.com/{index}",
+                    is_dublin=True,
+                    is_remote=False,
+                    needs_location_review=False,
+                    status=JobStatus.ACTIVE,
+                    consecutive_misses=0,
+                )
+            )
+        session.add_all(rows)
+        session.flush()
+
+        assert len(_prefer_direct_sources(session, rows)) == 1
+
+
+def test_different_employers_sharing_a_first_word_are_not_merged():
+    """The name test must not reach past one employer. Stripping "ireland" leaves
+    "bank of", which would otherwise swallow every other bank."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+    from jobfinder.normalize.dedup import normalize_company_name
+    from jobfinder.web.app import _prefer_direct_sources
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, future=True)() as session:
+        rows = []
+        for index, name in enumerate(["Bank of Ireland", "Bank of America"]):
+            company = Company(
+                name=name,
+                normalized_name=normalize_company_name(name),
+                coverage_state=CoverageState.UNRESOLVED,
+            )
+            session.add(company)
+            session.flush()
+            source = Source(
+                company_id=company.id, adapter="greenhouse", slug=f"s-{index}", tier=1
+            )
+            session.add(source)
+            session.flush()
+            rows.append(
+                JobPosting(
+                    company_id=company.id, source_id=source.id, source_job_id=f"j-{index}",
+                    dedup_key=f"k-{index}", title="Graduate Analyst",
+                    url=f"https://example.com/{index}", is_dublin=True, is_remote=False,
+                    needs_location_review=False, status=JobStatus.ACTIVE,
+                    consecutive_misses=0,
+                )
+            )
+        session.add_all(rows)
+        session.flush()
+
+        assert len(_prefer_direct_sources(session, rows)) == 2
+
+
+def test_a_legal_suffix_no_longer_makes_a_second_company():
+    """The LLP variant used to create a separate company row, and with it a separate
+    dedup key and a second copy of every advert."""
+    from jobfinder.normalize.dedup import compute_dedup_key, normalize_company_name
+
+    assert normalize_company_name("Byrne Wallace Shields LLP") == normalize_company_name(
+        "Byrne Wallace Shields"
+    )
+    assert compute_dedup_key(
+        "Byrne Wallace Shields LLP", "Graduate AI Automation Engineer", is_dublin=True
+    ) == compute_dedup_key(
+        "Byrne Wallace Shields", "Graduate AI Automation Engineer", is_dublin=True
+    )
+
+
+def test_a_job_its_source_stopped_returning_is_not_offered():
+    """Regression: Apply led to "Job not found".
+
+    A posting stays ACTIVE for one grace crawl after it disappears, so a single odd
+    response cannot close a live role. Sources are re-crawled about daily, so offering
+    that grace period meant adverts stayed on the page for up to two days after the
+    employer took them down.
+    """
+    from sqlalchemy import create_engine, select
+    from sqlalchemy.orm import sessionmaker
+
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+    from jobfinder.web.app import _is_offerable
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    with sessionmaker(bind=engine, future=True)() as session:
+        company = Company(
+            name="Acme", normalized_name="acme", coverage_state=CoverageState.ATS_DETECTED
+        )
+        session.add(company)
+        session.flush()
+        source = Source(company_id=company.id, adapter="ashby", slug="acme", tier=1)
+        session.add(source)
+        session.flush()
+
+        session.add_all(
+            [
+                JobPosting(
+                    company_id=company.id, source_id=source.id, source_job_id="live",
+                    dedup_key="a", title="Graduate Software Engineer",
+                    url="https://acme/live", is_dublin=True, is_remote=False,
+                    needs_location_review=False, status=JobStatus.ACTIVE,
+                    consecutive_misses=0,
+                ),
+                # Taken down at the source; still ACTIVE, inside its grace crawl.
+                JobPosting(
+                    company_id=company.id, source_id=source.id, source_job_id="gone",
+                    dedup_key="b", title="Graduate Data Engineer",
+                    url="https://acme/gone", is_dublin=True, is_remote=False,
+                    needs_location_review=False, status=JobStatus.ACTIVE,
+                    consecutive_misses=1,
+                ),
+            ]
+        )
+        session.flush()
+
+        offered = session.execute(
+            select(JobPosting).where(_is_offerable())
+        ).scalars().all()
+
+        assert [job.source_job_id for job in offered] == ["live"]
+
+        # The grace period itself is untouched: the row is still ACTIVE, so one sighting
+        # puts it straight back on the page rather than needing a re-crawl to recreate.
+        gone = session.execute(
+            select(JobPosting).where(JobPosting.source_job_id == "gone")
+        ).scalar_one()
+        assert gone.status is JobStatus.ACTIVE

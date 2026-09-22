@@ -25,7 +25,7 @@ from pathlib import Path
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import func, select
+from sqlalchemy import and_, func, select
 from starlette.middleware.sessions import SessionMiddleware
 
 from jobfinder.core.config import settings
@@ -43,6 +43,12 @@ from jobfinder.core.models import (
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
 from jobfinder.matching.resume import parse_resume
+from jobfinder.normalize.dedup import (
+    canonical_title,
+    location_bucket,
+    normalize_company_name,
+    same_employer,
+)
 from jobfinder.normalize.experience import matches_experience
 from jobfinder.normalize.taxonomy import FIELDS
 
@@ -119,9 +125,11 @@ def _index_context(request: Request) -> dict:
     """Home page context. Shared with the upload error path, which renders the same
     template and would otherwise be missing the counts it interpolates."""
     with session_scope() as session:
+        # The same rule the search uses, so the headline count cannot promise more
+        # openings than a search will actually offer.
         dublin = session.scalar(
             select(func.count()).select_from(JobPosting).where(
-                JobPosting.status == JobStatus.ACTIVE, JobPosting.is_dublin.is_(True)
+                _is_offerable(), JobPosting.is_dublin.is_(True)
             )
         ) or 0
         companies = session.scalar(select(func.count()).select_from(Company)) or 0
@@ -273,6 +281,25 @@ def _experience_label(job: JobPosting) -> str | None:
     return f"{job.min_years_required}{suffix}"
 
 
+def _is_offerable():
+    """Only openings the last successful crawl of their source actually returned.
+
+    A job stays ACTIVE for one grace crawl after it stops appearing, so that a single odd
+    response cannot close a live role - but a role that has already gone missing once is,
+    far more often than not, gone. Sources are re-crawled about daily, so offering that
+    grace period meant showing adverts up to two days after the employer took them down,
+    and the Apply button led to "Job not found".
+
+    `consecutive_misses` resets to zero the moment a job is seen again, so nothing is
+    hidden permanently. This only declines to vouch for a listing the employer's own
+    board has stopped returning.
+    """
+    return and_(
+        JobPosting.status == JobStatus.ACTIVE,
+        JobPosting.consecutive_misses == 0,
+    )
+
+
 def _prefer_direct_sources(session, rows: list[JobPosting]) -> list[JobPosting]:
     """Drop copies of a role that a more direct source also carries.
 
@@ -298,15 +325,67 @@ def _prefer_direct_sources(session, rows: list[JobPosting]) -> list[JobPosting]:
     def rank(job: JobPosting) -> tuple[int, int]:
         return (tiers.get(job.source_id, 9), -len(job.description or ""))
 
-    # dedup_key -> (best rank seen, the source that achieved it)
-    winner: dict[str, tuple[tuple[int, int], int]] = {}
+    keys = _grouping_keys(session, rows)
+
+    # group key -> (best rank seen, the source that achieved it)
+    winner: dict[tuple[str, str, str], tuple[tuple[int, int], int]] = {}
     for row in rows:
         scored = rank(row)
-        current = winner.get(row.dedup_key)
+        key = keys[row.id]
+        current = winner.get(key)
         if current is None or scored < current[0]:
-            winner[row.dedup_key] = (scored, row.source_id)
+            winner[key] = (scored, row.source_id)
 
-    return [row for row in rows if winner[row.dedup_key][1] == row.source_id]
+    return [row for row in rows if winner[keys[row.id]][1] == row.source_id]
+
+
+def _grouping_keys(
+    session, rows: list[JobPosting]
+) -> dict[int, tuple[str, str, str]]:
+    """Group each posting with the other copies of the same advert.
+
+    The stored `dedup_key` is not used. It was computed when the row was crawled, so it
+    freezes in whatever the company-name rules were that day, and every later improvement
+    to them reaches only newly-crawled rows. Recomputing here costs nothing on a city's
+    worth of jobs and applies the current rules to everything.
+
+    Company names then get one further pass. An aggregator carries the employer's name
+    however it was typed into it, so ByrneWallace arrived three ways - "Byrne Wallace",
+    "Byrne Wallace Shields" and "Byrne Wallace Shields LLP" - and appeared three times in
+    the results with the same advert. Names that plainly mean one employer are folded
+    together, but only within an identical title and location, which is what keeps the
+    test from merging genuinely different firms.
+    """
+    companies = dict(session.execute(select(Company.id, Company.name)).all())
+
+    base: dict[int, tuple[str, str, str]] = {}
+    for row in rows:
+        base[row.id] = (
+            normalize_company_name(companies.get(row.company_id, "")),
+            canonical_title(row.title),
+            location_bucket(row.is_dublin, row.is_remote, row.location_norm),
+        )
+
+    # Within one title and location, fold the company names that mean one employer onto
+    # a single spelling, so every copy of the advert lands on the same key. Shortest
+    # first, so "byrne wallace" is the name the longer variants collapse onto.
+    spellings: dict[tuple[str, str], list[str]] = {}
+    for name, title, place in base.values():
+        spellings.setdefault((title, place), []).append(name)
+
+    canonical: dict[tuple[str, str, str], str] = {}
+    for advert, names in spellings.items():
+        kept: list[str] = []
+        for name in sorted(set(names), key=lambda n: (len(n.split()), n)):
+            match = next((k for k in kept if same_employer(k, name)), None)
+            if match is None:
+                kept.append(name)
+            canonical[(*advert, name)] = match or name
+
+    return {
+        job_id: (canonical[(title, place, name)], title, place)
+        for job_id, (name, title, place) in base.items()
+    }
 
 
 def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -> dict:
@@ -325,7 +404,7 @@ def _search_results(profile: dict, *, query: str | None = None, page: int = 1) -
     )
 
     with session_scope() as session:
-        stmt = select(JobPosting).where(JobPosting.status == JobStatus.ACTIVE)
+        stmt = select(JobPosting).where(_is_offerable())
         if profile.get("include_remote"):
             stmt = stmt.where(
                 (JobPosting.is_dublin.is_(True)) | (JobPosting.is_remote.is_(True))
@@ -551,10 +630,7 @@ def directory(request: Request, q: str = "", show: str = "all"):
         live_counts = dict(
             session.execute(
                 select(JobPosting.company_id, func.count())
-                .where(
-                    JobPosting.status == JobStatus.ACTIVE,
-                    JobPosting.is_dublin.is_(True),
-                )
+                .where(_is_offerable(), JobPosting.is_dublin.is_(True))
                 .group_by(JobPosting.company_id)
             ).all()
         )
