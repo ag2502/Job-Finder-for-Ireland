@@ -233,9 +233,36 @@ def _index_context(request: Request) -> dict:
             )
         ) or 0
         companies = session.scalar(select(func.count()).select_from(Company)) or 0
+        # The registry size and the number of employers actually hiring are different
+        # numbers, and only the second one is true of the jobs on the page. Saying
+        # "618 employers' careers systems" when 48 are hiring is the claim a launch
+        # gets picked apart for, so both are passed and the copy uses each correctly.
+        hiring = session.scalar(
+            select(func.count(func.distinct(JobPosting.company_id))).where(
+                _is_offerable(), JobPosting.is_dublin.is_(True)
+            )
+        ) or 0
+
+        # The first viewport claims the register is complete. Naming the employers
+        # actually in it, with live counts, is the cheapest way to let a visitor
+        # check that claim instead of taking it.
+        top = session.execute(
+            select(Company.name, func.count(JobPosting.id).label("n"))
+            .join(JobPosting, JobPosting.company_id == Company.id)
+            .where(_is_offerable(), JobPosting.is_dublin.is_(True))
+            .group_by(Company.name)
+            .order_by(func.count(JobPosting.id).desc())
+            .limit(8)
+        ).all()
+        top_employers = [{"name": r[0], "jobs": r[1]} for r in top]
 
     context = _base_context(request)
-    context.update(dublin_count=dublin, company_count=companies)
+    context.update(
+        dublin_count=dublin,
+        company_count=companies,
+        employers_hiring=hiring,
+        top_employers=top_employers,
+    )
     return context
 
 

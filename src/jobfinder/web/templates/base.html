@@ -3,141 +3,587 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{% block title %}Dublin Job Finder{% endblock %}</title>
+<meta name="color-scheme" content="dark">
+<title>{% block title %}Sorted Place &mdash; every Dublin opening, on file{% endblock %}</title>
+<meta name="description" content="{% block description %}Every live Dublin job opening, read straight from employers' own careers systems and kept on file until it is genuinely gone.{% endblock %}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <style>
-  :root{
-    --bg:#f7f7f5; --card:#fff; --ink:#1a1a18; --muted:#6b6b65;
-    --line:#e3e3de; --accent:#1a6b4a; --accent-soft:#e8f3ee; --warn:#a35b00;
-  }
-  @media (prefers-color-scheme:dark){
-    :root{ --bg:#16171a; --card:#1e1f23; --ink:#ececed; --muted:#9a9aa0;
-           --line:#2e3036; --accent:#5fbf92; --accent-soft:#1c2f27; --warn:#d99a4e; }
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);
-    font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
-  a{color:var(--accent)}
-  header{border-bottom:1px solid var(--line);background:var(--card)}
-  .wrap{max-width:960px;margin:0 auto;padding:0 20px}
-  header .wrap{display:flex;align-items:center;gap:20px;height:58px}
-  header strong{font-size:16px}
-  header nav{margin-left:auto;display:flex;gap:18px;font-size:14px}
-  main{padding:28px 0 60px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:20px;margin-bottom:16px}
-  h1{font-size:24px;margin:0 0 8px}
-  h2{font-size:17px;margin:0 0 12px}
-  .muted{color:var(--muted)}
-  .small{font-size:13px}
-  label{display:block;font-weight:600;margin:16px 0 6px;font-size:14px}
-  input[type=file],input[type=text],select{width:100%;padding:9px 10px;border:1px solid var(--line);
-    border-radius:7px;background:var(--bg);color:var(--ink);font:inherit}
-  button{background:var(--accent);color:#fff;border:0;border-radius:7px;padding:10px 18px;
-    font:inherit;font-weight:600;cursor:pointer}
-  button.secondary{background:transparent;color:var(--muted);border:1px solid var(--line)}
-  .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-  .chip{display:flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:20px;
-    padding:5px 12px;font-size:13px;cursor:pointer;background:var(--bg)}
-  .chip input{margin:0}
-  .job{border-bottom:1px solid var(--line);padding:15px 0}
-  .job:last-child{border-bottom:0}
-  .job h3{margin:0 0 3px;font-size:15px}
-  .job h3 a{text-decoration:none}
-  .row{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
-  .score{background:var(--accent-soft);color:var(--accent);border-radius:5px;
-    padding:2px 7px;font-size:12px;font-weight:700;white-space:nowrap}
-  .badge{background:var(--accent);color:#fff;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:700}
-  .why{font-size:13px;color:var(--muted);margin-top:4px}
-  table{width:100%;border-collapse:collapse;font-size:13px}
-  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line)}
-  th{color:var(--muted);font-weight:600}
-  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px}
-  .stat{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:12px}
-  .stat b{display:block;font-size:20px}
-  .scroll{overflow-x:auto}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-  @media (max-width:640px){ .grid2{grid-template-columns:1fr} }
-  table.jobs{margin-top:10px}
-  table.jobs th{white-space:nowrap;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
-  table.jobs td{vertical-align:top;padding:11px 10px}
-  table.jobs tr:hover td{background:var(--accent-soft)}
-  td.co{font-weight:600;white-space:nowrap;width:1%}
-  .pos{font-weight:600}
-  td.date{white-space:nowrap;color:var(--muted);width:1%}
-  .sub{font-size:12px;margin-top:3px;line-height:1.4}
-  a.apply{display:inline-block;white-space:nowrap;border:1px solid var(--accent);
-    color:var(--accent);border-radius:6px;padding:5px 11px;font-size:13px;
-    font-weight:600;text-decoration:none}
-  a.apply:hover{background:var(--accent);color:#fff}
-  .exp{color:var(--warn);font-weight:600}
-  /* Rules off the roles the searcher asked for from the ones merely adjacent to them. */
-  .tier-break td{background:var(--bg);font-weight:600;text-transform:uppercase;
-    letter-spacing:.05em;font-size:11px;padding-top:10px;padding-bottom:10px}
-  /* A button that reads as a link: used for sign-out and undo, which must be POSTs
-     rather than links because they change something. */
-  .linkish{background:none;border:0;padding:0;font:inherit;color:var(--accent);
-    cursor:pointer;text-decoration:underline}
-  .linkish:hover{opacity:.8}
-  .applied-mark{display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
-  .error{color:#b3261e;background:#fde8e6;border-radius:6px;padding:9px 12px;font-size:14px}
-  .notice{color:var(--accent);background:var(--accent-soft);border-radius:6px;
-    padding:9px 12px;font-size:14px}
-  @media (prefers-color-scheme: dark){
-    .error{color:#ffb4ab;background:#3b1a17}
-  }
-  /* Scoped to the sign-in form on purpose. As a bare `form label` this also caught the
-     finder's role chips - every one of which is a label inside a form - and stacked the
-     checkbox above its own text at full width, turning a compact grid into a column of
-     three-line boxes. */
-  .auth-form label{display:block;margin:12px 0 4px}
-  .auth-form input{display:block;width:100%;margin-top:4px;padding:8px 10px;
-    border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);
-    font:inherit;box-sizing:border-box}
-  .tag{border:1px solid var(--warn);color:var(--warn);border-radius:4px;padding:0 5px;
-    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
-    vertical-align:middle;white-space:nowrap}
-  .req{background:var(--warn);color:#fff;border-radius:4px;padding:1px 6px;
-    font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;
-    vertical-align:middle}
-  button:disabled{opacity:.45;cursor:not-allowed}
-  .htmx-indicator{opacity:0;transition:opacity .2s}
-  .htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
-  /* Search takes several seconds: the panel says so, and stays in view while paging. */
-  .loading{display:none;align-items:center;gap:14px;position:sticky;top:12px;z-index:5;
-    background:var(--card);border:1px solid var(--accent);border-radius:10px;
-    padding:14px 18px;margin-bottom:16px;box-shadow:0 4px 18px rgba(0,0,0,.08)}
-  .loading.htmx-request{display:flex}
-  .loading strong{display:block}
-  .spinner{flex:none;width:22px;height:22px;border-radius:50%;
-    border:3px solid var(--accent-soft);border-top-color:var(--accent);animation:spin .8s linear infinite}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  #results{transition:opacity .15s}
-  #results.htmx-request{opacity:.35;pointer-events:none}
-  @media (prefers-reduced-motion:reduce){ .spinner{animation:none;border-top-color:var(--accent)} }
-  .err{background:#fdecec;color:#a12; border:1px solid #f3c7c7;padding:10px 12px;border-radius:7px}
-  @media (prefers-color-scheme:dark){ .err{background:#3a1f1f;color:#f0b4b4;border-color:#5a2c2c} }
+/* ===================================================================
+   SORTED PLACE — the accession register
+   A drawer of manila cards in an oxidised steel cabinet. Nothing in
+   here is ever thrown out, which is the same promise the crawler makes.
+   =================================================================== */
+
+:root{
+  /* the cabinet */
+  --steel-900:#171d20; --steel-800:#212a2e; --steel-700:#2f383c;
+  --steel-600:#3c474c; --steel-500:#55636a; --steel-400:#adbac1;
+
+  /* the card stock */
+  --manila:#ddcfae; --manila-hi:#ece2c9; --manila-lo:#c7b791; --manila-edge:#b3a37c;
+
+  /* what is written on it */
+  --ink:#231e17; --ink-2:#5f5648; --ink-3:#5d5444;
+
+  /* the stamp pad and the hardware */
+  --stamp:#b7332a; --stamp-deep:#8e2620;
+  --brass:#b08d3f; --brass-hi:#d9bc72; --brass-lo:#7d6228;
+  --ledger:#cfd9c2;
+
+  --rule:rgba(35,30,23,.22);
+  --rule-strong:rgba(35,30,23,.42);
+  --steel-rule:rgba(255,255,255,.09);
+
+  --card-radius:2px;
+  --shadow-card:0 1px 0 var(--manila-edge), 0 6px 14px -6px rgba(0,0,0,.55);
+  --shadow-raised:0 2px 0 var(--manila-edge), 0 22px 38px -16px rgba(0,0,0,.7);
+
+  --ease:cubic-bezier(.16,.84,.34,1);
+  --measure:68ch;
+}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+
+body{
+  margin:0;
+  background:var(--steel-700);
+  /* the drawer face: brushed steel, a faint vertical tooling grain, and the
+     darker recess the cards sit down inside */
+  background-image:
+    linear-gradient(180deg, var(--steel-800) 0, var(--steel-700) 340px, var(--steel-700) 100%);
+  color:var(--manila);
+  font-family:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size:16px; line-height:1.55;
+  font-variant-numeric:tabular-nums;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* --- browser surfaces: these ship with the design, not with the browser --- */
+::selection{background:var(--stamp);color:#fff}
+::-moz-selection{background:var(--stamp);color:#fff}
+input,textarea,select{caret-color:var(--stamp)}
+html{scrollbar-color:var(--brass-lo) var(--steel-800);scrollbar-width:thin}
+::-webkit-scrollbar{width:12px;height:12px}
+::-webkit-scrollbar-track{background:var(--steel-800)}
+::-webkit-scrollbar-thumb{background:var(--steel-500);border:3px solid var(--steel-800);border-radius:6px}
+::-webkit-scrollbar-thumb:hover{background:var(--brass-lo)}
+:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;border-radius:1px}
+a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
+
+/* ------------------------------------------------------------------ chrome */
+
+.rail{
+  position:relative;
+  background:linear-gradient(180deg,var(--steel-600),var(--steel-800));
+  border-bottom:1px solid var(--steel-900);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.rail::after{ /* the machined lip along the bottom of every drawer front */
+  content:"";position:absolute;left:0;right:0;bottom:-3px;height:3px;
+  background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);
+}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.rail .wrap{display:flex;align-items:center;gap:26px;min-height:74px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+
+/* the brass label holder screwed to the drawer front */
+.plate{
+  display:inline-flex;align-items:baseline;gap:12px;
+  padding:7px 18px 8px;
+  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 52%,#977834);
+  color:#120d02;
+  border-radius:2px;
+  box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -1px 0 rgba(0,0,0,.35) inset,0 4px 10px -3px rgba(0,0,0,.6);
+  position:relative;
+}
+.plate::before,.plate::after{ /* the two screws */
+  content:"";position:absolute;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,#f0dda6,#6d5620 70%);
+  box-shadow:0 0 0 1px rgba(0,0,0,.35);
+}
+.plate::before{left:6px} .plate::after{right:6px}
+.plate .mark{
+  font-weight:900;font-stretch:88%;font-size:19px;letter-spacing:.015em;
+  text-transform:lowercase;padding-left:8px;
+}
+.plate .mark em{font-style:normal;opacity:.62}
+.plate .count{
+  font-family:"Courier Prime",ui-monospace,monospace;font-weight:700;font-size:12px;
+  letter-spacing:.04em;text-transform:uppercase;padding-right:8px;white-space:nowrap;
+}
+
+nav.tabs{margin-left:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+nav.tabs a,nav.tabs .linkish{
+  font-size:11.5px;font-weight:700;font-stretch:84%;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--steel-400);text-decoration:none;padding:7px 11px;border-radius:2px;
+  transition:color .18s var(--ease),background .18s var(--ease);
+}
+nav.tabs a:hover,nav.tabs .linkish:hover{color:var(--manila-hi);background:rgba(255,255,255,.05)}
+nav.tabs a[aria-current="page"]{color:var(--manila-hi);box-shadow:inset 0 -2px 0 var(--brass)}
+
+main{padding:0 0 96px}
+
+/* ------------------------------------------------------------- the cards --- */
+
+.card{
+  position:relative;
+  background:var(--manila);
+  /* card stock: a flecked tooth, and the pink ruled index line across the head */
+  background-image:
+    radial-gradient(circle at 18% 22%,rgba(120,100,60,.05) .6px,transparent .7px),
+    radial-gradient(circle at 72% 68%,rgba(120,100,60,.045) .6px,transparent .7px);
+  background-size:7px 7px,11px 11px;
+  color:var(--ink);
+  border-radius:var(--card-radius);
+  box-shadow:var(--shadow-card);
+  padding:26px 28px;
+  margin-bottom:14px;
+}
+.card--raised{
+  background:var(--manila-hi);
+  box-shadow:var(--shadow-raised);
+  padding:32px 34px 30px;
+}
+/* the rod: every filed card is threaded onto the same brass rod */
+.filed{position:relative;padding-left:34px}
+.filed::before{
+  content:"";position:absolute;left:13px;top:0;bottom:0;width:4px;
+  background:linear-gradient(90deg,var(--brass-lo),var(--brass-hi) 40%,var(--brass-lo));
+  box-shadow:0 0 0 1px rgba(0,0,0,.45);
+}
+.filed::after{ /* the rod stops at the last card */
+  content:"";position:absolute;left:10px;bottom:-5px;width:10px;height:10px;border-radius:50%;
+  background:radial-gradient(circle at 35% 30%,var(--brass-hi),var(--brass-lo) 72%);
+  box-shadow:0 0 0 1px rgba(0,0,0,.45);
+}
+
+h1{
+  font-size:clamp(2.5rem,6.4vw,4.9rem);
+  line-height:.94; letter-spacing:-.032em;
+  font-weight:900; font-stretch:78%;
+  margin:0 0 18px; text-wrap:balance;
+}
+h2{font-size:clamp(1.25rem,2.4vw,1.6rem);line-height:1.12;letter-spacing:-.018em;
+   font-weight:800;font-stretch:84%;margin:0 0 14px;text-wrap:balance}
+h3{font-size:1.02rem;line-height:1.32;letter-spacing:-.01em;font-weight:800;margin:0 0 6px}
+p{margin:0 0 14px;max-width:var(--measure)}
+.lede{font-size:1.085rem;line-height:1.5;color:var(--ink-2);max-width:60ch}
+.muted{color:var(--ink-2)}
+.small{font-size:13px}
+
+/* typed record fields — this is data on a catalogue card, not decoration */
+.typed{font-family:"Courier Prime",ui-monospace,monospace;letter-spacing:-.01em}
+.fieldname{
+  font-family:"Courier Prime",ui-monospace,monospace;
+  font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+  color:var(--ink-3);display:block;margin-bottom:7px;
+}
+
+/* --------------------------------------------------------------- stamps --- */
+
+.stamp{
+  display:inline-block;
+  font-family:"Courier Prime",ui-monospace,monospace;
+  font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
+  color:var(--stamp-deep);
+  border:1.5px solid var(--stamp-deep);
+  border-radius:2px;
+  padding:2px 7px 1px;
+  opacity:.92;
+  transform:rotate(-1.4deg);
+  white-space:nowrap;
+}
+.stamp--filled{background:var(--stamp);color:#fff;border-color:var(--stamp)}
+.stamp--brass{color:var(--brass-lo);border-color:var(--brass-lo)}
+.stamp--flat{transform:none}
+.accession{
+  font-family:"Courier Prime",ui-monospace,monospace;
+  font-size:12px;letter-spacing:.02em;color:var(--ink-3);white-space:nowrap;
+}
+
+/* --------------------------------------------------------------- controls - */
+
+label{display:block}
+input[type=text],input[type=number],input[type=email],input[type=password],select,input[type=file]{
+  width:100%;
+  font:inherit;font-size:15px;
+  color:var(--ink);
+  background:rgba(255,255,255,.46);
+  border:0;
+  border-bottom:1.5px solid var(--rule-strong);
+  border-radius:0;
+  padding:9px 2px;
+  transition:border-color .18s var(--ease),background .18s var(--ease);
+}
+input::placeholder{color:var(--ink-3);opacity:1}
+input[type=text]:focus,input[type=number]:focus,input[type=email]:focus,
+input[type=password]:focus,select:focus{
+  outline:none;background:rgba(255,255,255,.72);border-bottom-color:var(--stamp);
+}
+input[type=file]{padding:7px 0;border-bottom:1.5px dashed var(--rule-strong);background:transparent;font-size:13.5px}
+input[type=file]::file-selector-button{
+  font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+  margin-right:12px;padding:7px 13px;cursor:pointer;
+  color:var(--ink);background:var(--manila-lo);
+  border:1px solid var(--manila-edge);border-radius:2px;
+}
+input[type=file]::file-selector-button:hover{background:var(--manila);border-color:var(--ink-3)}
+select{appearance:none;padding-right:26px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%235f5648' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 4px center;}
+
+/* the primary action reads as a struck rubber stamp */
+button,.btn{
+  display:inline-flex;align-items:center;gap:10px;
+  font:inherit;font-size:13px;font-weight:800;font-stretch:88%;
+  letter-spacing:.13em;text-transform:uppercase;
+  color:var(--manila-hi);
+  background:var(--stamp);
+  border:0;border-radius:2px;
+  padding:13px 22px;
+  cursor:pointer;text-decoration:none;
+  box-shadow:0 1px 0 var(--stamp-deep),0 8px 16px -8px rgba(0,0,0,.6);
+  transition:transform .16s var(--ease),box-shadow .16s var(--ease),background .16s var(--ease);
+}
+button:hover:not(:disabled),.btn:hover{background:var(--stamp-deep);transform:translateY(-1px);
+  box-shadow:0 2px 0 var(--stamp-deep),0 12px 20px -8px rgba(0,0,0,.6)}
+button:active:not(:disabled),.btn:active{transform:translateY(1px);box-shadow:0 0 0 var(--stamp-deep)}
+button:disabled{background:transparent;color:var(--ink-2);cursor:not-allowed;
+  box-shadow:none;border:1.5px dashed var(--rule-strong)}
+button.secondary{
+  background:transparent;color:var(--ink-2);
+  border:1.5px solid var(--rule-strong);box-shadow:none;
+}
+button.secondary:hover{background:rgba(255,255,255,.4);color:var(--ink);transform:none;box-shadow:none}
+/* the same control standing on the steel rather than on card stock */
+.on-steel button.secondary{color:var(--manila);border-color:var(--steel-500)}
+.on-steel button.secondary:hover{background:rgba(255,255,255,.08);color:var(--manila-hi);
+  border-color:var(--brass)}
+.linkish{
+  background:none;border:0;padding:0;font:inherit;color:var(--stamp-deep);
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;
+  letter-spacing:normal;text-transform:none;font-size:inherit;font-weight:600;box-shadow:none;
+}
+.linkish:hover{background:none;color:var(--stamp-deep);transform:none;box-shadow:none}
+
+/* ------------------------------------------------------- tab dividers ----- */
+/* The role fields are the guide cards standing between the records. */
+
+.dividers{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end;
+  padding-bottom:0;border-bottom:2px solid var(--manila-edge)}
+.dividers--plain{border-bottom:0}
+.divider{
+  position:relative;
+  display:inline-flex;align-items:center;
+  font-size:13px;font-weight:700;font-stretch:90%;letter-spacing:0;
+  color:#4a4235;
+  background:var(--manila-lo);
+  border:1px solid var(--manila-edge);
+  border-bottom:0;
+  border-radius:2px 12px 0 0;
+  padding:10px 16px 9px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
+  cursor:pointer;
+  user-select:none;
+  transition:transform .2s var(--ease),background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease);
+}
+.divider:hover{background:var(--manila);color:var(--ink);transform:translateY(-2px)}
+.divider:has(input:checked){font-weight:800}
+.divider input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.divider:has(input:checked){
+  background:var(--manila-hi);color:var(--ink);
+  transform:translateY(-6px);
+  box-shadow:0 -1px 0 var(--brass),0 8px 14px -8px rgba(0,0,0,.6);
+  border-color:var(--brass);
+}
+.divider:has(input:checked)::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brass);
+}
+.divider:has(input:focus-visible){outline:2px solid var(--brass-hi);outline-offset:2px}
+/* the switches (remote / internships / graduate) are smaller guide tabs */
+.switch{
+  display:inline-flex;align-items:center;gap:9px;
+  font-size:13px;font-weight:600;color:var(--ink-2);
+  cursor:pointer;user-select:none;padding:6px 0;margin-right:22px;
+}
+.switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+.switch .box{
+  flex:none;width:17px;height:17px;border-radius:2px;
+  border:1.5px solid var(--ink-3);background:rgba(255,255,255,.5);
+  display:inline-flex;align-items:center;justify-content:center;
+  transition:background .15s var(--ease),border-color .15s var(--ease);
+}
+.switch .box svg{width:12px;height:12px;color:#fff;opacity:0;transform:scale(.6);
+  transition:opacity .15s var(--ease),transform .18s var(--ease)}
+.switch:hover .box{border-color:var(--ink)}
+.switch:has(input:checked){color:var(--ink)}
+.switch:has(input:checked) .box{background:var(--stamp);border-color:var(--stamp)}
+.switch:has(input:checked) .box svg{opacity:1;transform:none}
+.switch:has(input:focus-visible) .box{outline:2px solid var(--brass-lo);outline-offset:2px}
+
+/* ------------------------------------------------------------ job records - */
+
+.record{
+  position:relative;
+  background:var(--manila);
+  border-radius:var(--card-radius);
+  box-shadow:var(--shadow-card);
+  padding:18px 22px 17px;
+  margin-bottom:10px;
+  color:var(--ink);
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:6px 22px;
+  align-items:start;
+  transition:transform .18s var(--ease),box-shadow .18s var(--ease),background .18s var(--ease);
+}
+/* nth-of-type, not nth-child: the guide cards between records are divs, and counting
+   them would make the ledger banding stagger every time a divider appears. */
+.record:nth-of-type(even){background:var(--ledger)}
+.record:hover{transform:translateX(3px);box-shadow:0 1px 0 var(--manila-edge),0 10px 22px -10px rgba(0,0,0,.6)}
+.record::before{ /* the notch where the rod passes through the card */
+  content:"";position:absolute;left:-25px;top:50%;margin-top:-6px;
+  width:12px;height:12px;border-radius:50%;
+  background:var(--steel-800);
+  box-shadow:inset 0 1px 2px rgba(0,0,0,.7);
+}
+.record--state .record__employer{text-transform:none;letter-spacing:.02em;font-size:12px}
+.record__employer{
+  font-size:11px;font-weight:800;font-stretch:84%;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-3);
+  display:block;margin-bottom:3px;
+  padding-bottom:4px;border-bottom:1px solid var(--rule);
+}
+.record__title{font-size:1.06rem;line-height:1.32;font-weight:800;letter-spacing:-.012em;margin:0}
+.record__title a{text-decoration:none}
+.record__title a:hover{text-decoration:underline;text-decoration-color:var(--stamp)}
+.record__meta{font-size:12.5px;line-height:1.5;color:var(--ink-2);margin-top:5px;max-width:74ch}
+.record__side{display:flex;flex-direction:column;align-items:flex-end;gap:9px;text-align:right}
+.exp{color:var(--stamp-deep);font-weight:700}
+.marks{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}
+
+/* the guide card that separates chosen fields from adjacent ones */
+.guide{
+  background:var(--steel-600);
+  color:var(--manila-hi);
+  border-radius:2px 10px 2px 2px;
+  padding:9px 18px;
+  margin:20px 0 12px;
+  font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
+  box-shadow:0 6px 14px -8px rgba(0,0,0,.7);
+}
+
+/* --------------------------------------------- the front of the drawer --- */
+/* Page headings are engraved into the steel itself. Cards are for records only,
+   so nothing here ever sits on manila. */
+.drawerfront{padding:64px 0 46px}
+.drawerfront h1{color:var(--manila-hi);
+  text-shadow:0 1px 0 rgba(0,0,0,.55),0 2px 22px rgba(0,0,0,.35)}
+.drawerfront .lede{color:var(--steel-400);max-width:58ch}
+.drawerfront .lede strong{color:var(--manila)}
+.drawerfront .lede em{color:var(--brass-hi);font-style:normal}
+.ledger-line{
+  /* Catalogue cards were typed in mixed case; a 68-character uppercase run here
+     was a readability cost the world never asked for. */
+  font-size:12.5px;letter-spacing:.04em;
+  color:var(--brass-hi);margin:22px 0 0;
+  padding-top:14px;border-top:1px solid var(--steel-rule);max-width:58ch;
+}
+
+/* the outlined action: used wherever the act leaves this site */
+.btn--apply{
+  background:transparent;color:var(--stamp-deep);
+  border:1.5px solid var(--stamp-deep);box-shadow:none;
+  padding:8px 14px;font-size:11.5px;
+}
+.btn--apply:hover{background:var(--stamp);color:var(--manila-hi);box-shadow:none;transform:none}
+
+/* --------------------------------------------------------------- tables --- */
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule)}
+th{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
+tbody tr:hover td{background:rgba(255,255,255,.34)}
+.scroll{overflow-x:auto}
+
+/* --------------------------------------------------------------- layout --- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
+.row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.spread{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
+hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
+
+/* --------------------------------------------------------------- notices -- */
+.notice,.error,.err{
+  border-radius:2px;padding:11px 15px;font-size:14px;margin:0 0 14px;
+  background:rgba(255,255,255,.55);color:var(--ink);font-weight:600;
+  box-shadow:inset 0 0 0 1px var(--rule-strong);
+}
+.error,.err{background:rgba(183,51,42,.12);color:var(--stamp-deep);
+  box-shadow:inset 0 0 0 1px var(--stamp-deep)}
+
+/* --------------------------------------------------------------- motion --- */
+/* One grammar: things rise out of the drawer. Content is visible by default;
+   the drawer only opens when JS is present and motion is welcome. */
+@media (prefers-reduced-motion:no-preference){
+  .js .filing{opacity:0;transform:translateY(14px)}
+  .js .filing.filed-in{opacity:1;transform:none;
+    transition:opacity .5s var(--ease),transform .58s var(--ease)}
+}
+.htmx-indicator{opacity:0;transition:opacity .2s}
+.htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
+
+.pulling{
+  display:none;align-items:center;gap:16px;
+  position:sticky;top:14px;z-index:20;
+  background:var(--steel-600);color:var(--manila-hi);
+  border-radius:2px;padding:15px 20px;margin-bottom:16px;
+  box-shadow:0 14px 30px -12px rgba(0,0,0,.8);
+}
+.pulling.htmx-request{display:flex}
+.pulling strong{display:block;font-size:14px;letter-spacing:-.005em}
+.pulling span.sub{font-size:12.5px;color:var(--steel-400);display:block;max-width:62ch}
+.drawerspin{flex:none;width:26px;height:20px;position:relative}
+.drawerspin i{position:absolute;left:0;right:0;height:4px;background:var(--brass);border-radius:1px;
+  animation:pull 1.15s var(--ease) infinite}
+.drawerspin i:nth-child(1){top:0;animation-delay:0s}
+.drawerspin i:nth-child(2){top:8px;animation-delay:.14s;background:var(--brass-hi)}
+.drawerspin i:nth-child(3){top:16px;animation-delay:.28s}
+@keyframes pull{0%,100%{transform:translateX(0);opacity:.45}45%{transform:translateX(7px);opacity:1}}
+@media (prefers-reduced-motion:reduce){.drawerspin i{animation:none;opacity:.9}}
+
+#results{transition:opacity .18s var(--ease)}
+#results.htmx-request{opacity:.32;pointer-events:none}
+
+/* ----------------------------------------------------------- responsive --- */
+@media (max-width:860px){
+  .grid2{grid-template-columns:1fr;gap:20px}
+  .wrap{padding:0 16px}
+  .drawerfront{padding:36px 0 28px}
+  .card{padding:20px 18px}
+  .card--raised{padding:22px 18px}
+  .filed{padding-left:0}
+  .filed::before,.filed::after{display:none}
+  .record::before{display:none}
+  .record{grid-template-columns:1fr;gap:10px;padding:16px 17px}
+  .record__side{flex-direction:row;align-items:center;justify-content:space-between;
+    text-align:left;width:100%;gap:12px;
+    border-top:1px solid var(--rule);padding-top:11px;margin-top:2px}
+  .record__meta{max-width:none}
+  .rail .wrap{min-height:0;gap:12px}
+  nav.tabs{margin-left:0;width:100%;gap:2px;overflow-x:auto;
+    -webkit-overflow-scrolling:touch;scrollbar-width:none}
+  nav.tabs::-webkit-scrollbar{display:none}
+  nav.tabs a,nav.tabs .linkish{padding:6px 8px;white-space:nowrap}
+}
+@media (max-width:420px){
+  .plate{padding:6px 14px 7px}
+  .plate .mark{font-size:17px}
+  .plate .count{font-size:11px}
+}
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <strong>Dublin Job Finder</strong>
-  <nav>
-    <a href="/">Search</a>
-    <a href="/directory">Employers</a>
-    {% if show_admin_link %}<a href="/admin">Coverage</a>{% endif %}
-    <a href="/privacy">Privacy</a>
-    {% if accounts_enabled %}
-      {% if account %}
-        <a href="/applications">Applications</a>
-        <form method="post" action="/logout" style="display:inline">
-          <button class="linkish" title="Signed in as {{ account.email }}">Sign out</button>
-        </form>
-      {% else %}
-        <a href="/login">Sign in</a>
+<script>document.body.parentElement.classList.add('js');document.body.classList.add('js')</script>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="i-arrow" viewBox="0 0 16 16">
+    <path d="M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2" fill="none" stroke="currentColor"
+          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-check" viewBox="0 0 16 16">
+    <path d="M3 8.4l3.2 3.2L13 4.8" fill="none" stroke="currentColor"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-undo" viewBox="0 0 16 16">
+    <path d="M6 3.5L2.6 6.8 6 10.1M2.6 6.8h6.6a4.2 4.2 0 010 8.4H6" fill="none"
+          stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+</svg>
+
+<header class="rail">
+  <div class="wrap">
+    <a href="/" class="plate" style="text-decoration:none">
+      <span class="mark">sorted<em>.</em>place</span>
+      <span class="count" id="rail-count">{% block railcount %}DUBLIN REGISTER{% endblock %}</span>
+    </a>
+    <nav class="tabs" aria-label="Sections">
+      <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Drawer</a>
+      <a href="/directory" {% if nav == 'directory' %}aria-current="page"{% endif %}>Employers</a>
+      {% if show_admin_link %}<a href="/admin" {% if nav == 'admin' %}aria-current="page"{% endif %}>Coverage</a>{% endif %}
+      <a href="/privacy" {% if nav == 'privacy' %}aria-current="page"{% endif %}>Your CV</a>
+      {% if accounts_enabled %}
+        {% if account %}
+          <a href="/applications" {% if nav == 'applications' %}aria-current="page"{% endif %}>Applied</a>
+          <form method="post" action="/logout" style="display:inline">
+            <button class="linkish" style="font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-400);text-decoration:none;padding:7px 11px"
+                    title="Signed in as {{ account.email }}">Sign out</button>
+          </form>
+        {% else %}
+          <a href="/login" {% if nav == 'account' %}aria-current="page"{% endif %}>Sign in</a>
+        {% endif %}
       {% endif %}
-    {% endif %}
-  </nav>
-</div></header>
+    </nav>
+  </div>
+</header>
+
 <main><div class="wrap">{% block content %}{% endblock %}</div></main>
+
+<footer class="rail" style="border-bottom:0;border-top:1px solid var(--steel-900);margin-top:0">
+  <div class="wrap" style="min-height:64px;font-size:12px;color:var(--steel-400);gap:18px">
+    <span class="typed" style="letter-spacing:.08em;text-transform:uppercase">SORTED PLACE &middot; DUBLIN</span>
+    <span style="margin-left:auto;max-width:58ch">Openings are read from employers' own careers
+      systems. Every application is made on the employer's own site.</span>
+  </div>
+</footer>
+
+<script>
+// The one authored moment: the drawer opens and the cards file in, once.
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+  function fileIn(root) {
+    if (reduced.matches) return;
+    var cards = (root || document).querySelectorAll('.filing:not(.filed-in)');
+    Array.prototype.forEach.call(cards, function (el, i) {
+      // Cap the stagger: a hundred records must not take ten seconds to arrive.
+      setTimeout(function () { el.classList.add('filed-in'); }, Math.min(i, 14) * 38);
+    });
+  }
+  // Reduced motion never hides anything: the class only applies under no-preference.
+  function revealAll() {
+    Array.prototype.forEach.call(document.querySelectorAll('.filing'), function (el) {
+      el.classList.add('filed-in');
+    });
+  }
+
+  if (reduced.matches) revealAll(); else fileIn(document);
+  document.body.addEventListener('htmx:afterSwap', function (e) {
+    if (reduced.matches) revealAll(); else fileIn(e.target);
+  });
+
+  // The count on the label holder stamps up to its real figure.
+  var el = document.getElementById('rail-count');
+  if (el && !reduced.matches) {
+    var m = el.textContent.match(/^(.*?)([\d,]+)(.*)$/);
+    if (m) {
+      var target = parseInt(m[2].replace(/,/g, ''), 10);
+      if (target > 0 && target < 100000) {
+        var t0 = null, dur = 900;
+        var step = function (ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / dur);
+          var eased = 1 - Math.pow(1 - p, 3);
+          el.textContent = m[1] + Math.round(target * eased).toLocaleString() + m[3];
+          if (p < 1) requestAnimationFrame(step);
+        };
+        el.textContent = m[1] + '0' + m[3];
+        requestAnimationFrame(step);
+      }
+    }
+  }
+})();
+</script>
 </body>
 </html>

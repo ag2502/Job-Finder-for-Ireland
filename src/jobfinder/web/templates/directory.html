@@ -1,92 +1,108 @@
 {% extends "base.html" %}
-{% block title %}Employer directory &mdash; Dublin Job Finder{% endblock %}
+{% set nav = 'directory' %}
+{% block title %}The employer register &mdash; Sorted Place<style>
+  .sectionhead{color:var(--manila-hi);margin:30px 0 14px}
+</style>
+
+{% endblock %}
+{% block railcount %}THE REGISTER &middot; {{ "{:,}".format(total) }} EMPLOYERS<style>
+  .sectionhead{color:var(--manila-hi);margin:30px 0 14px}
+</style>
+
+{% endblock %}
 {% block content %}
 
-<div class="card">
-  <h1>Employer directory</h1>
-  <p class="muted" style="margin-top:4px">
-    Every employer in the registry &mdash; {{ "{:,}".format(total) }} of them.
-    <strong>{{ "{:,}".format(with_jobs) }}</strong> have live Dublin openings we crawl
-    directly. Another <strong>{{ "{:,}".format(linked) }}</strong> are linked straight
-    to their own careers page.
+<section class="drawerfront">
+  <h1>The register.</h1>
+  <p class="lede">
+    Every employer on file &mdash; <strong>{{ "{:,}".format(total) }}</strong> of them.
+    <strong>{{ "{:,}".format(with_jobs) }}</strong> have live Dublin openings we read
+    directly. Another <strong>{{ "{:,}".format(linked) }}</strong> are entered with a
+    link straight to their own careers page.
   </p>
-  <p class="small muted">
-    No crawler reaches every Irish employer &mdash; some render their listings entirely
-    in JavaScript, some sit behind a bot wall. So the guarantee here is not that
-    everything is automated, it is that nothing is <em>hidden</em>: a company we cannot
-    crawl still appears, one click from its own jobs page.
+  <p class="lede" style="font-size:.97rem">
+    No crawler reaches every Irish employer &mdash; some render their listings entirely in
+    JavaScript, some sit behind a bot wall. So the guarantee is not that everything is
+    automated. It is that nothing is <em>hidden</em>: a company we cannot read still has a
+    card here, one click from its own jobs page.
   </p>
+</section>
 
-  <form method="get" action="/directory" style="margin-top:16px">
-    <div class="grid2">
-      <div>
-        <label for="q">Search employers</label>
-        <input type="text" id="q" name="q" value="{{ query }}" placeholder="e.g. Stripe, Bank, Pharma">
-      </div>
-      <div>
-        <label for="show">Show</label>
-        <select id="show" name="show">
-          <option value="all"    {% if show == 'all' %}selected{% endif %}>Everyone</option>
-          <option value="hiring" {% if show == 'hiring' %}selected{% endif %}>Only those hiring in Dublin now</option>
-          <option value="linked" {% if show == 'linked' %}selected{% endif %}>Only those we link out to</option>
-        </select>
-      </div>
+<form method="get" action="/directory" class="card card--raised">
+  <div class="grid2">
+    <div>
+      <label for="q"><span class="fieldname">Search the register</span></label>
+      <input type="text" id="q" name="q" value="{{ query }}" placeholder="Stripe, bank, pharma&hellip;">
     </div>
-    <div style="margin-top:14px">
-      <button type="submit">Filter</button>
-      {% if query or show != 'all' %}
-        <a href="/directory" class="small muted" style="margin-left:12px">Clear</a>
-      {% endif %}
+    <div>
+      <label for="show"><span class="fieldname">Show</span></label>
+      <select id="show" name="show">
+        <option value="all"    {% if show == 'all' %}selected{% endif %}>Every employer</option>
+        <option value="hiring" {% if show == 'hiring' %}selected{% endif %}>Only those hiring in Dublin now</option>
+        <option value="linked" {% if show == 'linked' %}selected{% endif %}>Only those we link out to</option>
+      </select>
     </div>
-  </form>
-</div>
-
-<div class="card">
-  {% if not rows %}
-    <p class="muted">No employers match that filter.</p>
-  {% else %}
-    <div class="scroll">
-      <table>
-        <thead>
-          <tr>
-            <th>Employer</th>
-            <th style="width:130px">Dublin roles</th>
-            <th style="width:150px">Coverage</th>
-            <th style="width:110px"></th>
-          </tr>
-        </thead>
-        <tbody>
-        {% for row in rows %}
-          <tr>
-            <td>{{ row.name }}</td>
-            <td>
-              {% if row.jobs %}
-                <a href="/?q={{ row.name | urlencode }}"><strong>{{ row.jobs }}</strong> open</a>
-              {% else %}
-                <span class="muted">&mdash;</span>
-              {% endif %}
-            </td>
-            <td class="small muted">
-              {% if row.crawled %}crawled{% else %}{{ row.state | replace('_', ' ') }}{% endif %}
-            </td>
-            <td class="small">
-              {% if row.careers_url %}
-                <a href="{{ row.careers_url }}" target="_blank" rel="noopener noreferrer">Careers page &rarr;</a>
-              {% else %}
-                <span class="muted">no link yet</span>
-              {% endif %}
-            </td>
-          </tr>
-        {% endfor %}
-        </tbody>
-      </table>
-    </div>
-    {% if truncated %}
-      <p class="small muted" style="margin-top:12px">
-        {{ "{:,}".format(truncated) }} more not shown &mdash; narrow the search to see them.
-      </p>
+  </div>
+  <div class="row" style="margin-top:24px">
+    <button type="submit">Search the register
+      <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+    </button>
+    {% if query or show != 'all' %}
+      <a href="/directory" class="accession" style="color:var(--ink-3)">Clear</a>
     {% endif %}
+  </div>
+</form>
+
+<h2 class="sectionhead">
+  {% if rows %}{{ "{:,}".format(rows|length) }} employer{{ "" if rows|length == 1 else "s" }} on file{% else %}Nothing on file{% endif %}
+</h2>
+
+{% if not rows %}
+  <div class="card">
+    <h3 style="margin-bottom:8px">Nothing on file under that</h3>
+    <p class="muted" style="margin:0">No employer in the register matches that filter.</p>
+  </div>
+{% else %}
+  <div class="filed">
+    {% for row in rows %}
+    <article class="record record--state filing">
+      <div class="record__main">
+        <span class="record__employer">
+          {% if row.crawled %}read directly{% else %}{{ row.state | replace('_', ' ') }}{% endif %}
+        </span>
+        <h3 class="record__title">{{ row.name }}</h3>
+        <p class="record__meta">
+          {% if row.jobs %}
+            <a href="/?q={{ row.name | urlencode }}"><strong>{{ row.jobs }}</strong>
+              open Dublin role{{ "" if row.jobs == 1 else "s" }}</a>
+          {% else %}
+            No live Dublin openings on file right now
+          {% endif %}
+        </p>
+      </div>
+      <div class="record__side">
+        {% if row.careers_url %}
+          <a class="btn btn--apply" href="{{ row.careers_url }}" target="_blank" rel="noopener noreferrer">
+            Careers page
+            <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </a>
+        {% else %}
+          <span class="accession">no link on file</span>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+
+  {% if truncated %}
+    <p class="accession" style="margin-top:20px;color:var(--steel-400);text-align:center">
+      {{ "{:,}".format(truncated) }} more on file &mdash; narrow the search to reach them.
+    </p>
   {% endif %}
-</div>
+{% endif %}
+
+<style>
+  .sectionhead{color:var(--manila-hi);margin:30px 0 14px}
+</style>
 
 {% endblock %}

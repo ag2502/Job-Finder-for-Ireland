@@ -1,55 +1,67 @@
 {% extends "base.html" %}
+{% set nav = 'applications' %}
+{% block title %}What you have applied to &mdash; Sorted Place{% endblock %}
+{% block railcount %}APPLIED &middot; {{ applications|length if applications else 0 }} ON FILE{% endblock %}
 {% block content %}
-<div class="card">
-  <div class="row" style="justify-content:space-between;align-items:baseline">
-    <h2 style="margin:0">
-      {% if applications %}{{ applications|length }} application{{ "" if applications|length == 1 else "s" }}
-      {% else %}Your applications{% endif %}
-    </h2>
-    <a class="small" href="/">&larr; Back to the finder</a>
-  </div>
 
-  {% if error %}
+<section class="drawerfront">
+  <h1>{% if applications %}You have applied to {{ applications|length }}.{% else %}Nothing marked yet.{% endif %}</h1>
+  {% if applications %}
+  <p class="lede">
+    These are kept out of your results, so you never have to sit there wondering whether
+    you already went for this one. <strong>Undo</strong> files it back in.
+  </p>
+  {% endif %}
+</section>
+
+{% if error %}
+  <div class="card">
     <p class="error">{{ error }}</p>
     {% if not account %}
-      <p><a class="apply" href="/login">Sign in</a> &nbsp; <a class="small" href="/signup">or create an account</a></p>
+      <div class="row" style="margin-top:16px">
+        <a class="btn" href="/login">Sign in
+          <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </a>
+        <a class="accession" href="/signup" style="color:var(--ink-3)">or create an account</a>
+      </div>
     {% endif %}
-  {% elif not applications %}
-    <p class="muted" style="margin:12px 0 0">
-      Nothing here yet. When you click Apply on a job, it is recorded here and left out
-      of your search results so you never have to wonder whether you already applied.
+  </div>
+
+{% elif not applications %}
+  <div class="card">
+    <p class="muted" style="margin:0;max-width:62ch">
+      When you click Apply on a record, it is marked here and taken out of your search
+      results. Nothing else about your search changes, and you can undo any of it.
     </p>
-  {% else %}
-    <p class="muted small">
-      These are left out of your results. Undo puts one back.
-    </p>
-    <div class="scroll">
-      <table class="jobs">
-        <thead>
-          <tr><th>Company</th><th>Position</th><th>Applied</th><th></th></tr>
-        </thead>
-        <tbody>
-          {% for item in applications %}
-          <tr>
-            <td class="co">{{ item.company }}</td>
-            <td>
-              <span class="pos">
-                {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
-                {% else %}{{ item.title }}{% endif %}
-              </span>
-            </td>
-            <td class="date">{{ item.applied_on }}</td>
-            <td>
-              <form method="post" action="/applications/remove">
-                <input type="hidden" name="advert_key" value="{{ item.advert_key }}">
-                <button class="linkish small" title="Put this job back in your results">Undo</button>
-              </form>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div class="row" style="margin-top:20px">
+      <a class="btn" href="/">Open the drawer
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
     </div>
-  {% endif %}
-</div>
+  </div>
+
+{% else %}
+  <div class="filed">
+    {% for item in applications %}
+    <article class="record filing">
+      <div class="record__main">
+        <span class="record__employer">{{ item.company }}</span>
+        <h3 class="record__title">
+          {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+          {% else %}{{ item.title }}{% endif %}
+        </h3>
+        <p class="record__meta">Marked as applied on {{ item.applied_on }}</p>
+      </div>
+      <div class="record__side">
+        <span class="stamp stamp--filled">applied</span>
+        <form method="post" action="/applications/remove">
+          <input type="hidden" name="advert_key" value="{{ item.advert_key }}">
+          <button class="linkish small" title="File this record back into your results">Undo</button>
+        </form>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+{% endif %}
+
 {% endblock %}

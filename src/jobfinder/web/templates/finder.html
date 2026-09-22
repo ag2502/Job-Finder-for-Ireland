@@ -1,17 +1,64 @@
 {% extends "base.html" %}
+{% set nav = 'finder' %}
+{% block railcount %}DUBLIN &middot; LIVE OPENINGS &middot; {{ "{:,}".format(dublin_count) }}{% endblock %}
 {% block content %}
 
-<div class="card">
-  <h1>Find your next role in Dublin</h1>
-  <p class="muted" style="margin-top:4px">
-    Upload your CV and pick the fields you want. We search
-    <strong>{{ "{:,}".format(dublin_count) }}</strong> active Dublin openings taken
-    straight from {{ company_count }} employers' own careers systems.
-  </p>
+{# The drawer front. The headline is engraved on the steel itself, not printed on a
+   card - the cards are for records only. The index card beside it is the claim being
+   checked: real employers, real live counts, straight off the register. #}
+<section class="drawerfront">
+  <div class="front">
+    <div class="front__copy">
+      <h1>Every Dublin opening,<br>on file.</h1>
+      <p class="lede">
+        <strong>{{ "{:,}".format(dublin_count) }} live roles</strong>, read straight from
+        employers' own careers systems &mdash; not a job board, not a feed. Once a role is
+        filed here it stays on file until two separate crawls confirm it is gone, so
+        nothing quietly disappears while you are not looking.
+      </p>
+      <p class="ledger-line typed">
+        {{ employers_hiring }} employers hiring now &middot;
+        {{ "{:,}".format(company_count) }} on the register &middot;
+        re-read every 6 hours
+      </p>
+    </div>
 
-  {% if error %}<p class="err">{{ error }}</p>{% endif %}
+    {% if top_employers %}
+    <aside class="indexcard" aria-label="Employers hiring in Dublin right now">
+      <span class="indexcard__head">Hiring right now</span>
+      <ol class="indexcard__list">
+        {% for e in top_employers %}
+        <li><span class="nm">{{ e.name }}</span><span class="ct">{{ e.jobs }}</span></li>
+        {% endfor %}
+      </ol>
+      {% if employers_hiring > top_employers|length %}
+      <a class="indexcard__foot" href="/directory?show=hiring">
+        and {{ employers_hiring - top_employers|length }} more employers
+        <svg width="13" height="13" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </a>
+      {% endif %}
+    </aside>
+    {% endif %}
+  </div>
+</section>
 
-  <form id="finder-form"
+{% if error %}<p class="err">{{ error }}</p>{% endif %}
+
+{# Once the drawer has been pulled the slip folds down to a summary: on a phone the
+   24 tabs are most of the page, and nobody re-reads them while scanning results. #}
+<details class="slipwrap" id="slipwrap" {% if items is not defined %}open{% endif %}>
+  <summary class="slipsummary">
+    <span class="slipsummary__label">
+      {% if profile and profile.fields %}
+        {{ profile.fields|length }} tab{{ "" if profile.fields|length == 1 else "s" }} pulled
+      {% else %}
+        Choose what you want to do next
+      {% endif %}
+    </span>
+    <span class="slipsummary__hint typed">change</span>
+  </summary>
+
+  <form id="finder-form" class="card card--raised slip"
         hx-post="/search"
         hx-target="#results"
         hx-swap="innerHTML"
@@ -19,61 +66,18 @@
         hx-indicator="#search-loading, #results"
         hx-disabled-elt="#find-btn">
 
-    <div class="grid2">
-      <div>
-        <label for="resume">Your CV <span class="muted small">(PDF, DOCX or TXT)</span></label>
-        <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
-        <p class="small muted" style="margin:6px 0 0">
-          Read in memory, never stored. <a href="/privacy">How this works</a>.
-        </p>
-      </div>
-      <div>
-        <label for="years">Years of experience <span class="muted small">(optional)</span></label>
-        <input type="number" id="years" name="years" min="0" max="50" step="1"
-               placeholder="Leave blank to see everything"
-               value="{{ profile.years if profile and profile.years is not none else '' }}">
-        <p class="small muted" style="margin:6px 0 0">
-          {% if profile and profile.cv_years and profile.years is none %}
-            Your CV suggests about <strong>{{ profile.cv_years }} years</strong> &mdash;
-            enter a number to narrow results. Blank shows everything.
-          {% else %}
-            Shows roles asking for this many years <strong>or fewer</strong>.
-            At 2 or under, graduate and entry-level roles are included too.
-          {% endif %}
-        </p>
-
-        <label for="q">Filter by title <span class="muted small">(optional)</span></label>
-        <input type="text" id="q" name="q" placeholder="e.g. engineer, analyst"
-               value="{{ profile.query if profile and profile.query else '' }}">
-      </div>
+    <div class="slip__head">
+      <h2 id="roles-heading">What do you want to do next?</h2>
+      <span class="stamp stamp--filled">required</span>
     </div>
-
-    <div class="chips" style="margin-top:16px">
-      <label class="chip">
-        <input type="checkbox" name="include_remote" value="1"
-               {% if profile and profile.include_remote %}checked{% endif %}> Include remote roles
-      </label>
-      <label class="chip">
-        <input type="checkbox" name="internships_only" value="1"
-               {% if profile and profile.internships_only %}checked{% endif %}> Internships only
-      </label>
-      <label class="chip">
-        <input type="checkbox" name="graduate_only" value="1"
-               {% if profile and profile.graduate_only %}checked{% endif %}> Graduate programmes only
-      </label>
-    </div>
-
-    <label>
-      Roles you want <span class="req">required</span>
-      <span class="muted small">&mdash; related fields are included automatically</span>
-    </label>
-    <p class="small muted" style="margin:0 0 8px">
-      Your CV shows what you have done. These say what you want to do next, which is
-      what we actually search for.
+    <p class="small muted" style="margin:0 0 20px;max-width:64ch">
+      Your CV shows what you have already done. These tabs say what you want next, and
+      that is what the register is searched for. Related fields come back automatically.
     </p>
-    <div class="chips" id="field-chips">
+
+    <div class="dividers" id="field-chips" role="group" aria-labelledby="roles-heading">
       {% for f in fields %}
-      <label class="chip">
+      <label class="divider">
         <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
                {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
         {{ f.label }}
@@ -81,51 +85,201 @@
       {% endfor %}
     </div>
 
-    <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
-      <button type="submit" id="find-btn" disabled>Find jobs</button>
-      <span id="find-hint" class="muted small">Pick at least one role above</span>
+    <div class="switches">
+      <label class="switch">
+        <input type="checkbox" name="include_remote" value="1"
+               {% if profile and profile.include_remote %}checked{% endif %}>
+        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+        Include remote roles
+      </label>
+      <label class="switch">
+        <input type="checkbox" name="internships_only" value="1"
+               {% if profile and profile.internships_only %}checked{% endif %}>
+        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+        Internships only
+      </label>
+      <label class="switch">
+        <input type="checkbox" name="graduate_only" value="1"
+               {% if profile and profile.graduate_only %}checked{% endif %}>
+        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+        Graduate programmes only
+      </label>
+    </div>
+
+    <div class="slip__rule"></div>
+
+    <div class="grid2">
+      <div>
+        <label for="resume"><span class="fieldname">Your CV &mdash; optional</span></label>
+        <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
+        <p class="small muted" style="margin:8px 0 0">
+          Read in memory and discarded before the page loads. Never written to disk.
+          <a href="/privacy">What is kept</a>.
+        </p>
+      </div>
+      <div>
+        <label for="years"><span class="fieldname">Years of experience &mdash; optional</span></label>
+        <input type="number" id="years" name="years" min="0" max="50" step="1"
+               placeholder="blank shows everything"
+               value="{{ profile.years if profile and profile.years is not none else '' }}">
+        <p class="small muted" style="margin:8px 0 0">
+          {% if profile and profile.cv_years and profile.years is none %}
+            Your CV reads as about <strong>{{ profile.cv_years }} years</strong>. Enter a
+            number to narrow the drawer; blank keeps it open.
+          {% else %}
+            Shows roles asking for that many years <strong>or fewer</strong>. At 2 or
+            under, graduate and entry-level roles come in too.
+          {% endif %}
+        </p>
+
+        <label for="q" style="margin-top:18px;display:block">
+          <span class="fieldname">Filter by title &mdash; optional</span>
+        </label>
+        <input type="text" id="q" name="q" placeholder="engineer, analyst, nurse&hellip;"
+               value="{{ profile.query if profile and profile.query else '' }}">
+      </div>
+    </div>
+
+    <div class="slip__action">
+      <button type="submit" id="find-btn" disabled>
+        Open the drawer
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </button>
+      <span id="find-hint" class="accession">Choose at least one tab above</span>
     </div>
   </form>
+</details>
+
+<div id="search-loading" class="pulling" role="status" aria-live="polite">
+  <span class="drawerspin" aria-hidden="true"><i></i><i></i><i></i></span>
+  <div>
+    <strong>Pulling the drawer&hellip; <span id="search-elapsed" class="accession" style="color:var(--steel-400)"></span></strong>
+    <span class="sub">Matching your tabs and CV against every active opening. A few
+      seconds, a little longer on the first pull.</span>
+  </div>
 </div>
 
+<div id="results">
+  {% if items is defined %}
+    {% include "_results.html" %}
+  {% endif %}
+</div>
+
+<style>
+  .front{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr);
+    gap:56px;align-items:start}
+  .front__copy .lede{max-width:none}
+  .front__copy .ledger-line{max-width:none}
+
+  /* a card lifted out of the drawer and laid on the steel */
+  .indexcard{
+    background:var(--manila);
+    color:var(--ink);
+    border-radius:2px;
+    padding:20px 22px 16px;
+    margin-top:12px;
+    transform:rotate(-.7deg);
+    box-shadow:var(--shadow-raised);
+  }
+  .indexcard__head{
+    display:block;font-family:"Courier Prime",ui-monospace,monospace;
+    font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
+    color:var(--ink-3);padding-bottom:9px;margin-bottom:4px;
+    border-bottom:1.5px solid var(--stamp-deep);
+  }
+  .indexcard__list{list-style:none;margin:0;padding:0}
+  .indexcard__list li{
+    display:flex;align-items:baseline;gap:10px;
+    padding:6px 0;border-bottom:1px solid var(--rule);
+  }
+  .indexcard__list .nm{font-size:14px;font-weight:600;letter-spacing:-.005em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .indexcard__list .ct{margin-left:auto;font-family:"Courier Prime",ui-monospace,monospace;
+    font-weight:700;font-size:13px;color:var(--stamp-deep)}
+  .indexcard__foot{
+    display:inline-flex;align-items:center;gap:6px;margin-top:12px;
+    font-size:12px;font-weight:600;color:var(--ink-2);text-decoration:none;
+  }
+  .indexcard__foot:hover{color:var(--stamp-deep);text-decoration:underline}
+
+  /* the folded slip */
+  .slipwrap{margin-bottom:14px}
+  .slipwrap>summary{list-style:none;cursor:pointer}
+  .slipwrap>summary::-webkit-details-marker{display:none}
+  .slipsummary{
+    display:flex;align-items:center;gap:14px;
+    background:var(--manila-lo);color:var(--ink);
+    border-radius:2px 14px 2px 2px;
+    padding:14px 20px;
+    font-size:14px;font-weight:700;letter-spacing:-.005em;
+    box-shadow:var(--shadow-card);
+    transition:background .16s var(--ease);
+  }
+  .slipsummary:hover{background:var(--manila)}
+  .slipsummary__hint{
+    margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--ink-2);border-bottom:1.5px solid var(--stamp-deep);padding-bottom:1px;
+  }
+  .slipwrap[open]>summary{display:none}
+  .slipwrap>summary:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
+
+  .switches{display:flex;flex-wrap:wrap;gap:0 4px;margin-top:20px}
+  .slip__head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+  .slip__head h2{margin:0}
+  .slip__rule{height:1px;background:var(--rule);margin:26px 0 24px}
+  .slip__action{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:28px}
+
+  @media (max-width:980px){
+    .front{grid-template-columns:1fr;gap:28px}
+    .indexcard{transform:none;margin-top:0}
+  }
+  @media (max-width:860px){
+    .slip__action{gap:12px}
+    .slip__action button{width:100%;justify-content:center}
+    .switches{flex-direction:column;gap:2px}
+  }
+</style>
+
 <script>
-  // Enable the search only once a role is chosen. The server enforces this too - this
-  // just explains the requirement before the click rather than after it.
+  // The search stays closed until a tab is chosen. The server enforces it too; this
+  // explains the requirement before the click instead of after it.
   (function () {
     var form = document.getElementById('finder-form');
     var button = document.getElementById('find-btn');
     var hint = document.getElementById('find-hint');
+    var wrap = document.getElementById('slipwrap');
     if (!form || !button) return;
 
-    function sync() {
-      var chosen = form.querySelectorAll('input[name="chosen_fields"]:checked').length;
-      button.disabled = chosen === 0;
-      hint.textContent = chosen === 0
-        ? 'Pick at least one role above'
-        : chosen + (chosen === 1 ? ' role selected' : ' roles selected');
+    function chosen() {
+      return form.querySelectorAll('input[name="chosen_fields"]:checked').length;
     }
-
+    function sync() {
+      var n = chosen();
+      button.disabled = n === 0;
+      hint.textContent = n === 0
+        ? 'Choose at least one tab above'
+        : n + (n === 1 ? ' tab pulled' : ' tabs pulled');
+    }
     form.addEventListener('change', function (event) {
       if (event.target.name === 'chosen_fields') sync();
     });
     sync();
+
+    // Once the drawer is pulled, fold the slip away and keep the summary honest.
+    document.body.addEventListener('htmx:afterSwap', function (event) {
+      if (!event.target || event.target.id !== 'results' || !wrap) return;
+      var n = chosen();
+      var label = wrap.querySelector('.slipsummary__label');
+      if (label) label.textContent = n + (n === 1 ? ' tab pulled' : ' tabs pulled');
+      wrap.open = false;
+    });
   })();
-</script>
 
-<div id="search-loading" class="loading" role="status" aria-live="polite">
-  <span class="spinner" aria-hidden="true"></span>
-  <div>
-    <strong>Searching Dublin openings&hellip; <span id="search-elapsed" class="muted small"></span></strong>
-    <span class="muted small">Matching your roles and CV against every active job. This usually takes a few seconds, a little longer on the first search.</span>
-  </div>
-</div>
-
-<script>
-  // A seconds counter, so a long search reads as working rather than stuck.
+  // A seconds counter, so a long pull reads as working rather than stuck.
   (function () {
     var elapsed = document.getElementById('search-elapsed');
     var timer = null;
-    function stop() { clearInterval(timer); timer = null; elapsed.textContent = ''; }
+    function stop() { clearInterval(timer); timer = null; if (elapsed) elapsed.textContent = ''; }
     document.body.addEventListener('htmx:beforeRequest', function (event) {
       if (!event.detail.target || event.detail.target.id !== 'results') return;
       var started = Date.now();
@@ -137,11 +291,5 @@
     document.body.addEventListener('htmx:afterRequest', stop);
   })();
 </script>
-
-<div id="results">
-  {% if items is defined %}
-    {% include "_results.html" %}
-  {% endif %}
-</div>
 
 {% endblock %}

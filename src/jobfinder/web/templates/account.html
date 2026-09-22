@@ -1,33 +1,57 @@
 {% extends "base.html" %}
+{% set nav = 'account' %}
+{% block title %}{{ "Create an account" if mode == "signup" else "Sign in" }} &mdash; Sorted Place{% endblock %}
+{% block railcount %}{{ "NEW BORROWER" if mode == "signup" else "SIGN IN" }}{% endblock %}
 {% block content %}
-<div class="card" style="max-width:420px;margin:0 auto">
-  <h2 style="margin-top:0">{{ "Create an account" if mode == "signup" else "Sign in" }}</h2>
-  <p class="muted small">
-    An account keeps a record of the jobs you have applied to, and leaves them out of
-    your results so you never have to wonder whether you already applied.
-  </p>
 
-  {% if error %}<p class="error">{{ error }}</p>{% endif %}
-  {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+<div class="ticket">
+  <section class="drawerfront" style="padding:56px 0 30px">
+    <h1 style="font-size:clamp(2rem,4.6vw,3rem)">
+      {{ "Get your own card." if mode == "signup" else "Welcome back." }}
+    </h1>
+    <p class="lede">
+      An account does one job: it remembers what you have already applied to and keeps
+      those records out of your results. Your CV is still never stored, with an account
+      or without one.
+    </p>
+  </section>
 
-  <form class="auth-form" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
-    <label class="small">Email
-      <input type="email" name="email" value="{{ email }}" required autocomplete="email">
+  <form class="card card--raised" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+
+    <label for="acc-email"><span class="fieldname">Email</span></label>
+    <input type="email" id="acc-email" name="email" value="{{ email }}" required autocomplete="email">
+
+    <label for="acc-pw" style="margin-top:20px;display:block">
+      <span class="fieldname">Password{% if mode == "signup" %} &mdash; 8 characters or more{% endif %}</span>
     </label>
-    <label class="small">Password
-      <input type="password" name="password" required minlength="8"
-             autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
-    </label>
-    {% if mode == "signup" %}<p class="muted small">At least 8 characters.</p>{% endif %}
-    <button type="submit">{{ "Create account" if mode == "signup" else "Sign in" }}</button>
+    <input type="password" id="acc-pw" name="password" required minlength="8"
+           autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
+
+    <div class="row" style="margin-top:28px;gap:18px">
+      <button type="submit">
+        {{ "Create the card" if mode == "signup" else "Sign in" }}
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </button>
+      <span class="accession" style="color:var(--ink-3)">
+        {% if mode == "signup" %}
+          Already have one? <a href="/login">Sign in</a>
+        {% else %}
+          No account? <a href="/signup">Create one</a>
+        {% endif %}
+      </span>
+    </div>
   </form>
 
-  <p class="small muted" style="margin-bottom:0">
-    {% if mode == "signup" %}
-      Already have an account? <a href="/login">Sign in</a>.
-    {% else %}
-      No account yet? <a href="/signup">Create one</a>.
-    {% endif %}
+  <p class="accession" style="color:var(--steel-400);text-align:center;margin-top:20px">
+    Held by Supabase in the EU &middot; <a href="/privacy">what is kept</a>
   </p>
 </div>
+
+<style>
+  .ticket{max-width:560px;margin:0 auto}
+  .ticket .drawerfront .lede{max-width:none}
+</style>
+
 {% endblock %}

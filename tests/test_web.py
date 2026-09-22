@@ -62,7 +62,7 @@ def test_cv_alone_is_rejected(client):
     )
     assert response.status_code == 422
     assert "at least one role" in response.text
-    assert "<th>Company</th>" not in response.text, "must not return results"
+    assert "<article class=\"record" not in response.text, "must not return results"
 
 
 def test_no_input_at_all_is_rejected(client):
@@ -75,12 +75,12 @@ def test_submit_button_starts_disabled(client):
     """The requirement is explained before the click, not after it."""
     response = client.get("/")
     assert 'id="find-btn" disabled' in response.text
-    assert "Pick at least one role" in response.text
+    assert "Choose at least one tab" in response.text
 
 
 def test_roles_are_marked_required_in_the_form(client):
     response = client.get("/")
-    assert 'class="req"' in response.text
+    assert 'stamp--filled">required' in response.text
 
 
 def test_cv_plus_roles_succeeds(client):
@@ -90,7 +90,7 @@ def test_cv_plus_roles_succeeds(client):
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
-    assert "matching role" in response.text
+    assert "records pulled" in response.text
 
 
 def test_paging_does_not_re_trigger_the_roles_requirement(client):
@@ -113,20 +113,20 @@ def test_search_renders_results_on_the_same_page(client):
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
-    assert "matching role" in response.text
+    assert "records pulled" in response.text
     # The upload form is still present: it is one page, not a separate results view.
     assert 'id="finder-form"' in response.text
 
 
-def test_results_table_has_the_requested_columns(client):
+def test_every_record_carries_employer_title_and_date(client):
     response = client.post(
         "/search",
         files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
     )
-    for column in ("Company", "Position", "Posted"):
-        assert f"<th>{column}</th>" in response.text
-    assert 'class="apply"' in response.text, "every row needs an apply link"
+    for part in ("record__employer", "record__title", "accession"):
+        assert part in response.text
+    assert "btn--apply" in response.text, "every record needs an apply link"
 
 
 def test_htmx_request_returns_only_the_table(client):
@@ -137,7 +137,7 @@ def test_htmx_request_returns_only_the_table(client):
         headers={"HX-Request": "true"},
     )
     assert response.status_code == 200
-    assert "<th>Company</th>" in response.text
+    assert "<article class=\"record" in response.text
     # A partial swap must not re-send the whole document.
     assert "<!doctype html>" not in response.text.lower()
     assert 'id="finder-form"' not in response.text
@@ -157,7 +157,7 @@ def test_paging_keeps_cv_signals_from_the_session(client):
         headers={"HX-Request": "true"},
     )
     assert page_two.status_code == 200
-    assert "skills from your CV" in page_two.text
+    assert "skills read from your CV" in page_two.text
 
 
 def test_sort_and_paging_controls_do_not_resend_the_cv_input(client):
@@ -268,14 +268,14 @@ def test_search_without_a_cv_still_works(client):
     """Fields alone are a valid search - a CV is optional."""
     response = client.post("/search", data={"chosen_fields": ["backend"]})
     assert response.status_code == 200
-    assert "matching role" in response.text
+    assert "records pulled" in response.text
 
 
 def _total(response) -> int:
     """Pull the result count out of the rendered heading."""
     import re
 
-    match = re.search(r"([\d,]+) (?:matching role|internship)", response.text)
+    match = re.search(r"([\d,]+) (?:record|internship)", response.text)
     return int(match.group(1).replace(",", "")) if match else 0
 
 
@@ -307,7 +307,7 @@ def test_experience_filter_excludes_more_demanding_roles(client):
 
 def test_two_years_mentions_graduate_inclusion(client):
     response = client.post("/search", data={"chosen_fields": ["backend"], "years": "2"})
-    assert "Graduate and entry-level openings are included" in response.text
+    assert "graduate and entry-level included" in response.text
 
 
 def test_above_two_years_does_not_mention_graduate_inclusion(client):
@@ -341,7 +341,7 @@ def test_graduate_only_switches_the_result_set(client):
     # Found graduate roles or the seasonal empty state - never ordinary roles, and the
     # typed experience must not narrow a graduate search.
     assert "graduate" in response.text.lower()
-    assert "matching role" not in response.text
+    assert "records pulled" not in response.text
     assert "up to 6 years" not in response.text
 
 
@@ -385,8 +385,8 @@ def test_reset_clears_the_profile(client):
 
     home = client.get("/")
     assert home.status_code == 200
-    # With no profile the finder shows the form alone, no results table.
-    assert "<th>Company</th>" not in home.text
+    # With no profile the finder shows the slip alone, no filed records.
+    assert "<article class=\"record" not in home.text
 
 
 # ---------------------------------------------------------------------------
@@ -398,7 +398,7 @@ def test_directory_renders_and_reports_registry_size(client):
     """The directory is the honest answer to "is my employer covered?"."""
     response = client.get("/directory")
     assert response.status_code == 200
-    assert "Employer directory" in response.text
+    assert "The register" in response.text
 
 
 def test_directory_filters(client):
@@ -408,7 +408,7 @@ def test_directory_filters(client):
 
     response = client.get("/directory", params={"q": "zzz-no-such-employer"})
     assert response.status_code == 200
-    assert "No employers match" in response.text
+    assert "No employer in the register matches" in response.text
 
 
 def test_directory_is_linked_from_every_page(client):

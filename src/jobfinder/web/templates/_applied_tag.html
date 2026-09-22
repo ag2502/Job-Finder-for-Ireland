@@ -1,8 +1,8 @@
-{# Replaces the Apply button once a job is marked. The row stays put until the next
-   search rather than vanishing under the cursor of someone who has just clicked it. #}
-<span class="applied-mark">
-  <span class="tag">applied</span>
+{# Replaces the Apply button once a job is marked. The record stays in the drawer until
+   the next pull rather than vanishing under the cursor of someone who just clicked it. #}
+<span class="applied-mark" style="display:inline-flex;align-items:center;gap:10px">
+  <span class="stamp stamp--filled">applied</span>
   <button class="linkish small" hx-post="/applications/remove" hx-vals='{"advert_key": "{{ advert_key }}"}'
           hx-target="closest .applied-mark" hx-swap="outerHTML"
-          title="Put this job back in your results">Undo</button>
+          title="Put this record back in your results">Undo</button>
 </span>

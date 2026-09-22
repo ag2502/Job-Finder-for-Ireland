@@ -98,7 +98,7 @@ def _first_result(client: TestClient, **extra) -> tuple[str, str]:
     data = {"chosen_fields": ["software-engineering"], **extra}
     page = client.post("/search", data=data).text
     key = re.search(r'"advert_key": "([0-9a-f]{32})"', page)
-    title = re.search(r'<span class="pos">([^<]+)</span>', page)
+    title = re.search(r'<h3 class="record__title">\s*<a[^>]*>([^<]+)</a>', page)
     assert key and title, "expected at least one result with an advert key"
     return key.group(1), title.group(1).strip()
 
@@ -108,11 +108,11 @@ def _first_result(client: TestClient, **extra) -> tuple[str, str]:
 
 def test_sign_in_then_out(client: TestClient):
     home = client.get("/").text
-    assert "Sign in" in home and "Applications" not in home
+    assert "Sign in" in home and ">Applied<" not in home
 
     _signed_in(client)
     home = client.get("/").text
-    assert "Applications" in home
+    assert ">Applied<" in home
     assert "jane@example.com" in home
 
     client.post("/logout")
@@ -433,7 +433,7 @@ def test_signing_in_opens_the_site(client: TestClient):
     _signed_in(client)
     response = client.get("/", follow_redirects=False)
     assert response.status_code == 200
-    assert "Find your next role" in response.text
+    assert "Every Dublin opening" in response.text
 
 
 @pytest.mark.parametrize("path", ["/login", "/signup", "/privacy"])
@@ -458,4 +458,4 @@ def test_the_gate_cannot_lock_everyone_out_when_accounts_are_unavailable(
     with TestClient(app) as c:
         response = c.get("/", follow_redirects=False)
         assert response.status_code == 200
-        assert "Find your next role" in response.text
+        assert "Every Dublin opening" in response.text
