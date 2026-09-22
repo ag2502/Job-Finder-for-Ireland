@@ -401,6 +401,32 @@ def test_directory_renders_and_reports_registry_size(client):
     assert "The register" in response.text
 
 
+def test_directory_pages_rather_than_shipping_the_whole_registry(client):
+    """618 employers in one response made a 76,000px page on a phone - worse than the
+    results table this redesign existed to fix. The directory pages like results."""
+    from jobfinder.web.app import DIRECTORY_PER_PAGE
+
+    first = client.get("/directory")
+    assert first.status_code == 200
+    assert first.text.count('<article class="record') <= DIRECTORY_PER_PAGE
+
+    second = client.get("/directory", params={"page": 2})
+    assert second.status_code == 200
+    # A second page must show different employers, not repeat the first.
+    assert second.text != first.text
+
+    # Out-of-range pages clamp rather than 404 or render empty.
+    assert client.get("/directory", params={"page": 9999}).status_code == 200
+    assert client.get("/directory", params={"page": 0}).status_code == 200
+
+
+def test_directory_counts_do_not_contradict_each_other(client):
+    """The lede quotes the registry size and the heading quotes what is shown; when
+    those were both stated flatly they read as two different truths on one screen."""
+    response = client.get("/directory")
+    assert "Showing" in response.text and " of " in response.text
+
+
 def test_directory_filters(client):
     for show in ("all", "hiring", "linked"):
         response = client.get("/directory", params={"show": show})

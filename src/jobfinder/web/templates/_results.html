@@ -83,7 +83,10 @@
 
     <article class="record filing">
       <div class="record__main">
-        <span class="record__employer">{{ item.company }}</span>
+        <div class="record__head">
+          <span class="record__employer">{{ item.company }}</span>
+          <span class="record__no" title="Accession number in the register">&#8470;&nbsp;{{ "%06d"|format(item.job.id) }}</span>
+        </div>
         <h3 class="record__title">
           <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
         </h3>

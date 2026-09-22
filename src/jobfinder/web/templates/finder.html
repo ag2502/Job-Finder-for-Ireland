@@ -70,7 +70,7 @@
       <h2 id="roles-heading">What do you want to do next?</h2>
       <span class="stamp stamp--filled">required</span>
     </div>
-    <p class="small muted" style="margin:0 0 20px;max-width:64ch">
+    <p class="small muted" style="margin:0 0 14px;max-width:64ch">
       Your CV shows what you have already done. These tabs say what you want next, and
       that is what the register is searched for. Related fields come back automatically.
     </p>
@@ -83,6 +83,14 @@
         {{ f.label }}
       </label>
       {% endfor %}
+    </div>
+
+    <div class="slip__action">
+      <button type="submit" id="find-btn" disabled>
+        Open the drawer
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+      </button>
+      <span id="find-hint" class="accession">Choose at least one tab above</span>
     </div>
 
     <div class="switches">
@@ -140,13 +148,6 @@
       </div>
     </div>
 
-    <div class="slip__action">
-      <button type="submit" id="find-btn" disabled>
-        Open the drawer
-        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
-      </button>
-      <span id="find-hint" class="accession">Choose at least one tab above</span>
-    </div>
   </form>
 </details>
 
@@ -176,8 +177,8 @@
     background:var(--manila);
     color:var(--ink);
     border-radius:2px;
-    padding:20px 22px 16px;
-    margin-top:12px;
+    padding:17px 20px 14px;
+    margin-top:8px;
     transform:rotate(-.7deg);
     box-shadow:var(--shadow-raised);
   }
@@ -190,7 +191,7 @@
   .indexcard__list{list-style:none;margin:0;padding:0}
   .indexcard__list li{
     display:flex;align-items:baseline;gap:10px;
-    padding:6px 0;border-bottom:1px solid var(--rule);
+    padding:5px 0;border-bottom:1px solid var(--rule);
   }
   .indexcard__list .nm{font-size:14px;font-weight:600;letter-spacing:-.005em;
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

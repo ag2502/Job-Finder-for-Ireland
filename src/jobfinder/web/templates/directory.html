@@ -54,7 +54,10 @@
 </form>
 
 <h2 class="sectionhead">
-  {% if rows %}{{ "{:,}".format(rows|length) }} employer{{ "" if rows|length == 1 else "s" }} on file{% else %}Nothing on file{% endif %}
+  {% if rows %}
+    Showing {{ "{:,}".format(rows|length) }} of {{ "{:,}".format(matched) }}
+    {%- if matched != total %} matched{% endif %} employer{{ "" if matched == 1 else "s" }}
+  {% else %}Nothing on file{% endif %}
 </h2>
 
 {% if not rows %}
@@ -67,9 +70,12 @@
     {% for row in rows %}
     <article class="record record--state filing">
       <div class="record__main">
-        <span class="record__employer">
-          {% if row.crawled %}read directly{% else %}{{ row.state | replace('_', ' ') }}{% endif %}
-        </span>
+        <div class="record__head">
+          <span class="record__employer">
+            {% if row.crawled %}read directly{% else %}{{ row.state | replace('_', ' ') }}{% endif %}
+          </span>
+          <span class="record__no" title="Entry number in the register">&#8470;&nbsp;{{ "%06d"|format(row.id) }}</span>
+        </div>
         <h3 class="record__title">{{ row.name }}</h3>
         <p class="record__meta">
           {% if row.jobs %}
@@ -94,10 +100,16 @@
     {% endfor %}
   </div>
 
-  {% if truncated %}
-    <p class="accession" style="margin-top:20px;color:var(--steel-400);text-align:center">
-      {{ "{:,}".format(truncated) }} more on file &mdash; narrow the search to reach them.
-    </p>
+  {% if pages > 1 %}
+  <div class="paging on-steel">
+    {% if page > 1 %}
+      <a class="btn secondary" href="/directory?{{ {'q': query, 'show': show, 'page': page - 1}|urlencode }}">Back</a>
+    {% else %}<span></span>{% endif %}
+    <span class="accession">Drawer {{ page }} of {{ pages }}</span>
+    {% if page < pages %}
+      <a class="btn secondary" href="/directory?{{ {'q': query, 'show': show, 'page': page + 1}|urlencode }}">Next</a>
+    {% else %}<span></span>{% endif %}
+  </div>
   {% endif %}
 {% endif %}
 

@@ -23,7 +23,7 @@
   --steel-600:#3c474c; --steel-500:#55636a; --steel-400:#adbac1;
 
   /* the card stock */
-  --manila:#ddcfae; --manila-hi:#ece2c9; --manila-lo:#c7b791; --manila-edge:#b3a37c;
+  --manila:#ddcfae; --manila-hi:#e3d6b4; --manila-lo:#c7b791; --manila-edge:#b3a37c;
 
   /* what is written on it */
   --ink:#231e17; --ink-2:#5f5648; --ink-3:#5d5444;
@@ -81,6 +81,14 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   background:linear-gradient(180deg,var(--steel-600),var(--steel-800));
   border-bottom:1px solid var(--steel-900);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+}
+.rail--foot{position:relative;padding-top:12px}
+.rail--foot::before{ /* the drawer pull, where the rod terminates */
+  content:"";position:absolute;left:50%;top:-11px;width:132px;height:22px;
+  margin-left:-66px;border-radius:11px;
+  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 48%,#6d5620);
+  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 -1px 0 rgba(0,0,0,.4) inset,
+             0 6px 14px -5px rgba(0,0,0,.75);
 }
 .rail::after{ /* the machined lip along the bottom of every drawer front */
   content:"";position:absolute;left:0;right:0;bottom:-3px;height:3px;
@@ -145,7 +153,7 @@ main{padding:0 0 96px}
 .card--raised{
   background:var(--manila-hi);
   box-shadow:var(--shadow-raised);
-  padding:32px 34px 30px;
+  padding:26px 34px 30px;
 }
 /* the rod: every filed card is threaded onto the same brass rod */
 .filed{position:relative;padding-left:34px}
@@ -351,11 +359,18 @@ button.secondary:hover{background:rgba(255,255,255,.4);color:var(--ink);transfor
   box-shadow:inset 0 1px 2px rgba(0,0,0,.7);
 }
 .record--state .record__employer{text-transform:none;letter-spacing:.02em;font-size:12px}
+.record__head{
+  display:flex;align-items:baseline;gap:14px;
+  margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--rule);
+}
 .record__employer{
   font-size:11px;font-weight:800;font-stretch:84%;letter-spacing:.15em;text-transform:uppercase;
   color:var(--ink-3);
-  display:block;margin-bottom:3px;
-  padding-bottom:4px;border-bottom:1px solid var(--rule);
+}
+.record__no{
+  margin-left:auto;flex:none;
+  font-family:"Courier Prime",ui-monospace,monospace;
+  font-size:11px;letter-spacing:.04em;color:var(--ink-3);
 }
 .record__title{font-size:1.06rem;line-height:1.32;font-weight:800;letter-spacing:-.012em;margin:0}
 .record__title a{text-decoration:none}
@@ -379,8 +394,8 @@ button.secondary:hover{background:rgba(255,255,255,.4);color:var(--ink);transfor
 /* --------------------------------------------- the front of the drawer --- */
 /* Page headings are engraved into the steel itself. Cards are for records only,
    so nothing here ever sits on manila. */
-.drawerfront{padding:64px 0 46px}
-.drawerfront h1{color:var(--manila-hi);
+.drawerfront{padding:44px 0 22px}
+.drawerfront h1{color:var(--manila);
   text-shadow:0 1px 0 rgba(0,0,0,.55),0 2px 22px rgba(0,0,0,.35)}
 .drawerfront .lede{color:var(--steel-400);max-width:58ch}
 .drawerfront .lede strong{color:var(--manila)}
@@ -466,10 +481,9 @@ hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
   .filed{padding-left:0}
   .filed::before,.filed::after{display:none}
   .record::before{display:none}
-  .record{grid-template-columns:1fr;gap:10px;padding:16px 17px}
+  .record{grid-template-columns:1fr;gap:7px;padding:13px 16px}
   .record__side{flex-direction:row;align-items:center;justify-content:space-between;
-    text-align:left;width:100%;gap:12px;
-    border-top:1px solid var(--rule);padding-top:11px;margin-top:2px}
+    text-align:left;width:100%;gap:12px;margin-top:2px}
   .record__meta{max-width:none}
   .rail .wrap{min-height:0;gap:12px}
   nav.tabs{margin-left:0;width:100%;gap:2px;overflow-x:auto;
@@ -530,7 +544,7 @@ hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
 
 <main><div class="wrap">{% block content %}{% endblock %}</div></main>
 
-<footer class="rail" style="border-bottom:0;border-top:1px solid var(--steel-900);margin-top:0">
+<footer class="rail rail--foot" style="border-bottom:0;border-top:1px solid var(--steel-900);margin-top:0">
   <div class="wrap" style="min-height:64px;font-size:12px;color:var(--steel-400);gap:18px">
     <span class="typed" style="letter-spacing:.08em;text-transform:uppercase">SORTED PLACE &middot; DUBLIN</span>
     <span style="margin-left:auto;max-width:58ch">Openings are read from employers' own careers

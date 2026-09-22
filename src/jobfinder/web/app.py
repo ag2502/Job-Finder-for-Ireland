@@ -965,8 +965,11 @@ def admin(request: Request):
     return templates.TemplateResponse(request, "admin.html", context)
 
 
+DIRECTORY_PER_PAGE = 50
+
+
 @app.get("/directory", response_class=HTMLResponse)
-def directory(request: Request, q: str = "", show: str = "all"):
+def directory(request: Request, q: str = "", show: str = "all", page: int = 1):
     """Every employer in the registry, crawlable or not.
 
     This is the honest answer to "is my company covered?". No crawler will ever reach
@@ -1006,6 +1009,7 @@ def directory(request: Request, q: str = "", show: str = "all"):
             count = live_counts.get(company.id, 0)
             rows.append(
                 {
+                    "id": company.id,
                     "name": company.name,
                     "jobs": count,
                     "careers_url": company.careers_url or company.website,
@@ -1028,11 +1032,21 @@ def directory(request: Request, q: str = "", show: str = "all"):
         with_jobs = sum(1 for r in rows if r["jobs"])
         linked = sum(1 for r in rows if not r["jobs"] and r["careers_url"])
 
+    # The registry is 618 employers and every filter still returns hundreds. Shipping
+    # them in one response produced a 76,000px page on a phone, which is worse than the
+    # results table this redesign set out to fix, so the directory pages like results.
+    matched = len(rows)
+    pages = max(1, (matched + DIRECTORY_PER_PAGE - 1) // DIRECTORY_PER_PAGE)
+    page = max(1, min(page, pages))
+    start = (page - 1) * DIRECTORY_PER_PAGE
+
     context = _base_context(request)
     context.update(
         {
-            "rows": rows[:400],
-            "truncated": max(0, len(rows) - 400),
+            "rows": rows[start : start + DIRECTORY_PER_PAGE],
+            "matched": matched,
+            "page": page,
+            "pages": pages,
             "total": total,
             "with_jobs": with_jobs,
             "linked": linked,
