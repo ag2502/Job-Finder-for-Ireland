@@ -120,13 +120,23 @@ jobs:
         #
         # Never fails the crawl. The jobs are what this workflow is for; sign-in being
         # briefly unavailable is not a reason to skip publishing a day's postings.
-        if: ${{ env.SUPABASE_URL != '' }}
+        # The emptiness check lives in the script rather than in `if:`, because a step's
+        # own `env:` block is not reliably readable from its own conditional - which
+        # would have made this skip silently and forever.
         continue-on-error: true
         run: |
+          if [ -z "$SUPABASE_URL" ]; then
+            echo "No Supabase project configured; skipping."
+            exit 0
+          fi
           code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 \
             -H "apikey: $SUPABASE_ANON_KEY" \
             "$SUPABASE_URL/rest/v1/applications?select=id&limit=1" || echo 000)
           echo "Supabase responded $code"
+          case "$code" in
+            200|401|403) echo "Project is awake." ;;
+            *) echo "::warning::Supabase keep-alive got $code; the project may be paused." ;;
+          esac
 
       - name: Deploy the refreshed snapshot
         env:
