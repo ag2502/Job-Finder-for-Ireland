@@ -67,17 +67,29 @@ under **URL Configuration**, so confirmation links come back to your site rather
 
 ## Step 4 — Copy the two keys
 
-**Project Settings** (the gear) → **API**. You need two values:
+You need two values, and in the current dashboard they live on **different pages**.
 
-| Field on the page | Looks like |
-|---|---|
-| **Project URL** | `https://abcdefghijk.supabase.co` |
-| **Project API keys → `anon` `public`** | a long `eyJhbGciOi...` string |
+**The key** — **Project Settings** (the gear, bottom of the icon strip) → **API Keys**.
+Under **Publishable key**, copy the value beginning `sb_publishable_...`.
 
-**Take the `anon` key, not `service_role`.** The `anon` key is meant to be public — it
-identifies the project, not a person, and every table it can reach is governed by the
-row level security policies you just installed. The `service_role` key bypasses those
-policies completely. It must never go into Vercel, this repo, or the browser.
+**The URL** — **Project Settings** → **Data API**. It looks like
+`https://<your-ref>.supabase.co`. The page shows the endpoint
+`https://<your-ref>.supabase.co/rest/v1/` more prominently; either is fine, because the
+setting trims the `/rest/v1` for you.
+
+**Do not copy anything under "Secret keys"** (`sb_secret_...`), and on the
+**Legacy anon, service_role API keys** tab, not `service_role`. Those bypass every row
+level security policy and can read and delete every user's data. They must never go into
+Vercel, this repo, or a browser.
+
+Older projects show `anon` `public` (a long `eyJhbGciOi...` JWT) instead of a publishable
+key. Either works — the client sends a JWT key as a bearer token and an opaque
+`sb_publishable_` key in `apikey` alone, because Supabase rejects the latter as a
+credential.
+
+The publishable key is designed to be public, but read the warning the dashboard prints
+beside it: *"safe to use in a browser **if you have enabled Row Level Security**"*. That
+is what step 2 did. Run `schema.sql` before this key goes anywhere.
 
 ---
 
