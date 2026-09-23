@@ -1,0 +1,23 @@
+{# The Save control for one advert, in whichever state it is currently in.
+
+   It posts the title, company and url back every time, because the saved list stores
+   them alongside the key: the snapshot only carries open Dublin roles, so looking them
+   up later would blank the list out as jobs close. #}
+{% set vals = {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson %}
+<span class="save-mark">
+  {% if saved %}
+    <button class="savebtn savebtn--on"
+            hx-post="/saved/remove" hx-vals='{{ vals }}'
+            hx-target="closest .save-mark" hx-swap="outerHTML"
+            title="Remove from your saved list">
+      <svg aria-hidden="true"><use href="#i-save"/></svg>Saved
+    </button>
+  {% else %}
+    <button class="savebtn"
+            hx-post="/saved" hx-vals='{{ vals }}'
+            hx-target="closest .save-mark" hx-swap="outerHTML"
+            title="Save this to come back to">
+      <svg aria-hidden="true"><use href="#i-save"/></svg>Save
+    </button>
+  {% endif %}
+</span>

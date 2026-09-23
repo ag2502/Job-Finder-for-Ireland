@@ -67,3 +67,53 @@ create policy "update own applications"
 create policy "delete own applications"
     on public.applications for delete
     using (auth.uid() = user_id);
+
+
+-- ---------------------------------------------------------------- saved jobs
+--
+-- The other half of the same idea. `applications` records what has been acted on and
+-- takes those adverts out of the results; `saved_jobs` records what someone wants to
+-- come back to and deliberately leaves them in. A saved job is still a live opening
+-- the searcher may want to compare against everything else.
+--
+-- Same shape as `applications` for the same reasons: the advert key rather than a
+-- posting id, and the title/company/url stored alongside it so a saved list does not
+-- blank out as the snapshot is rebuilt.
+
+create table if not exists public.saved_jobs (
+    id          uuid primary key default gen_random_uuid(),
+    user_id     uuid not null references auth.users (id) on delete cascade,
+    advert_key  text not null,
+    title       text not null,
+    company     text not null,
+    url         text not null,
+    saved_at    timestamptz not null default now(),
+    unique (user_id, advert_key)
+);
+
+create index if not exists saved_jobs_user_saved_at_idx
+    on public.saved_jobs (user_id, saved_at desc);
+
+alter table public.saved_jobs enable row level security;
+
+drop policy if exists "read own saved jobs"   on public.saved_jobs;
+drop policy if exists "insert own saved jobs" on public.saved_jobs;
+drop policy if exists "update own saved jobs" on public.saved_jobs;
+drop policy if exists "delete own saved jobs" on public.saved_jobs;
+
+create policy "read own saved jobs"
+    on public.saved_jobs for select
+    using (auth.uid() = user_id);
+
+create policy "insert own saved jobs"
+    on public.saved_jobs for insert
+    with check (auth.uid() = user_id);
+
+create policy "update own saved jobs"
+    on public.saved_jobs for update
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "delete own saved jobs"
+    on public.saved_jobs for delete
+    using (auth.uid() = user_id);

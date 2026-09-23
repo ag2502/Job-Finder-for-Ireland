@@ -21,6 +21,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
@@ -97,25 +98,34 @@ app = FastAPI(title="Dublin Job Finder", lifespan=lifespan)
 # someone has to be able to read what an account will store about them *before* being
 # asked to create one, and a policy you can only see once you have signed up is no use
 # to the person deciding whether to.
-PUBLIC_PATHS = frozenset({"/login", "/signup", "/logout", "/privacy", "/healthz"})
+# Pages that ARE the account, and therefore cannot be shown without one. Everything
+# else - the finder, the results, the employer register - is open to anyone.
+#
+# It was the other way round until launch: every path except a handful was gated, so a
+# visitor arriving from a link saw a sign-in wall instead of a single job. For a product
+# whose whole pitch is "every opening in one place", asking for a password before
+# showing any of them is the wrong first impression. Applying still needs an account,
+# because applying is what the account exists to record.
+ACCOUNT_PATHS = frozenset({"/applications", "/saved"})
 
 
 @app.middleware("http")
 async def _require_account(request: Request, call_next):
-    """Send signed-out visitors to the sign-in page.
+    """Send signed-out visitors to the sign-in page, for the account's own pages only.
 
-    The site is only gated when there is actually an accounts service to sign in to.
+    The gate is only armed when there is actually an accounts service to sign in to.
     Without one `/login` does not exist, so gating would redirect every visitor to a 404
     and take the whole site down - the environment variables going missing should cost
     the sign-in button, not the job search.
     """
-    if supabase.configured() and request.url.path not in PUBLIC_PATHS:
+    if supabase.configured() and request.url.path in ACCOUNT_PATHS:
         if _account(request) is None:
             # A redirect is right for someone typing an address, and wrong for anything
             # else: htmx would follow it and swap a whole sign-in page into whatever
             # element made the request - a table cell, or an Apply button.
             if request.method == "GET" and not request.headers.get("HX-Request"):
-                return RedirectResponse("/login", status_code=303)
+                nxt = quote(request.url.path, safe="/")
+                return RedirectResponse(f"/login?next={nxt}", status_code=303)
             return PlainTextResponse("Sign in to continue.", status_code=401)
     return await call_next(request)
 
@@ -189,6 +199,22 @@ def _applied_keys(account: supabase.Account | None) -> set[str]:
         return {row["advert_key"] for row in supabase.list_applications(account)}
     except (supabase.SupabaseError, httpx.HTTPError):
         logger.warning("could not load applications; showing every job", exc_info=True)
+        return set()
+
+
+def _saved_keys(account: supabase.Account | None) -> set[str]:
+    """The adverts this account has saved for later.
+
+    Fails open exactly as `_applied_keys` does. The worst case is a Save button that
+    shows unsaved on something already saved; pressing it again upserts, so nothing is
+    lost and the search stays up.
+    """
+    if account is None:
+        return set()
+    try:
+        return {row["advert_key"] for row in supabase.list_saved(account)}
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not load saved jobs", exc_info=True)
         return set()
 
 
@@ -278,6 +304,7 @@ def home(request: Request):
                 profile,
                 query=profile.get("query"),
                 applied_keys=_applied_keys(account),
+                saved_keys=_saved_keys(account),
                 show_applied=bool(profile.get("show_applied")),
             )
         )
@@ -379,13 +406,15 @@ async def search(
     }
     request.session["profile"] = json.dumps(profile)
 
+    account = _account(request)
     context = _base_context(request)
     context.update(
         _search_results(
             profile,
             query=q,
             page=page,
-            applied_keys=_applied_keys(_account(request)),
+            applied_keys=_applied_keys(account),
+            saved_keys=_saved_keys(account),
             show_applied=bool(show_applied),
         )
     )
@@ -549,6 +578,7 @@ def _search_results(
     query: str | None = None,
     page: int = 1,
     applied_keys: set[str] | None = None,
+    saved_keys: set[str] | None = None,
     show_applied: bool = False,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context."""
@@ -659,6 +689,10 @@ def _search_results(
                     # rather than the row, so every copy of it counts as the same job.
                     "advert_key": advert_keys[job.id],
                     "applied": advert_keys[job.id] in (applied_keys or set()),
+                    # Saved jobs deliberately stay in the results. Applied ones leave;
+                    # a saved one is still a live opening you are weighing up, and
+                    # hiding it would defeat the point of saving it.
+                    "saved": advert_keys[job.id] in (saved_keys or set()),
                 }
             )
 
@@ -696,6 +730,7 @@ def _search_results(
         "fallback": bool(page_items and all(i["fallback"] for i in page_items)),
         "show_applied": show_applied,
         "applied_count": len(applied_keys or set()),
+        "saved_count": len(saved_keys or set()),
         "skill_count": len(profile.get("skills") or []),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),
@@ -706,15 +741,44 @@ def _search_results(
 # --------------------------------------------------------------------- accounts
 
 
+def _safe_next(value: str | None) -> str:
+    """Where to send someone after they sign in.
+
+    Only a path on this site is ever accepted. An attacker who can get a visitor to
+    follow `/login?next=https://evil.example` would otherwise have this site's own
+    sign-in page hand them off to theirs, with the trust of our domain behind it.
+    A protocol-relative `//evil.example` is the same attack with the scheme left off,
+    which is why the check is on the parsed result rather than on the first character.
+    """
+    if not value:
+        return "/"
+    parsed = urlparse(value)
+    if parsed.scheme or parsed.netloc or not value.startswith("/"):
+        return "/"
+    return value
+
+
+REASONS = {
+    "apply": "Applying is recorded against your account, which is how this job stops "
+             "being offered to you tomorrow.",
+    "save": "Saving keeps a job on your own list, so you can come back and apply when "
+            "you have time.",
+}
+
+
 def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = "",
-               email: str = "", status: int = 200):
+               email: str = "", status: int = 200, next_to: str = "/",
+               reason: str = ""):
     context = _base_context(request)
-    context.update(mode=mode, error=error, notice=notice, email=email)
+    context.update(
+        mode=mode, error=error, notice=notice, email=email, next_to=next_to,
+        reason=REASONS.get(reason, ""),
+    )
     return templates.TemplateResponse(request, "account.html", context, status_code=status)
 
 
 @app.get("/login", response_class=HTMLResponse)
-def login_form(request: Request):
+def login_form(request: Request, next: str = "/", why: str = ""):
     # Both POST handlers 404 without Supabase, and the header hides the sign-in link,
     # so rendering the form here handed anyone who arrived by bookmark, search result
     # or typed URL a page that looked completely functional and 404'd on submit. When
@@ -724,26 +788,32 @@ def login_form(request: Request):
         raise HTTPException(status_code=404)
     if _account(request):
         return RedirectResponse("/applications", status_code=303)
-    return _auth_page(request, mode="login")
+    return _auth_page(request, mode="login", next_to=_safe_next(next), reason=why)
 
 
 @app.get("/signup", response_class=HTMLResponse)
-def signup_form(request: Request):
+def signup_form(request: Request, next: str = "/", why: str = ""):
     if not supabase.configured():
         raise HTTPException(status_code=404)
     if _account(request):
         return RedirectResponse("/applications", status_code=303)
-    return _auth_page(request, mode="signup")
+    return _auth_page(request, mode="signup", next_to=_safe_next(next), reason=why)
 
 
 @app.post("/login", response_class=HTMLResponse)
-def login(request: Request, email: str = Form(...), password: str = Form(...)):
+def login(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next: str = Form("/"),
+):
     if not supabase.configured():
         raise HTTPException(status_code=404)
     try:
         account = supabase.sign_in(email.strip(), password)
     except supabase.SupabaseError as exc:
-        return _auth_page(request, mode="login", error=str(exc), email=email, status=401)
+        return _auth_page(request, mode="login", error=str(exc), email=email, status=401,
+                          next_to=_safe_next(next))
     except httpx.HTTPError:
         logger.warning("supabase unreachable during sign-in", exc_info=True)
         return _auth_page(
@@ -752,14 +822,22 @@ def login(request: Request, email: str = Form(...), password: str = Form(...)):
             error="Could not reach the accounts service. Please try again.",
             email=email,
             status=503,
+            next_to=_safe_next(next),
         )
 
     request.session["account"] = account.to_session()
-    return RedirectResponse("/", status_code=303)
+    # Back to whatever they were looking at when they were asked to sign in, so the
+    # Apply they clicked is one click away rather than a search away.
+    return RedirectResponse(_safe_next(next), status_code=303)
 
 
 @app.post("/signup", response_class=HTMLResponse)
-def signup(request: Request, email: str = Form(...), password: str = Form(...)):
+def signup(
+    request: Request,
+    email: str = Form(...),
+    password: str = Form(...),
+    next: str = Form("/"),
+):
     if not supabase.configured():
         raise HTTPException(status_code=404)
     if len(password) < 8:
@@ -769,11 +847,13 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
             error="Please use a password of at least 8 characters.",
             email=email,
             status=422,
+            next_to=_safe_next(next),
         )
     try:
         account = supabase.sign_up(email.strip(), password)
     except supabase.SupabaseError as exc:
-        return _auth_page(request, mode="signup", error=str(exc), email=email, status=422)
+        return _auth_page(request, mode="signup", error=str(exc), email=email, status=422,
+                          next_to=_safe_next(next))
     except httpx.HTTPError:
         logger.warning("supabase unreachable during sign-up", exc_info=True)
         return _auth_page(
@@ -782,6 +862,7 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
             error="Could not reach the accounts service. Please try again.",
             email=email,
             status=503,
+            next_to=_safe_next(next),
         )
 
     # No session comes back when the project asks people to confirm their address. Say
@@ -792,10 +873,11 @@ def signup(request: Request, email: str = Form(...), password: str = Form(...)):
             mode="login",
             notice="Account created. Check your email for a confirmation link, then sign in.",
             email=email,
+            next_to=_safe_next(next),
         )
 
     request.session["account"] = account.to_session()
-    return RedirectResponse("/", status_code=303)
+    return RedirectResponse(_safe_next(next), status_code=303)
 
 
 @app.post("/logout")
@@ -886,6 +968,105 @@ def unmark_applied(request: Request, advert_key: str = Form(...)):
     if request.headers.get("HX-Request"):
         return HTMLResponse("", headers={"HX-Refresh": "true"})
     return RedirectResponse("/applications", status_code=303)
+
+
+# ------------------------------------------------------------------- saved jobs
+
+
+@app.get("/saved", response_class=HTMLResponse)
+def saved(request: Request):
+    """Jobs put aside to come back to.
+
+    Unlike applications these are never filtered out of the results: a saved job is one
+    still being weighed up, and hiding it would defeat the point of saving it.
+    """
+    account = _account(request)
+    context = _base_context(request)
+    if account is None:
+        context["error"] = "Sign in to see the jobs you have saved."
+        return templates.TemplateResponse(
+            request, "saved.html", context, status_code=401
+        )
+
+    try:
+        rows = supabase.list_saved(account)
+    except (supabase.SupabaseError, httpx.HTTPError) as exc:
+        logger.warning("could not list saved jobs", exc_info=True)
+        rows = []
+        context["error"] = f"Could not load your saved jobs: {exc}"
+
+    applied = _applied_keys(account)
+    for row in rows:
+        row["saved_on"] = _format_applied_at(row.get("saved_at"))
+        # A saved job that has since been applied to should say so rather than offering
+        # Apply again, which is the confusion this whole feature exists to remove.
+        row["applied"] = row.get("advert_key") in applied
+    context["saved"] = rows
+    return templates.TemplateResponse(request, "saved.html", context)
+
+
+@app.post("/saved", response_class=HTMLResponse)
+def mark_saved(
+    request: Request,
+    advert_key: str = Form(...),
+    title: str = Form(""),
+    company: str = Form(""),
+    url: str = Form(""),
+):
+    """Save a job for later. The response is the toggled control for that record."""
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to save jobs.")
+    try:
+        supabase.add_saved(
+            account, advert_key=advert_key, title=title, company=company, url=url
+        )
+    except (supabase.SupabaseError, httpx.HTTPError) as exc:
+        logger.warning("could not save a job", exc_info=True)
+        return HTMLResponse(
+            f'<span class="accession" title="{exc}">could not save</span>',
+            status_code=502,
+        )
+
+    return templates.TemplateResponse(
+        request,
+        "_saved_tag.html",
+        {"request": request, "advert_key": advert_key, "saved": True,
+         "title": title, "company": company, "url": url},
+    )
+
+
+@app.post("/saved/remove", response_class=HTMLResponse)
+def unmark_saved(
+    request: Request,
+    advert_key: str = Form(...),
+    title: str = Form(""),
+    company: str = Form(""),
+    url: str = Form(""),
+):
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to save jobs.")
+    try:
+        supabase.remove_saved(account, advert_key)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not unsave a job", exc_info=True)
+        return HTMLResponse(
+            '<span class="accession">could not remove</span>', status_code=502
+        )
+
+    # From the saved page the whole row should go; from the results the control just
+    # flips back to an empty Save, so the record stays where the cursor left it.
+    if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "saved-list":
+        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse("/saved", status_code=303)
+    return templates.TemplateResponse(
+        request,
+        "_saved_tag.html",
+        {"request": request, "advert_key": advert_key, "saved": False,
+         "title": title, "company": company, "url": url},
+    )
 
 
 @app.post("/reset")

@@ -112,26 +112,51 @@
             <span title="This employer does not publish a posting date">filed {{ item.first_seen }}</span>
           {% endif %}
         </span>
-        {% if item.applied %}
-          {# The partial names the advert itself, not the row it came from, so the
-             same include serves the results drawer and the applications page. #}
-          {% with advert_key = item.advert_key %}{% include "_applied_tag.html" %}{% endwith %}
-        {% else %}
-        <span class="applied-mark">
-          <a class="btn btn--apply" href="{{ item.job.url }}" target="_blank" rel="noopener"
-             {% if account %}
-             {# Clicking Apply is the moment someone actually acts, so that is when
-                it is recorded. The link still opens the posting in a new tab; this
-                only swaps the button for an Undo control. #}
-             hx-post="/applications"
-             hx-vals='{{ {"advert_key": item.advert_key, "title": item.job.title,
-                          "company": item.company, "url": item.job.url}|tojson }}'
-             hx-target="closest .applied-mark" hx-swap="outerHTML"
-             {% endif %}>Apply
+
+        <div class="record__actions">
+          {% if accounts_enabled %}
+            {% if account %}
+              {% with advert_key = item.advert_key, saved = item.saved,
+                      title = item.job.title, company = item.company, url = item.job.url %}
+                {% include "_saved_tag.html" %}
+              {% endwith %}
+            {% else %}
+              {# No account yet: Save is the same offer, it just needs one first. #}
+              <a class="savebtn" href="/login?next=/&amp;why=save" title="Sign in to save this for later">
+                <svg aria-hidden="true"><use href="#i-save"/></svg>Save
+              </a>
+            {% endif %}
+          {% endif %}
+
+          {% if item.applied %}
+            {# The partial names the advert itself, not the row it came from, so the
+               same include serves the results drawer and the applications page. #}
+            {% with advert_key = item.advert_key %}{% include "_applied_tag.html" %}{% endwith %}
+          {% elif account or not accounts_enabled %}
+          <span class="applied-mark">
+            <a class="btn btn--apply" href="{{ item.job.url }}" target="_blank" rel="noopener"
+               {% if account %}
+               {# Clicking Apply is the moment someone actually acts, so that is when
+                  it is recorded. The link still opens the posting in a new tab; this
+                  only swaps the button for an Undo control. #}
+               hx-post="/applications"
+               hx-vals='{{ {"advert_key": item.advert_key, "title": item.job.title,
+                            "company": item.company, "url": item.job.url}|tojson }}'
+               hx-target="closest .applied-mark" hx-swap="outerHTML"
+               {% endif %}>Apply
+              <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
+            </a>
+          </span>
+          {% else %}
+          {# Applying is what an account is FOR: it is the moment worth remembering, and
+             remembering it is what keeps this job out of tomorrow's results. So the
+             click goes through sign-in first and comes straight back here. #}
+          <a class="btn btn--apply" href="/login?next=/&amp;why=apply"
+             title="Sign in first, so this job is recorded and never offered to you again">Apply
             <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
           </a>
-        </span>
-        {% endif %}
+          {% endif %}
+        </div>
       </div>
     </article>
   {% endfor %}
@@ -173,6 +198,7 @@
 
 <style>
   .drawerhead{background:var(--manila-hi);margin-bottom:18px}
+  .record__actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
   .record__main{min-width:0}
   .paging{
     display:flex;align-items:center;justify-content:space-between;gap:18px;

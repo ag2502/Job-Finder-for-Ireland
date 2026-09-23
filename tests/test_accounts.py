@@ -34,6 +34,7 @@ class FakeSupabase:
 
     def __init__(self) -> None:
         self.rows: list[dict] = []
+        self.saved_rows: list[dict] = []
         self.fail_with: Exception | None = None
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> FakeSupabase:
@@ -44,6 +45,9 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "list_applications", self._list)
         monkeypatch.setattr(supabase, "add_application", self._add)
         monkeypatch.setattr(supabase, "remove_application", self._remove)
+        monkeypatch.setattr(supabase, "list_saved", self._list_saved)
+        monkeypatch.setattr(supabase, "add_saved", self._add_saved)
+        monkeypatch.setattr(supabase, "remove_saved", self._remove_saved)
         return self
 
     def _list(self, account):
@@ -69,6 +73,34 @@ class FakeSupabase:
         if self.fail_with:
             raise self.fail_with
         self.rows = [r for r in self.rows if r["advert_key"] != advert_key]
+
+    def _list_saved(self, account):
+        if self.fail_with:
+            raise self.fail_with
+        return list(self.saved_rows)
+
+    def _add_saved(self, account, *, advert_key, title, company, url):
+        if self.fail_with:
+            raise self.fail_with
+        self.saved_rows = [
+            r for r in self.saved_rows if r["advert_key"] != advert_key
+        ]
+        self.saved_rows.append(
+            {
+                "advert_key": advert_key,
+                "title": title,
+                "company": company,
+                "url": url,
+                "saved_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+
+    def _remove_saved(self, account, advert_key):
+        if self.fail_with:
+            raise self.fail_with
+        self.saved_rows = [
+            r for r in self.saved_rows if r["advert_key"] != advert_key
+        ]
 
 
 @pytest.fixture
@@ -217,7 +249,8 @@ def test_applications_page_lists_what_was_applied_to(client: TestClient, fake):
 def test_applications_page_asks_a_stranger_to_sign_in(client: TestClient):
     page = client.get("/applications", follow_redirects=False)
     assert page.status_code == 303
-    assert page.headers["location"] == "/login"
+    # ...and remembers where they were going, so signing in lands them back on it.
+    assert page.headers["location"] == "/login?next=/applications"
 
 
 def test_history_is_kept_even_after_the_job_closes(client: TestClient, fake):
@@ -423,10 +456,24 @@ def test_the_data_api_endpoint_is_accepted_where_the_project_url_is_wanted():
 # ------------------------------------------------------------- the login gate
 
 
-def test_a_signed_out_visitor_is_sent_to_sign_in(client: TestClient):
-    response = client.get("/", follow_redirects=False)
-    assert response.status_code == 303
-    assert response.headers["location"] == "/login"
+def test_a_signed_out_visitor_can_browse_every_job(client: TestClient):
+    """The site is open. It was gated everywhere until launch, which meant anyone
+    arriving from a link saw a sign-in wall instead of a single job - the wrong first
+    impression for a product whose pitch is that every opening is in one place."""
+    for path in ("/", "/directory", "/privacy"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 200, path
+
+    # Searching works signed out too; only the account's own pages are behind the gate.
+    results = client.post("/search", data={"chosen_fields": ["backend"]})
+    assert results.status_code == 200
+
+
+def test_only_the_account_pages_are_gated(client: TestClient):
+    for path in ("/applications", "/saved"):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 303, path
+        assert response.headers["location"] == f"/login?next={path}"
 
 
 def test_signing_in_opens_the_site(client: TestClient):
@@ -474,3 +521,128 @@ def test_the_gate_cannot_lock_everyone_out_when_accounts_are_unavailable(
         response = c.get("/", follow_redirects=False)
         assert response.status_code == 200
         assert "Every Dublin opening" in response.text
+
+
+# --------------------------------------------------------------- saved jobs
+
+
+def test_saving_a_job_keeps_it_in_the_results(client: TestClient, fake):
+    """The opposite of applying, on purpose. An applied job leaves the drawer because
+    the decision is made; a saved one is still being weighed up, so hiding it would
+    defeat the point of saving it."""
+    _signed_in(client)
+    key, title = _first_result(client)
+
+    marked = client.post(
+        "/saved",
+        data={"advert_key": key, "title": title, "company": "Acme", "url": "https://x"},
+    )
+    assert marked.status_code == 200
+    assert "Saved" in marked.text
+    assert [r["advert_key"] for r in fake.saved_rows] == [key]
+
+    again = client.post("/search", data={"chosen_fields": ["software-engineering"]})
+    assert key in again.text, "a saved job must stay in the results"
+
+
+def test_unsaving_takes_it_off_the_list(client: TestClient, fake):
+    _signed_in(client)
+    key, title = _first_result(client)
+    client.post(
+        "/saved",
+        data={"advert_key": key, "title": title, "company": "Acme", "url": "https://x"},
+    )
+    assert fake.saved_rows
+
+    removed = client.post("/saved/remove", data={"advert_key": key}, headers={"HX-Request": "true"})
+    assert removed.status_code == 200
+    assert fake.saved_rows == []
+    assert "Save" in removed.text
+
+
+def test_the_saved_page_lists_what_was_saved(client: TestClient, fake):
+    _signed_in(client)
+    key, title = _first_result(client)
+    client.post(
+        "/saved",
+        data={"advert_key": key, "title": title, "company": "Acme", "url": "https://x"},
+    )
+    page = client.get("/saved")
+    assert page.status_code == 200
+    assert title in page.text
+    assert "Acme" in page.text
+
+
+def test_a_saved_job_that_was_applied_to_says_so(client: TestClient, fake):
+    """Offering Apply on something already applied to is exactly the confusion the
+    account exists to remove."""
+    _signed_in(client)
+    key, title = _first_result(client)
+    client.post(
+        "/saved",
+        data={"advert_key": key, "title": title, "company": "Acme", "url": "https://x"},
+    )
+    client.post(
+        "/applications",
+        data={"advert_key": key, "title": title, "company": "Acme", "url": "https://x"},
+    )
+    page = client.get("/saved")
+    assert page.status_code == 200
+    assert "applied" in page.text.lower()
+
+
+def test_saving_needs_an_account(client: TestClient):
+    response = client.post(
+        "/saved", data={"advert_key": "k", "title": "t", "company": "c", "url": "u"}
+    )
+    assert response.status_code == 401
+
+
+def test_a_saved_outage_does_not_take_the_search_down(client: TestClient, fake):
+    """Same fail-open rule as applications: losing the saved list costs the Save
+    button's state, never the job search."""
+    _signed_in(client)
+    fake.fail_with = supabase.SupabaseError("saved table unreachable")
+    response = client.post("/search", data={"chosen_fields": ["software-engineering"]})
+    assert response.status_code == 200
+    assert "record__title" in response.text
+
+
+# ------------------------------------------------- applying needs an account
+
+
+def test_a_signed_out_visitor_is_sent_to_sign_in_before_applying(client: TestClient):
+    """Everyone can see the jobs; applying is what needs the account, because
+    recording it is what keeps the job out of tomorrow's results."""
+    response = client.post("/search", data={"chosen_fields": ["software-engineering"]})
+    assert response.status_code == 200
+    assert "why=apply" in response.text, "Apply must route through sign-in"
+    assert "why=save" in response.text, "Save must route through sign-in"
+
+
+def test_the_sign_in_page_says_why_it_is_asking(client: TestClient):
+    page = client.get("/login", params={"why": "apply"})
+    assert page.status_code == 200
+    assert "stops being offered to you tomorrow" in page.text
+
+
+def test_sign_in_returns_you_to_where_you_were(client: TestClient):
+    response = client.post(
+        "/login",
+        data={"email": "jane@example.com", "password": "hunter2hunter2", "next": "/saved"},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/saved"
+
+
+def test_next_cannot_be_pointed_off_site(client: TestClient):
+    """An open redirect on a sign-in page lends this domain's trust to someone else's."""
+    for hostile in ("https://evil.example/x", "//evil.example/x", "javascript:alert(1)"):
+        response = client.post(
+            "/login",
+            data={"email": "jane@example.com", "password": "hunter2hunter2", "next": hostile},
+            follow_redirects=False,
+        )
+        assert response.status_code == 303
+        assert response.headers["location"] == "/", hostile

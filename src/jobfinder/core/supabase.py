@@ -313,3 +313,79 @@ def remove_application(account: Account, advert_key: str) -> None:
         )
     if response.status_code >= 400:
         raise SupabaseError(_message_from(response))
+
+
+# ---------------------------------------------------------------- saved jobs
+#
+# Deliberately the mirror of the three functions above rather than a shared helper
+# parameterised by table name. The two lists answer opposite questions - "what have I
+# already acted on" versus "what do I still want to act on" - and they are read on
+# different pages with different orderings. Collapsing them would save thirty lines and
+# cost the next reader the ability to change one without thinking about the other.
+
+
+def list_saved(account: Account) -> list[dict]:
+    """Every advert this account has saved for later, newest first."""
+    base, _ = _require_config()
+    with httpx.Client(timeout=TIMEOUT) as client:
+        response = client.get(
+            f"{base}/rest/v1/saved_jobs",
+            headers=_auth_headers(account.access_token),
+            params={
+                "select": "advert_key,title,company,url,saved_at",
+                "order": "saved_at.desc",
+                "limit": str(MAX_APPLICATIONS),
+            },
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return response.json()
+
+
+def add_saved(
+    account: Account,
+    *,
+    advert_key: str,
+    title: str,
+    company: str,
+    url: str,
+) -> None:
+    """Save an advert to come back to.
+
+    Upserts for the same reason applications do: hitting Save on something already
+    saved is an ordinary thing to do, and `on_conflict` has to name the
+    (user_id, advert_key) constraint or PostgREST infers the primary key and never
+    finds a conflict.
+    """
+    base, _ = _require_config()
+    with httpx.Client(timeout=TIMEOUT) as client:
+        response = client.post(
+            f"{base}/rest/v1/saved_jobs",
+            params={"on_conflict": "user_id,advert_key"},
+            headers={
+                **_auth_headers(account.access_token),
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            json={
+                "user_id": account.user_id,
+                "advert_key": advert_key,
+                "title": title[:300],
+                "company": company[:200],
+                "url": url[:1000],
+            },
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def remove_saved(account: Account, advert_key: str) -> None:
+    """Take an advert off the saved list."""
+    base, _ = _require_config()
+    with httpx.Client(timeout=TIMEOUT) as client:
+        response = client.delete(
+            f"{base}/rest/v1/saved_jobs",
+            headers=_auth_headers(account.access_token),
+            params={"advert_key": f"eq.{advert_key}"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))

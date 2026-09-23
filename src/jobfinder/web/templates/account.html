@@ -7,7 +7,8 @@
 <div class="ticket">
   <section class="drawerfront" style="padding:56px 0 30px">
     <h1 style="font-size:clamp(2rem,4.6vw,3rem)">
-      {{ "Get your own card." if mode == "signup" else "Welcome back." }}
+      {% if reason %}One step first.
+      {% else %}{{ "Get your own card." if mode == "signup" else "Welcome back." }}{% endif %}
     </h1>
     <p class="lede">
       An account does one job: it remembers what you have already applied to and keeps
@@ -17,8 +18,13 @@
   </section>
 
   <form class="card card--raised" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+    {% if reason %}<p class="notice">{{ reason }}</p>{% endif %}
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
+
+    {# Where to go once they are in. Carried through every failed attempt too, so a
+       typo does not cost them the job they were about to apply for. #}
+    <input type="hidden" name="next" value="{{ next_to|default('/', true) }}">
 
     <label for="acc-email"><span class="fieldname">Email</span></label>
     <input type="email" id="acc-email" name="email" value="{{ email }}" required autocomplete="email">
