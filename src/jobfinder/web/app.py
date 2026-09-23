@@ -715,6 +715,13 @@ def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = ""
 
 @app.get("/login", response_class=HTMLResponse)
 def login_form(request: Request):
+    # Both POST handlers 404 without Supabase, and the header hides the sign-in link,
+    # so rendering the form here handed anyone who arrived by bookmark, search result
+    # or typed URL a page that looked completely functional and 404'd on submit. When
+    # accounts are switched off, `/login` does not exist - which is what the gate in
+    # `_account` already assumes.
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
     if _account(request):
         return RedirectResponse("/applications", status_code=303)
     return _auth_page(request, mode="login")
@@ -722,6 +729,8 @@ def login_form(request: Request):
 
 @app.get("/signup", response_class=HTMLResponse)
 def signup_form(request: Request):
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
     if _account(request):
         return RedirectResponse("/applications", status_code=303)
     return _auth_page(request, mode="signup")

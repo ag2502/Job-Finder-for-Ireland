@@ -444,6 +444,21 @@ def test_the_pages_needed_before_signing_up_stay_public(client: TestClient, path
     assert response.status_code == 200
 
 
+def test_the_sign_in_form_does_not_exist_when_accounts_are_unavailable(
+    monkeypatch: pytest.MonkeyPatch,
+):
+    """Both POST handlers already 404 without Supabase and the header hides the link,
+    but the GET handlers still rendered a full form. Anyone arriving by bookmark or
+    typed URL got a page that looked functional and 404'd on submit."""
+    monkeypatch.setattr(supabase, "configured", lambda: False)
+    init_db()
+    with TestClient(app) as c:
+        assert c.get("/login").status_code == 404
+        assert c.get("/signup").status_code == 404
+        # The job search is untouched by accounts being off.
+        assert c.get("/").status_code == 200
+
+
 def test_the_gate_cannot_lock_everyone_out_when_accounts_are_unavailable(
     monkeypatch: pytest.MonkeyPatch,
 ):
