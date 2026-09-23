@@ -1,0 +1,376 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T15:35:39+00:00",
+  "title": "Design System: Sorted Place",
+  "extensions": {
+    "colorMeta": {
+      "stamp": {
+        "role": "primary",
+        "displayName": "Stamp Red",
+        "canonical": "#b7332a",
+        "tonalRamp": [
+          "#3e110e",
+          "#6e1f19",
+          "#9d2c24",
+          "#cc392f",
+          "#da645c",
+          "#e4918b",
+          "#efbebb",
+          "#faebea"
+        ]
+      },
+      "stamp-deep": {
+        "role": "primary",
+        "displayName": "Stamp Red Deep",
+        "canonical": "#8e2620",
+        "tonalRamp": [
+          "#3e110e",
+          "#6e1d19",
+          "#9e2a24",
+          "#cd372e",
+          "#da625b",
+          "#e5908b",
+          "#f0bebb",
+          "#faebea"
+        ]
+      },
+      "brass": {
+        "role": "secondary",
+        "displayName": "Brass",
+        "canonical": "#b08d3f",
+        "tonalRamp": [
+          "#382d14",
+          "#635024",
+          "#8e7233",
+          "#b99442",
+          "#caad6b",
+          "#dac596",
+          "#e9ddc1",
+          "#f8f5ec"
+        ]
+      },
+      "brass-hi": {
+        "role": "secondary",
+        "displayName": "Brass Light",
+        "canonical": "#d9bc72",
+        "tonalRamp": [
+          "#3c3010",
+          "#6a541d",
+          "#987929",
+          "#c69d35",
+          "#d4b461",
+          "#e1ca8f",
+          "#ede0bd",
+          "#faf5eb"
+        ]
+      },
+      "steel-700": {
+        "role": "neutral",
+        "displayName": "Drawer Steel",
+        "canonical": "#2f383c",
+        "tonalRamp": [
+          "#22282b",
+          "#3b474c",
+          "#55656c",
+          "#6e848d",
+          "#8fa0a7",
+          "#afbbc1",
+          "#d0d7da",
+          "#f1f3f4"
+        ]
+      },
+      "steel-400": {
+        "role": "neutral",
+        "displayName": "Steel Light",
+        "canonical": "#adbac1",
+        "tonalRamp": [
+          "#21282c",
+          "#3a464d",
+          "#53656e",
+          "#6c838f",
+          "#8d9fa9",
+          "#aebbc2",
+          "#cfd7db",
+          "#f0f3f4"
+        ]
+      },
+      "manila": {
+        "role": "neutral",
+        "displayName": "Manila Stock",
+        "canonical": "#ddcfae",
+        "tonalRamp": [
+          "#362d17",
+          "#5f4f28",
+          "#887039",
+          "#b1924a",
+          "#c4ab72",
+          "#d5c49b",
+          "#e6dcc4",
+          "#f7f4ed"
+        ]
+      },
+      "manila-hi": {
+        "role": "neutral",
+        "displayName": "Manila Raised",
+        "canonical": "#e3d6b4",
+        "tonalRamp": [
+          "#382e15",
+          "#625125",
+          "#8d7434",
+          "#b79744",
+          "#c9af6d",
+          "#d8c698",
+          "#e8dec2",
+          "#f8f5ec"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Typewriter Ink",
+        "canonical": "#231e17",
+        "tonalRamp": [
+          "#2e281e",
+          "#514635",
+          "#75644d",
+          "#988264",
+          "#b09e86",
+          "#c7baa9",
+          "#ded7cc",
+          "#f5f3f0"
+        ]
+      },
+      "ledger": {
+        "role": "tertiary",
+        "displayName": "Ledger Green",
+        "canonical": "#cfd9c2",
+        "tonalRamp": [
+          "#272f1d",
+          "#455334",
+          "#63774a",
+          "#819b60",
+          "#9eb284",
+          "#bac8a7",
+          "#d6dfcb",
+          "#f3f5ef"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Drawer Front",
+        "purpose": "Page headline, engraved on the steel. Never on a card."
+      },
+      "headline": {
+        "displayName": "Card Heading",
+        "purpose": "Section and card headings."
+      },
+      "title": {
+        "displayName": "Record Title",
+        "purpose": "The job title on a record; the largest thing on any card."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running copy, capped at 68ch."
+      },
+      "label": {
+        "displayName": "Typed Label",
+        "purpose": "Accession numbers, dates, field names, stamps. Courier Prime means 'typed record', never 'technical'."
+      }
+    },
+    "shadows": [
+      {
+        "name": "card",
+        "value": "0 1px 0 #b3a37c, 0 6px 14px -6px rgba(0,0,0,.55)",
+        "purpose": "Every filed record and standard card. The 1px offset is the cut edge of the stock."
+      },
+      {
+        "name": "raised",
+        "value": "0 2px 0 #b3a37c, 0 22px 38px -16px rgba(0,0,0,.7)",
+        "purpose": "Cards standing proud of the drawer: the request slip, the proof card."
+      },
+      {
+        "name": "hardware-inset",
+        "value": "0 1px 0 rgba(255,255,255,.45) inset, 0 -1px 0 rgba(0,0,0,.35) inset",
+        "purpose": "Brass objects: the label holder and the drawer pull."
+      },
+      {
+        "name": "notch",
+        "value": "inset 0 1px 2px rgba(0,0,0,.7)",
+        "purpose": "The hole where the brass rod passes through a filed card."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-drawer",
+        "value": "cubic-bezier(.16,.84,.34,1)",
+        "purpose": "The only easing in the system. Exponential-ish out; everything rises out of the drawer."
+      },
+      {
+        "name": "file-in",
+        "value": "opacity .5s, transform .58s, stagger 38ms capped at 14 steps",
+        "purpose": "Records filing in after a swap. Capped so a hundred rows never take ten seconds."
+      },
+      {
+        "name": "count-stamp",
+        "value": "900ms cubic ease-out",
+        "purpose": "The label holder's count stamping up from zero on load."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "drawer-front",
+        "value": "980px"
+      },
+      {
+        "name": "phone",
+        "value": "860px"
+      },
+      {
+        "name": "plate",
+        "value": "420px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The struck stamp. Every action that stays on this site.",
+      "html": "<button class=\"ds-btn-primary\">Open the drawer <svg viewBox=\"0 0 16 16\" width=\"15\" height=\"15\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:10px;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:13px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#fff;background:#b7332a;border:0;border-radius:2px;padding:13px 22px;cursor:pointer;box-shadow:0 1px 0 #8e2620,0 8px 16px -8px rgba(0,0,0,.6);transition:transform .16s cubic-bezier(.16,.84,.34,1),background .16s cubic-bezier(.16,.84,.34,1)}.ds-btn-primary:hover{background:#8e2620;transform:translateY(-1px)}.ds-btn-primary:active{transform:translateY(1px);box-shadow:0 0 0 #8e2620}.ds-btn-primary:focus-visible{outline:2px solid #d9bc72;outline-offset:2px}"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Every action that leaves this site, e.g. Apply. Inverts to a filled stamp on hover.",
+      "html": "<a class=\"ds-btn-outline\" href=\"#\">Apply <svg viewBox=\"0 0 16 16\" width=\"14\" height=\"14\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>",
+      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:8px;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#8e2620;background:transparent;border:1.5px solid #8e2620;border-radius:2px;padding:8px 14px;text-decoration:none;cursor:pointer}.ds-btn-outline:hover{background:#b7332a;color:#e3d6b4;border-color:#b7332a}.ds-btn-outline:focus-visible{outline:2px solid #d9bc72;outline-offset:2px}"
+    },
+    {
+      "name": "Role Tab",
+      "kind": "chip",
+      "refersTo": "tab-divider",
+      "description": "Signature. A guide card standing between the records. Selection is elevation plus brass, never a tick.",
+      "html": "<div class=\"ds-tabs\"><label class=\"ds-tab\"><input type=\"checkbox\"> Data Science</label><label class=\"ds-tab\"><input type=\"checkbox\" checked> Software Engineering</label></div>",
+      "css": ".ds-tabs{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end;border-bottom:2px solid #b3a37c}.ds-tab{position:relative;display:inline-flex;align-items:center;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#4a4235;background:#c7b791;border:1px solid #b3a37c;border-bottom:0;border-radius:2px 12px 0 0;padding:10px 16px 9px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.35);transition:transform .2s cubic-bezier(.16,.84,.34,1),background .2s cubic-bezier(.16,.84,.34,1)}.ds-tab input{position:absolute;opacity:0;width:1px;height:1px}.ds-tab:hover{background:#ddcfae;color:#231e17;transform:translateY(-2px)}.ds-tab:has(input:checked){background:#e3d6b4;color:#231e17;font-weight:800;transform:translateY(-6px);border-color:#b08d3f;box-shadow:0 -1px 0 #b08d3f,0 8px 14px -8px rgba(0,0,0,.6)}.ds-tab:has(input:checked)::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;background:#b08d3f}"
+    },
+    {
+      "name": "Record Card",
+      "kind": "card",
+      "refersTo": "record-card",
+      "description": "Signature. One filed opening: accession number, employer, title, meta, stamped date.",
+      "html": "<article class=\"ds-record\"><div class=\"ds-record-main\"><div class=\"ds-record-head\"><span class=\"ds-record-employer\">Stripe</span><span class=\"ds-record-no\">&#8470;&nbsp;000048</span></div><h3 class=\"ds-record-title\">Senior Backend Engineer</h3><p class=\"ds-record-meta\">Dublin, Ireland &middot; <span class=\"ds-exp\">5y+ (estimated)</span> &middot; in your chosen field</p></div><div class=\"ds-record-side\"><span class=\"ds-accession\">18 Aug 2026</span><a class=\"ds-btn-outline\" href=\"#\">Apply</a></div></article>",
+      "css": ".ds-record{position:relative;display:grid;grid-template-columns:1fr auto;gap:6px 22px;align-items:start;background:#ddcfae;color:#231e17;border-radius:2px;padding:18px 22px 17px;box-shadow:0 1px 0 #b3a37c,0 6px 14px -6px rgba(0,0,0,.55);font-family:Archivo,Helvetica,Arial,sans-serif;transition:transform .18s cubic-bezier(.16,.84,.34,1)}.ds-record:hover{transform:translateX(3px)}.ds-record-head{display:flex;align-items:baseline;gap:14px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid rgba(35,30,23,.22)}.ds-record-employer{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#5d5444}.ds-record-no{margin-left:auto;font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:.04em;color:#5d5444}.ds-record-title{font-size:1.06rem;line-height:1.32;font-weight:800;letter-spacing:-.012em;margin:0}.ds-record-meta{font-size:12.5px;line-height:1.5;color:#5f5648;margin:5px 0 0}.ds-exp{color:#8e2620;font-weight:700}.ds-record-side{display:flex;flex-direction:column;align-items:flex-end;gap:9px}.ds-accession{font-family:'Courier Prime',monospace;font-size:12px;color:#5d5444;white-space:nowrap}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-ruled",
+      "description": "No box: a wash and a baseline rule that goes stamp red on focus.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-fieldname\">Filter by title &mdash; optional</span><input class=\"ds-input\" type=\"text\" placeholder=\"engineer, analyst, nurse&hellip;\"></label>",
+      "css": ".ds-field{display:block;font-family:Archivo,Helvetica,Arial,sans-serif}.ds-fieldname{display:block;font-family:'Courier Prime',monospace;font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:#5d5444;margin-bottom:7px}.ds-input{width:100%;font-family:inherit;font-size:15px;color:#231e17;background:rgba(255,255,255,.46);border:0;border-bottom:1.5px solid rgba(35,30,23,.42);border-radius:0;padding:9px 2px;caret-color:#b7332a;transition:background .18s cubic-bezier(.16,.84,.34,1)}.ds-input::placeholder{color:#5d5444;opacity:1}.ds-input:focus{outline:none;background:rgba(255,255,255,.72);border-bottom-color:#b7332a}"
+    },
+    {
+      "name": "Label Holder",
+      "kind": "custom",
+      "refersTo": "label-plate",
+      "description": "Signature. The brass plate screwed to the drawer front: wordmark, live count, masthead.",
+      "html": "<span class=\"ds-plate\"><span class=\"ds-mark\">sorted<em>.</em>place</span><span class=\"ds-count\">DUBLIN &middot; LIVE OPENINGS &middot; 1,048</span></span>",
+      "css": ".ds-plate{position:relative;display:inline-flex;align-items:baseline;gap:12px;padding:7px 18px 8px;background:linear-gradient(180deg,#d9bc72,#b08d3f 52%,#977834);color:#120d02;border-radius:2px;box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -1px 0 rgba(0,0,0,.35) inset,0 4px 10px -3px rgba(0,0,0,.6);font-family:Archivo,Helvetica,Arial,sans-serif}.ds-plate::before,.ds-plate::after{content:'';position:absolute;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0dda6,#6d5620 70%);box-shadow:0 0 0 1px rgba(0,0,0,.35)}.ds-plate::before{left:6px}.ds-plate::after{right:6px}.ds-mark{font-weight:900;font-size:19px;letter-spacing:.015em;text-transform:lowercase;padding-left:8px}.ds-mark em{font-style:normal;opacity:.62}.ds-count{font-family:'Courier Prime',monospace;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;padding-right:8px;white-space:nowrap}"
+    },
+    {
+      "name": "Stamp",
+      "kind": "chip",
+      "refersTo": "stamp-mark",
+      "description": "Rubber-stamp mark: NEW, REQUIRED, APPLIED, STRETCH. Outline is ink; filled is a struck stamp.",
+      "html": "<span class=\"ds-stamp\">new</span> <span class=\"ds-stamp ds-stamp-filled\">required</span>",
+      "css": ".ds-stamp{display:inline-block;font-family:'Courier Prime',monospace;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#8e2620;border:1.5px solid #8e2620;border-radius:2px;padding:2px 7px 1px;opacity:.92;transform:rotate(-1.4deg)}.ds-stamp-filled{background:#b7332a;color:#fff;border-color:#b7332a}"
+    },
+    {
+      "name": "Rail Navigation",
+      "kind": "nav",
+      "refersTo": "nav-rail",
+      "description": "The steel drawer rail. Uppercase micro-labels; the current page takes a brass underline.",
+      "html": "<nav class=\"ds-rail\"><a href=\"#\" class=\"ds-rail-link\" aria-current=\"page\">Drawer</a><a href=\"#\" class=\"ds-rail-link\">Employers</a><a href=\"#\" class=\"ds-rail-link\">Your CV</a></nav>",
+      "css": ".ds-rail{display:flex;gap:4px;background:linear-gradient(180deg,#3c474c,#212a2e);padding:14px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}.ds-rail-link{font-family:Archivo,Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#adbac1;text-decoration:none;padding:7px 11px;border-radius:2px;transition:color .18s cubic-bezier(.16,.84,.34,1),background .18s cubic-bezier(.16,.84,.34,1)}.ds-rail-link:hover{color:#e3d6b4;background:rgba(255,255,255,.05)}.ds-rail-link[aria-current=page]{color:#e3d6b4;box-shadow:inset 0 -2px 0 #b08d3f}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Accession Register",
+    "overview": "This is a working library register rendered as an interface: an oxidised steel drawer, manila record cards threaded on a brass rod, a brass label holder screwed to the front, and a red stamp pad. The metaphor is not decoration. It was chosen because a register never throws anything out, which is the same promise the crawler underneath already makes.\n\nThe register is a finite, countable, physically bounded collection, and the system is built to say so. The count is the headline, it sits in brass hardware rather than in a stat tile, and every record carries an accession number and a stamped date.\n\nThe system refuses the category default - centred hero, wide search bar, three icon cards - and refuses the warm-cream-and-serif rendition that 'archival' usually collapses into.",
+    "keyCharacteristics": [
+      "Dark steel ground, light card stock - content is always on a card, never loose on the page",
+      "Every number on screen is queryable from the database; nothing is rounded up for effect",
+      "One variable grotesque plus one typewriter face; the typewriter face means record, never technical",
+      "Motion is one grammar: things rise out of the drawer",
+      "Hardware is modelled (screws, rod, pull), surfaces are flat"
+    ],
+    "rules": [
+      {
+        "name": "The Card Stock Rule",
+        "body": "Content sits on a card; chrome sits on steel. If something is readable text and it is not on manila, it is on steel and it takes Steel 400 or lighter - never Ink, which vanishes there.",
+        "section": "colors"
+      },
+      {
+        "name": "The Never Cream Rule",
+        "body": "No surface goes lighter than #e3d6b4. Cream, parchment and paper-white are the default this world was chosen against.",
+        "section": "colors"
+      },
+      {
+        "name": "The Two Saturated Voices Rule",
+        "body": "Red is ink and brass is metal. Red never appears as a large field and brass never carries a paragraph.",
+        "section": "colors"
+      },
+      {
+        "name": "The Typewriter Means Record Rule",
+        "body": "Courier Prime appears only where a register would actually have been typed. It never appears to make something look technical.",
+        "section": "typography"
+      },
+      {
+        "name": "The 11px Floor Rule",
+        "body": "No functional text ships below 11px, footers included, and anything carrying a whole sentence goes to 12px.",
+        "section": "typography"
+      },
+      {
+        "name": "The Short Caps Rule",
+        "body": "Uppercase is for labels of roughly 21 characters or fewer. The tab shape says 'tab', not the capitals.",
+        "section": "typography"
+      },
+      {
+        "name": "The Drawer Has A Bottom Rule",
+        "body": "Any list that can exceed ~50 rows pages. Shipping the employer register unpaginated produced a 76,489px page on a phone.",
+        "section": "layout"
+      },
+      {
+        "name": "The Cut Edge Rule",
+        "body": "A card's hard 1px offset is always paired with a soft blurred shadow and is always Manila Edge.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Ruled Line Rule",
+        "body": "Separation is a ruled hairline or a change of stock colour, never a box inside a box.",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "Do put readable content on card stock and chrome on steel, and check the text colour against the ground it actually lands on.",
+      "Do state every number literally, from the database, including the unflattering ones.",
+      "Do convey selection with elevation and hardware, not with ticks or colour fills.",
+      "Do keep motion to the one grammar: things rise out of the drawer, from a state already visible without JavaScript.",
+      "Do cap the stagger on entrance animations so a hundred records never take ten seconds to arrive.",
+      "Do page any list that can exceed ~50 rows.",
+      "Do theme the browser's own surfaces - selection, caret, scrollbar, focus ring, tabular numerals."
+    ],
+    "donts": [
+      "Don't go lighter than #e3d6b4 on any surface, and never reach for cream, parchment or a display serif.",
+      "Don't set a passage longer than ~21 characters in uppercase.",
+      "Don't use Courier Prime to make something look technical; it means typed record.",
+      "Don't put a coloured accent border on the side of a card, callout or alert.",
+      "Don't nest a card inside a card, or use a box where a ruled hairline will separate.",
+      "Don't let red carry a large field or brass carry a paragraph.",
+      "Don't claim a capability the product lacks. There is no alerting of any kind."
+    ]
+  }
+}
