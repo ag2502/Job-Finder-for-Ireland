@@ -66,6 +66,7 @@
           {% else %}
           <span class="applied-mark">
             <a class="btn btn--apply" href="{{ item.url }}" target="_blank" rel="noopener"
+               data-open-external
                hx-post="/applications"
                hx-vals='{{ {"advert_key": item.advert_key, "title": item.title,
                             "company": item.company, "url": item.url}|tojson }}'

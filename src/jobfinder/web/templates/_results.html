@@ -136,6 +136,7 @@
                {# Clicking Apply is the moment someone actually acts, so that is when
                   it is recorded. The link still opens the posting in a new tab; this
                   only swaps the button for an Undo control. #}
+               data-open-external
                hx-post="/applications"
                hx-vals='{{ {"advert_key": item.advert_key, "title": item.job.title,
                             "company": item.company, "url": item.job.url}|tojson }}'

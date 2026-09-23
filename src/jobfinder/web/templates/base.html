@@ -573,6 +573,17 @@ hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
 </footer>
 
 <script>
+// htmx cancels the default action on any <a> it drives, so an Apply link carrying
+// hx-post recorded the application and never opened the employer's posting - the one
+// thing the visitor actually clicked for. This listener runs in the capture phase, so
+// the tab is opened before htmx's own handler gets the event and preventDefaults it.
+// window.open inside a real click is not blocked by popup blockers.
+document.addEventListener('click', function (event) {
+  var link = event.target.closest && event.target.closest('a[data-open-external]');
+  if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+  window.open(link.href, '_blank', 'noopener');
+}, true);
+
 // The one authored moment: the drawer opens and the cards file in, once.
 (function () {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
