@@ -32,10 +32,9 @@
         {% endfor %}
       </ol>
       {% if employers_hiring > top_employers|length %}
-      <a class="indexcard__foot" href="/directory?show=hiring">
+      <span class="indexcard__foot">
         and {{ employers_hiring - top_employers|length }} more employers
-        <svg width="13" height="13" aria-hidden="true"><use href="#i-arrow"/></svg>
-      </a>
+      </span>
       {% endif %}
     </aside>
     {% endif %}

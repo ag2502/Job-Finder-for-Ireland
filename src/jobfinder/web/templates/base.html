@@ -546,9 +546,6 @@ hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
     </a>
     <nav class="tabs" aria-label="Sections">
       <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Drawer</a>
-      <a href="/directory" {% if nav == 'directory' %}aria-current="page"{% endif %}>Employers</a>
-      {% if show_admin_link %}<a href="/admin" {% if nav == 'admin' %}aria-current="page"{% endif %}>Coverage</a>{% endif %}
-      <a href="/privacy" {% if nav == 'privacy' %}aria-current="page"{% endif %}>Your CV</a>
       {% if accounts_enabled %}
         {% if account %}
           <a href="/saved" {% if nav == 'saved' %}aria-current="page"{% endif %}>Saved</a>

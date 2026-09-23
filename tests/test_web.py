@@ -41,12 +41,6 @@ def test_privacy_page_renders(client):
     assert "never stored" in response.text.lower()
 
 
-def test_admin_renders(client):
-    response = client.get("/admin")
-    assert response.status_code == 200
-    assert "Coverage" in response.text
-
-
 def test_old_results_url_still_redirects_home(client):
     """The separate results page was folded into the finder; old links must not 404."""
     response = client.get("/results", follow_redirects=False)
@@ -389,64 +383,6 @@ def test_reset_clears_the_profile(client):
     assert "<article class=\"record" not in home.text
 
 
-# ---------------------------------------------------------------------------
-# Employer directory
-# ---------------------------------------------------------------------------
-
-
-def test_directory_renders_and_reports_registry_size(client):
-    """The directory is the honest answer to "is my employer covered?"."""
-    response = client.get("/directory")
-    assert response.status_code == 200
-    assert "The register" in response.text
-
-
-def test_directory_pages_rather_than_shipping_the_whole_registry(client):
-    """618 employers in one response made a 76,000px page on a phone - worse than the
-    results table this redesign existed to fix. The directory pages like results."""
-    from jobfinder.web.app import DIRECTORY_PER_PAGE
-
-    first = client.get("/directory")
-    assert first.status_code == 200
-    assert first.text.count('<article class="record') <= DIRECTORY_PER_PAGE
-
-    second = client.get("/directory", params={"page": 2})
-    assert second.status_code == 200
-    # A second page must show different employers, not repeat the first.
-    assert second.text != first.text
-
-    # Out-of-range pages clamp rather than 404 or render empty.
-    assert client.get("/directory", params={"page": 9999}).status_code == 200
-    assert client.get("/directory", params={"page": 0}).status_code == 200
-
-
-def test_directory_counts_do_not_contradict_each_other(client):
-    """The lede quotes the registry size and the heading quotes what is shown; when
-    those were both stated flatly they read as two different truths on one screen."""
-    response = client.get("/directory")
-    assert "Showing" in response.text and " of " in response.text
-
-
-def test_directory_filters(client):
-    for show in ("all", "hiring", "linked"):
-        response = client.get("/directory", params={"show": show})
-        assert response.status_code == 200
-
-    response = client.get("/directory", params={"q": "zzz-no-such-employer"})
-    assert response.status_code == 200
-    assert "No employer in the register matches" in response.text
-
-
-def test_directory_is_linked_from_every_page(client):
-    """A company we cannot crawl is only "not missing" if the page is reachable."""
-    assert '/directory' in client.get("/").text
-
-
-# ---------------------------------------------------------------------------
-# Duplicate suppression
-# ---------------------------------------------------------------------------
-
-
 def test_direct_source_wins_over_an_aggregator_for_the_same_role():
     """An aggregator copy is truncated and its apply URL is a redirect, so the
     employer's own board must win whenever both carry a role."""
@@ -578,18 +514,6 @@ def test_admin_is_hidden_on_a_public_deployment_without_a_token(client, monkeypa
     monkeypatch.setattr(settings, "admin_token", "")
 
     assert client.get("/admin").status_code == 404
-
-
-def test_admin_opens_only_with_the_configured_token(client, monkeypatch):
-    from jobfinder.core.config import settings
-    from jobfinder.web import app as web_app
-
-    monkeypatch.setattr(web_app, "PUBLIC_DEPLOYMENT", True)
-    monkeypatch.setattr(settings, "admin_token", "s3cret-token")
-
-    assert client.get("/admin?token=wrong").status_code == 404
-    assert client.get("/admin").status_code == 404
-    assert client.get("/admin?token=s3cret-token").status_code == 200
 
 
 def test_a_public_deployment_refuses_to_start_with_the_default_session_secret(tmp_path):

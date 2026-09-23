@@ -36,13 +36,10 @@ from jobfinder.core.config import settings
 from jobfinder.core.db import init_db, session_scope
 from jobfinder.core.models import (
     Company,
-    CoverageState,
     CrawlRun,
-    CrawlStatus,
     JobPosting,
     JobStatus,
     Source,
-    SourceCrawl,
 )
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
@@ -135,21 +132,6 @@ async def _require_account(request: Request, call_next):
 # one has run.
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret)
 templates = Jinja2Templates(directory=str(TEMPLATES))
-templates.env.globals["show_admin_link"] = not PUBLIC_DEPLOYMENT
-
-
-def _admin_allowed(request: Request) -> bool:
-    """Whether this request may see the coverage dashboard.
-
-    The dashboard lists every source slug and recent crawl errors, and each load runs a
-    set of whole-table aggregates. On a laptop that is a useful tool; on a public site it
-    is operational detail nobody outside needs and a cheap way to burn the database's
-    free compute. So a public deployment serves it only with the configured token.
-    """
-    if settings.admin_token:
-        supplied = request.query_params.get("token", "")
-        return hmac.compare_digest(supplied, settings.admin_token)
-    return not PUBLIC_DEPLOYMENT
 
 
 def _profile(request: Request) -> dict | None:
@@ -1073,178 +1055,6 @@ def unmark_saved(
 def reset(request: Request):
     request.session.clear()
     return RedirectResponse("/", status_code=303)
-
-
-@app.get("/admin", response_class=HTMLResponse)
-def admin(request: Request):
-    if not _admin_allowed(request):
-        # 404 rather than 403: a locked page need not announce that it exists.
-        raise HTTPException(status_code=404)
-    with session_scope() as session:
-        totals = {
-            "companies": session.scalar(select(func.count()).select_from(Company)) or 0,
-            "sources": session.scalar(select(func.count()).select_from(Source)) or 0,
-            "active": session.scalar(
-                select(func.count()).select_from(JobPosting).where(
-                    JobPosting.status == JobStatus.ACTIVE
-                )
-            ) or 0,
-            "dublin": session.scalar(
-                select(func.count()).select_from(JobPosting).where(
-                    JobPosting.status == JobStatus.ACTIVE,
-                    JobPosting.is_dublin.is_(True),
-                )
-            ) or 0,
-            "closed": session.scalar(
-                select(func.count()).select_from(JobPosting).where(
-                    JobPosting.status == JobStatus.CLOSED
-                )
-            ) or 0,
-            "review": session.scalar(
-                select(func.count()).select_from(JobPosting).where(
-                    JobPosting.needs_location_review.is_(True)
-                )
-            ) or 0,
-        }
-
-        coverage = session.execute(
-            select(Company.coverage_state, func.count())
-            .group_by(Company.coverage_state)
-        ).all()
-
-        listed = session.execute(
-            select(Company).where(Company.is_public_listed.is_(True))
-        ).scalars().all()
-
-        runs = session.execute(
-            select(CrawlRun).order_by(CrawlRun.id.desc()).limit(8)
-        ).scalars().all()
-
-        problems = session.execute(
-            select(SourceCrawl, Source, Company)
-            .join(Source, SourceCrawl.source_id == Source.id)
-            .join(Company, Source.company_id == Company.id)
-            .where(SourceCrawl.status != CrawlStatus.OK)
-            .order_by(SourceCrawl.id.desc())
-            .limit(20)
-        ).all()
-
-        per_source = session.execute(
-            select(Company.name, Source.adapter, Source.slug, func.count(JobPosting.id))
-            .join(Source, Source.company_id == Company.id)
-            .outerjoin(
-                JobPosting,
-                (JobPosting.source_id == Source.id)
-                & (JobPosting.status == JobStatus.ACTIVE)
-                & (JobPosting.is_dublin.is_(True)),
-            )
-            .group_by(Company.name, Source.adapter, Source.slug)
-            .order_by(func.count(JobPosting.id).desc())
-        ).all()
-
-    context = _base_context(request)
-    context.update(
-        totals=totals,
-        coverage=[(state.value, count) for state, count in coverage],
-        listed=listed,
-        runs=runs,
-        problems=problems,
-        per_source=per_source,
-        states=[s.value for s in CoverageState],
-    )
-    return templates.TemplateResponse(request, "admin.html", context)
-
-
-DIRECTORY_PER_PAGE = 50
-
-
-@app.get("/directory", response_class=HTMLResponse)
-def directory(request: Request, q: str = "", show: str = "all", page: int = 1):
-    """Every employer in the registry, crawlable or not.
-
-    This is the honest answer to "is my company covered?". No crawler will ever reach
-    100% of Irish employers — some render their listings entirely in JavaScript, some
-    sit behind a bot wall, some have no careers page at all. What *is* achievable is
-    that no employer is silently absent: every company in the registry appears here
-    with either its live Dublin openings or a direct link to its careers page, and its
-    coverage state says which and why.
-
-    A company with a careers link and no crawled jobs is one click from the searcher,
-    which is the whole difference between "missing" and "not automated".
-    """
-    query = (q or "").strip()
-
-    with session_scope() as session:
-        live_counts = dict(
-            session.execute(
-                select(JobPosting.company_id, func.count())
-                .where(_is_offerable(), JobPosting.is_dublin.is_(True))
-                .group_by(JobPosting.company_id)
-            ).all()
-        )
-
-        stmt = select(Company)
-        if query:
-            stmt = stmt.where(Company.name.ilike(f"%{query}%"))
-        companies = session.execute(stmt).scalars().all()
-
-        crawled_states = {
-            CoverageState.ATS_DETECTED,
-            CoverageState.BESPOKE_ADAPTER,
-            CoverageState.GENERIC_EXTRACTION,
-        }
-
-        rows = []
-        for company in companies:
-            count = live_counts.get(company.id, 0)
-            rows.append(
-                {
-                    "id": company.id,
-                    "name": company.name,
-                    "jobs": count,
-                    "careers_url": company.careers_url or company.website,
-                    "state": company.coverage_state.value,
-                    "crawled": company.coverage_state in crawled_states,
-                    "priority": company.coverage_priority,
-                }
-            )
-
-        if show == "hiring":
-            rows = [r for r in rows if r["jobs"]]
-        elif show == "linked":
-            rows = [r for r in rows if not r["jobs"] and r["careers_url"]]
-
-        # Employers with live roles lead, then those with the most complete coverage,
-        # then alphabetically. A searcher scanning this wants the actionable rows first.
-        rows.sort(key=lambda r: (-r["jobs"], not r["crawled"], r["name"].lower()))
-
-        total = len(companies)
-        with_jobs = sum(1 for r in rows if r["jobs"])
-        linked = sum(1 for r in rows if not r["jobs"] and r["careers_url"])
-
-    # The registry is 618 employers and every filter still returns hundreds. Shipping
-    # them in one response produced a 76,000px page on a phone, which is worse than the
-    # results table this redesign set out to fix, so the directory pages like results.
-    matched = len(rows)
-    pages = max(1, (matched + DIRECTORY_PER_PAGE - 1) // DIRECTORY_PER_PAGE)
-    page = max(1, min(page, pages))
-    start = (page - 1) * DIRECTORY_PER_PAGE
-
-    context = _base_context(request)
-    context.update(
-        {
-            "rows": rows[start : start + DIRECTORY_PER_PAGE],
-            "matched": matched,
-            "page": page,
-            "pages": pages,
-            "total": total,
-            "with_jobs": with_jobs,
-            "linked": linked,
-            "query": query,
-            "show": show,
-        }
-    )
-    return templates.TemplateResponse(request, "directory.html", context)
 
 
 @app.get("/privacy", response_class=HTMLResponse)

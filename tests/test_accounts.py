@@ -460,7 +460,7 @@ def test_a_signed_out_visitor_can_browse_every_job(client: TestClient):
     """The site is open. It was gated everywhere until launch, which meant anyone
     arriving from a link saw a sign-in wall instead of a single job - the wrong first
     impression for a product whose pitch is that every opening is in one place."""
-    for path in ("/", "/directory", "/privacy"):
+    for path in ("/", "/privacy"):
         response = client.get(path, follow_redirects=False)
         assert response.status_code == 200, path
 
