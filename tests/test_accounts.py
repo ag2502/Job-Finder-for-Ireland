@@ -480,7 +480,7 @@ def test_signing_in_opens_the_site(client: TestClient):
     _signed_in(client)
     response = client.get("/", follow_redirects=False)
     assert response.status_code == 200
-    assert "Every Dublin opening" in response.text
+    assert "Every job in Dublin" in response.text
 
 
 @pytest.mark.parametrize("path", ["/login", "/signup", "/privacy"])
@@ -520,7 +520,7 @@ def test_the_gate_cannot_lock_everyone_out_when_accounts_are_unavailable(
     with TestClient(app) as c:
         response = c.get("/", follow_redirects=False)
         assert response.status_code == 200
-        assert "Every Dublin opening" in response.text
+        assert "Every job in Dublin" in response.text
 
 
 # --------------------------------------------------------------- saved jobs

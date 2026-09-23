@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-23T15:35:39+00:00",
+  "generatedAt": "2026-09-23T16:35:00+00:00",
   "title": "Design System: Sorted Place",
   "extensions": {
     "colorMeta": {
@@ -334,6 +334,11 @@
         "section": "typography"
       },
       {
+        "name": "The Plain Words Rule",
+        "body": "The world is a register; the copy is not. Nothing on screen asks a visitor to learn the metaphor to use the product: no 'records pulled', no serial numbers, no 'drawer 3 of 10'.",
+        "section": "typography"
+      },
+      {
         "name": "The Short Caps Rule",
         "body": "Uppercase is for labels of roughly 21 characters or fewer. The tab shape says 'tab', not the capitals.",
         "section": "typography"
@@ -370,7 +375,8 @@
       "Don't put a coloured accent border on the side of a card, callout or alert.",
       "Don't nest a card inside a card, or use a box where a ruled hairline will separate.",
       "Don't let red carry a large field or brass carry a paragraph.",
-      "Don't claim a capability the product lacks. There is no alerting of any kind."
+      "Don't claim a capability the product lacks. There is no alerting of any kind.",
+      "Don't make the visitor learn the filing metaphor to use the product; the world shapes the components, the words stay plain."
     ]
   }
 }

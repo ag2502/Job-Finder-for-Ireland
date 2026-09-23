@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% set nav = 'privacy' %}
 {% block title %}What happens to your CV &mdash; Sorted Place{% endblock %}
-{% block railcount %}YOUR CV &middot; NEVER STORED{% endblock %}
+{% block railcount %}YOUR CV IS NEVER STORED{% endblock %}
 {% block content %}
 
 <section class="drawerfront">
-  <h1>Your CV is never<br>put in a drawer.</h1>
+  <h1>Your CV is never<br>stored.</h1>
   <p class="lede">
-    It is read in memory and the file is discarded before the page finishes loading.
-    Nothing is written to disk, and nothing is written to a database.
+    We read it to work out which jobs suit you, then throw the file away before the
+    page has even finished loading. It is never written to a disk or a database.
   </p>
 </section>
 
@@ -18,7 +18,7 @@
   <ul class="muted">
     <li>Skill keywords found in your CV &mdash; <em>python</em>, <em>kubernetes</em>, and so on</li>
     <li>A seniority guess and a rough number of years</li>
-    <li>The tabs you pulled</li>
+    <li>The kinds of work you picked</li>
   </ul>
   <p class="muted">
     The text of your CV is not among them. Earlier versions kept a short excerpt for
@@ -70,9 +70,9 @@
   <hr class="rule">
   <h2>The job records themselves</h2>
   <p class="muted">
-    Job postings are public business information collected from employers' own careers
-    systems. Every record links back to the employer's original posting, which is where
-    you apply. This site never takes an application.
+    Job adverts are public business information, gathered from companies' own careers
+    pages. Every one links back to the company's original posting, which is where you
+    apply. This site never takes an application itself.
   </p>
 </div>
 

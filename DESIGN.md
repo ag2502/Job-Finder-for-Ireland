@@ -133,8 +133,14 @@ and the mechanism are the same idea, every component has an obvious correct form
 
 The register is a **finite, countable, physically bounded** collection, and the system
 is built to say so. The count is the headline, it sits in brass hardware rather than in
-a stat tile, and every record carries an accession number and a stamped date. Nothing
-here scrolls forever; the page is a drawer with a bottom.
+a stat tile, and every record carries a stamped date. Nothing here scrolls forever;
+the page is a drawer with a bottom.
+
+The register is the system's private logic, not its vocabulary. Visitors are job
+hunting, not filing: the world shapes the cards, the tabs and the stamps, while the
+words on them stay plain. An earlier build printed a serial number on every record and
+called the results "records pulled"; both were removed for reading as a filing clerk's
+interface rather than a job search.
 
 The system refuses two things by name. It refuses the category default — the centred
 hero, the wide search bar, three icon cards, a logo strip — because that arrangement is
@@ -204,17 +210,22 @@ what a typewriter typed on a catalogue card: numbers, dates, field names, stamps
 - **Headline** (800, `clamp(1.25rem, 2.4vw, 1.6rem)`, 1.12): section and card headings.
 - **Title** (800, 1.06rem, 1.32): the job title on a record — the largest thing on any card.
 - **Body** (400, 16px, 1.55): running copy, capped at 68ch (`--measure`), 58–60ch for ledes.
-- **Label** (700, 11px, 0.17em, uppercase, Courier Prime): field names, accession numbers, stamps, counts.
+- **Label** (700, 11px, 0.17em, uppercase, Courier Prime): field names, dates, stamps, counts.
 
 ### Named Rules
 
 **The Typewriter Means Record Rule.** Courier Prime appears only where a register would
-actually have been typed: accession numbers, dates, counts, field names, stamp text. It
+actually have been typed: dates, counts, field names, stamp text. It
 never appears to make something look technical, and never sets a sentence longer than a
 line.
 
 **The 11px Floor Rule.** No functional text ships below 11px, footers and micro-labels
 included, and anything carrying a whole sentence goes to 12px.
+
+**The Plain Words Rule.** The world is a register; the copy is not. Nothing on screen
+asks a visitor to learn the metaphor to use the product: no "records pulled", no serial
+numbers, no "drawer 3 of 10". Name what the thing is in the words someone job hunting
+would use.
 
 **The Short Caps Rule.** Uppercase is for labels of roughly 21 characters or fewer. The
 24 role tabs were set in caps once; at 33 characters they scanned badly and failed

@@ -1,40 +1,46 @@
 {% extends "base.html" %}
 {% set nav = 'finder' %}
-{% block railcount %}DUBLIN &middot; LIVE OPENINGS &middot; {{ "{:,}".format(dublin_count) }}{% endblock %}
+{% block railcount %}{{ "{:,}".format(dublin_count) }} JOBS OPEN IN DUBLIN{% endblock %}
 {% block content %}
 
-{# The drawer front. The headline is engraved on the steel itself, not printed on a
-   card - the cards are for records only. The index card beside it is the claim being
-   checked: real employers, real live counts, straight off the register. #}
+{# The headline is engraved on the steel itself; the cards are for records only. The
+   card beside it names real companies with real counts, so the "all in one place"
+   claim can be checked rather than taken on trust. #}
 <section class="drawerfront">
   <div class="front">
     <div class="front__copy">
-      <h1>Every Dublin opening,<br>on file.</h1>
+      <h1>Every job in Dublin,<br>under one roof.</h1>
       <p class="lede">
-        <strong>{{ "{:,}".format(dublin_count) }} live roles</strong>, read straight from
-        employers' own careers systems &mdash; not a job board, not a feed. Once a role is
-        filed here it stays on file until two separate crawls confirm it is gone, so
-        nothing quietly disappears while you are not looking.
+        <strong>{{ "{:,}".format(dublin_count) }} jobs</strong> are open in Dublin right
+        now, collected from companies' own careers pages &mdash; so you don't have to
+        check LinkedIn, Indeed and twenty company sites one by one. If a job is open,
+        it's here, and it stays here until the company actually takes it down.
       </p>
       <p class="ledger-line typed">
-        {{ employers_hiring }} employers hiring now &middot;
-        {{ "{:,}".format(company_count) }} on the register &middot;
-        re-read every 6 hours
+        {{ employers_hiring }} companies hiring today &middot; updated every 6 hours
       </p>
     </div>
 
-    {% if top_employers %}
-    <aside class="indexcard" aria-label="Employers hiring in Dublin right now">
+    {% if hiring_employers %}
+    <aside class="indexcard" aria-label="Companies hiring in Dublin right now">
       <span class="indexcard__head">Hiring right now</span>
       <ol class="indexcard__list">
-        {% for e in top_employers %}
+        {% for e in hiring_employers[:8] %}
         <li><span class="nm">{{ e.name }}</span><span class="ct">{{ e.jobs }}</span></li>
         {% endfor %}
       </ol>
-      {% if employers_hiring > top_employers|length %}
-      <span class="indexcard__foot">
-        and {{ employers_hiring - top_employers|length }} more employers
-      </span>
+      {% if hiring_employers|length > 8 %}
+      <details class="indexmore">
+        <summary>
+          <span class="indexmore__open">and {{ hiring_employers|length - 8 }} more companies</span>
+          <span class="indexmore__shut">show fewer</span>
+        </summary>
+        <ol class="indexcard__list indexcard__list--rest">
+          {% for e in hiring_employers[8:] %}
+          <li><span class="nm">{{ e.name }}</span><span class="ct">{{ e.jobs }}</span></li>
+          {% endfor %}
+        </ol>
+      </details>
       {% endif %}
     </aside>
     {% endif %}
@@ -43,15 +49,15 @@
 
 {% if error %}<p class="err">{{ error }}</p>{% endif %}
 
-{# Once the drawer has been pulled the slip folds down to a summary: on a phone the
-   24 tabs are most of the page, and nobody re-reads them while scanning results. #}
+{# Once a search has run the form folds to a summary: on a phone the choices are most of
+   the page, and nobody re-reads them while scanning results. #}
 <details class="slipwrap" id="slipwrap" {% if items is not defined %}open{% endif %}>
   <summary class="slipsummary">
     <span class="slipsummary__label">
       {% if profile and profile.fields %}
-        {{ profile.fields|length }} tab{{ "" if profile.fields|length == 1 else "s" }} pulled
+        {{ profile.fields|length }} area{{ "" if profile.fields|length == 1 else "s" }} selected
       {% else %}
-        Choose what you want to do next
+        Tell us what you're looking for
       {% endif %}
     </span>
     <span class="slipsummary__hint typed">change</span>
@@ -66,12 +72,12 @@
         hx-disabled-elt="#find-btn">
 
     <div class="slip__head">
-      <h2 id="roles-heading">What do you want to do next?</h2>
+      <h2 id="roles-heading">What kind of work are you looking for?</h2>
       <span class="stamp stamp--filled">required</span>
     </div>
     <p class="small muted" style="margin:0 0 14px;max-width:64ch">
-      Your CV shows what you have already done. These tabs say what you want next, and
-      that is what the register is searched for. Related fields come back automatically.
+      Pick one or more. We'll show you every job that matches, plus closely related ones
+      you might not have thought to search for.
     </p>
 
     <div class="dividers" id="field-chips" role="group" aria-labelledby="roles-heading">
@@ -86,10 +92,10 @@
 
     <div class="slip__action">
       <button type="submit" id="find-btn" disabled>
-        Open the drawer
+        Find my jobs
         <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>
-      <span id="find-hint" class="accession">Choose at least one tab above</span>
+      <span id="find-hint" class="accession">Pick at least one above</span>
     </div>
 
     <div class="switches">
@@ -97,7 +103,7 @@
         <input type="checkbox" name="include_remote" value="1"
                {% if profile and profile.include_remote %}checked{% endif %}>
         <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-        Include remote roles
+        Include remote jobs
       </label>
       <label class="switch">
         <input type="checkbox" name="internships_only" value="1"
@@ -120,42 +126,41 @@
         <label for="resume"><span class="fieldname">Your CV &mdash; optional</span></label>
         <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
         <p class="small muted" style="margin:8px 0 0">
-          Read in memory and discarded before the page loads. Never written to disk.
-          <a href="/privacy">What is kept</a>.
+          Helps put the closest jobs first. Read and thrown away straight away &mdash;
+          never saved. <a href="/privacy">What we keep</a>.
         </p>
       </div>
       <div>
         <label for="years"><span class="fieldname">Years of experience &mdash; optional</span></label>
         <input type="number" id="years" name="years" min="0" max="50" step="1"
-               placeholder="blank shows everything"
+               placeholder="leave blank to see everything"
                value="{{ profile.years if profile and profile.years is not none else '' }}">
         <p class="small muted" style="margin:8px 0 0">
           {% if profile and profile.cv_years and profile.years is none %}
-            Your CV reads as about <strong>{{ profile.cv_years }} years</strong>. Enter a
-            number to narrow the drawer; blank keeps it open.
+            Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Put a
+            number in to narrow things down, or leave it blank to see everything.
           {% else %}
-            Shows roles asking for that many years <strong>or fewer</strong>. At 2 or
-            under, graduate and entry-level roles come in too.
+            Shows jobs asking for that many years <strong>or fewer</strong>. Put 2 or
+            less and graduate jobs come in too.
           {% endif %}
         </p>
 
         <label for="q" style="margin-top:18px;display:block">
-          <span class="fieldname">Filter by title &mdash; optional</span>
+          <span class="fieldname">Search job titles &mdash; optional</span>
         </label>
         <input type="text" id="q" name="q" placeholder="engineer, analyst, nurse&hellip;"
                value="{{ profile.query if profile and profile.query else '' }}">
       </div>
     </div>
-
   </form>
 </details>
 
 <div id="search-loading" class="pulling" role="status" aria-live="polite">
   <span class="drawerspin" aria-hidden="true"><i></i><i></i><i></i></span>
   <div>
-    <strong>Pulling the drawer&hellip; <span id="search-elapsed" class="accession" style="color:var(--steel-400)"></span></strong>
-    <span class="sub">Matching your tabs and CV against every active opening. A few
-      seconds, a little longer on the first pull.</span>
+    <strong>Finding your jobs&hellip; <span id="search-elapsed" class="accession" style="color:var(--steel-400)"></span></strong>
+    <span class="sub">Checking what you picked against every job open in Dublin. Usually
+      a few seconds, a little longer the first time.</span>
   </div>
 </div>
 
@@ -196,13 +201,26 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .indexcard__list .ct{margin-left:auto;font-family:"Courier Prime",ui-monospace,monospace;
     font-weight:700;font-size:13px;color:var(--stamp-deep)}
-  .indexcard__foot{
-    display:inline-flex;align-items:center;gap:6px;margin-top:12px;
-    font-size:12px;font-weight:600;color:var(--ink-2);text-decoration:none;
-  }
-  .indexcard__foot:hover{color:var(--stamp-deep);text-decoration:underline}
 
-  /* the folded slip */
+  /* The rest of the companies open in place. There is no separate register page to send
+     anyone to, and a link that goes nowhere is worse than no link at all. */
+  .indexmore summary{
+    list-style:none;cursor:pointer;
+    display:inline-flex;align-items:center;gap:6px;margin-top:11px;
+    font-size:12px;font-weight:600;color:var(--ink-2);
+    border-bottom:1.5px solid var(--stamp-deep);padding-bottom:1px;
+  }
+  .indexmore summary::-webkit-details-marker{display:none}
+  .indexmore summary:hover{color:var(--stamp-deep)}
+  .indexmore summary:focus-visible{outline:2px solid var(--brass-lo);outline-offset:3px}
+  .indexmore .indexmore__shut{display:none}
+  .indexmore[open] .indexmore__open{display:none}
+  .indexmore[open] .indexmore__shut{display:inline}
+  .indexcard__list--rest{
+    max-height:260px;overflow-y:auto;margin-top:8px;
+    border-top:1px solid var(--rule);
+  }
+
   .slipwrap{margin-bottom:14px}
   .slipwrap>summary{list-style:none;cursor:pointer}
   .slipwrap>summary::-webkit-details-marker{display:none}
@@ -223,11 +241,11 @@
   .slipwrap[open]>summary{display:none}
   .slipwrap>summary:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
 
-  .switches{display:flex;flex-wrap:wrap;gap:0 4px;margin-top:20px}
+  .switches{display:flex;flex-wrap:wrap;gap:0 4px;margin-top:22px}
   .slip__head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
   .slip__head h2{margin:0}
   .slip__rule{height:1px;background:var(--rule);margin:26px 0 24px}
-  .slip__action{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:28px}
+  .slip__action{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:24px}
 
   @media (max-width:980px){
     .front{grid-template-columns:1fr;gap:28px}
@@ -241,7 +259,7 @@
 </style>
 
 <script>
-  // The search stays closed until a tab is chosen. The server enforces it too; this
+  // The search stays closed until something is chosen. The server enforces it too; this
   // explains the requirement before the click instead of after it.
   (function () {
     var form = document.getElementById('finder-form');
@@ -253,29 +271,29 @@
     function chosen() {
       return form.querySelectorAll('input[name="chosen_fields"]:checked').length;
     }
+    function label(n) {
+      return n + (n === 1 ? ' area selected' : ' areas selected');
+    }
     function sync() {
       var n = chosen();
       button.disabled = n === 0;
-      hint.textContent = n === 0
-        ? 'Choose at least one tab above'
-        : n + (n === 1 ? ' tab pulled' : ' tabs pulled');
+      hint.textContent = n === 0 ? 'Pick at least one above' : label(n);
     }
     form.addEventListener('change', function (event) {
       if (event.target.name === 'chosen_fields') sync();
     });
     sync();
 
-    // Once the drawer is pulled, fold the slip away and keep the summary honest.
+    // Once the results are in, fold the form away and keep the summary honest.
     document.body.addEventListener('htmx:afterSwap', function (event) {
       if (!event.target || event.target.id !== 'results' || !wrap) return;
-      var n = chosen();
-      var label = wrap.querySelector('.slipsummary__label');
-      if (label) label.textContent = n + (n === 1 ? ' tab pulled' : ' tabs pulled');
+      var el = wrap.querySelector('.slipsummary__label');
+      if (el) el.textContent = label(chosen());
       wrap.open = false;
     });
   })();
 
-  // A seconds counter, so a long pull reads as working rather than stuck.
+  // A seconds counter, so a long search reads as working rather than stuck.
   (function () {
     var elapsed = document.getElementById('search-elapsed');
     var timer = null;

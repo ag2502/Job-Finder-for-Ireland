@@ -69,7 +69,7 @@ def test_submit_button_starts_disabled(client):
     """The requirement is explained before the click, not after it."""
     response = client.get("/")
     assert 'id="find-btn" disabled' in response.text
-    assert "Choose at least one tab" in response.text
+    assert "Pick at least one above" in response.text
 
 
 def test_roles_are_marked_required_in_the_form(client):
@@ -84,7 +84,7 @@ def test_cv_plus_roles_succeeds(client):
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
-    assert "records pulled" in response.text
+    assert "jobs match" in response.text
 
 
 def test_paging_does_not_re_trigger_the_roles_requirement(client):
@@ -107,7 +107,7 @@ def test_search_renders_results_on_the_same_page(client):
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
-    assert "records pulled" in response.text
+    assert "jobs match" in response.text
     # The upload form is still present: it is one page, not a separate results view.
     assert 'id="finder-form"' in response.text
 
@@ -151,7 +151,7 @@ def test_paging_keeps_cv_signals_from_the_session(client):
         headers={"HX-Request": "true"},
     )
     assert page_two.status_code == 200
-    assert "skills read from your CV" in page_two.text
+    assert "closest to your CV first" in page_two.text
 
 
 def test_sort_and_paging_controls_do_not_resend_the_cv_input(client):
@@ -262,14 +262,14 @@ def test_search_without_a_cv_still_works(client):
     """Fields alone are a valid search - a CV is optional."""
     response = client.post("/search", data={"chosen_fields": ["backend"]})
     assert response.status_code == 200
-    assert "records pulled" in response.text
+    assert "jobs match" in response.text
 
 
 def _total(response) -> int:
     """Pull the result count out of the rendered heading."""
     import re
 
-    match = re.search(r"([\d,]+) (?:record|internship)", response.text)
+    match = re.search(r"([\d,]+) (?:job|internship)", response.text)
     return int(match.group(1).replace(",", "")) if match else 0
 
 
@@ -301,7 +301,7 @@ def test_experience_filter_excludes_more_demanding_roles(client):
 
 def test_two_years_mentions_graduate_inclusion(client):
     response = client.post("/search", data={"chosen_fields": ["backend"], "years": "2"})
-    assert "graduate and entry-level included" in response.text
+    assert "graduate and entry-level jobs included" in response.text
 
 
 def test_above_two_years_does_not_mention_graduate_inclusion(client):
@@ -335,8 +335,8 @@ def test_graduate_only_switches_the_result_set(client):
     # Found graduate roles or the seasonal empty state - never ordinary roles, and the
     # typed experience must not narrow a graduate search.
     assert "graduate" in response.text.lower()
-    assert "records pulled" not in response.text
-    assert "up to 6 years" not in response.text
+    assert "jobs match" not in response.text
+    assert "asking 6 years or less" not in response.text
 
 
 def test_typed_experience_overrides_the_cv(client):
@@ -346,7 +346,7 @@ def test_typed_experience_overrides_the_cv(client):
         files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"], "years": "1"},
     )
-    assert "up to 1 year" in response.text
+    assert "asking 1 year or less" in response.text
 
 
 def test_blank_box_shows_everything_even_when_the_cv_states_years(client):

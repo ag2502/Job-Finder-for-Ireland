@@ -1,19 +1,19 @@
 {% extends "base.html" %}
 {% set nav = 'account' %}
 {% block title %}{{ "Create an account" if mode == "signup" else "Sign in" }} &mdash; Sorted Place{% endblock %}
-{% block railcount %}{{ "NEW BORROWER" if mode == "signup" else "SIGN IN" }}{% endblock %}
+{% block railcount %}{{ "CREATE ACCOUNT" if mode == "signup" else "SIGN IN" }}{% endblock %}
 {% block content %}
 
 <div class="ticket">
   <section class="drawerfront" style="padding:56px 0 30px">
     <h1 style="font-size:clamp(2rem,4.6vw,3rem)">
       {% if reason %}One step first.
-      {% else %}{{ "Get your own card." if mode == "signup" else "Welcome back." }}{% endif %}
+      {% else %}{{ "Create your account." if mode == "signup" else "Welcome back." }}{% endif %}
     </h1>
     <p class="lede">
-      An account does one job: it remembers what you have already applied to and keeps
-      those records out of your results. Your CV is still never stored, with an account
-      or without one.
+      An account does two things: it remembers which jobs you have applied to and keeps
+      them out of your results, and it lets you save jobs for later. Your CV is never
+      stored either way.
     </p>
   </section>
 
@@ -37,7 +37,7 @@
 
     <div class="row" style="margin-top:28px;gap:18px">
       <button type="submit">
-        {{ "Create the card" if mode == "signup" else "Sign in" }}
+        {{ "Create account" if mode == "signup" else "Sign in" }}
         <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>
       <span class="accession" style="color:var(--ink-3)">

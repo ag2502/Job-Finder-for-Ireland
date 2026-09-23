@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% set nav = 'applications' %}
 {% block title %}What you have applied to &mdash; Sorted Place{% endblock %}
-{% block railcount %}APPLIED &middot; {{ applications|length if applications else 0 }} ON FILE{% endblock %}
+{% block railcount %}{{ applications|length if applications else 0 }} APPLICATIONS{% endblock %}
 {% block content %}
 
 <section class="drawerfront">
   <h1>{% if applications %}You have applied to {{ applications|length }}.{% else %}Nothing marked yet.{% endif %}</h1>
   {% if applications %}
   <p class="lede">
-    These are kept out of your results, so you never have to sit there wondering whether
-    you already went for this one. <strong>Undo</strong> files it back in.
+    We keep these out of your search results, so you never have to wonder whether you
+    already went for one. <strong>Undo</strong> puts a job back.
   </p>
   {% endif %}
 </section>
@@ -30,11 +30,11 @@
 {% elif not applications %}
   <div class="card">
     <p class="muted" style="margin:0;max-width:62ch">
-      When you click Apply on a record, it is marked here and taken out of your search
-      results. Nothing else about your search changes, and you can undo any of it.
+      When you click Apply on a job, it is recorded here and taken out of your search
+      results. Nothing else changes, and you can undo any of it.
     </p>
     <div class="row" style="margin-top:20px">
-      <a class="btn" href="/">Open the drawer
+      <a class="btn" href="/">Find jobs
         <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
       </a>
     </div>
@@ -50,7 +50,7 @@
           {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
           {% else %}{{ item.title }}{% endif %}
         </h3>
-        <p class="record__meta">Marked as applied on {{ item.applied_on }}</p>
+        <p class="record__meta">Applied on {{ item.applied_on }}</p>
       </div>
       <div class="record__side">
         <span class="stamp stamp--filled">applied</span>

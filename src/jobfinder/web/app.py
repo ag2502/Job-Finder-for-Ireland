@@ -251,25 +251,25 @@ def _index_context(request: Request) -> dict:
             )
         ) or 0
 
-        # The first viewport claims the register is complete. Naming the employers
-        # actually in it, with live counts, is the cheapest way to let a visitor
-        # check that claim instead of taking it.
-        top = session.execute(
+        # "All of Dublin in one place" is a claim, and naming the companies is how a
+        # visitor checks it rather than taking it. Every one of them is listed, not
+        # just the biggest: the page shows the first few and opens the rest in place,
+        # because a link to a page that does not exist is worse than no link.
+        rows = session.execute(
             select(Company.name, func.count(JobPosting.id).label("n"))
             .join(JobPosting, JobPosting.company_id == Company.id)
             .where(_is_offerable(), JobPosting.is_dublin.is_(True))
             .group_by(Company.name)
-            .order_by(func.count(JobPosting.id).desc())
-            .limit(8)
+            .order_by(func.count(JobPosting.id).desc(), Company.name)
         ).all()
-        top_employers = [{"name": r[0], "jobs": r[1]} for r in top]
+        hiring_employers = [{"name": r[0], "jobs": r[1]} for r in rows]
 
     context = _base_context(request)
     context.update(
         dublin_count=dublin,
         company_count=companies,
         employers_hiring=hiring,
-        top_employers=top_employers,
+        hiring_employers=hiring_employers,
     )
     return context
 

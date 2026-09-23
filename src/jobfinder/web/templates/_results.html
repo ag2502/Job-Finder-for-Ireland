@@ -16,13 +16,13 @@
   <div class="spread">
     <h2 style="margin:0">
       {% if internships_only and graduate_only %}
-        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }} &amp; graduate role{{ "" if total == 1 else "s" }}
+        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }} &amp; graduate job{{ "" if total == 1 else "s" }}
       {% elif internships_only %}
         {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }}
       {% elif graduate_only %}
-        {{ "{:,}".format(total) }} graduate role{{ "" if total == 1 else "s" }}
+        {{ "{:,}".format(total) }} graduate job{{ "" if total == 1 else "s" }}
       {% else %}
-        {{ "{:,}".format(total) }} record{{ "" if total == 1 else "s" }} pulled
+        {{ "{:,}".format(total) }} job{{ "" if total == 1 else "s" }} match
       {% endif %}
     </h2>
 
@@ -54,11 +54,11 @@
 
   <p class="accession" style="margin:12px 0 0;color:var(--ink-3);line-height:1.6">
     {% if candidate_years is not none and not early_only %}
-      up to {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} experience &middot;
+      asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;
     {% endif %}
-    {% if skill_count %}ranked against {{ skill_count }} skills read from your CV{% else %}ranked by the tabs you pulled{% endif %}
+    {% if skill_count %}closest to your CV first{% else %}best matches first{% endif %}
     {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
-      &middot; graduate and entry-level included at this level
+      &middot; graduate and entry-level jobs included
     {% endif %}
   </p>
 
@@ -66,8 +66,8 @@
   {# Nothing cleared the relevance bar. Showing the closest anyway beats a blank page,
      but presenting them as matches would claim something the filter just ruled out. #}
   <p class="small" style="margin:12px 0 0;color:var(--stamp-deep);font-weight:600">
-    Nothing matched those tabs closely. These are the nearest records in the drawer &mdash;
-    pull more tabs, or include remote roles.
+    Nothing was a close match, so these are the nearest we found. Try picking a few
+    more areas, or turn on remote jobs.
   </p>
   {% endif %}
 </div>
@@ -78,15 +78,12 @@
     {% if tiered and item.tier > 0 and (loop.first or items[loop.index0 - 1].tier == 0) %}
     {# Everything above sits in a field that was actually pulled. Below are one hop
        away - worth offering, never worth ranking above what was asked for. #}
-    <div class="guide">Related fields{% if page > 1 %} &middot; continued{% endif %}</div>
+    <div class="guide">Closely related roles{% if page > 1 %} &middot; continued{% endif %}</div>
     {% endif %}
 
     <article class="record filing">
       <div class="record__main">
-        <div class="record__head">
-          <span class="record__employer">{{ item.company }}</span>
-          <span class="record__no" title="Accession number in the register">&#8470;&nbsp;{{ "%06d"|format(item.job.id) }}</span>
-        </div>
+        <span class="record__employer">{{ item.company }}</span>
         <h3 class="record__title">
           <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
         </h3>
@@ -109,7 +106,7 @@
           {% if item.posted %}
             {{ item.posted }}
           {% else %}
-            <span title="This employer does not publish a posting date">filed {{ item.first_seen }}</span>
+            <span title="This company does not publish a posting date">seen {{ item.first_seen }}</span>
           {% endif %}
         </span>
 
@@ -168,7 +165,7 @@
     <button class="secondary" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
        hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Back</button>
   {% else %}<span></span>{% endif %}
-  <span class="accession">Drawer {{ page }} of {{ pages }}</span>
+  <span class="accession">Page {{ page }} of {{ pages }}</span>
   {% if page < pages %}
     <button class="secondary" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
        hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Next</button>
@@ -178,19 +175,19 @@
 
 {% else %}
 <div class="card">
-  <h3 style="margin-bottom:8px">The drawer came back empty</h3>
+  <h3 style="margin-bottom:8px">No jobs matched</h3>
   <p class="muted" style="margin:0">
     {% if graduate_only and not internships_only %}
-      No active graduate programmes sit under those tabs right now. Graduate intakes are
-      seasonal, so this swings a lot through the year &mdash; pull more tabs, or include
-      remote roles.
+      There are no graduate programmes open in those areas right now. Graduate intakes
+      are seasonal, so this changes a lot through the year &mdash; try more areas, or
+      turn on remote jobs.
     {% elif internships_only %}
-      No active {{ "internships or graduate roles" if graduate_only else "internships" }}
-      sit under those tabs right now. These postings are seasonal, so this swings a lot
-      through the year &mdash; pull more tabs, or include remote roles.
+      There are no {{ "internships or graduate jobs" if graduate_only else "internships" }}
+      open in those areas right now. These are seasonal, so this changes a lot through
+      the year &mdash; try more areas, or turn on remote jobs.
     {% else %}
-      Nothing filed under those tabs. Try raising the years of experience, pulling more
-      tabs, clearing the title filter, or including remote roles.
+      Nothing open in those areas right now. Try raising the years of experience,
+      picking more areas, clearing the title search, or turning on remote jobs.
     {% endif %}
   </p>
 </div>
