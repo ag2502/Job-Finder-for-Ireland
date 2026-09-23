@@ -32,9 +32,12 @@ from jobfinder.matching.corpus import Vocabulary
 from jobfinder.matching.corpus import similarity as corpus_similarity
 from jobfinder.normalize.taxonomy import (
     FIELDS,
+    NEAR,
     classify_title,
     expand_fields,
     extract_skills,
+    near_fields,
+    relatedness,
     skills_for,
 )
 
@@ -85,7 +88,18 @@ class Candidate:
 
     @property
     def expanded_fields(self) -> list[str]:
+        """Everything one hop out, however loose the hop. Used to judge relevance."""
         return expand_fields(self.fields)
+
+    @property
+    def related_fields(self) -> dict[str, float]:
+        """Neighbouring fields mapped to how close each is - see taxonomy.relatedness."""
+        return relatedness(self.fields)
+
+    @property
+    def near_fields(self) -> list[str]:
+        """Chosen fields plus the neighbours close enough to search as if asked for."""
+        return near_fields(self.fields)
 
     @property
     def level(self) -> str | None:
@@ -111,7 +125,7 @@ class Candidate:
         # are drawn from the adverts themselves, so they are at least as trustworthy.
         for term in self.corpus_terms:
             tokens.extend(tokenize(term) * 2)
-        for key in self.expanded_fields:
+        for key in self.near_fields:
             for term in FIELDS[key].terms:
                 tokens.extend(tokenize(term))
         return tokens
@@ -130,11 +144,15 @@ class ScoredJob:
     # interested in. Ranking alone is not enough: sorting an Art Director role to the
     # bottom still leaves it in a list the searcher has to read past.
     relevant: bool = True
-    # 0 = in a field the searcher ticked, 1 = one hop away, 2 = kept on skill overlap
-    # alone. Compared *before* the score, so a related role can never outrank a chosen
-    # one on text-score noise. A 0.4 gap in the field signal is worth 12 points, which
-    # the 20-point text term overwhelmed: picking "Backend" put ".Net Developer" and
-    # "Front End Developer" above real backend roles.
+    # 0 = in a field the searcher ticked, 1 = a near neighbour, 2 = a far one (a real
+    # pivot, not the same job), 3 = kept on skill overlap alone. Compared *before* the
+    # score, so a related role can never outrank a chosen one on text-score noise. A
+    # 0.4 gap in the field signal is worth 12 points, which the 20-point text term
+    # overwhelmed: picking "Backend" put ".Net Developer" and "Front End Developer"
+    # above real backend roles. Splitting 1 from 2 is the same argument one level down:
+    # Software Engineering is the largest bucket in the corpus and neighbours half the
+    # taxonomy, so without the split a Machine Learning search filled with graduate
+    # developer roles before it reached a single Data Science one.
     tier: int = 0
     # True when this job survived only because the relevance filter emptied the list.
     fallback: bool = False
@@ -312,24 +330,28 @@ def score_job(
     # 2. Field
     job_fields = classify_title(title)
     chosen = candidate.fields
-    related = [f for f in candidate.expanded_fields if f not in chosen]
+    related = candidate.related_fields
 
     direct = [f for f in job_fields if f in chosen]
-    nearby = [f for f in job_fields if f in related]
+    # Closest neighbour first, so a job that classifies as both Data Science and
+    # Software Engineering is judged - and explained - as the Data Science role.
+    nearby = sorted((f for f in job_fields if f in related), key=lambda f: -related[f])
     result.field_matches = direct + nearby
+
+    closeness = related[nearby[0]] if nearby else 0.0
 
     if direct:
         field_score = 1.0
         result.tier = 0
     elif nearby:
-        field_score = 0.6
-        result.tier = 1
+        field_score = 0.6 * closeness
+        result.tier = 1 if closeness >= NEAR else 2
     elif not chosen:
         field_score = 0.5
         result.tier = 0
     else:
         field_score = 0.0
-        result.tier = 2
+        result.tier = 3
 
     # 3. Text
     raw_text = index.score(job_id, candidate.query_tokens)
@@ -392,8 +414,12 @@ def score_job(
         result.reasons.append(
             f"in your chosen field: {FIELDS[direct[0]].label}"
         )
-    elif nearby:
+    elif nearby and closeness >= NEAR:
         result.reasons.append(f"related field: {FIELDS[nearby[0]].label}")
+    elif nearby:
+        # Honest about what this is. Calling a graduate developer job a "related field"
+        # to Machine Learning is how the list stopped meaning anything.
+        result.reasons.append(f"a sideways move into {FIELDS[nearby[0]].label}")
     if sen_label == "exact":
         result.reasons.append("seniority matches")
     elif sen_label == "stretch":

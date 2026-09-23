@@ -11,6 +11,12 @@
 {% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort], #results input[name=show_applied]" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
+{# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
+{% set tier_bands = {
+     1: "Closely related roles",
+     2: "A sideways move into another field",
+     3: "Matched on your skills, not your fields",
+   } %}
 
 <div class="card drawerhead">
   <div class="spread">
@@ -62,6 +68,19 @@
     {% endif %}
   </p>
 
+  {% if cv_fields and cv_fields_differ %}
+  {# The CV read as something other than what was ticked. Offered, never applied: the
+     boxes say what someone wants to do next, and a CV only says what they have done. #}
+  <p class="small" style="margin:12px 0 0;color:var(--ink-3);line-height:1.6">
+    {% if cv_summary %}<strong style="color:var(--ink)">{{ cv_summary }}</strong><br>{% endif %}
+    Your CV reads as
+    {% for f in cv_fields %}<strong>{{ f.label }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}.
+    <button type="button" class="linky" data-cv-fields="{{ cv_fields | map(attribute='key') | join(',') }}">
+      Search those instead
+    </button>
+  </p>
+  {% endif %}
+
   {% if fallback %}
   {# Nothing cleared the relevance bar. Showing the closest anyway beats a blank page,
      but presenting them as matches would claim something the filter just ruled out. #}
@@ -75,10 +94,12 @@
 {% if items %}
 <div class="filed">
   {% for item in items %}
-    {% if tiered and item.tier > 0 and (loop.first or items[loop.index0 - 1].tier == 0) %}
+    {% if tiered and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
     {# Everything above sits in a field that was actually pulled. Below are one hop
-       away - worth offering, never worth ranking above what was asked for. #}
-    <div class="guide">Closely related roles{% if page > 1 %} &middot; continued{% endif %}</div>
+       away - worth offering, never worth ranking above what was asked for - and the
+       hop itself is graded, because Data Science is next door to Machine Learning
+       and a graduate developer job is not. #}
+    <div class="guide">{{ tier_bands[item.tier] }}{% if loop.first and page > 1 %} &middot; continued{% endif %}</div>
     {% endif %}
 
     <article class="record filing">

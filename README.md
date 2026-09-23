@@ -222,8 +222,72 @@ Rule-based parsing and lexical ranking, chosen so the whole thing runs on free t
   a miss is a visibly absent keyword rather than an untraceable hallucination.
 - **Ranking** → skills overlap (40%), field match (30%), BM25 (20%), seniority (10%),
   with a recency multiplier. Every score explains itself.
-- **Fields** → choosing "Data Engineering" also surfaces analytics engineering, BI and
-  data science, expanded one hop through the taxonomy in `normalize/taxonomy.py`.
+- **Fields** → 56 fields under 11 groups in `normalize/taxonomy.py`, from Machine
+  Learning to Hospitality. Choosing "Data Engineering" also surfaces analytics
+  engineering, BI and data science, expanded one hop out.
+
+### How close is "related"?
+
+One hop, but a weighted one. Every edge is `NEAR` or `FAR`, and the two are ranked into
+separate bands rather than blended:
+
+| Band | Meaning | Field score | Shown under |
+|---|---|---|---|
+| 0 | a field you ticked | 1.00 | (top of the list) |
+| 1 | `NEAR` — the same craft under another name | 0.60 | Closely related roles |
+| 2 | `FAR` — a plausible pivot, not the same job | 0.24 | A sideways move into another field |
+| 3 | no field match, kept on skill overlap alone | 0.00 | Matched on your skills, not your fields |
+
+The weighting is not cosmetic. Software Engineering is the largest bucket in the Dublin
+corpus and neighbours half the taxonomy, so an unweighted edge into it drowns whatever
+was actually ticked: picking **Machine Learning** returned a page of "Software Developer
+Graduate" before Data Science got a look in. A `FAR` neighbour also keeps its vocabulary
+out of the BM25 query, which was pulling the ranking the same way a second time.
+
+### Reading the CV with a model
+
+The rules above read a CV as a bag of keywords. A CV that says *"trained a transformer
+on 40M product reviews"* contains no title line and never says "machine learning", so
+the rules find a few tokens and no field at all.
+
+`matching/llm_profile.py` optionally asks a model instead. The task is narrow — pick
+fields from a closed list of 56 — so a free open-weight model is enough: the JSON schema
+is generated from `FIELDS`, and everything returned is re-checked against the same
+tables the ranker uses. It is classification into known labels, not open generation.
+
+It is **entirely optional and off by default**. Any OpenAI-compatible endpoint works,
+because the request is plain JSON over `httpx`, which the deployment already carries:
+
+```bash
+# Cerebras free tier: open-weight models, no card, ~1M tokens/day (≈285 CV reads)
+export JOBFINDER_LLM_BASE_URL=https://api.cerebras.ai/v1
+export JOBFINDER_LLM_MODEL=llama-3.3-70b
+export JOBFINDER_LLM_API_KEY=csk-...
+
+# Optional second endpoint, tried when the first rate-limits
+export JOBFINDER_LLM_FALLBACK_BASE_URL=https://api.groq.com/openai/v1
+export JOBFINDER_LLM_FALLBACK_MODEL=llama-3.3-70b-versatile
+export JOBFINDER_LLM_FALLBACK_API_KEY=gsk_...
+```
+
+| Provider | Base URL | Model |
+|---|---|---|
+| Cerebras | `https://api.cerebras.ai/v1` | `llama-3.3-70b` |
+| Groq | `https://api.groq.com/openai/v1` | `llama-3.3-70b-versatile` |
+| OpenRouter | `https://openrouter.ai/api/v1` | `meta-llama/llama-3.3-70b-instruct:free` |
+| Hugging Face | `https://router.huggingface.co/v1` | `Qwen/Qwen2.5-72B-Instruct` |
+| Ollama (local) | `http://localhost:11434/v1` | `qwen2.5:7b` (no key needed) |
+
+Set nothing and the site behaves exactly as it did: `read_cv` returns `None` and the
+rules carry the whole job. That fallback is what makes the site independent of any free
+tier staying up — a spent daily allowance costs the quality of one CV reading, never a
+search. The call happens once per upload, not per search; paging and re-sorting are
+served from an in-process cache keyed on the CV's digest.
+
+What the model reads is **offered, never applied**. Its fields appear in the results
+header as "Your CV reads as …" with a button to search them; the boxes you ticked still
+decide what runs, because a CV records what someone has done and the boxes state what
+they want to do next.
 
 Sentence-transformer embeddings were deliberately not used: torch is ~2GB, which does
 not fit the free tiers this targets, and job matching is dominated by exact technology
@@ -240,6 +304,19 @@ That is the stronger design, not a shortcut. Under GDPR, storing a CV makes you 
 controller with retention, access and erasure duties, and it becomes the most sensitive
 asset in the system. Keeping the few hundred bytes matching actually needs removes that
 liability while losing nothing a searcher would notice.
+
+**Configuring a model endpoint changes this, and it is the one thing here that does.**
+With `JOBFINDER_LLM_API_KEY` set, up to 24,000 characters of the CV are sent to that
+provider on upload. Nothing is stored at either end by this application, but the
+document does leave the machine, and whatever that provider logs is theirs. Three
+consequences worth being deliberate about:
+
+- Unset, none of this happens. The rules run locally and the CV never leaves the
+  process, which is the default precisely so the privacy claim above holds by default.
+- Pointing `JOBFINDER_LLM_BASE_URL` at a local Ollama keeps the whole thing on one
+  machine, with no provider in the picture at all.
+- A public deployment that sets a key is processing other people'"'"'s CVs through a third
+  party, which belongs in a privacy notice before it is switched on.
 
 ## Layout
 

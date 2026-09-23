@@ -80,13 +80,20 @@
       you might not have thought to search for.
     </p>
 
-    <div class="dividers" id="field-chips" role="group" aria-labelledby="roles-heading">
-      {% for f in fields %}
-      <label class="divider">
-        <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
-               {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
-        {{ f.label }}
-      </label>
+    <div id="field-chips" role="group" aria-labelledby="roles-heading">
+      {% for group_label, group_fields in field_groups %}
+      <div class="drawer">
+        <div class="drawer__label">{{ group_label }}</div>
+        <div class="dividers">
+          {% for f in group_fields %}
+          <label class="divider">
+            <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
+                   {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
+            {{ f.label }}
+          </label>
+          {% endfor %}
+        </div>
+      </div>
       {% endfor %}
     </div>
 
@@ -283,6 +290,19 @@
       if (event.target.name === 'chosen_fields') sync();
     });
     sync();
+
+    // "Search those instead" on the CV reading. It ticks the boxes rather than posting
+    // the fields straight through, so what runs and what the form shows cannot diverge.
+    document.body.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-cv-fields]');
+      if (!button) return;
+      var wanted = button.getAttribute('data-cv-fields').split(',');
+      form.querySelectorAll('input[name="chosen_fields"]').forEach(function (box) {
+        box.checked = wanted.indexOf(box.value) !== -1;
+      });
+      sync();
+      htmx.trigger(form, 'submit');
+    });
 
     // Once the results are in, fold the form away and keep the summary honest.
     document.body.addEventListener('htmx:afterSwap', function (event) {

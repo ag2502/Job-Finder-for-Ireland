@@ -128,6 +128,38 @@ class Settings(BaseSettings):
     jooble_api_key: str = ""
     careerjet_affiliate_id: str = ""
 
+    # Reading an uploaded CV with a model, so the fields come from what the document
+    # says rather than from whichever boxes the searcher guessed at. See
+    # `matching/llm_profile.py`; entirely optional, and with no key set the rule-based
+    # reader in `matching/resume.py` carries the whole job, as it did before.
+    #
+    # Any OpenAI-compatible chat-completions endpoint works, which is what keeps this
+    # free: the default points at Cerebras, whose free tier serves open-weight models
+    # at roughly a million tokens a day - some three hundred CV reads, well past what
+    # this site will ever see - and is far the fastest of the free tiers, which matters
+    # because the call happens inside a page load. Groq, OpenRouter, Hugging Face,
+    # Cloudflare Workers AI and a local Ollama are all a base URL away:
+    #
+    #   Groq        https://api.groq.com/openai/v1        llama-3.3-70b-versatile
+    #   OpenRouter  https://openrouter.ai/api/v1          meta-llama/llama-3.3-70b-instruct:free
+    #   HuggingFace https://router.huggingface.co/v1      Qwen/Qwen2.5-72B-Instruct
+    #   Ollama      http://localhost:11434/v1             qwen2.5:7b        (no key)
+    #
+    # No free tier is uncapped, so a second endpoint can be named and is tried when the
+    # first refuses. Below that sits the rule-based reader, which is what actually makes
+    # the site independent of any of this being up.
+    llm_base_url: str = "https://api.cerebras.ai/v1"
+    llm_model: str = "llama-3.3-70b"
+    llm_api_key: str = ""
+
+    llm_fallback_base_url: str = ""
+    llm_fallback_model: str = ""
+    llm_fallback_api_key: str = ""
+
+    # Someone is waiting on this inside a search request, so the budget is a few
+    # seconds. Exceeding it costs the model reading, not the search.
+    llm_timeout_seconds: float = 20.0
+
     log_level: str = "INFO"
 
     # Signs the session cookie holding a searcher's derived profile. Override in

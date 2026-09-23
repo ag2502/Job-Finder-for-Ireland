@@ -43,6 +43,7 @@ from jobfinder.core.models import (
 )
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
+from jobfinder.matching import llm_profile
 from jobfinder.matching.resume import parse_resume
 from jobfinder.normalize.dedup import (
     canonical_title,
@@ -52,7 +53,7 @@ from jobfinder.normalize.dedup import (
     same_employer,
 )
 from jobfinder.normalize.experience import matches_experience
-from jobfinder.normalize.taxonomy import FIELDS
+from jobfinder.normalize.taxonomy import ALL_SKILLS, FIELDS, GROUPS
 
 logger = logging.getLogger(__name__)
 
@@ -204,7 +205,13 @@ def _base_context(request: Request) -> dict:
     account = _account(request)
     return {
         "request": request,
-        "fields": sorted(FIELDS.values(), key=lambda f: f.label),
+        # Grouped rather than one flat alphabetical run. At 24 fields a single row of
+        # tabs was scannable; at 56 it is a wall, and the searcher who wants Machine
+        # Learning should not have to read past Hospitality to find it.
+        "field_groups": [
+            (label, [f for f in FIELDS.values() if f.group == group])
+            for group, label in GROUPS
+        ],
         "profile": _profile(request),
         "sorts": SORTS,
         "account": account,
@@ -327,6 +334,7 @@ async def search(
         )
 
     parsed = None
+    reading: llm_profile.CvReading | None = None
     cv_corpus_terms: list[str] = []
     if resume is not None and resume.filename:
         data = await resume.read(MAX_UPLOAD_BYTES + 1)
@@ -338,6 +346,11 @@ async def search(
             )
         parsed = parse_resume(data, resume.filename)
         del data  # the document itself goes no further
+        # The rules above read the CV as a bag of keywords; this reads it as a
+        # document. It is what lets a CV that never says "machine learning" still be
+        # recognised as one, and it returns None whenever it cannot run, leaving the
+        # rule-based reading in place. See matching/llm_profile.py.
+        reading = llm_profile.read_cv(parsed.text)
         # Read the CV against the vocabulary learned from the adverts themselves,
         # rather than a hand-written skills list. See matching/corpus.py.
         try:
@@ -360,18 +373,51 @@ async def search(
     # Paging re-submits the form, but a file input cannot be repopulated by the browser,
     # so the CV-derived signals are carried forward from the existing session rather
     # than silently reverting to a fields-only search on page two.
+    # Only the tokens the taxonomy knows can score against a job, because the other
+    # half of that comparison is `extract_skills` over the advert. A skill the model
+    # named that nothing in the corpus asks for would be a word in a list, not a match.
+    cv_skills: list[str] = []
+    if parsed:
+        cv_skills = sorted(
+            parsed.skills | ({s for s in reading.skills if s in ALL_SKILLS}
+                             if reading else set())
+        )
+
     profile = {
-        "skills": (sorted(parsed.skills) if parsed else previous.get("skills", []))[
+        "skills": (cv_skills if parsed else previous.get("skills", []))[
             :MAX_SESSION_SKILLS
         ],
         "fields": effective_fields,
-        "seniority": parsed.seniority if parsed else previous.get("seniority"),
+        # What the CV says it is, as opposed to what the searcher ticked. Kept apart
+        # from "fields" on purpose: a CV is a record of what someone has done, and the
+        # boxes are a statement of what they want to do next. The reading is offered
+        # back to them in the results header, never substituted for their choice.
+        "cv_fields": (
+            reading.fields if reading
+            else ([] if parsed else previous.get("cv_fields", []))
+        ),
+        "cv_summary": (
+            reading.summary if reading
+            else ("" if parsed else previous.get("cv_summary", ""))
+        ),
+        "seniority": (
+            (reading.seniority if reading and reading.seniority else parsed.seniority)
+            if parsed else previous.get("seniority")
+        ),
         # Only what the searcher typed filters the results. A blank box means "not
         # stated" and returns every active opening, even when the CV implies a figure
         # - silently narrowing on a number the searcher never entered would hide roles
         # they never asked to hide. The CV's estimate is surfaced as a hint instead.
         "years": stated_years,
-        "cv_years": parsed.years_experience if parsed else previous.get("cv_years"),
+        # The model's figure wins where it has one: `detect_years` falls back to the
+        # span between the earliest and latest years printed anywhere on the page, so a
+        # CV listing a 2016 school-leaving date reads as nine years of experience.
+        "cv_years": (
+            (reading.years_experience
+             if reading and reading.years_experience is not None
+             else parsed.years_experience)
+            if parsed else previous.get("cv_years")
+        ),
         "corpus_terms": (cv_corpus_terms or previous.get("corpus_terms", []))[
             :MAX_SESSION_TERMS
         ],
@@ -714,6 +760,17 @@ def _search_results(
         "applied_count": len(applied_keys or set()),
         "saved_count": len(saved_keys or set()),
         "skill_count": len(profile.get("skills") or []),
+        # What the model made of the CV, offered back rather than acted on. Shown only
+        # where it disagrees with the boxes, because agreeing with the searcher is not
+        # news and a banner that always fires is a banner nobody reads.
+        "cv_summary": profile.get("cv_summary") or "",
+        "cv_fields": [
+            {"key": key, "label": FIELDS[key].label}
+            for key in (profile.get("cv_fields") or []) if key in FIELDS
+        ],
+        "cv_fields_differ": bool(
+            set(profile.get("cv_fields") or []) - set(profile.get("fields") or [])
+        ),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),
         "graduate_only": bool(profile.get("graduate_only")),
