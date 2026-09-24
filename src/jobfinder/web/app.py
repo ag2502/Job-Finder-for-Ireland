@@ -16,24 +16,33 @@ from __future__ import annotations
 
 import hmac
 import json
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
+import re
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote, urlparse
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    PlainTextResponse,
+    RedirectResponse,
+)
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, func, select
+from itsdangerous import BadSignature, URLSafeTimedSerializer
+from markupsafe import Markup
 from starlette.middleware.sessions import SessionMiddleware
 
 import httpx
 
 from jobfinder.core import supabase
 from jobfinder.core.config import settings
-from jobfinder.core.db import init_db, session_scope
+from jobfinder.core.db import engine, init_db, session_scope
 from jobfinder.core.models import (
     Company,
     CrawlRun,
@@ -41,6 +50,7 @@ from jobfinder.core.models import (
     JobStatus,
     Source,
 )
+from jobfinder.matching import rank
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
 from jobfinder.matching import llm_profile
@@ -104,7 +114,7 @@ app = FastAPI(title="Dublin Job Finder", lifespan=lifespan)
 # whose whole pitch is "every opening in one place", asking for a password before
 # showing any of them is the wrong first impression. Applying still needs an account,
 # because applying is what the account exists to record.
-ACCOUNT_PATHS = frozenset({"/applications", "/saved"})
+ACCOUNT_PATHS = frozenset({"/profile", "/applications", "/saved"})
 
 
 @app.middleware("http")
@@ -128,11 +138,81 @@ async def _require_account(request: Request, call_next):
     return await call_next(request)
 
 
+# The account lives in a cookie of its own, not in the session beside the search profile.
+# Browsers silently drop any cookie over about 4KB, and the two together did not fit: the
+# profile runs to ~2.8KB signed once a CV is read, and a Supabase access token is a JWT
+# of ~1KB before it is encoded twice more - larger again for a Google account, whose
+# token carries the name and picture. Signed in with a CV, the whole session was being
+# thrown away by the browser, which looked like being signed out at random.
+ACCOUNT_COOKIE = "sp_account"
+ACCOUNT_MAX_AGE = 60 * 60 * 24 * 30
+_account_signer = URLSafeTimedSerializer(settings.session_secret, salt="account")
+
+
+@app.middleware("http")
+async def _account_cookie(request: Request, call_next):
+    """Read the account cookie on the way in; write back whatever the request changed.
+
+    Added after `_require_account`, so it runs first and the gate can see the account.
+    """
+    raw = request.cookies.get(ACCOUNT_COOKIE)
+    data = None
+    if raw:
+        try:
+            data = _account_signer.loads(raw, max_age=ACCOUNT_MAX_AGE)
+        except BadSignature:
+            data = None
+    request.state.account_data = data
+
+    response = await call_next(request)
+
+    if hasattr(request.state, "account_write"):
+        value = request.state.account_write
+        if value is None:
+            response.delete_cookie(ACCOUNT_COOKIE, path="/")
+        else:
+            response.set_cookie(
+                ACCOUNT_COOKIE,
+                _account_signer.dumps(value),
+                max_age=ACCOUNT_MAX_AGE,
+                path="/",
+                httponly=True,
+                samesite="lax",
+                secure=PUBLIC_DEPLOYMENT,
+            )
+    return response
+
+
 # Added last, so it wraps the middleware above: Starlette runs the most recently added
 # first, and `_require_account` reads `request.session`, which does not exist until this
 # one has run.
 app.add_middleware(SessionMiddleware, secret_key=settings.session_secret)
 templates = Jinja2Templates(directory=str(TEMPLATES))
+
+
+# An em dash, or an en dash standing in for one with a space either side, and the space
+# around it. Written as escapes so the rule itself is readable in any editor.
+_DASH_RUN = re.compile("\\s*\u2014\\s*|\\s+\u2013\\s+")
+
+
+def _no_em_dashes(value):
+    """Every value a template prints, with em dashes turned into commas.
+
+    The site's own copy has none, by house style, and does not use hyphens in their
+    place either. Job titles and company names arrive however each employer typed them,
+    em dashes included, and this is the one place that catches all of them: "Engineer,
+    Payments, Dublin" reads as cleanly as the original. An en dash inside a number
+    range is ordinary punctuation and stays.
+    """
+    if isinstance(value, str) and ("\u2014" in value or "\u2013" in value):
+        cleaned = _DASH_RUN.sub(", ", value).removeprefix(", ")
+        # Macro output is already-safe HTML; handing it back as a plain string would
+        # have it escaped a second time.
+        return Markup(cleaned) if isinstance(value, Markup) else cleaned
+    return value
+
+
+templates.env.finalize = _no_em_dashes
 
 
 def _profile(request: Request) -> dict | None:
@@ -155,18 +235,36 @@ def _account(request: Request) -> supabase.Account | None:
     if hasattr(request.state, "account"):
         return request.state.account
 
-    account = supabase.Account.from_session(request.session.get("account"))
+    data = getattr(request.state, "account_data", None)
+    if data is None and "account" in request.session:
+        # Signed in before the account had a cookie of its own: move it across, which
+        # also shrinks the session back under the size browsers keep.
+        data = request.session.pop("account")
+        request.state.account_write = data
+
+    account = supabase.Account.from_session(data)
     if account is not None and account.expired:
         try:
             account = supabase.refresh(account)
         except (supabase.SupabaseError, httpx.HTTPError):
-            request.session.pop("account", None)
-            account = None
-        else:
-            request.session["account"] = account.to_session()
+            _forget_account(request)
+            return None
+        _remember_account(request, account)
+        return account
 
     request.state.account = account
     return account
+
+
+def _remember_account(request: Request, account: supabase.Account) -> None:
+    request.state.account = account
+    request.state.account_write = account.to_session()
+
+
+def _forget_account(request: Request) -> None:
+    request.state.account = None
+    request.state.account_write = None
+    request.session.pop("account", None)
 
 
 def _applied_keys(account: supabase.Account | None) -> set[str]:
@@ -183,6 +281,17 @@ def _applied_keys(account: supabase.Account | None) -> set[str]:
     except (supabase.SupabaseError, httpx.HTTPError):
         logger.warning("could not load applications; showing every job", exc_info=True)
         return set()
+
+
+def _account_marks(account: supabase.Account | None) -> tuple[set[str], set[str]]:
+    """Applied and saved keys together, fetched side by side rather than one after the
+    other: each is a round trip to Supabase, and a search waits on both."""
+    if account is None:
+        return set(), set()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        applied = pool.submit(_applied_keys, account)
+        saved = pool.submit(_saved_keys, account)
+        return applied.result(), saved.result()
 
 
 def _saved_keys(account: supabase.Account | None) -> set[str]:
@@ -380,19 +489,43 @@ def _index_context(request: Request) -> dict:
     return context
 
 
+STATIC = Path(__file__).parent / "static"
+
+
+@app.get("/static/{name}", include_in_schema=False)
+def static_file(name: str):
+    """The site's own scripts, cached for a year.
+
+    Every file here carries its version in its name, so a new version is a new URL and
+    nothing stale can be served. htmx used to come from unpkg, render-blocking in the
+    <head>, behind a redirect: a third-party round trip before every first paint.
+    """
+    path = (STATIC / name).resolve()
+    if path.parent != STATIC.resolve() or not path.is_file():
+        raise HTTPException(status_code=404)
+    return FileResponse(
+        path, headers={"Cache-Control": "public, max-age=31536000, immutable"}
+    )
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     """The finder: upload form, with results rendered underneath once a search exists."""
+    # Supabase falls back to the project's Site URL - this page - when the callback
+    # address is not on its allow list. Finish the sign-in rather than dropping it.
+    if request.query_params.get("code") and "oauth" in request.session:
+        return RedirectResponse(f"/auth/callback?{request.url.query}", status_code=303)
+
     context = _index_context(request)
     profile = _profile(request)
     if profile:
-        account = _account(request)
+        applied, saved_keys = _account_marks(_account(request))
         context.update(
             _search_results(
                 profile,
                 query=profile.get("query"),
-                applied_keys=_applied_keys(account),
-                saved_keys=_saved_keys(account),
+                applied_keys=applied,
+                saved_keys=saved_keys,
                 show_applied=bool(profile.get("show_applied")),
             )
         )
@@ -464,8 +597,12 @@ async def search(
     # number narrows the results, so an empty box must not collapse to zero.
     stated_years: int | None = None
     if years is not None and years.strip():
+        # "15+" is the top of the list; the form sends 16 for it, but the label is
+        # accepted too so a hand-typed or bookmarked value means the same thing.
+        raw_years = years.strip().removesuffix("+")
+        bump = 1 if years.strip().endswith("+") else 0
         try:
-            stated_years = max(0, min(int(years.strip()), 50))
+            stated_years = max(0, min(int(raw_years) + bump, 50))
         except ValueError:
             stated_years = None
 
@@ -533,15 +670,15 @@ async def search(
     }
     request.session["profile"] = json.dumps(profile)
 
-    account = _account(request)
+    applied, saved_keys = _account_marks(_account(request))
     context = _base_context(request)
     context.update(
         _search_results(
             profile,
             query=q,
             page=page,
-            applied_keys=_applied_keys(account),
-            saved_keys=_saved_keys(account),
+            applied_keys=applied,
+            saved_keys=saved_keys,
             show_applied=bool(show_applied),
         )
     )
@@ -699,6 +836,33 @@ def _grouping_keys(
     }
 
 
+_skills_preloaded = False
+
+
+def _preload_advert_skills() -> None:
+    """Take the skills the snapshot build already found, once per process.
+
+    See `rank.preload_skills`. A database without the table - a local crawl database, or
+    a snapshot from before it existed - costs only speed, never correctness.
+    """
+    global _skills_preloaded
+    if _skills_preloaded:
+        return
+    _skills_preloaded = True
+    try:
+        with engine.connect() as conn:
+            rows = conn.exec_driver_sql(
+                "select advert_hash, skills from advert_skills"
+            ).all()
+    except Exception:  # noqa: BLE001 - absent table, or not SQLite at all
+        return
+    stored = dict(rows)
+    fingerprint = stored.pop("fingerprint", "")
+    rank.preload_skills(
+        fingerprint, ((key, json.loads(value)) for key, value in stored.items())
+    )
+
+
 def _search_results(
     profile: dict,
     *,
@@ -724,6 +888,7 @@ def _search_results(
         years=profile.get("years"),
     )
 
+    _preload_advert_skills()
     with session_scope() as session:
         stmt = select(JobPosting).where(_is_offerable())
         if profile.get("include_remote"):
@@ -914,6 +1079,11 @@ def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = ""
     context.update(
         mode=mode, error=error, notice=notice, email=email, next_to=next_to,
         reason=REASONS.get(reason, ""),
+        google_enabled=bool(supabase.providers().get("google")),
+        # The email form stays folded away behind Google unless it is the only way in,
+        # or the person was already using it: an error or a typed address mean they are
+        # mid-way through it, and folding it away would lose their place.
+        email_open=bool(error or email or notice),
     )
     return templates.TemplateResponse(request, "account.html", context, status_code=status)
 
@@ -928,7 +1098,7 @@ def login_form(request: Request, next: str = "/", why: str = ""):
     if not supabase.configured():
         raise HTTPException(status_code=404)
     if _account(request):
-        return RedirectResponse("/applications", status_code=303)
+        return RedirectResponse("/profile", status_code=303)
     return _auth_page(request, mode="login", next_to=_safe_next(next), reason=why)
 
 
@@ -937,7 +1107,7 @@ def signup_form(request: Request, next: str = "/", why: str = ""):
     if not supabase.configured():
         raise HTTPException(status_code=404)
     if _account(request):
-        return RedirectResponse("/applications", status_code=303)
+        return RedirectResponse("/profile", status_code=303)
     return _auth_page(request, mode="signup", next_to=_safe_next(next), reason=why)
 
 
@@ -966,7 +1136,7 @@ def login(
             next_to=_safe_next(next),
         )
 
-    request.session["account"] = account.to_session()
+    _remember_account(request, account)
     # Back to whatever they were looking at when they were asked to sign in, so the
     # Apply they clicked is one click away rather than a search away.
     return RedirectResponse(_safe_next(next), status_code=303)
@@ -1017,40 +1187,146 @@ def signup(
             next_to=_safe_next(next),
         )
 
-    request.session["account"] = account.to_session()
+    _remember_account(request, account)
     return RedirectResponse(_safe_next(next), status_code=303)
+
+
+def _site_origin(request: Request) -> str:
+    """This site's own origin, as the browser sees it.
+
+    Behind Vercel's proxy the request can arrive as plain http, and a callback address
+    Supabase does not recognise is silently replaced with the project's Site URL - so
+    the public deployment always names https.
+    """
+    origin = str(request.base_url).rstrip("/")
+    if PUBLIC_DEPLOYMENT and origin.startswith("http://"):
+        origin = "https://" + origin[len("http://"):]
+    return origin
+
+
+@app.get("/auth/google")
+def google_sign_in(request: Request, next: str = "/"):
+    """Send the visitor to Google, by way of Supabase."""
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
+    verifier, challenge = supabase.pkce_pair()
+    # Small, and only until they come back: the verifier proves the code that returns
+    # was asked for by this browser, and `next` returns them to what they were doing.
+    request.session["oauth"] = {"verifier": verifier, "next": _safe_next(next)}
+    url = supabase.google_authorize_url(f"{_site_origin(request)}/auth/callback", challenge)
+    return RedirectResponse(url, status_code=303)
+
+
+@app.get("/auth/callback")
+def google_callback(
+    request: Request,
+    code: str = "",
+    error: str = "",
+    error_description: str = "",
+):
+    if not supabase.configured():
+        raise HTTPException(status_code=404)
+    pending = request.session.pop("oauth", None) or {}
+    next_to = _safe_next(pending.get("next"))
+
+    if error or not code:
+        # Pressing Cancel on Google's screen lands here too; that is not worth an alarm.
+        message = (
+            "Google sign-in was cancelled."
+            if error == "access_denied"
+            else (error_description or "Google sign-in did not complete. Please try again.")
+        )
+        return _auth_page(request, mode="login", error=message, status=400, next_to=next_to)
+    if not pending.get("verifier"):
+        # A code with no verifier is a callback this browser never started - an old tab,
+        # or cookies cleared on the way. Start again rather than guessing.
+        return _auth_page(
+            request, mode="login", status=400, next_to=next_to,
+            error="That sign-in link has expired. Please try again.",
+        )
+
+    try:
+        account = supabase.exchange_code(code, pending["verifier"])
+    except supabase.SupabaseError as exc:
+        return _auth_page(request, mode="login", error=str(exc), status=401, next_to=next_to)
+    except httpx.HTTPError:
+        logger.warning("supabase unreachable during google sign-in", exc_info=True)
+        return _auth_page(
+            request, mode="login", status=503, next_to=next_to,
+            error="Could not reach the accounts service. Please try again.",
+        )
+
+    _remember_account(request, account)
+    return RedirectResponse(next_to, status_code=303)
 
 
 @app.post("/logout")
 def logout(request: Request):
-    account = supabase.Account.from_session(request.session.get("account"))
+    account = _account(request)
     if account is not None:
         supabase.sign_out(account)
-    request.session.pop("account", None)
+    _forget_account(request)
     return RedirectResponse("/", status_code=303)
 
 
-@app.get("/applications", response_class=HTMLResponse)
-def applications(request: Request):
+PROFILE_TABS = ("saved", "applied")
+
+
+@app.get("/profile", response_class=HTMLResponse)
+def profile(request: Request, tab: str = "saved"):
+    """The signed-in person's own page: who they are, what they saved, what they applied
+    to, and the way out. Saved and applied used to be two pages in the menu bar; they
+    are two halves of one record, so they live together here."""
     account = _account(request)
     context = _base_context(request)
+    context["tab"] = tab if tab in PROFILE_TABS else "saved"
     if account is None:
-        context["error"] = "Sign in to see the jobs you have applied to."
+        context["error"] = "Sign in to see your profile."
         return templates.TemplateResponse(
-            request, "applications.html", context, status_code=401
+            request, "profile.html", context | {"saved": [], "applications": []},
+            status_code=401,
         )
 
-    try:
-        rows = supabase.list_applications(account)
-    except (supabase.SupabaseError, httpx.HTTPError) as exc:
-        logger.warning("could not list applications", exc_info=True)
-        rows = []
-        context["error"] = f"Could not load your applications: {exc}"
+    def fetch(call):
+        try:
+            return call(account), None
+        except (supabase.SupabaseError, httpx.HTTPError) as exc:
+            logger.warning("could not load a profile list", exc_info=True)
+            return [], exc
 
-    for row in rows:
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        saved_job = pool.submit(fetch, supabase.list_saved)
+        applied_job = pool.submit(fetch, supabase.list_applications)
+        saved_rows, saved_error = saved_job.result()
+        applied_rows, applied_error = applied_job.result()
+
+    if saved_error or applied_error:
+        context["error"] = f"Some of your lists could not be loaded: {saved_error or applied_error}"
+
+    applied_keys = {row.get("advert_key") for row in applied_rows}
+    for row in saved_rows:
+        row["saved_on"] = _format_applied_at(row.get("saved_at"))
+        # A saved job that has since been applied to should say so rather than offering
+        # Apply again, which is the confusion this whole feature exists to remove.
+        row["applied"] = row.get("advert_key") in applied_keys
+    for row in applied_rows:
         row["applied_on"] = _format_applied_at(row.get("applied_at"))
-    context["applications"] = rows
-    return templates.TemplateResponse(request, "applications.html", context)
+
+    search = _profile(request) or {}
+    context.update(
+        joined_on=_format_applied_at(account.joined),
+        saved=saved_rows,
+        applications=applied_rows,
+        search_fields=[FIELDS[k].label for k in search.get("fields") or [] if k in FIELDS],
+        search_years=search.get("years"),
+    )
+    return templates.TemplateResponse(request, "profile.html", context)
+
+
+@app.get("/applications")
+def applications(request: Request):
+    """Now a tab of the profile; kept so bookmarks and old links still land."""
+    return RedirectResponse("/profile?tab=applied", status_code=303)
 
 
 def _format_applied_at(value: str | None) -> str:
@@ -1091,12 +1367,21 @@ def mark_applied(
         )
 
     return templates.TemplateResponse(
-        request, "_applied_tag.html", {"request": request, "advert_key": advert_key}
+        request,
+        "_applied_tag.html",
+        {"request": request, "advert_key": advert_key, "title": title,
+         "company": company, "url": url},
     )
 
 
 @app.post("/applications/remove", response_class=HTMLResponse)
-def unmark_applied(request: Request, advert_key: str = Form(...)):
+def unmark_applied(
+    request: Request,
+    advert_key: str = Form(...),
+    title: str = Form(""),
+    company: str = Form(""),
+    url: str = Form(""),
+):
     account = _account(request)
     if account is None:
         raise HTTPException(status_code=401, detail="Sign in to track applications.")
@@ -1107,43 +1392,28 @@ def unmark_applied(request: Request, advert_key: str = Form(...)):
         return HTMLResponse('<span class="muted small">could not undo</span>', status_code=502)
 
     if request.headers.get("HX-Request"):
+        # On the profile the row itself is the target, and an empty answer removes it.
+        # In the results the control swaps back to a live Apply button.
+        if request.headers.get("X-From") == "profile":
+            return HTMLResponse("")
+        if url:
+            return templates.TemplateResponse(
+                request,
+                "_apply_button.html",
+                {"request": request, "account": account, "advert_key": advert_key,
+                 "title": title, "company": company, "url": url},
+            )
         return HTMLResponse("", headers={"HX-Refresh": "true"})
-    return RedirectResponse("/applications", status_code=303)
+    return RedirectResponse("/profile?tab=applied", status_code=303)
 
 
 # ------------------------------------------------------------------- saved jobs
 
 
-@app.get("/saved", response_class=HTMLResponse)
+@app.get("/saved")
 def saved(request: Request):
-    """Jobs put aside to come back to.
-
-    Unlike applications these are never filtered out of the results: a saved job is one
-    still being weighed up, and hiding it would defeat the point of saving it.
-    """
-    account = _account(request)
-    context = _base_context(request)
-    if account is None:
-        context["error"] = "Sign in to see the jobs you have saved."
-        return templates.TemplateResponse(
-            request, "saved.html", context, status_code=401
-        )
-
-    try:
-        rows = supabase.list_saved(account)
-    except (supabase.SupabaseError, httpx.HTTPError) as exc:
-        logger.warning("could not list saved jobs", exc_info=True)
-        rows = []
-        context["error"] = f"Could not load your saved jobs: {exc}"
-
-    applied = _applied_keys(account)
-    for row in rows:
-        row["saved_on"] = _format_applied_at(row.get("saved_at"))
-        # A saved job that has since been applied to should say so rather than offering
-        # Apply again, which is the confusion this whole feature exists to remove.
-        row["applied"] = row.get("advert_key") in applied
-    context["saved"] = rows
-    return templates.TemplateResponse(request, "saved.html", context)
+    """Now a tab of the profile; kept so bookmarks and old links still land."""
+    return RedirectResponse("/profile?tab=saved", status_code=303)
 
 
 @app.post("/saved", response_class=HTMLResponse)
@@ -1196,12 +1466,12 @@ def unmark_saved(
             '<span class="accession">could not remove</span>', status_code=502
         )
 
-    # From the saved page the whole row should go; from the results the control just
-    # flips back to an empty Save, so the record stays where the cursor left it.
-    if request.headers.get("HX-Request") and request.headers.get("HX-Target") == "saved-list":
-        return HTMLResponse("", headers={"HX-Refresh": "true"})
+    # From the profile the whole row should go; from the results the control just flips
+    # back to an empty Save, so the record stays where the cursor left it.
+    if request.headers.get("HX-Request") and request.headers.get("X-From") == "profile":
+        return HTMLResponse("")
     if not request.headers.get("HX-Request"):
-        return RedirectResponse("/saved", status_code=303)
+        return RedirectResponse("/profile?tab=saved", status_code=303)
     return templates.TemplateResponse(
         request,
         "_saved_tag.html",

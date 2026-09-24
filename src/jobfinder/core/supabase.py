@@ -20,9 +20,15 @@ written without the filter.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import logging
+import secrets
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+from time import monotonic
+from urllib.parse import urlencode
 
 import httpx
 
@@ -38,6 +44,18 @@ MAX_APPLICATIONS = 1000
 EXPIRY_MARGIN = timedelta(seconds=60)
 
 TIMEOUT = httpx.Timeout(10.0, connect=5.0)
+
+# One pool of kept-alive connections for every call. A fresh client per call paid a new
+# TCP and TLS handshake to Supabase each time - two of them on every signed-in search,
+# one for applications and one for saved jobs - which from a US function to an EU
+# project is most of a second before a single row comes back.
+_POOL = httpx.HTTPTransport(retries=1)
+
+
+@contextmanager
+def _client():
+    """A client on the shared pool. Not closed on exit: closing it would close the pool."""
+    yield httpx.Client(timeout=TIMEOUT, transport=_POOL)
 
 
 class SupabaseError(RuntimeError):
@@ -63,6 +81,12 @@ class Account:
     access_token: str
     refresh_token: str
     expires_at: float
+    # What the profile page shows. Defaulted so a cookie written before they existed
+    # still reads; Google fills the first two, an email account has neither.
+    name: str = ""
+    avatar: str = ""
+    provider: str = "email"
+    joined: str = ""
 
     @property
     def expired(self) -> bool:
@@ -76,6 +100,10 @@ class Account:
             "access_token": self.access_token,
             "refresh_token": self.refresh_token,
             "expires_at": self.expires_at,
+            "name": self.name,
+            "avatar": self.avatar,
+            "provider": self.provider,
+            "joined": self.joined,
         }
 
     @classmethod
@@ -146,7 +174,9 @@ def _message_from(response: httpx.Response) -> str:
 
 def _account_from_token_response(payload: dict) -> Account:
     user = payload.get("user") or {}
+    meta = user.get("user_metadata") or {}
     expires_in = payload.get("expires_in") or 3600
+    avatar = meta.get("avatar_url") or meta.get("picture") or ""
     return Account(
         user_id=user.get("id", ""),
         email=user.get("email", ""),
@@ -155,6 +185,12 @@ def _account_from_token_response(payload: dict) -> Account:
         expires_at=(
             datetime.now(timezone.utc) + timedelta(seconds=int(expires_in))
         ).timestamp(),
+        name=(meta.get("full_name") or meta.get("name") or "")[:80],
+        # Only an https picture is kept: it is put straight into an <img>, and the
+        # cookie has no room for anything long.
+        avatar=avatar[:300] if avatar.startswith("https://") else "",
+        provider=(user.get("app_metadata") or {}).get("provider") or "email",
+        joined=(user.get("created_at") or "")[:10],
     )
 
 
@@ -169,7 +205,7 @@ def sign_up(email: str, password: str) -> Account | None:
     say so rather than pretending they are signed in.
     """
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.post(
             f"{base}/auth/v1/signup",
             headers=_auth_headers(),
@@ -186,7 +222,7 @@ def sign_up(email: str, password: str) -> Account | None:
 
 def sign_in(email: str, password: str) -> Account:
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.post(
             f"{base}/auth/v1/token",
             params={"grant_type": "password"},
@@ -201,7 +237,7 @@ def sign_in(email: str, password: str) -> Account:
 def refresh(account: Account) -> Account:
     """Exchange a refresh token for a new access token."""
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.post(
             f"{base}/auth/v1/token",
             params={"grant_type": "refresh_token"},
@@ -213,11 +249,91 @@ def refresh(account: Account) -> Account:
 
     renewed = _account_from_token_response(response.json())
     # A refresh response does not always carry the user object; keep what we know.
-    if not renewed.user_id:
-        renewed.user_id = account.user_id
-    if not renewed.email:
-        renewed.email = account.email
+    for name in ("user_id", "email", "name", "avatar", "joined"):
+        if not getattr(renewed, name):
+            setattr(renewed, name, getattr(account, name))
+    if renewed.provider == "email" and account.provider != "email":
+        renewed.provider = account.provider
     return renewed
+
+
+# ------------------------------------------------------------- google sign-in
+#
+# The PKCE code flow, which is what lets a server do OAuth without the tokens ever
+# appearing in a URL. Supabase's default "implicit" flow returns them in the fragment
+# after `#`, which browsers never send to a server - it only works for JavaScript apps.
+#
+# Here the site keeps a random verifier in its own session and sends Supabase a hash of
+# it. Google sends the person back with a one-time code, and Supabase only exchanges
+# that code for a session when it is presented alongside the original verifier - so a
+# code that leaks, through a referrer or browser history, is useless on its own.
+
+_PROVIDERS_TTL = 600.0
+_providers_cache: tuple[float, dict[str, bool]] | None = None
+
+
+def providers() -> dict[str, bool]:
+    """Which sign-in methods the project has switched on, e.g. {"google": True}.
+
+    Asked of Supabase rather than configured here, so turning Google on in the dashboard
+    is the whole job; the button appears on its own. Remembered for ten minutes so the
+    sign-in page does not pay a round trip every time. If Supabase cannot be asked, the
+    answer is "yes": a button that fails is better than silently hiding the main way in.
+    """
+    global _providers_cache
+    now = monotonic()
+    if _providers_cache and now - _providers_cache[0] < _PROVIDERS_TTL:
+        return _providers_cache[1]
+    base, _ = _require_config()
+    try:
+        with _client() as client:
+            response = client.get(f"{base}/auth/v1/settings", headers=_auth_headers())
+        response.raise_for_status()
+        external = response.json().get("external") or {}
+        found = {k: bool(v) for k, v in external.items() if isinstance(v, bool)}
+    except (httpx.HTTPError, ValueError, AttributeError):
+        logger.info("could not read supabase auth settings; assuming google is on")
+        found = {"google": True}
+        now -= _PROVIDERS_TTL - 60  # try again in a minute rather than ten
+    _providers_cache = (now, found)
+    return found
+
+
+def pkce_pair() -> tuple[str, str]:
+    """A fresh (verifier, challenge) pair, the challenge being the S256 hash."""
+    verifier = secrets.token_urlsafe(48)
+    digest = hashlib.sha256(verifier.encode("ascii")).digest()
+    challenge = base64.urlsafe_b64encode(digest).rstrip(b"=").decode("ascii")
+    return verifier, challenge
+
+
+def google_authorize_url(redirect_to: str, challenge: str) -> str:
+    """Where to send someone to sign in with Google."""
+    base, _ = _require_config()
+    query = urlencode(
+        {
+            "provider": "google",
+            "redirect_to": redirect_to,
+            "code_challenge": challenge,
+            "code_challenge_method": "s256",
+        }
+    )
+    return f"{base}/auth/v1/authorize?{query}"
+
+
+def exchange_code(code: str, verifier: str) -> Account:
+    """Trade the code Google sent back, plus our verifier, for a signed-in session."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.post(
+            f"{base}/auth/v1/token",
+            params={"grant_type": "pkce"},
+            headers=_auth_headers(),
+            json={"auth_code": code, "code_verifier": verifier},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return _account_from_token_response(response.json())
 
 
 def sign_out(account: Account) -> None:
@@ -230,7 +346,7 @@ def sign_out(account: Account) -> None:
     """
     base, _ = _require_config()
     try:
-        with httpx.Client(timeout=TIMEOUT) as client:
+        with _client() as client:
             client.post(
                 f"{base}/auth/v1/logout", headers=_auth_headers(account.access_token)
             )
@@ -244,7 +360,7 @@ def sign_out(account: Account) -> None:
 def list_applications(account: Account) -> list[dict]:
     """Every advert this account has marked as applied to, newest first."""
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.get(
             f"{base}/rest/v1/applications",
             headers=_auth_headers(account.access_token),
@@ -282,7 +398,7 @@ def add_application(
     (user_id, advert_key) raises instead of merging.
     """
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.post(
             f"{base}/rest/v1/applications",
             params={"on_conflict": "user_id,advert_key"},
@@ -305,7 +421,7 @@ def add_application(
 def remove_application(account: Account, advert_key: str) -> None:
     """Undo a mark, so a mis-click does not hide a job for good."""
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.delete(
             f"{base}/rest/v1/applications",
             headers=_auth_headers(account.access_token),
@@ -327,7 +443,7 @@ def remove_application(account: Account, advert_key: str) -> None:
 def list_saved(account: Account) -> list[dict]:
     """Every advert this account has saved for later, newest first."""
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.get(
             f"{base}/rest/v1/saved_jobs",
             headers=_auth_headers(account.access_token),
@@ -358,7 +474,7 @@ def add_saved(
     finds a conflict.
     """
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.post(
             f"{base}/rest/v1/saved_jobs",
             params={"on_conflict": "user_id,advert_key"},
@@ -381,7 +497,7 @@ def add_saved(
 def remove_saved(account: Account, advert_key: str) -> None:
     """Take an advert off the saved list."""
     base, _ = _require_config()
-    with httpx.Client(timeout=TIMEOUT) as client:
+    with _client() as client:
         response = client.delete(
             f"{base}/rest/v1/saved_jobs",
             headers=_auth_headers(account.access_token),

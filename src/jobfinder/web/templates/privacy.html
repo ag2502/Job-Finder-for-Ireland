@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set nav = 'privacy' %}
-{% block title %}What happens to your CV &mdash; Sorted Place{% endblock %}
+{% block title %}What happens to your CV | Sorted Place{% endblock %}
 {% from "_macros.html" import titlebar %}
 {% block railcount %}{% endblock %}
 {% block content %}
@@ -19,14 +19,14 @@
   <h2>What is kept</h2>
   <p class="muted">Only what matching needs, held in a signed cookie in your own browser:</p>
   <ul class="muted">
-    <li>Skill keywords found in your CV &mdash; <em>python</em>, <em>kubernetes</em>, and so on</li>
+    <li>Skill keywords found in your CV, such as <em>python</em>, <em>kubernetes</em> and so on</li>
     <li>A seniority guess and a rough number of years</li>
     <li>The kinds of work you picked</li>
   </ul>
   <p class="muted">
     The text of your CV is not among them. Earlier versions kept a short excerpt for
     keyword scoring; it turned out to change no results, and it carried whatever the
-    document said &mdash; including your email address &mdash; so it is gone.
+    document said, including your email address, so it is gone.
   </p>
   <p class="muted">
     Clearing your session with <strong>Start over</strong>, or clearing your browser
@@ -38,20 +38,22 @@
   <h2>If you create an account</h2>
   <p class="muted">
     An account is optional. Searching, ranking and applying all work without one, and
-    nothing about your CV changes if you have one &mdash; it is still never stored.
+    nothing about your CV changes if you have one: it is still never stored.
   </p>
-  <p class="muted">An account exists to answer one question: have I already applied to
-    this? So it keeps, on a server:</p>
+  <p class="muted">An account exists to answer two questions: have I already applied to
+    this, and what did I want to come back to? So it keeps, on a server:</p>
   <ul class="muted">
-    <li>Your email address and a password hash, held by
+    <li>Your email address, held by
       <a href="https://supabase.com/privacy" target="_blank" rel="noopener">Supabase</a>
-      in the EU. Your password itself is never seen by this site.</li>
-    <li>For each job you mark as applied: its title, employer, link and the date.</li>
+      in the EU. If you sign in with Google, also the name and profile picture Google
+      shares; your Google password never reaches this site. If you use an email and
+      password instead, only a hash of the password is kept.</li>
+    <li>For each job you mark as applied or save: its title, employer, link and the date.</li>
   </ul>
   <p class="muted">
-    That is the whole of it &mdash; no tracking, no analytics tied to you, nothing shared
-    with employers or anyone else. You can remove any application from the
-    <a href="/applications">applied</a> page at any time, and removing one deletes the row
+    That is the whole of it: no tracking, no analytics tied to you, nothing shared
+    with employers or anyone else. You can remove any saved or applied job from
+    <a href="/profile">your profile</a> at any time, and removing one deletes the row
     outright rather than archiving it.
   </p>
   {# TODO: GDPR gives people the right to erasure of the account itself, not only of the
@@ -65,7 +67,7 @@
   <p class="muted">
     A CV is personal data. Under GDPR, storing one makes the operator a data controller
     with retention, access and erasure duties, and it becomes the most sensitive thing in
-    the system &mdash; the part worth attacking. Extracting the few hundred bytes that
+    the system, and the part worth attacking. Extracting the few hundred bytes that
     matching actually uses and discarding the document removes that risk entirely, and
     costs you nothing in results quality.
   </p>

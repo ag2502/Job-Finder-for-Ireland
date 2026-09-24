@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% set nav = 'account' %}
-{% block title %}{{ "Create an account" if mode == "signup" else "Sign in" }} &mdash; Sorted Place{% endblock %}
+{% block title %}{{ "Create an account" if mode == "signup" else "Sign in" }} | Sorted Place{% endblock %}
 {% from "_macros.html" import titlebar %}
 {% block railcount %}{% endblock %}
 {% block content %}
@@ -12,46 +12,63 @@
       {% else %}{{ "Create your account." if mode == "signup" else "Welcome back." }}{% endif %}
     </h1>
     <p class="lede">
-      An account does two things: it remembers which jobs you have applied to and keeps
-      them out of your results, and it lets you save jobs for later. Your CV is never
-      stored either way.
+      An account remembers which jobs you have applied to and keeps them out of your
+      results, and lets you save jobs for later. Your CV is never stored either way.
     </p>
   </section>
 
   <div class="win opens" style="box-shadow:var(--shadow-lift)">
   {{ titlebar("sign-in" if mode != "signup" else "create-account") }}
-  <form class="win__body" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+  <div class="win__body">
     {% if reason %}<p class="notice">{{ reason }}</p>{% endif %}
-    {% if error %}<p class="error">{{ error }}</p>{% endif %}
+    {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
     {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
 
-    {# Where to go once they are in. Carried through every failed attempt too, so a
-       typo does not cost them the job they were about to apply for. #}
-    <input type="hidden" name="next" value="{{ next_to|default('/', true) }}">
+    {% if google_enabled %}
+    {# One press, no password to invent, and the same button whether or not an account
+       exists yet: Google signs up and signs in alike. #}
+    <a class="gbtn" href="/auth/google?next={{ next_to|default('/', true)|urlencode }}">
+      <svg aria-hidden="true"><use href="#i-google"/></svg>
+      Continue with Google
+    </a>
+    <p class="gnote">We get your name, email and picture from Google. Never your password.</p>
+    {% endif %}
 
-    <label for="acc-email"><span class="fieldname">Email</span></label>
-    <input type="email" id="acc-email" name="email" value="{{ email }}" required autocomplete="email">
+    <details class="emailwrap" {% if email_open or not google_enabled %}open{% endif %}>
+      {% if google_enabled %}
+      <summary class="emailwrap__toggle"><span>or use your email
+        <svg viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></summary>
+      {% endif %}
+      <form method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}" class="emailform">
+        {# Where to go once they are in. Carried through every failed attempt too, so a
+           typo does not cost them the job they were about to apply for. #}
+        <input type="hidden" name="next" value="{{ next_to|default('/', true) }}">
 
-    <label for="acc-pw" style="margin-top:20px;display:block">
-      <span class="fieldname">Password{% if mode == "signup" %} &mdash; 8 characters or more{% endif %}</span>
-    </label>
-    <input type="password" id="acc-pw" name="password" required minlength="8"
-           autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
+        <label for="acc-email"><span class="fieldname">Email</span></label>
+        <input type="email" id="acc-email" name="email" value="{{ email }}" required autocomplete="email">
 
-    <div class="row" style="margin-top:28px;gap:18px;justify-content:space-between">
-      <button type="submit">
-        {{ "Create account" if mode == "signup" else "Sign in" }}
-        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
-      </button>
-      <span class="small muted">
-        {% if mode == "signup" %}
-          Already have one? <a href="/login">Sign in</a>
-        {% else %}
-          No account? <a href="/signup">Create one</a>
-        {% endif %}
-      </span>
-    </div>
-  </form>
+        <label for="acc-pw" style="margin-top:18px;display:block">
+          <span class="fieldname">Password{% if mode == "signup" %} <em>(8 characters or more)</em>{% endif %}</span>
+        </label>
+        <input type="password" id="acc-pw" name="password" required minlength="8"
+               autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
+
+        <div class="emailform__foot">
+          <button type="submit" class="{{ 'secondary' if google_enabled else '' }}">
+            {{ "Create account" if mode == "signup" else "Sign in" }}
+            <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
+          </button>
+          <span class="small muted">
+            {% if mode == "signup" %}
+              Already have one? <a href="/login?next={{ next_to|urlencode }}">Sign in</a>
+            {% else %}
+              No account? <a href="/signup?next={{ next_to|urlencode }}">Create one</a>
+            {% endif %}
+          </span>
+        </div>
+      </form>
+    </details>
+  </div>
   </div>
 
   <p class="accession" style="text-align:center;margin-top:20px">
@@ -60,9 +77,43 @@
 </div>
 
 <style>
-  .ticket{max-width:560px;margin:0 auto}
+  .ticket{max-width:520px;margin:0 auto;padding-bottom:20px}
   .ticket .pagehead .lede{max-width:none;margin:0 auto}
-  .ticket .win__body{padding:30px 32px 32px}
+  .ticket .win__body{padding:30px 32px 30px}
+
+  /* Google's own button style: white, the four-colour G, a quiet grey edge. */
+  .gbtn{display:flex;align-items:center;justify-content:center;gap:12px;min-height:52px;
+    font-size:16px;font-weight:600;letter-spacing:-.01em;color:var(--ink);text-decoration:none;
+    background:#fff;border:1px solid var(--line-strong);border-radius:999px;
+    box-shadow:0 1px 2px rgba(20,24,33,.08),0 8px 18px -10px rgba(20,24,33,.35);
+    transition:transform .35s var(--spring),box-shadow .25s var(--ease),border-color .2s var(--ease)}
+  .gbtn svg{width:20px;height:20px;flex:none}
+  .gbtn:hover{border-color:#9aa2ae;transform:translateY(-1px);
+    box-shadow:0 1px 2px rgba(20,24,33,.08),0 14px 26px -12px rgba(20,24,33,.4)}
+  .gbtn:active{transform:scale(.98);transition-duration:.08s}
+  .gnote{margin:12px 0 0;text-align:center;font-size:13px;color:var(--ink-3);max-width:none}
+
+  .emailwrap{margin-top:22px}
+  .emailwrap__toggle{list-style:none;cursor:pointer;display:flex;align-items:center;gap:14px;
+    font-size:13.5px;font-weight:600;color:var(--ink-2);border-radius:6px}
+  .emailwrap__toggle::-webkit-details-marker{display:none}
+  .emailwrap__toggle::before,.emailwrap__toggle::after{content:"";flex:1;height:1px;background:var(--line)}
+  .emailwrap__toggle:hover span{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
+  .emailwrap__toggle span{display:inline-flex;align-items:center;gap:6px}
+  .emailwrap__toggle svg{width:10px;height:10px;transition:transform .25s var(--ease)}
+  .emailwrap[open] .emailwrap__toggle svg{transform:rotate(180deg)}
+  .emailwrap__toggle:focus-visible{outline:2.5px solid var(--aqua);outline-offset:4px}
+  .emailwrap[open] .emailwrap__toggle{margin-bottom:20px}
+  @media (prefers-reduced-motion:no-preference){
+    .emailwrap[open] .emailform{animation:rise-in .35s var(--ease)}
+  }
+  @keyframes rise-in{from{opacity:0;transform:translateY(-6px)}}
+  .emailform__foot{display:flex;align-items:center;justify-content:space-between;gap:14px 18px;
+    flex-wrap:wrap;margin-top:24px}
+  @media (max-width:520px){
+    .ticket .win__body{padding:22px 18px 24px}
+    .emailform__foot button{width:100%}
+  }
 </style>
 
 {% endblock %}

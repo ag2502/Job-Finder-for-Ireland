@@ -2,20 +2,25 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
 <meta name="theme-color" content="#eceef2">
-<title>{% block title %}Sorted Place &mdash; every job in Dublin, in one place{% endblock %}</title>
+<title>{% block title %}Sorted Place: every job in Dublin, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Dublin right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.google.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Geist+Mono:wght@400..600&family=Gochi+Hand&display=swap">
-<script src="https://unpkg.com/htmx.org@1.9.12"></script>
+<script src="/static/htmx-1.9.12.min.js" defer></script>
+{# Chrome and Edge fetch a page the moment the pointer rests on its link, so clicking the
+   logo or a menu item lands on a page that is already here. Links that act are left out. #}
+<script type="speculationrules">
+{"prefetch":[{"source":"document","where":{"and":[{"href_matches":"/*"},{"not":{"href_matches":"/auth/*"}}]},"eagerness":"moderate"}]}
+</script>
 <style>
 /* ===================================================================
-   SORTED PLACE — the tidy desktop
+   SORTED PLACE: the tidy desktop
    Job hunting is twenty careers sites open in twenty windows. This is
    the one window that has all of them in it.
    =================================================================== */
@@ -23,12 +28,14 @@
 @view-transition{navigation:auto}
 /* Between pages the menu bar holds still and only the desk beneath it changes. */
 .menubar{view-transition-name:menubar}
+/* A quick cross-fade. It used to slide the new page up over half a second, which on
+   every click read as the site being slow to answer. */
 @media (prefers-reduced-motion:no-preference){
-  ::view-transition-old(root){animation:vt-out .22s cubic-bezier(.4,0,1,1) both}
-  ::view-transition-new(root){animation:vt-in .5s cubic-bezier(.16,1,.3,1) both}
+  ::view-transition-old(root){animation:vt-out .12s linear both}
+  ::view-transition-new(root){animation:vt-in .2s cubic-bezier(.16,1,.3,1) both}
 }
-@keyframes vt-out{to{opacity:0;transform:scale(.985)}}
-@keyframes vt-in{from{opacity:0;transform:translateY(14px)}}
+@keyframes vt-out{to{opacity:0}}
+@keyframes vt-in{from{opacity:0}}
 
 :root{
   /* the desktop */
@@ -73,11 +80,11 @@
 }
 
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%;scroll-padding-top:64px}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:72px}
 @media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 
 body{
-  margin:0;min-height:100vh;display:flex;flex-direction:column;
+  margin:0;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
   background-color:var(--desk);
   background-image:radial-gradient(var(--desk-dot) 1px, transparent 1.3px);
   background-size:22px 22px;
@@ -88,7 +95,8 @@ body{
   font-feature-settings:"ss01";
   font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased;
-  padding-top:48px;
+  padding-top:calc(48px + env(safe-area-inset-top));
+  overflow-x:clip;
 }
 
 /* --- browser surfaces carry the design too --- */
@@ -104,10 +112,11 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 
 /* ------------------------------------------------------------ menu bar --- */
 .menubar{
-  position:fixed;inset:0 0 auto 0;z-index:100;height:48px;
-  display:flex;align-items:center;gap:6px;padding:0 18px;
-  background:rgba(246,247,249,.78);
-  -webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  position:fixed;inset:0 0 auto 0;z-index:100;height:calc(48px + env(safe-area-inset-top));
+  display:flex;align-items:center;gap:6px;
+  padding:env(safe-area-inset-top) max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left));
+  background:rgba(246,247,249,.86);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
   border-bottom:1px solid rgba(20,24,33,.08);
   font-size:14px;
 }
@@ -117,20 +126,123 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .brand:hover svg{transform:rotate(-8deg) scale(1.08)}
 .brand b{font-weight:700}
 .brand span{color:var(--ink-3);font-weight:500}
-.menubar nav{display:flex;align-items:center;gap:2px;min-width:0}
-.menubar nav a,.menubar nav .linkish{
+.menubar__nav{display:flex;align-items:center;gap:2px;min-width:0}
+.menubar__nav a{
   color:var(--ink-2);text-decoration:none;font-weight:500;font-size:14px;
   padding:5px 10px;border-radius:7px;white-space:nowrap;letter-spacing:-.005em;
   transition:background .2s var(--ease),color .2s var(--ease);
 }
-.menubar nav a:hover,.menubar nav .linkish:hover{background:rgba(20,24,33,.06);color:var(--ink)}
-.menubar nav a[aria-current="page"]{color:var(--ink);background:rgba(20,24,33,.08);font-weight:600}
+.menubar__nav a:hover{background:rgba(20,24,33,.06);color:var(--ink)}
+.menubar__nav a[aria-current="page"]{color:var(--ink);background:rgba(20,24,33,.08);font-weight:600}
 .menubar .status{margin-left:auto;display:flex;align-items:center;gap:16px;
   font-size:13px;color:var(--ink-2);white-space:nowrap}
 .status .live{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
 .status .live i{width:8px;height:8px;border-radius:50%;background:var(--tl-green);
   box-shadow:0 0 0 3px rgba(40,200,64,.18)}
 .status .clock{font-variant-numeric:tabular-nums;color:var(--ink-3)}
+
+/* sign in, as a small pill at the right-hand end of the bar */
+.signin{display:inline-flex;align-items:center;gap:8px;margin-left:12px;
+  font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap;
+  background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px 5px 6px;
+  box-shadow:0 1px 2px rgba(20,24,33,.06);transition:box-shadow .2s var(--ease),border-color .2s var(--ease)}
+.signin:hover{border-color:#9aa2ae;box-shadow:0 4px 10px -5px rgba(20,24,33,.3)}
+.signin svg{width:18px;height:18px;flex:none}
+
+/* the person, as a round picture; their initial when there is no picture */
+.avatar{--av:28px;position:relative;flex:none;display:inline-grid;place-items:center;
+  width:var(--av);height:var(--av);border-radius:50%;overflow:hidden;
+  background:hsl(var(--hue,215) 70% 88%);color:hsl(var(--hue,215) 55% 28%);
+  font-weight:700;font-size:calc(var(--av) * .44);letter-spacing:-.02em;
+  box-shadow:inset 0 0 0 1px rgba(20,24,33,.1)}
+.avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.avatar--lg{--av:40px}
+.avatar--xl{--av:76px}
+
+/* the account menu: a Finder-style dropdown off the menu bar */
+.acct{position:relative;margin-left:12px}
+.acct > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:3px 10px 3px 3px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--ink);
+  transition:background .2s var(--ease)}
+.acct > summary::-webkit-details-marker{display:none}
+.acct > summary:hover,.acct[open] > summary{background:rgba(20,24,33,.07)}
+.acct > summary:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+.acct__chev{width:10px;height:10px;color:var(--ink-3);transition:transform .25s var(--ease)}
+.acct[open] .acct__chev{transform:rotate(180deg)}
+.acct__label{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct__menu{position:absolute;right:0;top:calc(100% + 8px);width:268px;
+  background:rgba(255,255,255,.97);border:1px solid rgba(20,24,33,.12);border-radius:12px;
+  box-shadow:0 3px 8px rgba(20,24,33,.12),0 28px 60px -20px rgba(20,24,33,.45);
+  padding:6px;transform-origin:top right}
+@media (prefers-reduced-motion:no-preference){
+  .acct[open] .acct__menu{animation:menu-in .22s var(--ease)}
+}
+@keyframes menu-in{from{opacity:0;transform:translateY(-6px) scale(.97)}}
+.acct__who{display:flex;align-items:center;gap:11px;padding:10px 10px 12px;margin-bottom:4px;
+  border-bottom:1px solid var(--line)}
+.acct__who > div > b{display:block;font-size:14px;line-height:1.25;letter-spacing:-.01em;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct__who > div > span{display:block;font-size:12.5px;color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.acct__who > div{min-width:0}
+.menuitem{display:flex;align-items:center;justify-content:flex-start;gap:10px;width:100%;
+  padding:8px 10px;border-radius:7px;font:inherit;font-size:14px;font-weight:500;color:var(--ink);
+  text-decoration:none;text-align:left;background:none;border:0;box-shadow:none;cursor:pointer;
+  letter-spacing:-.005em}
+.menuitem::after{display:none}
+.menuitem svg{width:16px;height:16px;flex:none;color:var(--ink-3);transform:none!important}
+.menuitem:hover:not(:disabled),.menuitem:focus-visible{background:var(--aqua);color:#fff;
+  transform:none;filter:none;box-shadow:none}
+.menuitem:hover svg,.menuitem:focus-visible svg{color:#fff}
+.menuitem--out{color:var(--tag-red-deep)}
+.menu-sep{height:1px;background:var(--line);margin:5px 4px}
+
+/* the burger, for narrow screens only */
+.burger{display:none;margin-left:auto;width:44px;height:44px;margin-right:-10px;padding:0;
+  background:none;border:0;box-shadow:none;border-radius:10px;color:var(--ink)}
+.burger::after{display:none}
+.burger:hover:not(:disabled){background:rgba(20,24,33,.06);transform:none;filter:none;box-shadow:none}
+.burger:active:not(:disabled){transform:scale(.94)}
+.burger i{position:absolute;left:13px;top:21px;width:18px;height:2px;border-radius:2px;background:currentColor;
+  transition:transform .35s var(--ease)}
+.burger i:first-of-type{transform:translateY(-4px)}
+.burger i:last-of-type{transform:translateY(4px)}
+.burger[aria-expanded="true"] i:first-of-type{transform:rotate(45deg)}
+.burger[aria-expanded="true"] i:last-of-type{transform:rotate(-45deg)}
+.burger .dot{position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;
+  background:var(--sorted);box-shadow:0 0 0 2px #f6f7f9;transition:opacity .2s}
+.burger[aria-expanded="true"] .dot{opacity:0}
+
+/* the sheet the burger opens: every destination as a large, thumb-sized row */
+.sheet{position:fixed;inset:calc(48px + env(safe-area-inset-top)) 0 0 0;z-index:99;
+  display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
+.sheet__scrim{position:absolute;inset:0;background:rgba(20,24,33,.28);opacity:0;
+  transition:opacity .25s var(--ease)}
+.sheet__panel{position:relative;background:#f6f7f9;border-bottom:1px solid rgba(20,24,33,.1);
+  box-shadow:0 30px 60px -24px rgba(20,24,33,.45);max-height:100%;overflow-y:auto;
+  overscroll-behavior:contain;
+  padding:10px max(16px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+  transform:translateY(-12px);opacity:0;
+  transition:transform .3s var(--ease),opacity .2s var(--ease)}
+.sheet.is-open{visibility:visible;pointer-events:auto}
+.sheet.is-open .sheet__scrim{opacity:1}
+.sheet.is-open .sheet__panel{transform:none;opacity:1}
+.sheet__nav{display:flex;flex-direction:column}
+.sheet__nav a,.sheet__nav button{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  min-height:52px;width:100%;padding:0 4px;font:inherit;font-size:18px;font-weight:600;letter-spacing:-.015em;
+  color:var(--ink);text-decoration:none;background:none;border:0;border-bottom:1px solid var(--line);
+  border-radius:0;box-shadow:none;text-align:left;cursor:pointer}
+.sheet__nav a::after,.sheet__nav button::after{display:none}
+.sheet__nav a[aria-current="page"]{color:var(--aqua-deep)}
+.sheet__nav svg{width:16px;height:16px;color:var(--ink-3);flex:none;transform:none!important}
+.sheet__nav button:hover:not(:disabled){transform:none;filter:none;box-shadow:none;background:none}
+.sheet__nav .menuitem--out{color:var(--tag-red-deep)}
+.sheet__who{display:flex;align-items:center;gap:12px;padding:14px 4px 14px}
+.sheet__who > div > b{display:block;font-size:16px;letter-spacing:-.01em}
+.sheet__who > div > span{display:block;font-size:13px;color:var(--ink-3);overflow-wrap:anywhere}
+.sheet__label{margin:20px 4px 2px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.sheet .signin{margin:16px 0 0;justify-content:center;min-height:48px;font-size:16px;width:100%}
+html.sheet-open,html.sheet-open body{overflow:hidden}
 
 main{flex:1 0 auto;padding:0 0 110px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
@@ -396,10 +508,9 @@ button[class*="colbtn"]::after,.lights button::after{display:none}
 
 /* a group header inside a list, as Finder groups files */
 .guide{
-  position:sticky;top:48px;z-index:2;
+  position:sticky;top:calc(48px + env(safe-area-inset-top));z-index:2;
   display:flex;align-items:center;gap:8px;
-  padding:9px 22px;background:rgba(244,245,247,.94);
-  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  padding:9px 22px;background:#f4f5f7;
   border-bottom:1px solid var(--line);border-top:1px solid var(--line);
   font-size:13px;font-weight:650;color:var(--ink-2);
 }
@@ -496,8 +607,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 .pulling span.sub{display:block;font-size:13px;color:var(--ink-2);max-width:62ch}
 .htmx-indicator{opacity:0;transition:opacity .2s}
 .htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
-#results{transition:opacity .2s var(--ease),filter .2s var(--ease)}
-#results.htmx-request{opacity:.4;filter:blur(1.5px);pointer-events:none}
+#results{transition:opacity .2s var(--ease)}
+#results.htmx-request{opacity:.45;pointer-events:none}
 
 /* ---------------------------------------------------------------- motion -- */
 /* One grammar: things open like windows do. Everything is visible without JS; the
@@ -506,9 +617,9 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   .js .filing{opacity:0;transform:translateY(10px)}
   .js .filing.filed-in{opacity:1;transform:none;
     transition:opacity .45s var(--ease),transform .6s var(--ease)}
-  .js .opens{opacity:0;transform:translateY(22px) scale(.965);filter:blur(4px)}
-  .js .opens.is-open{opacity:1;transform:none;filter:none;
-    transition:opacity .6s var(--ease),transform .9s var(--spring),filter .6s var(--ease)}
+  .js .opens{opacity:0;transform:translateY(18px) scale(.975)}
+  .js .opens.is-open{opacity:1;transform:none;
+    transition:opacity .5s var(--ease),transform .7s var(--ease)}
 }
 
 /* Headings rise into place a word at a time as they arrive. */
@@ -530,33 +641,48 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 .foot p{margin:0 0 0 auto;max-width:52ch}
 
 /* ------------------------------------------------------------ responsive -- */
+/* Laptops at 1024 to 1280: the clock goes first, so the bar never wraps. */
+@media (max-width:1100px){
+  .status .clock{display:none}
+}
 @media (max-width:860px){
   .grid2{grid-template-columns:1fr;gap:22px}
   .wrap{padding:0 16px}
   .pagehead{padding:40px 0 22px}
   .win__body{padding:20px 18px 22px}
   .card{padding:20px 18px}
-  .menubar{padding:0 10px;gap:0}
-  .menubar .status{gap:0;font-size:12px}
-  .status .clock{display:none}
-  .status .live{white-space:nowrap}
-  .brand{margin-right:4px}
+  .menubar{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
   .brand .tld{display:none}
   .brand{margin-right:6px;gap:7px}
-  .rail-long{display:none}
-  .menubar nav{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .menubar nav::-webkit-scrollbar{display:none}
-  .menubar nav a,.menubar nav .linkish{padding:5px 8px;font-size:13.5px}
   .record{padding:14px 16px;gap:12px;flex-wrap:wrap}
   .record .logo{--size:36px}
   .record__main{flex:1 1 calc(100% - 52px)}
   .record__side{flex-direction:row;align-items:center;justify-content:space-between;
     text-align:left;width:100%;gap:10px;padding-left:48px}
   .guide{padding:9px 16px}
+  .foot .wrap{padding-bottom:max(18px,env(safe-area-inset-bottom))}
   .foot p{margin-left:0}
+}
+/* The burger takes over from the inline menu. Without JS it cannot open, so the inline
+   links stay and scroll sideways instead. */
+@media (max-width:860px){
+  .js .menubar__nav,.js .menubar .acct,.js .menubar > .signin{display:none}
+  .js .burger{display:inline-grid;place-items:center}
+  .js .menubar .status{margin-left:auto;margin-right:6px}
+  html:not(.js) .menubar__nav{overflow-x:auto;scrollbar-width:none}
+  html:not(.js) .menubar .status{display:none}
 }
 @media (max-width:420px){
   .record__side{padding-left:0}
+  .menubar .status{font-size:12.5px}
+}
+@media (max-width:380px){
+  .rail-long{display:none}
+}
+/* Fingers need bigger targets than pointers do. */
+@media (pointer:coarse){
+  .btn--apply,.savebtn{min-height:40px}
+  .linkish.small{padding:8px 4px}
 }
 </style>
 </head>
@@ -589,6 +715,19 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
     <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <path d="M10.4 10.4l3.2 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
   </symbol>
+  <symbol id="i-person" viewBox="0 0 16 16">
+    <circle cx="8" cy="5.4" r="2.8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M2.8 13.6c.9-2.5 2.9-3.8 5.2-3.8s4.3 1.3 5.2 3.8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-out" viewBox="0 0 16 16">
+    <path d="M6.5 2.8H4a1.2 1.2 0 00-1.2 1.2v8A1.2 1.2 0 004 13.2h2.5M10.2 4.8L13.4 8l-3.2 3.2M13.2 8H6.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-google" viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </symbol>
   <symbol id="i-mark" viewBox="0 0 32 32">
     <rect x="3" y="9" width="20" height="16" rx="4" fill="#c9ced6"/>
     <rect x="9" y="5" width="20" height="16" rx="4" fill="#2b74f0"/>
@@ -596,32 +735,81 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   </symbol>
 </svg>
 
+{% from "_macros.html" import avatar %}
+{% set display_name = (account.name.split(" ")[0] if account and account.name else (account.email.split("@")[0] if account else "")) %}
+{% set rail %}{% block railcount %}{% endblock %}{% endset %}
+
 <header class="menubar">
   <a href="/" class="brand" aria-label="Sorted Place, home">
     <svg aria-hidden="true"><use href="#i-mark"/></svg>
     <span><b style="color:var(--ink)">sorted</b><span class="tld">.place</span></span>
   </a>
-  <nav aria-label="Sections">
+  <nav class="menubar__nav" aria-label="Sections">
     <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Find jobs</a>
     <a href="/companies" {% if nav == 'companies' %}aria-current="page"{% endif %}>Companies</a>
-    {% if accounts_enabled %}
-      {% if account %}
-        <a href="/saved" {% if nav == 'saved' %}aria-current="page"{% endif %}>Saved</a>
-        <a href="/applications" {% if nav == 'applications' %}aria-current="page"{% endif %}>Applied</a>
-        <form method="post" action="/logout" style="display:inline">
-          <button class="linkish" style="text-decoration:none" title="Signed in as {{ account.email }}">Sign out</button>
-        </form>
-      {% else %}
-        <a href="/login" {% if nav == 'account' %}aria-current="page"{% endif %}>Sign in</a>
-      {% endif %}
-    {% endif %}
   </nav>
   <div class="status">
-    {% set rail %}{% block railcount %}{% endblock %}{% endset %}
-    {% if rail|trim %}<span class="live"><i aria-hidden="true"></i>{{ rail }}</span>{% endif %}
+    {% if rail|trim %}<span class="live"><i aria-hidden="true"></i><span>{{ rail }}</span></span>{% endif %}
     <span class="clock" id="clock" aria-label="Time in Dublin"></span>
   </div>
+  {% if accounts_enabled %}
+    {% if account %}
+    <details class="acct" id="acct">
+      <summary aria-label="Your account: {{ account.email }}" title="Signed in as {{ account.email }}">
+        {{ avatar(account) }}<span class="acct__label">{{ display_name }}</span>
+        <svg class="acct__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </summary>
+      <div class="acct__menu">
+        <div class="acct__who">
+          {{ avatar(account, "avatar--lg") }}
+          <div><b>{{ account.name or display_name }}</b><span>{{ account.email }}</span></div>
+        </div>
+        <a class="menuitem" href="/profile"><svg aria-hidden="true"><use href="#i-person"/></svg>Your profile</a>
+        <a class="menuitem" href="/profile?tab=saved"><svg aria-hidden="true"><use href="#i-save"/></svg>Saved</a>
+        <a class="menuitem" href="/profile?tab=applied"><svg aria-hidden="true"><use href="#i-check"/></svg>Applied</a>
+        <div class="menu-sep" role="separator"></div>
+        <form method="post" action="/logout" style="margin:0">
+          <button class="menuitem menuitem--out"><svg aria-hidden="true"><use href="#i-out"/></svg>Sign out</button>
+        </form>
+      </div>
+    </details>
+    {% else %}
+    <a class="signin" href="/login" {% if nav == 'account' %}aria-current="page"{% endif %}>
+      <svg aria-hidden="true"><use href="#i-google"/></svg>Sign in
+    </a>
+    {% endif %}
+  {% endif %}
+  <button type="button" class="burger" aria-expanded="false" aria-controls="sheet" aria-label="Menu">
+    <i></i><i></i>{% if account %}<span class="dot" aria-hidden="true"></span>{% endif %}
+  </button>
 </header>
+
+<div class="sheet" id="sheet" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="sheet__scrim" data-close-sheet></div>
+  <div class="sheet__panel">
+    {% if account %}
+    <div class="sheet__who">
+      {{ avatar(account, "avatar--lg") }}
+      <div><b>{{ account.name or display_name }}</b><span>{{ account.email }}</span></div>
+    </div>
+    {% endif %}
+    <nav class="sheet__nav" aria-label="Sections">
+      <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Find jobs<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a href="/companies" {% if nav == 'companies' %}aria-current="page"{% endif %}>Companies<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      {% if account %}
+      <a href="/profile" {% if nav == 'profile' %}aria-current="page"{% endif %}>Your profile<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a href="/profile?tab=saved">Saved<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a href="/profile?tab=applied">Applied<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <form method="post" action="/logout" style="margin:0">
+        <button class="menuitem--out">Sign out<svg aria-hidden="true"><use href="#i-out"/></svg></button>
+      </form>
+      {% endif %}
+    </nav>
+    {% if accounts_enabled and not account %}
+    <a class="signin" href="/login"><svg aria-hidden="true"><use href="#i-google"/></svg>Sign in</a>
+    {% endif %}
+  </div>
+</div>
 
 <main>{% block wide %}{% endblock %}<div class="wrap">{% block content %}{% endblock %}</div></main>
 
@@ -638,7 +826,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 
 <script>
 // htmx cancels the default action on any <a> it drives, so an Apply link carrying
-// hx-post recorded the application and never opened the employer's posting - the one
+// hx-post recorded the application and never opened the employer's posting, the one
 // thing the visitor actually clicked for. This listener runs in the capture phase, so
 // the tab is opened before htmx's own handler gets the event and preventDefaults it.
 // window.open inside a real click is not blocked by popup blockers.
@@ -651,6 +839,45 @@ document.addEventListener('click', function (event) {
 (function () {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   var fine = window.matchMedia('(pointer: fine)');
+
+  // The burger's sheet. Opening it locks the page behind, so a swipe on the menu never
+  // scrolls the page underneath; closing it hands focus back to the burger.
+  var burger = document.querySelector('.burger'), sheet = document.getElementById('sheet');
+  if (burger && sheet) {
+    var setSheet = function (open) {
+      burger.setAttribute('aria-expanded', open ? 'true' : 'false');
+      sheet.classList.toggle('is-open', open);
+      document.documentElement.classList.toggle('sheet-open', open);
+      if (open) {
+        var first = sheet.querySelector('a,button');
+        if (first) first.focus({ preventScroll: true });
+      }
+    };
+    burger.addEventListener('click', function () {
+      setSheet(burger.getAttribute('aria-expanded') !== 'true');
+    });
+    sheet.addEventListener('click', function (e) {
+      if (e.target.closest('[data-close-sheet]') || e.target.closest('a')) setSheet(false);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && sheet.classList.contains('is-open')) { setSheet(false); burger.focus(); }
+    });
+    window.matchMedia('(min-width: 861px)').addEventListener('change', function (m) {
+      if (m.matches) setSheet(false);
+    });
+  }
+
+  // The account menu is a <details>, so it works without JS; this closes it the way a
+  // menu should: on a click elsewhere, or Escape.
+  var acct = document.getElementById('acct');
+  if (acct) {
+    document.addEventListener('click', function (e) {
+      if (acct.open && !acct.contains(e.target)) acct.open = false;
+    });
+    acct.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && acct.open) { acct.open = false; acct.querySelector('summary').focus(); }
+    });
+  }
 
   // The menu bar clock, on Dublin time wherever the visitor is.
   var clock = document.getElementById('clock');
@@ -794,15 +1021,22 @@ document.addEventListener('click', function (event) {
     });
 
     // Depth: the pointer drifts each window by its own amount, like a parallax stack.
+    // Only while the stage is on screen: every drift frame restyles every window on it,
+    // and doing that for a pointer moving over the results below was wasted work that
+    // competed with scrolling.
     if (fine.matches && !reduced.matches) {
-      var px = 0, py = 0, qx = 0, qy = 0, running = false;
+      var px = 0, py = 0, qx = 0, qy = 0, running = false, visible = true;
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) { visible = es[0].isIntersecting; }).observe(stage);
+      }
       function drift() {
-        qx += (px - qx) * .08; qy += (py - qy) * .08;
+        qx += (px - qx) * .1; qy += (py - qy) * .1;
         stage.style.setProperty('--px', qx.toFixed(3));
         stage.style.setProperty('--py', qy.toFixed(3));
-        if (Math.abs(px - qx) + Math.abs(py - qy) > .001) requestAnimationFrame(drift); else running = false;
+        if (Math.abs(px - qx) + Math.abs(py - qy) > .002) requestAnimationFrame(drift); else running = false;
       }
       window.addEventListener('pointermove', function (e) {
+        if (!visible) return;
         px = e.clientX / window.innerWidth - .5; py = e.clientY / window.innerHeight - .5;
         if (!running) { running = true; requestAnimationFrame(drift); }
       }, { passive: true });

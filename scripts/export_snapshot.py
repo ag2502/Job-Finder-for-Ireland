@@ -26,6 +26,7 @@ pulling all 5,300 would spend the same egress this snapshot exists to stop spend
 from __future__ import annotations
 
 import argparse
+import json
 import os
 from pathlib import Path
 
@@ -37,6 +38,35 @@ from jobfinder.core.models import Base
 # SQLite variables per statement are capped (999 on older builds), and a job_postings row
 # is 23 columns wide. 400 rows keeps every table well inside that ceiling.
 CHUNK_ROWS = 400
+
+
+def _precompute_skills(target) -> int:
+    """Store the skills each advert names, so the site never has to find them itself.
+
+    Finding them is 188 regexes over a full description, and doing it for every advert
+    was what made the first search on a fresh Vercel instance take ten seconds. Here it
+    runs once per build instead. The table is keyed by a hash of the exact text ranking
+    reads, and carries a fingerprint of the skills list, so a snapshot built by other
+    code is simply ignored (see `rank.preload_skills`).
+    """
+    from jobfinder.matching.rank import advert_hash, skills_fingerprint
+    from jobfinder.normalize.taxonomy import extract_skills
+
+    with target.begin() as dst:
+        dst.exec_driver_sql(
+            "create table advert_skills (advert_hash text primary key, skills text not null)"
+        )
+        rows = dst.exec_driver_sql("select title, description from job_postings").all()
+        found: dict[str, str] = {}
+        for title, description in rows:
+            text = f"{title}\n{description or ''}"
+            found[advert_hash(text)] = json.dumps(sorted(extract_skills(text)))
+        found["fingerprint"] = skills_fingerprint()
+        dst.exec_driver_sql(
+            "insert into advert_skills (advert_hash, skills) values (?, ?)",
+            list(found.items()),
+        )
+    return len(found) - 1
 
 
 def export(destination: Path) -> Path:
@@ -64,6 +94,8 @@ def export(destination: Path) -> Path:
             totals[table.name] = len(rows)
             for start in range(0, len(rows), CHUNK_ROWS):
                 dst.execute(insert(table), rows[start : start + CHUNK_ROWS])
+
+    totals["advert_skills"] = _precompute_skills(target)
 
     # Reclaim the pages freed by everything that was not copied; without this the file
     # keeps the source's footprint and the size win disappears.

@@ -24,7 +24,7 @@
     {% set s = slots[loop.index0] %}
     <article class="win fw" data-drag
              style="--x:{{ s[0] }};--y:{{ s[1] }};--w:{{ s[2] }};--r:{{ s[3] }};--d:{{ s[4] }};--i:{{ loop.index0 }};--side:{{ -1 if s[0][:-1]|float < 50 else 1 }}">
-      {{ titlebar(e.domain ~ " — careers") }}
+      {{ titlebar(e.domain ~ "/careers") }}
       <div class="fw__body">
         <div class="fw__head">
           {{ logo(e.name, e.domain) }}
@@ -47,7 +47,7 @@
       {{ "{:,}".format(employers_hiring) }} companies.<br>{{ "{:,}".format(dublin_count) }} jobs.<br>one tab.
     </div>
     <p class="scribble hand" aria-hidden="true">
-      psst &mdash; these windows move.<br>try dragging one
+      psst, these windows move.<br>try dragging one
       <svg viewBox="0 0 80 40" width="80" height="40"><path d="M6 34C22 30 30 16 26 6M26 6l-7 6M26 6l6 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </p>
   </div>
@@ -57,7 +57,7 @@
     <p class="lede">
       <strong data-count>{{ "{:,}".format(dublin_count) }} jobs</strong> open right now at
       {{ "{:,}".format(employers_hiring) }} companies, collected straight from their own careers
-      pages &mdash; so you can close the other nineteen tabs.
+      pages, so you can close the other nineteen tabs.
     </p>
     <div class="desk__actions">
       <a class="btn" href="#find" id="sort-btn">Find my jobs
@@ -115,7 +115,7 @@
     </div>
 
     <div class="win story__demo" aria-hidden="true">
-      {{ titlebar("sorted.place — find my jobs") }}
+      {{ titlebar("sorted.place: find my jobs") }}
       <div class="demo">
         <div class="demo__pane demo__pane--0">
           <p class="demo__label">What kind of work are you looking for?</p>
@@ -220,7 +220,7 @@
           <svg class="drop__icon" width="40" height="40" aria-hidden="true"><use href="#i-doc"/></svg>
           <span class="drop__text">
             <b id="cv-name">Drop your CV here</b>
-            <span>or <u>browse</u> &mdash; optional, and it puts the closest jobs first.
+            <span>or <u>browse</u>. Optional, and it puts the closest jobs first.
               Read once and thrown away, never saved. <a href="/privacy">What we keep</a></span>
           </span>
           <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
@@ -228,22 +228,31 @@
 
         <div class="slip__inputs">
           <div>
-            <label for="years"><span class="fieldname">Years of experience <em>&mdash; optional</em></span></label>
-            <input type="number" id="years" name="years" min="0" max="50" step="1"
-                   placeholder="leave blank to see everything"
-                   value="{{ profile.years if profile and profile.years is not none else '' }}">
+            <label for="years"><span class="fieldname">Years of experience <em>(optional)</em></span></label>
+            {# A list, not a number box: nobody has to type on a phone, and nothing can be
+               entered that the filter does not understand. 15+ is sent as 16, which
+               asks for every role that states 16 years or fewer, i.e. all of them. #}
+            {% set stated = profile.years if profile and profile.years is not none else none %}
+            <select id="years" name="years">
+              <option value="" {% if stated is none %}selected{% endif %}>Any, show everything</option>
+              <option value="0" {% if stated == 0 %}selected{% endif %}>0, just starting out</option>
+              {% for n in range(1, 16) %}
+              <option value="{{ n }}" {% if stated == n %}selected{% endif %}>{{ n }} year{{ "" if n == 1 else "s" }}</option>
+              {% endfor %}
+              <option value="16" {% if stated is not none and stated > 15 %}selected{% endif %}>15+ years</option>
+            </select>
             <p class="small muted" style="margin:7px 0 0">
               {% if profile and profile.cv_years and profile.years is none %}
-                Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Put a
-                number in to narrow things down, or leave it blank to see everything.
+                Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Pick a
+                number to narrow things down, or leave it on Any to see everything.
               {% else %}
-                Shows jobs asking for that many years <strong>or fewer</strong>. Put 2 or
+                Shows jobs asking for that many years <strong>or fewer</strong>. Pick 2 or
                 less and graduate jobs come in too.
               {% endif %}
             </p>
           </div>
           <div>
-            <label for="q"><span class="fieldname">Search job titles <em>&mdash; optional</em></span></label>
+            <label for="q"><span class="fieldname">Search job titles <em>(optional)</em></span></label>
             <input type="text" id="q" name="q" placeholder="engineer, analyst, nurse&hellip;"
                    value="{{ profile.query if profile and profile.query else '' }}">
           </div>
@@ -353,9 +362,9 @@
     .js .desk.is-up .scribble{opacity:1;transition:opacity .8s var(--ease) 1.4s}
     /* the sort: every window flies into the one below */
     .desk.is-sorting .fw,.desk.is-sorting .sticker{
-      transition:transform .7s cubic-bezier(.6,0,.25,1) calc(var(--i) * 35ms),
-                 scale .7s cubic-bezier(.6,0,.25,1) calc(var(--i) * 35ms),
-                 opacity .3s var(--ease) calc(var(--i) * 35ms + 420ms) !important;
+      transition:transform .5s cubic-bezier(.6,0,.25,1) calc(var(--i) * 25ms),
+                 scale .5s cubic-bezier(.6,0,.25,1) calc(var(--i) * 25ms),
+                 opacity .22s var(--ease) calc(var(--i) * 25ms + 300ms) !important;
       scale:.12 !important;opacity:0 !important}
     #sort-btn.is-full{animation:gulp .45s var(--spring)}
   }
@@ -366,9 +375,8 @@
   .dock{
     display:flex;align-items:flex-end;gap:10px;
     padding:10px 14px;border-radius:24px;max-width:100%;
-    background:rgba(255,255,255,.55);
-    -webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);
-    border:1px solid rgba(255,255,255,.8);
+    background:rgba(255,255,255,.74);
+    border:1px solid rgba(255,255,255,.9);
     box-shadow:0 0 0 1px rgba(20,24,33,.08),0 20px 40px -18px rgba(20,24,33,.35);
   }
   .dock__item{--mag:1;position:relative;display:block;flex:none;text-decoration:none;
@@ -395,7 +403,7 @@
   .dockrow__link:hover svg{transform:translateX(4px)}
 
   /* ------------------------------------------------------- how it works */
-  .story{position:relative;height:320vh}
+  .story{position:relative;height:250vh}
   .story__pin{position:sticky;top:48px;height:calc(100vh - 48px);min-height:560px;
     display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:64px;align-items:center}
   .story h2{font-size:clamp(2rem,4.2vw,3.4rem);margin-bottom:34px;max-width:12ch}
@@ -426,10 +434,10 @@
   .story__demo{box-shadow:var(--shadow-lift);transform:rotate(1deg)}
   .demo{position:relative;height:390px;overflow:hidden;background:#fff}
   .demo__pane{position:absolute;inset:0;padding:28px 30px;opacity:0;visibility:hidden;
-    transform:translateY(24px) scale(.98);filter:blur(6px);
-    transition:opacity .45s var(--ease),transform .7s var(--ease),filter .45s var(--ease),visibility 0s .45s}
+    transform:translateY(18px);
+    transition:opacity .4s var(--ease),transform .6s var(--ease),visibility 0s .4s}
   .story[data-step="0"] .demo__pane--0,.story[data-step="1"] .demo__pane--1,.story[data-step="2"] .demo__pane--2{
-    opacity:1;visibility:visible;transform:none;filter:none;transition-delay:.1s,.1s,.1s,0s}
+    opacity:1;visibility:visible;transform:none;transition-delay:.08s,.08s,0s}
   .demo__label{font-size:15px;font-weight:650;margin:0 0 16px;max-width:none}
   .demo__label em{font-style:normal;font-weight:400;color:var(--ink-3)}
   .demo__chips{display:flex;flex-wrap:wrap;gap:9px}
@@ -475,6 +483,7 @@
   @keyframes drop{from{opacity:0;transform:translateY(-40px) rotate(-6deg) scale(.9)}}
   @keyframes sortin{from{opacity:0;transform:translateY(calc((4 - var(--k)) * 26px)) rotate(calc((var(--k) - 1.5) * 2deg))}}
   @keyframes nudge{0%,100%{transform:none}50%{transform:scale(1.07)}}
+  @keyframes fillbar{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 
   /* ------------------------------------------------------- find my jobs */
   .findsec{scroll-margin-top:70px}
@@ -523,8 +532,7 @@
     position:sticky;bottom:14px;z-index:5;
     display:flex;align-items:center;justify-content:flex-end;gap:16px;
     margin:14px -22px 0;padding:12px 12px 12px 24px;
-    background:rgba(255,255,255,.88);
-    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    background:rgba(255,255,255,.97);
     border:1px solid rgba(20,24,33,.1);border-radius:999px;
     box-shadow:0 14px 30px -14px rgba(20,24,33,.35);
     translate:0 -18px;
@@ -542,8 +550,17 @@
     .scribble{display:none}
   }
   @media (max-width:980px){
-    .story{height:300vh}
-    .story__pin{grid-template-columns:1fr;gap:22px;align-content:center;padding-top:12px;padding-bottom:12px}
+    /* Unpinned: on a phone, three screens of scrolling through a held section feels
+       like the page has stuck. It is an ordinary section here, and the demo steps
+       through by itself while it is on screen. */
+    .story{height:auto;padding:36px 0 40px}
+    .story__pin{position:relative;top:auto;height:auto;min-height:0;
+      grid-template-columns:minmax(0,1fr);gap:22px;padding-top:12px;padding-bottom:12px}
+    .step p{max-height:none!important;opacity:1!important;padding-bottom:14px!important}
+    .step__bar i{transform:scaleX(0)}
+    .story[data-step="0"] .step[data-i="0"] .step__bar i,
+    .story[data-step="1"] .step[data-i="1"] .step__bar i,
+    .story[data-step="2"] .step[data-i="2"] .step__bar i{animation:fillbar 4s linear both}
     .story h2{margin-bottom:16px;font-size:clamp(1.8rem,7vw,2.4rem)}
     .step__btn{padding:12px 0;font-size:1rem}
     .step p{font-size:14.5px}
@@ -676,42 +693,72 @@
 
     // As the desk scrolls away its windows scatter outward, each at its own depth.
     if (!reduced) {
-      var ticking = false;
+      var ticking = false, lastSy = '', deskHeight = desk.offsetHeight;
+      window.addEventListener('resize', function () { deskHeight = desk.offsetHeight; }, { passive: true });
       window.addEventListener('scroll', function () {
         if (ticking || !wide.matches) return;
         ticking = true;
         requestAnimationFrame(function () {
-          var p = Math.min(1, Math.max(0, window.scrollY / desk.offsetHeight));
-          stage.style.setProperty('--sy', p.toFixed(3));
+          // Written only when it changes: once the desk is scrolled past, every
+          // further scroll frame would otherwise restyle all its windows for nothing.
+          var p = Math.min(1, Math.max(0, window.scrollY / deskHeight)).toFixed(3);
+          if (p !== lastSy) { stage.style.setProperty('--sy', p); lastSy = p; }
           ticking = false;
         });
       }, { passive: true });
     }
 
-    // How it works: the scroll position picks the step and fills its bar.
+    // How it works. On a wide screen the section is pinned and the scroll position picks
+    // the step and fills its bar; on a narrow one it steps through on a timer while in view.
     var story = document.querySelector('.story');
     if (story) {
       var steps = story.querySelectorAll('.step');
-      var sync = function () {
-        var travel = story.offsetHeight - window.innerHeight;
-        var p = travel > 0 ? Math.min(1, Math.max(0, -story.getBoundingClientRect().top / travel)) : 0;
-        var step = Math.min(2, Math.floor(p * 3));
+      var pinned = window.matchMedia('(min-width: 981px)');
+      var setStep = function (step) {
         if (story.getAttribute('data-step') !== String(step)) story.setAttribute('data-step', step);
+      };
+      var travel = 0, storyTop = 0;
+      var measure = function () {
+        travel = story.offsetHeight - window.innerHeight;
+        storyTop = story.getBoundingClientRect().top + window.scrollY;
+      };
+      var sync = function () {
+        if (!pinned.matches) return;
+        var p = travel > 0 ? Math.min(1, Math.max(0, (window.scrollY - storyTop) / travel)) : 0;
+        var step = Math.min(2, Math.floor(p * 3));
+        setStep(step);
         Array.prototype.forEach.call(steps, function (li, i) {
           li.style.setProperty('--sp', i === step ? Math.min(1, p * 3 - step).toFixed(3) : 0);
         });
       };
       var queued = false;
       window.addEventListener('scroll', function () {
-        if (queued) return; queued = true;
+        if (queued || !pinned.matches) return; queued = true;
         requestAnimationFrame(function () { queued = false; sync(); });
       }, { passive: true });
-      sync();
+      window.addEventListener('resize', function () { measure(); sync(); }, { passive: true });
+      window.addEventListener('load', function () { measure(); sync(); });
+      measure(); sync();
+
+      var timer = null, inView = false;
+      var cycle = function () {
+        clearInterval(timer); timer = null;
+        if (pinned.matches || !inView || reduced) return;
+        timer = setInterval(function () {
+          setStep((parseInt(story.getAttribute('data-step'), 10) + 1) % 3);
+        }, 4000);
+      };
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (es) { inView = es[0].isIntersecting; cycle(); },
+          { rootMargin: '-20% 0px -20% 0px' }).observe(story);
+      }
+      pinned.addEventListener('change', function () { measure(); sync(); cycle(); });
+
       Array.prototype.forEach.call(steps, function (li, i) {
         li.querySelector('.step__btn').addEventListener('click', function () {
-          var travel = story.offsetHeight - window.innerHeight;
-          var top = story.getBoundingClientRect().top + window.scrollY;
-          window.scrollTo({ top: top + travel * (i + .35) / 3, behavior: reduced ? 'auto' : 'smooth' });
+          if (!pinned.matches) { setStep(i); cycle(); return; }
+          measure();
+          window.scrollTo({ top: storyTop + travel * (i + .35) / 3, behavior: reduced ? 'auto' : 'smooth' });
         });
       });
     }
@@ -720,8 +767,8 @@
     var target = document.getElementById('slipwin');
     var wrap = document.getElementById('slipwrap');
     if (!sortBtn || !target) return;
-    // "Find my jobs": every careers window flies into the button and shrinks away -
-    // twenty sites sorted into one - and then the form arrives.
+    // "Find my jobs": every careers window flies into the button and shrinks away,
+    // twenty sites sorted into one, and then the form arrives.
     sortBtn.addEventListener('click', function (event) {
       if (wrap && !wrap.open) wrap.open = true;
       if (reduced || !wide.matches) return;   // the link's own jump is the whole behaviour
@@ -736,14 +783,14 @@
         el.style.setProperty('--dy', st.y + 'px');
       });
       desk.classList.add('is-sorting');
-      setTimeout(function () { sortBtn.classList.add('is-full'); }, 520);
+      setTimeout(function () { sortBtn.classList.add('is-full'); }, 380);
       setTimeout(function () {
         window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY - 72);
         history.replaceState(null, '', '#find');
         target.classList.remove('is-received'); void target.offsetWidth;
         target.classList.add('is-received');
         sortBtn.classList.remove('is-full');
-      }, 1000);
+      }, 680);
       // Put the desk back, quietly, for whoever scrolls up again.
       setTimeout(function () {
         items.forEach(function (el) {
@@ -752,7 +799,7 @@
         });
         desk.classList.remove('is-sorting', 'is-up');
         requestAnimationFrame(function () { requestAnimationFrame(function () { desk.classList.add('is-up'); }); });
-      }, 1300);
+      }, 1000);
     });
   })();
 </script>

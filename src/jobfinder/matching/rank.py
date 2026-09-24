@@ -22,14 +22,16 @@ nothing else.
 
 from __future__ import annotations
 
+import hashlib
 import math
 import re
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from functools import cached_property, lru_cache
 
 from jobfinder.matching.corpus import Vocabulary
-from jobfinder.matching.corpus import similarity as corpus_similarity
+from jobfinder.matching.corpus import signal_terms
 from jobfinder.normalize.taxonomy import (
     FIELDS,
     NEAR,
@@ -69,6 +71,120 @@ def tokenize(text: str) -> list[str]:
     ]
 
 
+# ------------------------------------------------------------ per-advert cache
+#
+# Everything about an advert that does not depend on who is searching: its term counts,
+# the skills it names, the fields its title falls in, the level its title implies. These
+# were recomputed for every job on every search - 188 skill regexes over ~1,500 full
+# descriptions - which was 95% of a search's time and made one take 4s on a laptop and
+# 10s on Vercel. Worked out once per process instead, a search only does the part that
+# depends on the searcher.
+#
+# Keyed by the text itself rather than a job id, so a row whose advert changes under a
+# long-running local server can never be scored on its old wording.
+
+
+@dataclass(slots=True)
+class _Advert:
+    counts: Counter[str]
+    length: int
+    skills: frozenset[str]
+    # The corpus reading, filled on first use: only a search with a CV needs it, and it
+    # belongs to one vocabulary, which is rebuilt by the crawler.
+    signal: frozenset[str] | None = None
+    signal_vocab: int = 0
+
+
+_ADVERTS: dict[str, _Advert] = {}
+_ADVERTS_MAX = 25_000
+
+# Skills worked out ahead of time by `scripts/export_snapshot.py`, keyed by
+# `advert_hash`. A fresh Vercel instance starts with the cache above empty, and
+# filling it cost the first search after every cold start the whole 10 seconds again;
+# with these, the only per-advert work left on a cold start is tokenising.
+_PRECOMPUTED_SKILLS: dict[str, frozenset[str]] = {}
+
+
+def advert_hash(text: str) -> str:
+    return hashlib.sha1(text.encode("utf-8")).hexdigest()
+
+
+def skills_fingerprint() -> str:
+    """Identifies the skill patterns, so precomputed skills from a snapshot built by
+    different code are ignored rather than trusted."""
+    from jobfinder.normalize import taxonomy
+
+    source = "\n".join(sorted(p.pattern for _, p in taxonomy._SKILL_PATTERNS.values()))
+    return hashlib.sha1(source.encode("utf-8")).hexdigest()
+
+
+def preload_skills(fingerprint: str, rows) -> int:
+    """Accept `(advert_hash, skills)` pairs computed ahead of time.
+
+    Returns how many were taken - none when they came from a different skills list.
+    """
+    if fingerprint != skills_fingerprint():
+        return 0
+    for key, skills in rows:
+        _PRECOMPUTED_SKILLS[key] = frozenset(skills)
+    return len(_PRECOMPUTED_SKILLS)
+
+
+def _advert(text: str) -> _Advert:
+    found = _ADVERTS.get(text)
+    if found is None:
+        if len(_ADVERTS) >= _ADVERTS_MAX:
+            _ADVERTS.clear()
+        skills = (
+            _PRECOMPUTED_SKILLS.get(advert_hash(text)) if _PRECOMPUTED_SKILLS else None
+        )
+        tokens = tokenize(text)
+        found = _ADVERTS[text] = _Advert(
+            counts=Counter(tokens),
+            length=len(tokens),
+            skills=skills if skills is not None else frozenset(extract_skills(text)),
+        )
+    return found
+
+
+def _advert_signal(text: str, vocabulary: Vocabulary) -> frozenset[str]:
+    advert = _advert(text)
+    if advert.signal is None or advert.signal_vocab != id(vocabulary):
+        advert.signal = frozenset(signal_terms(text, vocabulary))
+        advert.signal_vocab = id(vocabulary)
+    return advert.signal
+
+
+@lru_cache(maxsize=50_000)
+def _title_fields(title: str) -> tuple[str, ...]:
+    return tuple(classify_title(title))
+
+
+@lru_cache(maxsize=50_000)
+def _title_level(title: str) -> str | None:
+    from jobfinder.matching.resume import detect_seniority
+
+    return detect_seniority(title)
+
+
+def corpus_similarity(
+    candidate_terms: set[str], document_text: str | None, vocabulary: Vocabulary
+) -> tuple[float, set[str]]:
+    """`corpus.similarity`, reading the advert's terms from the cache.
+
+    Kept arithmetically identical to the original so ranking does not move: the weighted
+    recall of the CV's terms that this advert shares.
+    """
+    if not candidate_terms:
+        return 0.0, set()
+    total = sum(vocabulary.weight(term) for term in candidate_terms)
+    if total <= 0:
+        return 0.0, set()
+    matched = candidate_terms & _advert_signal(document_text or "", vocabulary)
+    shared = sum(vocabulary.weight(term) for term in matched)
+    return min(shared / total, 1.0), set(matched)
+
+
 @dataclass
 class Candidate:
     """What the searcher is looking for.
@@ -86,22 +202,22 @@ class Candidate:
     # What the searcher typed in the years box. None means they stated nothing.
     years: int | None = None
 
-    @property
+    @cached_property
     def expanded_fields(self) -> list[str]:
         """Everything one hop out, however loose the hop. Used to judge relevance."""
         return expand_fields(self.fields)
 
-    @property
+    @cached_property
     def related_fields(self) -> dict[str, float]:
         """Neighbouring fields mapped to how close each is - see taxonomy.relatedness."""
         return relatedness(self.fields)
 
-    @property
+    @cached_property
     def near_fields(self) -> list[str]:
         """Chosen fields plus the neighbours close enough to search as if asked for."""
         return near_fields(self.fields)
 
-    @property
+    @cached_property
     def level(self) -> str | None:
         """The searcher's seniority: what they typed wins over what their CV implies.
 
@@ -114,7 +230,7 @@ class Candidate:
 
         return seniority_from_years(self.years) or self.seniority
 
-    @property
+    @cached_property
     def query_tokens(self) -> list[str]:
         tokens = tokenize(self.text)
         # Skills and field terms are the highest-signal part of the query, so they are
@@ -193,11 +309,10 @@ class BM25Index:
         self.df: Counter[str] = Counter()
 
         for doc_id, text in documents.items():
-            tokens = tokenize(text)
-            counts = Counter(tokens)
-            self.doc_tokens[doc_id] = counts
-            self.doc_len[doc_id] = len(tokens)
-            self.df.update(counts.keys())
+            advert = _advert(text)
+            self.doc_tokens[doc_id] = advert.counts
+            self.doc_len[doc_id] = advert.length
+            self.df.update(advert.counts.keys())
 
         self.n_docs = max(len(documents), 1)
         self.avg_len = (sum(self.doc_len.values()) / self.n_docs) if self.doc_len else 1.0
@@ -237,9 +352,9 @@ def seniority_fit(candidate_level: str | None, title: str) -> tuple[float, str]:
     if not candidate_level:
         return 0.5, "unknown"
 
-    from jobfinder.matching.resume import SENIORITY_ORDER, detect_seniority
+    from jobfinder.matching.resume import SENIORITY_ORDER
 
-    job_level = detect_seniority(title)
+    job_level = _title_level(title)
     if not job_level:
         return 0.6, "unspecified"
 
@@ -303,7 +418,7 @@ def score_job(
             candidate.corpus_terms, haystack, vocabulary
         )
 
-    job_skills = extract_skills(haystack)
+    job_skills = _advert(haystack).skills
     wanted = candidate.skills | skills_for(candidate.expanded_fields)
     matches = job_skills & candidate.skills
     result.skill_matches = matches
@@ -328,7 +443,7 @@ def score_job(
     skill_score = min(skill_score, 1.0)
 
     # 2. Field
-    job_fields = classify_title(title)
+    job_fields = _title_fields(title)
     chosen = candidate.fields
     related = candidate.related_fields
 

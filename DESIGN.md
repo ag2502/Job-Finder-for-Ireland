@@ -257,13 +257,14 @@ Spacing runs on a loose 6 / 8 / 12 / 16 / 26 / 64px rhythm: 8px between chips, 1
 
 **Responsive.** Breakpoints at 1180px (two desk windows and the scribble drop), 980px (desk and story reflow), 860px (single column everywhere) and 420px.
 - The desk becomes a horizontal swipe strip: careers windows stand 250px wide in a scroll-snapped row at half their desktop tilt, below the headline; stickers and scribbles are hidden, and dragging is only enabled for a fine pointer.
-- The menu bar keeps the wordmark, the nav (which scrolls sideways) and the live count; it drops the clock and the ".place" suffix.
+- The menu bar keeps the wordmark and the live count and hands everything else to the burger; it drops the clock and the ".place" suffix.
+- The how-it-works story is not pinned below 980px: it is an ordinary section whose steps are all readable at once while the demo window steps through on its own every four seconds when on screen.
 - The dock scrolls sideways at 52px icons without tooltips; the story pins as a single column; hero primary and ghost pills fill the width.
 - Job rows wrap their action column beneath the title; company rows drop the platform column into a second line; company windows become bottom sheets (12px from the edges, 72vh max).
 
 ## Elevation & Depth
 
-Depth is literal: windows float over the desk on soft, cool, layered shadows, and height tells you what is being handled. Surfaces inside a window are flat and divided by hairlines. Glass (backdrop blur with saturation) is used only for things that float over scrolling content: the menu bar, the dock, sticky group headers, the loading pill and the sticky submit bar.
+Depth is literal: windows float over the desk on soft, cool, layered shadows, and height tells you what is being handled. Surfaces inside a window are flat and divided by hairlines. Glass (backdrop blur) is used only on the menu bar and the loading pill. The dock, the sticky group headers and the sticky submit bar used to be glass too; blurring what scrolls beneath them cost a repaint on every scroll frame, so they are now near-opaque fills that read the same.
 
 ### Shadow Vocabulary
 - **Resting window** (`box-shadow: 0 1px 2px rgba(20,24,33,.06), 0 12px 32px -10px rgba(20,24,33,.22)`): every ordinary window and card.
@@ -276,7 +277,7 @@ Depth is literal: windows float over the desk on soft, cool, layered shadows, an
 ### Named Rules
 **The Height Means Handling Rule.** Resting, lifted, held, popup: four heights, each tied to what the visitor is doing with the window. Don't invent new ones, and don't lift a window just to decorate it.
 
-**The Glass Is For Floating Rule.** Backdrop blur only on chrome that stays put while content scrolls under it.
+**The Glass Is For Floating Rule.** Backdrop blur only on the menu bar and transient floating chrome. Never animate `filter: blur` on entrances or loading states; windows open with opacity and transform alone.
 
 ## Shapes
 
@@ -300,7 +301,7 @@ Glossy and springy, like Aqua-era Mac buttons made light.
 - **Count badges:** red pills (22px high, 11.5px 700 white) in the top-right corner of app icons, ringed in white.
 
 ### Cards / Containers
-- **Window:** white, 14px corners, 1px rgba(20,24,33,.12) edge, resting shadow, clipped. Title bar 38px, `win-bar` to `win-bar-2` gradient, traffic lights (12px, 7px apart), and a centred mono filename in `ink-3` (e.g. `amazon.com — careers`). Body padding 26px 30px 30px. The privacy notes window swaps the title bar for a pale legal-pad yellow.
+- **Window:** white, 14px corners, 1px rgba(20,24,33,.12) edge, resting shadow, clipped. Title bar 38px, `win-bar` to `win-bar-2` gradient, traffic lights (12px, 7px apart), and a centred mono filename in `ink-3` (e.g. `amazon.com/careers`). Body padding 26px 30px 30px. The privacy notes window swaps the title bar for a pale legal-pad yellow.
 - **Card:** a window with no title bar, for empty states and notices that don't earn one; 26px 28px padding.
 - **Get Info:** a lifted, slightly tilted window with a 2x2 icon cluster and a definition list of live figures.
 
@@ -312,7 +313,11 @@ Glossy and springy, like Aqua-era Mac buttons made light.
 - **Error:** pale red (#fdeeed) notice with `tag-red-deep` text; info notices use aqua wash and `aqua-deep`.
 
 ### Navigation
-A fixed 48px glass menu bar (rgba(246,247,249,.78), blur 18px, saturate 1.6). Left: the two-window mark and the wordmark "sorted" in 700 with ".place" in `ink-3`; the mark tilts and grows on the spring on hover. Nav items are 14px 500 `ink-2`, 5px 10px with 7px corners; hover adds a 6% ink fill, the current page an 8% fill and 600 weight. Right: a live count with a green dot and the Dublin clock in `ink-3`. The menu bar holds still across page changes while the page beneath cross-fades (view transitions).
+A fixed 48px glass menu bar (rgba(246,247,249,.86), blur 14px), padded for the notch with `env(safe-area-inset-*)`. Left: the two-window mark and the wordmark "sorted" in 700 with ".place" in `ink-3`; the mark tilts and grows on the spring on hover. Nav items are 14px 500 `ink-2`, 5px 10px with 7px corners; hover adds a 6% ink fill, the current page an 8% fill and 600 weight. Right: a live count with a green dot, the Dublin clock in `ink-3` (dropped under 1100px), then the account. Signed out, that is a small white **Sign in** pill carrying the Google G. Signed in, it is the person's round avatar (their Google picture, or their initial on a name-derived tint) and first name, opening a Finder-style dropdown: who they are, **Your profile**, **Saved**, **Applied**, and **Sign out** in `tag-red-deep`. Hovered items fill solid aqua, as macOS menus do. The menu bar holds still across page changes while the page beneath cross-fades quickly (0.12s out, 0.2s in; a slide read as slowness).
+
+**Burger (860px and under).** The inline links and account give way to a 44px burger; the live count stays. It opens a sheet that drops from under the menu bar over a dimmed page: the person's avatar and email when signed in, then every destination as a 52px row with a trailing arrow (Find jobs, Companies, Your profile, Saved, Applied, Sign out). The page behind is scroll-locked, Escape or a tap on the dim closes it, and focus returns to the burger. A green dot on the burger says someone is signed in. Without JS the inline links remain and scroll sideways.
+
+**Profile.** `/profile` replaces the separate Saved and Applied pages (both now redirect to its tabs). The avatar (76px) and "Hi, <first name>." sit on the desk with the email and how they signed in; Sign out is a ghost pill beside it. Below, a lifted window holds a segmented control (Saved | Applied with counts) that switches instantly and keeps the URL in step, and a card on the right recalls their last search with a Change search pill. Removing a row slides it out rather than reloading the page.
 
 ### Job rows
 Rows in a white list inside the results window: logo (44px, 36px on mobile), employer in 13px `ink-3`, title in Title type with an aqua underline that draws in from the left on hover, 13.5px meta line, status pills, and a right-hand column with Save and Apply. Hover tints the row #f7f9fd. Sticky group headers, like Finder groups, sit under the menu bar in translucent `win-bar` with a small disclosure triangle.
@@ -328,6 +333,7 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), emp
 - **Spring** (`cubic-bezier(.34,1.56,.64,1)`) for anything the visitor touches: buttons, chips, switches, icons, windows opening, the Save pop.
 - **Exponential settle** (`cubic-bezier(.16,1,.3,1)`) for anything that arrives: rows filing in (34ms stagger, capped at 14 rows), windows opening on scroll, headings rising word by word (55ms per word), the highlighter sweep, page entry. The sort itself uses a fast ease-in-out (`cubic-bezier(.6,0,.25,1)`) so windows are pulled in, not bounced.
 - **Counts** run up to their real value over 1.1s with a quartic ease-out.
+- **Performance budget:** motion never runs where it cannot be seen. The desk's pointer parallax only listens while the desk is on screen, the scroll scatter only writes when its value changes, and the sort is 0.7s from press to form.
 - **Reduced motion:** all hidden start states apply only when JS is running and `prefers-reduced-motion: no-preference`; otherwise everything is shown in place, headings are not split, counts show their final value, the beach ball stops, the dock does not magnify, parallax is off, and smooth scrolling is off.
 
 ## Do's and Don'ts

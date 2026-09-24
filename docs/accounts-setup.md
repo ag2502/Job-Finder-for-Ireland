@@ -137,6 +137,48 @@ If you skip this the site still works; the project will just pause when traffic 
 
 ---
 
+## Step 6b: Turn on "Continue with Google"
+
+Google is the main way in: the sign-in page leads with a **Continue with Google** button
+and folds the email form away underneath it. The button appears by itself as soon as
+the Google provider is switched on in Supabase (the site asks Supabase which providers
+are enabled), so until this step is done the page simply shows the email form.
+
+**In Google Cloud** (https://console.cloud.google.com, any project):
+
+1. **APIs & Services > OAuth consent screen.** User type **External**. App name
+   `Sorted Place`, your email as the support and developer contact. Under
+   **Authorized domains** add `supabase.co`. Scopes: the defaults (`email`, `profile`,
+   `openid`) are all that is needed.
+2. **Publish the app** (Publishing status > **In production**). While it is in
+   *Testing*, only the test users you list can sign in; everyone else gets an error.
+3. **APIs & Services > Credentials > Create credentials > OAuth client ID.**
+   Application type **Web application**.
+   - **Authorized JavaScript origins:** `https://dublin-job-finder.vercel.app`
+   - **Authorized redirect URIs:** `https://<your-ref>.supabase.co/auth/v1/callback`
+     (Supabase shows this exact address on its Google provider page; copy it from there.)
+4. Copy the **Client ID** and **Client secret**.
+
+**In Supabase:**
+
+5. **Authentication > Sign In / Providers > Google.** Enable it, paste the Client ID
+   and Client secret, save.
+6. **Authentication > URL Configuration > Redirect URLs.** Add
+   `https://dublin-job-finder.vercel.app/auth/callback`. For local testing also add
+   `http://127.0.0.1:8000/auth/callback`. (If this is missed, Supabase sends people to
+   the Site URL instead; the home page notices the code and finishes the sign-in anyway,
+   but the allow-list entry is the proper route.)
+
+Nothing needs adding to Vercel for Google: the client secret lives in Supabase only.
+
+**How it works, briefly.** The site uses the PKCE code flow. It keeps a random
+verifier in its own signed session, sends Google only a hash of it, and exchanges the
+one-time code that comes back for a session by presenting the original verifier. The
+tokens never appear in a URL. Google accounts store the name and picture Google shares;
+the privacy page says so.
+
+---
+
 ## Step 7 — Deploy
 
 A `git push` deploys nothing — the Vercel project is not connected to the repository.
@@ -159,7 +201,8 @@ Or wait up to six hours for `crawl.yml`, which deploys at the end of every run.
 2. Create an account.
 3. Search, click **Apply** on something. The button becomes **applied · Undo**.
 4. Search again — that job should be gone, and a **show applied** toggle should appear.
-5. **Applications** in the header should list it with the date.
+5. Your name in the header opens a menu; **Your profile** lists it under **Applied**
+   with the date. (On a phone the same links are in the menu behind the burger.)
 6. Hit **Undo** and confirm it returns to the results.
 
 ---
@@ -176,7 +219,10 @@ function is serving the snapshot as expected.
 | Sign-up works, sign-in says invalid credentials | Email confirmation is on and the link was not clicked |
 | No confirmation email arrives | Built-in sender rate limit — set up custom SMTP (step 3) |
 | Applying says "could not save" | `schema.sql` was not run, or the RLS policies are missing |
-| Applied jobs still show | Sign-in is not actually active — check the header shows your email |
+| Applied jobs still show | Sign-in is not actually active; check the header shows your name |
+| No **Continue with Google** button | Google provider not enabled in Supabase (step 6b) |
+| Google says "access blocked" or only some people can sign in | OAuth consent screen still in *Testing*; publish it |
+| Google returns to the home page instead of signing in | `/auth/callback` missing from Supabase Redirect URLs |
 
 ---
 

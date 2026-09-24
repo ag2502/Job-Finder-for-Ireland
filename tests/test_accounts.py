@@ -8,6 +8,7 @@ untestable if it did.
 
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 
 import httpx
@@ -48,6 +49,8 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "list_saved", self._list_saved)
         monkeypatch.setattr(supabase, "add_saved", self._add_saved)
         monkeypatch.setattr(supabase, "remove_saved", self._remove_saved)
+        monkeypatch.setattr(supabase, "providers", lambda: {"google": True})
+        monkeypatch.setattr(supabase.settings, "supabase_url", "https://proj.supabase.co")
         return self
 
     def _list(self, account):
@@ -646,3 +649,207 @@ def test_next_cannot_be_pointed_off_site(client: TestClient):
         )
         assert response.status_code == 303
         assert response.headers["location"] == "/", hostile
+
+
+# ------------------------------------------------------------ google sign-in
+
+
+def _google_account() -> supabase.Account:
+    account = _account("aoife@gmail.com")
+    account.name, account.provider, account.joined = "Aoife Byrne", "google", "2026-09-20"
+    return account
+
+
+def _start_google(client: TestClient, next_to: str = "/") -> dict[str, str]:
+    from urllib.parse import parse_qs, urlparse
+
+    response = client.get("/auth/google", params={"next": next_to}, follow_redirects=False)
+    assert response.status_code == 303
+    url = urlparse(response.headers["location"])
+    assert url.netloc == "proj.supabase.co" and url.path == "/auth/v1/authorize"
+    return {k: v[0] for k, v in parse_qs(url.query).items()}
+
+
+def test_google_sign_in_round_trip(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """The PKCE code flow: the verifier stays with us, only its hash goes to Google, and
+    the code that comes back is exchanged alongside the original verifier."""
+    import base64
+    import hashlib
+
+    params = _start_google(client, next_to="/companies")
+    assert params["provider"] == "google"
+    assert params["code_challenge_method"] == "s256"
+    assert params["redirect_to"].endswith("/auth/callback")
+
+    seen: dict[str, str] = {}
+
+    def exchange(code, verifier):
+        seen.update(code=code, verifier=verifier)
+        return _google_account()
+
+    monkeypatch.setattr(supabase, "exchange_code", exchange)
+    response = client.get("/auth/callback", params={"code": "abc"}, follow_redirects=False)
+
+    assert response.status_code == 303
+    assert response.headers["location"] == "/companies"
+    assert seen["code"] == "abc"
+    digest = hashlib.sha256(seen["verifier"].encode()).digest()
+    assert base64.urlsafe_b64encode(digest).rstrip(b"=").decode() == params["code_challenge"]
+
+    profile = client.get("/profile").text
+    assert "Hi, Aoife." in profile
+    assert "Signed in with Google" in profile
+
+
+def test_a_callback_this_browser_never_started_is_refused(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(supabase, "exchange_code", lambda code, verifier: _google_account())
+    response = client.get("/auth/callback", params={"code": "abc"}, follow_redirects=False)
+    assert response.status_code == 400
+    assert "expired" in response.text
+    assert "sp_account" not in response.cookies
+
+
+def test_cancelling_at_google_says_so_plainly(client: TestClient):
+    _start_google(client)
+    response = client.get("/auth/callback", params={"error": "access_denied"})
+    assert response.status_code == 400
+    assert "cancelled" in response.text
+
+
+def test_a_code_returned_to_the_home_page_still_finishes_signing_in(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    """Supabase sends people to the Site URL when the callback is not on its allow list."""
+    monkeypatch.setattr(supabase, "exchange_code", lambda code, verifier: _google_account())
+    _start_google(client)
+    response = client.get("/", params={"code": "abc"}, follow_redirects=False)
+    assert response.status_code == 303
+    assert response.headers["location"] == "/auth/callback?code=abc"
+
+
+def test_the_sign_in_page_leads_with_google(client: TestClient):
+    page = client.get("/login").text
+    assert "Continue with Google" in page
+    assert page.index("Continue with Google") < page.index('name="password"')
+
+
+def test_the_sign_in_page_is_email_only_when_google_is_off(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    monkeypatch.setattr(supabase, "providers", lambda: {"google": False})
+    page = client.get("/login").text
+    assert "Continue with Google" not in page
+    assert 'name="password"' in page
+
+
+# ------------------------------------------------------------- the cookies
+
+
+def test_the_account_has_a_cookie_of_its_own(client: TestClient):
+    """Profile and account together outgrew what a browser keeps in one cookie."""
+    _signed_in(client)
+    assert client.cookies.get("sp_account")
+    session = client.cookies.get("session") or ""
+    assert "access-token" not in session
+
+
+def test_a_cv_search_and_a_google_account_both_survive(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    """Each cookie must stay under the ~4KB browsers silently drop, with a real-sized
+    access token rather than the short stand-in the other tests use."""
+    big = _google_account()
+    big.access_token = "eyJ" + "x" * 1400
+    big.avatar = "https://lh3.googleusercontent.com/a/" + "y" * 90
+    monkeypatch.setattr(supabase, "exchange_code", lambda code, verifier: big)
+    _start_google(client)
+    client.get("/auth/callback", params={"code": "abc"})
+
+    cv = b"Senior Software Engineer. Python, Kubernetes, Kafka, Terraform, AWS. " * 200
+    client.post(
+        "/search",
+        files={"resume": ("cv.txt", cv, "text/plain")},
+        data={"chosen_fields": ["backend"], "years": "6"},
+    )
+    for name in ("session", "sp_account"):
+        value = client.cookies.get(name) or ""
+        assert value and len(value) < 4000, f"{name} is {len(value)} bytes"
+    assert "Hi, Aoife." in client.get("/profile").text
+
+
+def test_an_account_from_before_the_split_is_moved_across(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+):
+    import base64
+    import json as _json
+
+    from itsdangerous import TimestampSigner
+
+    from jobfinder.core.config import settings
+
+    legacy = {"account": _account().to_session()}
+    raw = base64.b64encode(_json.dumps(legacy).encode())
+    client.cookies.set("session", TimestampSigner(settings.session_secret).sign(raw).decode())
+
+    page = client.get("/")
+    assert "jane@example.com" in page.text
+    assert client.cookies.get("sp_account")
+
+
+def test_signing_out_clears_the_account_cookie(client: TestClient):
+    _signed_in(client)
+    client.post("/logout")
+    assert not client.cookies.get("sp_account")
+    assert "Sign in" in client.get("/").text
+
+
+# ----------------------------------------------------------------- profile
+
+
+def test_saved_and_applied_live_on_the_profile(client: TestClient, fake):
+    _signed_in(client)
+    for path, tab in (("/saved", "saved"), ("/applications", "applied")):
+        response = client.get(path, follow_redirects=False)
+        assert response.status_code == 303
+        assert response.headers["location"] == f"/profile?tab={tab}"
+
+    fake.saved_rows.append({"advert_key": "s" * 32, "title": "Data Engineer",
+                            "company": "Stripe", "url": "https://x", "saved_at": ""})
+    fake.rows.append({"advert_key": "a" * 32, "title": "Nurse", "company": "HSE",
+                      "url": "https://y", "applied_at": ""})
+    page = client.get("/profile?tab=applied").text
+    assert "Data Engineer" in page and "Nurse" in page
+    assert re.search(r'id="tab-applied"[^>]*aria-selected="true"', page)
+    assert "Sign out" in page
+
+
+def test_the_menu_bar_folds_saved_and_applied_under_the_account(client: TestClient):
+    _signed_in(client)
+    page = client.get("/").text
+    assert 'href="/profile"' in page
+    assert 'class="burger"' in page
+
+
+def test_removing_from_the_profile_drops_just_that_row(client: TestClient, fake):
+    _signed_in(client)
+    fake.saved_rows.append({"advert_key": "s" * 32, "title": "t", "company": "c",
+                            "url": "u", "saved_at": ""})
+    response = client.post(
+        "/saved/remove", data={"advert_key": "s" * 32},
+        headers={"HX-Request": "true", "X-From": "profile"},
+    )
+    assert response.status_code == 200 and response.text == ""
+    assert "HX-Refresh" not in response.headers
+    assert fake.saved_rows == []
+
+
+def test_undo_in_the_results_puts_apply_back_without_a_reload(client: TestClient, fake):
+    _signed_in(client)
+    key, title = _first_result(client)
+    vals = {"advert_key": key, "title": title, "company": "Acme", "url": "https://x/job"}
+    client.post("/applications", data=vals)
+    response = client.post("/applications/remove", data=vals, headers={"HX-Request": "true"})
+    assert "HX-Refresh" not in response.headers
+    assert "btn--apply" in response.text and 'href="https://x/job"' in response.text

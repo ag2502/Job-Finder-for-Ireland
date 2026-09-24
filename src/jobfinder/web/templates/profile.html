@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+{% set nav = 'profile' %}
+{% block title %}Your profile | Sorted Place{% endblock %}
+{% from "_macros.html" import titlebar, avatar %}
+{% block railcount %}{% if account %}{{ saved|length }} saved &middot; {{ applications|length }} applied{% endif %}{% endblock %}
+{% block content %}
+
+{% if not account %}
+<section class="pagehead">
+  <h1>Your profile.</h1>
+  <div class="card">
+    <p class="error">{{ error }}</p>
+    <a class="btn" href="/login?next=/profile">Sign in
+      <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+  </div>
+</section>
+{% else %}
+
+{% set first = account.name.split(" ")[0] if account.name else account.email.split("@")[0] %}
+<section class="me">
+  <div class="me__id">
+    {{ avatar(account, "avatar--xl") }}
+    <div class="me__text">
+      <h1>Hi, {{ first }}.</h1>
+      <p class="me__meta">
+        <span class="me__email">{{ account.email }}</span>
+        <span class="me__via">
+          {% if account.provider == "google" %}<svg aria-hidden="true"><use href="#i-google"/></svg>Signed in with Google
+          {% else %}Signed in with email{% endif %}{% if joined_on %} &middot; joined {{ joined_on }}{% endif %}
+        </span>
+      </p>
+    </div>
+  </div>
+  <form method="post" action="/logout" class="me__out">
+    <button class="secondary"><svg width="16" height="16" aria-hidden="true"><use href="#i-out"/></svg>Sign out</button>
+  </form>
+</section>
+
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="me__grid">
+  <section class="win profilewin opens" aria-label="Your jobs">
+    {{ titlebar("profile: " ~ account.email) }}
+    <div class="tabs" role="tablist" aria-label="Your jobs">
+      <a role="tab" id="tab-saved" href="/profile?tab=saved" aria-controls="panel-saved"
+         aria-selected="{{ 'true' if tab == 'saved' else 'false' }}" {% if tab != 'saved' %}tabindex="-1"{% endif %}>
+        <svg aria-hidden="true"><use href="#i-save"/></svg>Saved <span class="tabs__n" data-count-of="panel-saved">{{ saved|length }}</span>
+      </a>
+      <a role="tab" id="tab-applied" href="/profile?tab=applied" aria-controls="panel-applied"
+         aria-selected="{{ 'true' if tab == 'applied' else 'false' }}" {% if tab != 'applied' %}tabindex="-1"{% endif %}>
+        <svg aria-hidden="true"><use href="#i-check"/></svg>Applied <span class="tabs__n" data-count-of="panel-applied">{{ applications|length }}</span>
+      </a>
+    </div>
+
+    {# Saved: still live openings being weighed up, so each keeps its Apply. #}
+    <div role="tabpanel" id="panel-saved" aria-labelledby="tab-saved" class="panel" {% if tab != 'saved' %}hidden{% endif %}>
+      <div class="filed" id="saved-list">
+        {% for item in saved %}
+        <article class="record">
+          <div class="record__main">
+            <span class="record__employer">{{ item.company }}</span>
+            <h3 class="record__title">
+              {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+              {% else %}{{ item.title }}{% endif %}
+            </h3>
+            <p class="record__meta">Saved {{ item.saved_on }}</p>
+          </div>
+          <div class="record__side">
+            <div class="record__actions">
+              <button class="savebtn savebtn--on" hx-post="/saved/remove"
+                      hx-vals='{{ {"advert_key": item.advert_key}|tojson }}'
+                      hx-headers='{"X-From": "profile"}'
+                      hx-target="closest .record" hx-swap="outerHTML swap:220ms"
+                      title="Take this off your saved list">
+                <svg aria-hidden="true"><use href="#i-save"/></svg>Unsave
+              </button>
+              {% if item.applied %}
+                <span class="stamp stamp--filled">applied</span>
+              {% elif item.url %}
+                {% with advert_key = item.advert_key, title = item.title,
+                        company = item.company, url = item.url %}{% include "_apply_button.html" %}{% endwith %}
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="pempty" {% if saved %}hidden{% endif %}>
+        <svg width="34" height="34" aria-hidden="true"><use href="#i-save"/></svg>
+        <h3>Nothing saved yet.</h3>
+        <p class="muted">Press <strong>Save</strong> on any job and it lands here, so you can come
+          back and apply when you have time. Saved jobs stay in your search results too.</p>
+        <a class="btn" href="/#find">Find jobs <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+
+    {# Applied: kept out of the results, so nobody wonders twice whether they went for one. #}
+    <div role="tabpanel" id="panel-applied" aria-labelledby="tab-applied" class="panel" {% if tab != 'applied' %}hidden{% endif %}>
+      <div class="filed" id="applied-list">
+        {% for item in applications %}
+        <article class="record">
+          <div class="record__main">
+            <span class="record__employer">{{ item.company }}</span>
+            <h3 class="record__title">
+              {% if item.url %}<a href="{{ item.url }}" target="_blank" rel="noopener">{{ item.title }}</a>
+              {% else %}{{ item.title }}{% endif %}
+            </h3>
+            <p class="record__meta">Applied on {{ item.applied_on }}</p>
+          </div>
+          <div class="record__side">
+            <div class="record__actions">
+              <span class="stamp stamp--filled">applied</span>
+              <button class="linkish small" hx-post="/applications/remove"
+                      hx-vals='{{ {"advert_key": item.advert_key}|tojson }}'
+                      hx-headers='{"X-From": "profile"}'
+                      hx-target="closest .record" hx-swap="outerHTML swap:220ms"
+                      title="Put this job back in your search results">Undo</button>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+      <div class="pempty" {% if applications %}hidden{% endif %}>
+        <svg width="34" height="34" aria-hidden="true"><use href="#i-check"/></svg>
+        <h3>Nothing marked yet.</h3>
+        <p class="muted">When you press Apply on a job it is recorded here and taken out of your
+          search results. Undo puts it back.</p>
+        <a class="btn" href="/#find">Find jobs <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      </div>
+    </div>
+  </section>
+
+  <aside class="lastsearch card">
+    <h2>Your search</h2>
+    {% if search_fields %}
+      <ul class="lastsearch__fields">
+        {% for f in search_fields %}<li>{{ f }}</li>{% endfor %}
+      </ul>
+      <p class="muted small" style="margin:12px 0 0">
+        {% if search_years is none %}Any experience level{% elif search_years > 15 %}15+ years of experience{% else %}{{ search_years }} year{{ "" if search_years == 1 else "s" }} of experience{% endif %}
+      </p>
+      <a class="btn btn--ghost" href="/#find">Change search</a>
+    {% else %}
+      <p class="muted small" style="margin:0">No search yet. Pick the work you want and every
+        matching job in Dublin lines up, best fit first.</p>
+      <a class="btn" href="/#find">Find my jobs <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    {% endif %}
+    <p class="accession" style="margin:18px 0 0">Your CV is never stored. <a href="/privacy">What we keep</a></p>
+  </aside>
+</div>
+{% endif %}
+
+<style>
+  .me{display:flex;align-items:center;justify-content:space-between;gap:20px 28px;flex-wrap:wrap;
+    padding:56px 0 30px}
+  .me__id{display:flex;align-items:center;gap:22px;min-width:0}
+  .me__id .avatar{box-shadow:inset 0 0 0 1px rgba(20,24,33,.1),0 10px 24px -10px rgba(20,24,33,.45)}
+  .me__text{min-width:0}
+  .me h1{font-size:clamp(2.2rem,5vw,3.6rem);margin:0 0 8px}
+  .me__meta{display:flex;flex-direction:column;gap:3px;margin:0;font-size:14.5px;color:var(--ink-2)}
+  .me__email{font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+  .me__via{display:flex;align-items:flex-start;gap:7px;font-size:13.5px;line-height:1.45;color:var(--ink-3)}
+  .me__via svg{width:14px;height:14px;flex:none;margin-top:3px}
+  .me__out{margin:0}
+  .me__out button{padding:9px 18px;font-size:14.5px}
+  .me__out svg{transform:none!important}
+
+  .me__grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+  .profilewin{box-shadow:var(--shadow-lift)}
+
+  /* tabs: a segmented control, as in a Finder toolbar */
+  .tabs{display:flex;gap:4px;margin:16px 20px 0;padding:4px;width:fit-content;
+    background:var(--win-bar);border:1px solid var(--line);border-radius:12px}
+  .tabs a{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:9px;
+    font-size:14.5px;font-weight:600;color:var(--ink-2);text-decoration:none;letter-spacing:-.01em;
+    transition:background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease)}
+  .tabs a svg{width:15px;height:15px;flex:none}
+  .tabs a:hover{color:var(--ink)}
+  .tabs a[aria-selected="true"]{background:#fff;color:var(--ink);
+    box-shadow:0 1px 2px rgba(20,24,33,.1),0 2px 6px -2px rgba(20,24,33,.18)}
+  .tabs__n{min-width:22px;padding:1px 7px;border-radius:20px;font-size:12px;text-align:center;
+    background:rgba(20,24,33,.07);color:var(--ink-2)}
+  .tabs a[aria-selected="true"] .tabs__n{background:var(--aqua-wash);color:var(--aqua-deep)}
+
+  .panel{margin-top:14px;border-top:1px solid var(--line)}
+  @media (prefers-reduced-motion:no-preference){
+    .panel.is-shown{animation:panel-in .3s var(--ease)}
+  }
+  @keyframes panel-in{from{opacity:0;transform:translateY(6px)}}
+  .panel .record{transition:opacity .22s var(--ease),transform .22s var(--ease),background .2s var(--ease)}
+  .panel .record.htmx-swapping{opacity:0;transform:translateX(16px)}
+  .panel .record__actions{gap:9px}
+  .panel .record__side{min-width:0}
+
+  .pempty{padding:44px 24px 48px;text-align:center}
+  .pempty svg{color:var(--ink-3);margin-bottom:10px}
+  .pempty h3{font-size:1.2rem;margin-bottom:6px}
+  .pempty p{margin:0 auto 20px;max-width:46ch}
+
+  .lastsearch{margin:0;position:sticky;top:72px}
+  .lastsearch h2{font-size:1.25rem;margin-bottom:14px}
+  .lastsearch__fields{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:7px}
+  .lastsearch__fields li{font-size:13.5px;font-weight:600;padding:5px 12px;border-radius:999px;
+    background:var(--aqua-wash);color:var(--aqua-deep);border:1px solid rgba(43,116,240,.2)}
+  .lastsearch .btn{margin-top:18px;width:100%;padding:10px 18px;font-size:14.5px}
+
+  @media (max-width:980px){
+    .me__grid{grid-template-columns:minmax(0,1fr)}
+    .lastsearch{position:static}
+  }
+  @media (max-width:860px){
+    .me{padding:34px 0 22px}
+    .me__id{gap:16px}
+    .me__id .avatar{--av:60px}
+    .tabs{margin:14px 14px 0;width:auto}
+    .tabs a{flex:1;justify-content:center;padding:10px 8px}
+    .panel .record__side{padding-left:0}
+  }
+  @media (max-width:520px){
+    .me__out,.me__out button{width:100%}
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
+  if (!tabs.length) return;
+
+  // Both lists are already on the page, so switching is instant rather than a reload.
+  // The address still follows, so a refresh or a shared link opens the same tab.
+  function show(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab, panel = document.getElementById(t.getAttribute('aria-controls'));
+      t.setAttribute('aria-selected', on ? 'true' : 'false');
+      t.tabIndex = on ? 0 : -1;
+      panel.hidden = !on;
+      panel.classList.toggle('is-shown', on);
+    });
+    if (focus) tab.focus();
+    history.replaceState(null, '', tab.getAttribute('href'));
+  }
+  tabs.forEach(function (tab, i) {
+    tab.addEventListener('click', function (e) { e.preventDefault(); show(tab); });
+    tab.addEventListener('keydown', function (e) {
+      var d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (d) { e.preventDefault(); show(tabs[(i + d + tabs.length) % tabs.length], true); }
+    });
+  });
+
+  // A row taken off a list: keep the tab count honest, and say so when the list empties.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-count-of]'), function (n) {
+    var panel = document.getElementById(n.getAttribute('data-count-of'));
+    var list = panel.querySelector('.filed');
+    new MutationObserver(function () {
+      var left = list.querySelectorAll('.record').length;
+      n.textContent = left;
+      panel.querySelector('.pempty').hidden = left > 0;
+    }).observe(list, { childList: true });
+  });
+})();
+</script>
+{% endblock %}

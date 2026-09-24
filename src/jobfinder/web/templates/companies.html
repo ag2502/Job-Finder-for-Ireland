@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import logo, titlebar %}
 {% set nav = 'companies' %}
-{% block title %}{{ "{:,}".format(employers_hiring) }} companies hiring in Dublin &mdash; Sorted Place{% endblock %}
+{% block title %}{{ "{:,}".format(employers_hiring) }} companies hiring in Dublin | Sorted Place{% endblock %}
 {% block description %}{{ "{:,}".format(employers_hiring) }} companies have {{ "{:,}".format(dublin_count) }} jobs open in Dublin right now, from multinationals to Irish firms and the public sector, all in one place.{% endblock %}
 {% block railcount %}{{ "{:,}".format(employers_hiring) }}<span class="rail-long"> companies</span> hiring{% endblock %}
 
@@ -30,7 +30,7 @@
   </div>
 
   <aside class="win getinfo opens" aria-label="About this list">
-    {{ titlebar("companies — get info") }}
+    {{ titlebar("companies: get info") }}
     <div class="getinfo__top">
       <span class="getinfo__icon" aria-hidden="true">
         {% for e in top[:4] %}{{ logo(e.name, e.domain, "logo--sm") }}{% endfor %}
@@ -91,7 +91,7 @@
       </div>
       {% endfor %}
       <div class="sticker note sky__note" data-drag style="--r:3deg">
-        not LinkedIn or Indeed &mdash; their terms don't allow it. most Dublin jobs posted there
+        not LinkedIn or Indeed: their terms don't allow it. most Dublin jobs posted there
         come from the same careers sites we already read.
       </div>
     </div>
@@ -400,7 +400,7 @@
       '<svg viewBox="0 0 8 8"><path d="M1.5 1.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
       '</button><i></i><i></i></span><span class="win__title"></span></div>' +
       '<div class="popwin__body"><div class="popwin__loading"><span class="beachball"></span>Opening&hellip;</div></div>';
-    win.querySelector('.win__title').textContent = name.toLowerCase() + ' — dublin jobs';
+    win.querySelector('.win__title').textContent = name.toLowerCase() + ': dublin jobs';
     var w = Math.min(460, window.innerWidth - 24);
     var left = Math.max(12, Math.min(window.innerWidth - w - 12, window.innerWidth / 2 - w / 2 + cascade * 28));
     var top = Math.max(64, 90 + cascade * 28);

@@ -7,6 +7,7 @@ holds whether or not the database has been crawled.
 from __future__ import annotations
 
 import json
+import re
 
 import pytest
 from fastapi.testclient import TestClient
@@ -764,3 +765,75 @@ def test_a_job_its_source_stopped_returning_is_not_offered():
             select(JobPosting).where(JobPosting.source_job_id == "gone")
         ).scalar_one()
         assert gone.status is JobStatus.ACTIVE
+
+
+# ------------------------------------------------------------- experience
+
+
+def test_years_is_a_list_from_nought_to_fifteen_plus(client):
+    page = client.get("/").text
+    options = re.findall(r'<option value="(\d*)"', page.split('id="years"')[1].split("</select>")[0])
+    assert options == [""] + [str(n) for n in range(0, 17)]
+    assert "15+ years</option>" in page
+
+
+def test_fifteen_plus_asks_for_every_role(client):
+    for sent in ("16", "15+"):
+        page = client.post("/search", data={"chosen_fields": ["backend"], "years": sent}).text
+        assert "15+ years of experience" in page
+    home = client.get("/").text
+    assert re.search(r'<option value="16" selected>', home)
+
+
+# ------------------------------------------------------------------ copy
+
+
+def test_no_page_carries_an_em_dash(client):
+    for path in ("/", "/companies", "/privacy"):
+        text = client.get(path).text
+        assert "\u2014" not in text and "&mdash;" not in text, path
+
+
+def test_employer_dashes_become_commas_not_hyphens():
+    from markupsafe import Markup
+
+    from jobfinder.web.app import _no_em_dashes
+
+    assert _no_em_dashes("Engineer \u2014 Payments") == "Engineer, Payments"
+    assert _no_em_dashes("Engineer \u2013 Dublin") == "Engineer, Dublin"
+    assert _no_em_dashes("3\u20135 years") == "3\u20135 years"
+    safe = _no_em_dashes(Markup("<b>a \u2014 b</b>"))
+    assert isinstance(safe, Markup) and str(safe) == "<b>a, b</b>"
+
+
+# ----------------------------------------------------------------- speed
+
+
+def test_htmx_is_served_by_the_site_and_cached(client):
+    response = client.get("/static/htmx-1.9.12.min.js")
+    assert response.status_code == 200
+    assert "immutable" in response.headers["cache-control"]
+    assert client.get("/static/..%2Fapp.py").status_code == 404
+    assert "unpkg.com" not in client.get("/").text
+
+
+def test_precomputed_skills_from_other_code_are_ignored():
+    from jobfinder.matching import rank
+
+    assert rank.preload_skills("not-this-code", [("k", ["python"])]) == 0
+    assert "k" not in rank._PRECOMPUTED_SKILLS
+
+
+def test_precomputed_skills_are_what_ranking_would_have_found():
+    from jobfinder.matching import rank
+    from jobfinder.normalize.taxonomy import extract_skills
+
+    text = "Backend Engineer\nPython, Kafka and Kubernetes on AWS."
+    rank._ADVERTS.pop(text, None)
+    rank.preload_skills(rank.skills_fingerprint(), [(rank.advert_hash(text), ["sentinel"])])
+    try:
+        assert rank._advert(text).skills == frozenset({"sentinel"})
+    finally:
+        rank._PRECOMPUTED_SKILLS.clear()
+        rank._ADVERTS.pop(text, None)
+    assert rank._advert(text).skills == frozenset(extract_skills(text))

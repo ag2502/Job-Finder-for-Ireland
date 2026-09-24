@@ -18,3 +18,14 @@
   <span class="win__title">{{ title }}</span>
 </div>
 {%- endmacro %}
+
+{# The signed-in person: their Google picture, or their initial on a tint derived from
+   their name when there is no picture. #}
+{% macro avatar(account, cls="") -%}
+{%- set who = account.name or account.email -%}
+{%- set hue = ((who|length) * 47 + ("abcdefghijklmnopqrstuvwxyz".find((who[:1])|lower) + 1) * 29) % 360 -%}
+<span class="avatar {{ cls }}" style="--hue:{{ hue }}" aria-hidden="true">
+  {{- (who[:1] or "?")|upper -}}
+  {%- if account.avatar %}<img src="{{ account.avatar }}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">{% endif -%}
+</span>
+{%- endmacro %}

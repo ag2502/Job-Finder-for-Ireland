@@ -1,0 +1,13 @@
+{# Apply for one advert. Opens the employer's posting in a new tab, and for a signed-in
+   searcher records the click, swapping itself for the "applied / Undo" control. #}
+<span class="applied-mark">
+  <a class="btn btn--apply" href="{{ url }}" target="_blank" rel="noopener"
+     {% if account %}
+     data-open-external
+     hx-post="/applications"
+     hx-vals='{{ {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson }}'
+     hx-target="closest .applied-mark" hx-swap="outerHTML"
+     {% endif %}>Apply
+    <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
+  </a>
+</span>
