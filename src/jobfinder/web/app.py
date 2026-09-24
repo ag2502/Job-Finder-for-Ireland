@@ -261,6 +261,17 @@ def _remember_account(request: Request, account: supabase.Account) -> None:
     request.state.account_write = account.to_session()
 
 
+def _start_fresh(request: Request) -> None:
+    """Drop the search in progress when the person at the keyboard changes.
+
+    The search lives in its own cookie, apart from the account, so it outlived signing
+    in and out: the next person to sign in on the same browser found the last one's
+    fields ticked, and the skills read from their CV still shaping the ranking. Called
+    on every sign-in and sign-out, never on the silent hourly token refresh.
+    """
+    request.session.pop("profile", None)
+
+
 def _forget_account(request: Request) -> None:
     request.state.account = None
     request.state.account_write = None
@@ -1136,6 +1147,7 @@ def login(
             next_to=_safe_next(next),
         )
 
+    _start_fresh(request)
     _remember_account(request, account)
     # Back to whatever they were looking at when they were asked to sign in, so the
     # Apply they clicked is one click away rather than a search away.
@@ -1187,6 +1199,7 @@ def signup(
             next_to=_safe_next(next),
         )
 
+    _start_fresh(request)
     _remember_account(request, account)
     return RedirectResponse(_safe_next(next), status_code=303)
 
@@ -1256,6 +1269,7 @@ def google_callback(
             error="Could not reach the accounts service. Please try again.",
         )
 
+    _start_fresh(request)
     _remember_account(request, account)
     return RedirectResponse(next_to, status_code=303)
 
@@ -1266,6 +1280,7 @@ def logout(request: Request):
     if account is not None:
         supabase.sign_out(account)
     _forget_account(request)
+    _start_fresh(request)
     return RedirectResponse("/", status_code=303)
 
 

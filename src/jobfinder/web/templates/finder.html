@@ -186,7 +186,7 @@
 
   <div class="win slipwin opens" id="slipwin">
     {{ titlebar("find-my-jobs") }}
-    <form id="finder-form" class="win__body slip"
+    <form id="finder-form" class="win__body slip" autocomplete="off"
           hx-post="/search"
           hx-target="#results"
           hx-swap="innerHTML"
@@ -384,29 +384,36 @@
   .dockrow{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 16px 30px;flex:none}
   .dockrow__label{margin:0;font-size:22px;color:var(--ink-2);transform:rotate(-2deg)}
   .dock{
-    display:flex;align-items:flex-end;gap:10px;
-    padding:10px 14px;border-radius:24px;max-width:100%;
+    position:relative;display:flex;align-items:flex-end;gap:10px;
+    padding:10px 30px;border-radius:24px;max-width:100%;
     background:rgba(255,255,255,.74);
     border:1px solid rgba(255,255,255,.9);
     box-shadow:0 0 0 1px rgba(20,24,33,.08),0 20px 40px -18px rgba(20,24,33,.35);
   }
-  .dock__item{--mag:1;position:relative;display:block;flex:none;text-decoration:none;
-    width:calc(60px * var(--mag));transition:width .18s var(--ease)}
-  .dock__item .logo{--size:calc(60px * var(--mag));transition:--size .18s;border-radius:24%;
+  /* Magnification is drawn, never laid out: each icon scales and lifts, and its
+     neighbours slide aside, all by transform. Growing their real size made the tray
+     taller and wider under the pointer, which pushed the whole first screen around. */
+  .dock__item{--mag:1;--dx:0px;position:relative;display:block;flex:none;text-decoration:none;
+    width:60px;transform-origin:50% 100%;
+    transform:translateX(var(--dx)) translateY(calc((var(--mag) - 1) * -10px)) scale(var(--mag));
+    transition:transform .2s cubic-bezier(.2,.8,.2,1)}
+  .dock.is-live .dock__item{transition-duration:.09s}
+  .dock__item .logo{--size:60px;border-radius:24%;
     box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 4px 10px -4px rgba(20,24,33,.35)}
   .dock__item .badge{top:-4px;right:-6px}
   .dock__tip{position:absolute;bottom:calc(100% + 14px);left:50%;translate:-50% 4px;
     background:rgba(30,32,38,.86);color:#fff;font-size:12.5px;font-weight:550;white-space:nowrap;
     padding:4px 10px;border-radius:7px;opacity:0;pointer-events:none;
-    transition:opacity .15s,translate .25s var(--spring)}
+    transition:opacity .15s,translate .25s var(--spring);
+    scale:calc(1 / var(--mag));transform-origin:50% 100%}
   .dock__item:hover .dock__tip,.dock__item:focus-visible .dock__tip{opacity:1;translate:-50% 0}
   .dock__item:active .logo{filter:brightness(.85)}
   .dock__sep{align-self:stretch;width:1px;margin:6px 2px;background:rgba(20,24,33,.16)}
-  .dock__folder{display:grid;place-items:center;width:calc(60px * var(--mag));height:calc(60px * var(--mag));
+  .dock__folder{display:grid;place-items:center;width:60px;height:60px;
     border-radius:24%;font-weight:750;font-size:17px;letter-spacing:-.03em;color:#fff;
     background:linear-gradient(180deg,#2766d6,var(--aqua-deep));
     box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 10px -4px rgba(20,24,33,.35);
-    transition:width .18s var(--ease),height .18s var(--ease)}
+  }
   .dockrow__link{display:inline-flex;align-items:center;gap:6px;margin-top:10px;
     font-size:15px;font-weight:600;color:var(--aqua-deep);text-decoration:none}
   .dockrow__link:hover{text-decoration:underline}
@@ -554,7 +561,7 @@
     position:sticky;bottom:14px;z-index:5;
     display:flex;align-items:center;justify-content:flex-end;gap:16px;
     margin:14px -22px 0;padding:12px 12px 12px 24px;
-    background:rgba(255,255,255,.97);
+    background:#fff;
     border:1px solid rgba(20,24,33,.1);border-radius:999px;
     box-shadow:0 14px 30px -14px rgba(20,24,33,.35);
     translate:0 -18px;
@@ -611,7 +618,7 @@
     .desk__copy h1{font-size:clamp(2.6rem,11vw,4rem)}
     .dockrow{padding-bottom:50px}
     .desk__stage{--k:1}
-    .dock{overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+    .dock{overflow-x:auto;scrollbar-width:none;justify-content:flex-start;padding:10px 14px}
     .dock::-webkit-scrollbar{display:none}
     .dock__item{width:52px}
     .dock__item .logo,.dock__folder{--size:52px;width:52px;height:52px}

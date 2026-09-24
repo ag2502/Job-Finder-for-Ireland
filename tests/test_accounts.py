@@ -853,3 +853,47 @@ def test_undo_in_the_results_puts_apply_back_without_a_reload(client: TestClient
     response = client.post("/applications/remove", data=vals, headers={"HX-Request": "true"})
     assert "HX-Refresh" not in response.headers
     assert "btn--apply" in response.text and 'href="https://x/job"' in response.text
+
+
+# ----------------------------------------------------- a fresh search per person
+
+
+def _ticked(page: str) -> list[str]:
+    return re.findall(r'name="chosen_fields" value="([^"]+)"\s+checked', page)
+
+
+def test_signing_in_starts_a_fresh_search(client: TestClient):
+    """Regression: the last visitor's ticked fields, and the skills from their CV, were
+    still there for whoever signed in next on the same browser."""
+    client.post("/search", data={"chosen_fields": ["machine-learning", "data-science"]})
+    assert _ticked(client.get("/").text) == ["machine-learning", "data-science"]
+
+    _signed_in(client)
+    assert _ticked(client.get("/").text) == []
+
+
+def test_google_sign_in_also_starts_fresh(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(supabase, "exchange_code", lambda code, verifier: _google_account())
+    client.post("/search", data={"chosen_fields": ["backend"]})
+    _start_google(client)
+    client.get("/auth/callback", params={"code": "abc"})
+    assert _ticked(client.get("/").text) == []
+
+
+def test_signing_out_clears_the_search(client: TestClient):
+    _signed_in(client)
+    client.post("/search", data={"chosen_fields": ["backend"]})
+    assert _ticked(client.get("/").text) == ["backend"]
+    client.post("/logout")
+    assert _ticked(client.get("/").text) == []
+
+
+def test_staying_signed_in_keeps_the_search(client: TestClient, monkeypatch: pytest.MonkeyPatch):
+    """The hourly token refresh is not a new person, and must not lose their search."""
+    _signed_in(client)
+    client.post("/search", data={"chosen_fields": ["backend"]})
+    stale = _account()
+    stale.expires_at = (datetime.now(timezone.utc) - timedelta(minutes=5)).timestamp()
+    monkeypatch.setattr(supabase.Account, "from_session", classmethod(lambda cls, d: stale if d else None))
+    monkeypatch.setattr(supabase, "refresh", lambda account: _account())
+    assert _ticked(client.get("/").text) == ["backend"]
