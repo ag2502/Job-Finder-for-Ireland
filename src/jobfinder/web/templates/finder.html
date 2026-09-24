@@ -169,21 +169,9 @@
 <section id="find" class="findsec">
 {% if error %}<p class="err">{{ error }}</p>{% endif %}
 
-{# Once a search has run the form folds to a summary: on a phone the choices are most of
-   the page, and nobody re-reads them while scanning results. #}
-<details class="slipwrap" id="slipwrap" {% if items is not defined %}open{% endif %}>
-  <summary class="slipsummary">
-    <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
-    <span class="slipsummary__label">
-      {% if profile and profile.fields %}
-        {{ profile.fields|length }} area{{ "" if profile.fields|length == 1 else "s" }} selected
-      {% else %}
-        Tell us what you're looking for
-      {% endif %}
-    </span>
-    <span class="slipsummary__hint">Change</span>
-  </summary>
-
+{# The form stays open after a search. It used to fold down to a one-line summary,
+   and people missed that their choices were still there to change. #}
+<div class="slipwrap" id="slipwrap">
   <div class="win slipwin opens" id="slipwin">
     {{ titlebar("find-my-jobs") }}
     <form id="finder-form" class="win__body slip" autocomplete="off"
@@ -233,28 +221,45 @@
 
         <div class="slip__inputs">
           <div>
-            <label for="years"><span class="fieldname">Years of experience <em>(optional)</em></span></label>
-            {# A list, not a number box: nobody has to type on a phone, and nothing can be
-               entered that the filter does not understand. 15+ is sent as 16, which
-               asks for every role that states 16 years or fewer, i.e. all of them. #}
+            {# Years of experience, as a slider from Any through 0 to 15 and on to 15+.
+               Built on the native range input, so arrow keys, touch and screen readers
+               all work without help. Any is sent as -1 (nothing stated, every level);
+               15+ as 16, which asks for every role stating 16 years or fewer. The level
+               names match `seniority_from_years`, the scale ranking itself uses. #}
             {% set stated = profile.years if profile and profile.years is not none else none %}
-            <select id="years" name="years">
-              <option value="" {% if stated is none %}selected{% endif %}>Any, show everything</option>
-              <option value="0" {% if stated == 0 %}selected{% endif %}>0, just starting out</option>
-              {% for n in range(1, 16) %}
-              <option value="{{ n }}" {% if stated == n %}selected{% endif %}>{{ n }} year{{ "" if n == 1 else "s" }}</option>
-              {% endfor %}
-              <option value="16" {% if stated is not none and stated > 15 %}selected{% endif %}>15+ years</option>
-            </select>
-            <p class="small muted" style="margin:7px 0 0">
-              {% if profile and profile.cv_years and profile.years is none %}
-                Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Pick a
-                number to narrow things down, or leave it on Any to see everything.
-              {% else %}
-                Shows jobs asking for that many years <strong>or fewer</strong>. Pick 2 or
-                less and graduate jobs come in too.
-              {% endif %}
-            </p>
+            {% set start = -1 if stated is none else (16 if stated > 15 else stated) %}
+            <div class="yrs" data-yrs>
+              <div class="yrs__head">
+                <label for="years" id="years-label"><span class="fieldname">Years of experience <em>(optional)</em></span></label>
+                <output class="yrs__read" for="years" aria-hidden="true">
+                  <b class="yrs__num" data-yrs-num>Any</b>
+                  <span class="yrs__unit" data-yrs-unit></span>
+                  <span class="yrs__level" data-yrs-level>every level</span>
+                </output>
+              </div>
+              <div class="yrs__track" style="--p:{{ '%.4f' % ((start + 1) / 17) }}">
+                <span class="yrs__ticks" aria-hidden="true">{% for _ in range(18) %}<i></i>{% endfor %}</span>
+                <input type="range" id="years" name="years" min="-1" max="16" step="1" value="{{ start }}"
+                       aria-describedby="years-hint">
+              </div>
+              <ol class="yrs__bands" aria-hidden="true">
+                <li data-from="-1" data-to="-1"></li>
+                <li data-from="0" data-to="1">Junior</li>
+                <li data-from="2" data-to="4">Mid</li>
+                <li data-from="5" data-to="7">Senior</li>
+                <li data-from="8" data-to="11">Lead</li>
+                <li data-from="12" data-to="16">Principal</li>
+              </ol>
+              <p class="small muted yrs__hint" id="years-hint">
+                {% if profile and profile.cv_years and profile.years is none %}
+                  Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Slide to
+                  narrow things down, or leave it on Any to see everything.
+                {% else %}
+                  Shows jobs asking for that many years <strong>or fewer</strong>. At 2 or
+                  less, graduate jobs come in too.
+                {% endif %}
+              </p>
+            </div>
           </div>
           <div>
             <label for="q"><span class="fieldname">Search job titles <em>(optional)</em></span></label>
@@ -294,7 +299,7 @@
       </div>
     </form>
   </div>
-</details>
+</div>
 
 <div id="search-loading" class="pulling" role="status" aria-live="polite">
   <span class="beachball" aria-hidden="true"></span>
@@ -517,18 +522,6 @@
   /* ------------------------------------------------------- find my jobs */
   .findsec{scroll-margin-top:70px}
   .slipwrap{margin-bottom:22px}
-  .slipwrap>summary{list-style:none;cursor:pointer}
-  .slipwrap>summary::-webkit-details-marker{display:none}
-  .slipsummary{
-    display:flex;align-items:center;gap:14px;
-    background:#fff;border:1px solid rgba(20,24,33,.12);border-radius:var(--r-win);
-    padding:14px 18px;font-size:15px;font-weight:600;box-shadow:var(--shadow-win);
-    transition:box-shadow .25s var(--ease),transform .35s var(--spring);
-  }
-  .slipsummary:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
-  .slipsummary__hint{margin-left:auto;font-size:13.5px;color:var(--aqua-deep);font-weight:600}
-  .slipwrap[open]>summary{display:none}
-  .slipwrap>summary:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
 
   .slipwin{box-shadow:var(--shadow-lift);overflow:visible}
   .slipwin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
@@ -556,6 +549,71 @@
   .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
   .drop:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
 
+  /* ---------------------------------------------------- years of experience */
+  .yrs{--thumb:28px}
+  .yrs__head{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+  .yrs__head .fieldname{margin-bottom:0}
+  .yrs__read{display:inline-flex;align-items:baseline;gap:7px;white-space:nowrap}
+  .yrs__num{font-size:2rem;line-height:1;font-weight:750;letter-spacing:-.04em;color:var(--ink);
+    font-variant-numeric:tabular-nums;display:inline-block;min-width:1.2ch;text-align:right}
+  .yrs__unit{font-size:15px;font-weight:600;color:var(--ink-2)}
+  .yrs__level{font-size:12.5px;font-weight:650;color:var(--aqua-deep);background:var(--aqua-wash);
+    border:1px solid rgba(43,116,240,.22);border-radius:999px;padding:3px 10px;align-self:center}
+  .yrs.is-any .yrs__num{color:var(--ink-2)}
+  .yrs.is-any .yrs__level{color:var(--ink-2);background:#eef0f3;border-color:var(--line)}
+  @media (prefers-reduced-motion:no-preference){
+    .yrs__num.is-pop{animation:yrs-pop .28s var(--spring)}
+  }
+  @keyframes yrs-pop{from{transform:translateY(3px) scale(.9);opacity:.5}}
+
+  .yrs__track{position:relative;height:36px}
+  .yrs__ticks{position:absolute;left:calc(var(--thumb) / 2);right:calc(var(--thumb) / 2);top:50%;
+    display:flex;justify-content:space-between;transform:translateY(8px);pointer-events:none}
+  .yrs__ticks i{width:2px;height:5px;border-radius:1px;background:#c4cad3}
+  .yrs__track input[type=range]{
+    -webkit-appearance:none;appearance:none;position:relative;width:100%;height:36px;margin:0;
+    background:transparent;cursor:pointer;touch-action:pan-y}
+  .yrs__track input[type=range]:focus{outline:none;box-shadow:none;border:0}
+  .yrs__track input[type=range]::-webkit-slider-runnable-track{
+    height:8px;border-radius:999px;
+    background:linear-gradient(90deg,var(--aqua) 0,#5c9bff calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)),
+      #dfe3e9 calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)));
+    box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
+  .yrs__track input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:#dfe3e9;
+    box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
+  .yrs__track input[type=range]::-moz-range-progress{height:8px;border-radius:999px;
+    background:linear-gradient(90deg,var(--aqua),#5c9bff)}
+  .yrs__track input[type=range]::-webkit-slider-thumb{
+    -webkit-appearance:none;appearance:none;width:var(--thumb);height:var(--thumb);margin-top:calc(4px - var(--thumb) / 2);
+    border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
+    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+    transition:transform .2s var(--spring),box-shadow .2s var(--ease)}
+  .yrs__track input[type=range]::-moz-range-thumb{
+    width:var(--thumb);height:var(--thumb);border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
+    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+    transition:transform .2s var(--spring)}
+  .yrs__track input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
+  .yrs__track input[type=range]:active::-webkit-slider-thumb{transform:scale(1.14);
+    box-shadow:0 1px 2px rgba(20,24,33,.2),0 8px 18px -4px rgba(43,116,240,.45),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua)}
+  .yrs__track input[type=range]:active::-moz-range-thumb{transform:scale(1.14)}
+  .yrs__track input[type=range]:focus-visible::-webkit-slider-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
+  .yrs__track input[type=range]:focus-visible::-moz-range-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
+  .yrs.is-any .yrs__track input[type=range]::-webkit-slider-thumb{
+    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px #aab1bc}
+
+  /* The levels under the track: each band's edges fall halfway between two stops. */
+  .yrs__bands{list-style:none;margin:4px 0 0;padding:0 calc(var(--thumb) / 2);
+    display:grid;grid-template-columns:.5fr 2fr 3fr 3fr 4fr 4.5fr}
+  .yrs__bands li{position:relative;text-align:center;font-size:12px;font-weight:600;color:var(--ink-3);
+    padding-top:9px;transition:color .2s var(--ease)}
+  .yrs__bands li::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:2px;
+    background:#e3e6eb;transition:background .2s var(--ease)}
+  .yrs__bands li:first-child::before{display:none}
+  .yrs__bands li.is-on{color:var(--ink)}
+  .yrs__bands li.is-on::before{background:var(--aqua)}
+  .yrs__hint{margin:10px 0 0}
+  @media (pointer:coarse){ .yrs{--thumb:32px} }
+  @media (max-width:420px){ .yrs__bands li{font-size:11px} }
   .switches{display:flex;flex-wrap:wrap;gap:4px 0;padding:22px 0 6px}
   .slip__action{
     position:sticky;bottom:14px;z-index:5;
@@ -645,7 +703,6 @@
     var form = document.getElementById('finder-form');
     var button = document.getElementById('find-btn');
     var hint = document.getElementById('find-hint');
-    var wrap = document.getElementById('slipwrap');
     if (!form || !button) return;
 
     function chosen() {
@@ -695,13 +752,46 @@
       htmx.trigger(form, 'submit');
     });
 
-    // Once the results are in, fold the form away and keep the summary honest.
-    document.body.addEventListener('htmx:afterSwap', function (event) {
-      if (!event.target || event.target.id !== 'results' || !wrap) return;
-      var el = wrap.querySelector('.slipsummary__label');
-      if (el) el.textContent = label(chosen());
-      wrap.open = false;
-    });
+  })();
+
+  // Years of experience: the readout, the level and the lit band follow the slider.
+  (function () {
+    var box = document.querySelector('[data-yrs]');
+    if (!box) return;
+    var range = box.querySelector('input[type=range]'), track = box.querySelector('.yrs__track');
+    var num = box.querySelector('[data-yrs-num]'), unit = box.querySelector('[data-yrs-unit]');
+    var level = box.querySelector('[data-yrs-level]');
+    var bands = Array.prototype.slice.call(box.querySelectorAll('.yrs__bands li'));
+    // The same thresholds as seniority_from_years, which ranking uses.
+    function levelOf(v) {
+      if (v < 0) return 'every level';
+      if (v === 0) return 'just starting out';
+      if (v < 2) return 'junior';
+      if (v < 5) return 'mid-level';
+      if (v < 8) return 'senior';
+      if (v < 12) return 'lead';
+      return 'principal';
+    }
+    var last = null;
+    function paint() {
+      var v = parseInt(range.value, 10);
+      track.style.setProperty('--p', ((v + 1) / 17).toFixed(4));
+      box.classList.toggle('is-any', v < 0);
+      num.textContent = v < 0 ? 'Any' : (v > 15 ? '15+' : String(v));
+      unit.textContent = v < 0 ? '' : (v === 1 ? 'year' : 'years');
+      level.textContent = levelOf(v);
+      range.setAttribute('aria-valuetext', v < 0 ? 'Any, every level'
+        : (v > 15 ? '15 or more years' : v + (v === 1 ? ' year' : ' years')) + ', ' + levelOf(v));
+      bands.forEach(function (b) {
+        b.classList.toggle('is-on', v >= +b.getAttribute('data-from') && v <= +b.getAttribute('data-to'));
+      });
+      if (last !== null && last !== v) {
+        num.classList.remove('is-pop'); void num.offsetWidth; num.classList.add('is-pop');
+      }
+      last = v;
+    }
+    range.addEventListener('input', paint);
+    paint();
   })();
 
   // A seconds counter, so a long search reads as working rather than stuck.
@@ -833,12 +923,10 @@
 
     var sortBtn = document.getElementById('sort-btn');
     var target = document.getElementById('slipwin');
-    var wrap = document.getElementById('slipwrap');
     if (!sortBtn || !target) return;
     // "Find my jobs": every careers window flies into the button and shrinks away,
     // twenty sites sorted into one, and then the form arrives.
     sortBtn.addEventListener('click', function (event) {
-      if (wrap && !wrap.open) wrap.open = true;
       // Straight to the form: someone skipping ahead has chosen not to watch the story.
       if (window.foldStory) window.foldStory();
       if (reduced || !wide.matches) return;   // the link's own jump is the whole behaviour

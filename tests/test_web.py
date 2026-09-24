@@ -770,11 +770,29 @@ def test_a_job_its_source_stopped_returning_is_not_offered():
 # ------------------------------------------------------------- experience
 
 
-def test_years_is_a_list_from_nought_to_fifteen_plus(client):
+def test_years_is_a_slider_from_any_to_fifteen_plus(client):
     page = client.get("/").text
-    options = re.findall(r'<option value="(\d*)"', page.split('id="years"')[1].split("</select>")[0])
-    assert options == [""] + [str(n) for n in range(0, 17)]
-    assert "15+ years</option>" in page
+    slider = re.search(r'<input type="range" id="years" name="years"[^>]*>', page)
+    assert slider, "years of experience should be a slider"
+    assert 'min="-1"' in slider.group(0) and 'max="16"' in slider.group(0)
+    assert 'value="-1"' in slider.group(0), "a fresh visit starts on Any"
+
+
+def test_any_on_the_slider_means_every_level(client):
+    """Any is sent as -1; it must show every opening, not be read as 0 years."""
+    any_total = client.post("/search", data={"chosen_fields": ["backend"], "years": "-1"}).text
+    blank_total = client.post("/search", data={"chosen_fields": ["backend"], "years": ""}).text
+    grab = lambda t: re.search(r"results: ([\d,]+) found", t).group(1)
+    assert grab(any_total) == grab(blank_total)
+    assert "or less" not in any_total.split("results:")[1].split("</p>")[0]
+
+
+def test_paging_sends_every_field_in_the_form(client):
+    """Regression: when years became a list, paging stopped sending it, so page two of
+    a "0 years" search became a search of every level (81 jobs, then 244)."""
+    page = client.post("/search", data={"chosen_fields": ["backend"], "years": "0"}).text
+    includes = re.findall(r'hx-include="([^"]+)"', page)
+    assert includes and all("#finder-form select" in i and "#finder-form input" in i for i in includes)
 
 
 def test_fifteen_plus_asks_for_every_role(client):

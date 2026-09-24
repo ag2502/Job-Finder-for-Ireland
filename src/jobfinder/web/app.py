@@ -610,9 +610,11 @@ async def search(
         raw_years = years.strip().removesuffix("+")
         bump = 1 if years.strip().endswith("+") else 0
         try:
-            stated_years = max(0, min(int(raw_years) + bump, 50))
+            wanted = int(raw_years) + bump
         except ValueError:
-            stated_years = None
+            wanted = None
+        # The slider's far-left stop, "Any", arrives as -1: nothing stated, every level.
+        stated_years = None if wanted is None or wanted < 0 else min(wanted, 50)
 
     # Paging re-submits the form, but a file input cannot be repopulated by the browser,
     # so the CV-derived signals are carried forward from the existing session rather

@@ -6,10 +6,12 @@
   file would go up as the string "[object File]", which the server rejects with a 422
   that htmx then silently declines to swap. The CV signals already live in the session.
   The sort select is named explicitly because it sits outside the form, and without it
-  paging would quietly revert to "Best match".
+  paging would quietly revert to "Best match". Selects inside the form are listed too:
+  when years of experience became a list, paging stopped sending it, and page two of a
+  "0 years" search silently became a search of every level (81 jobs, then 244).
 #}
 {% from "_macros.html" import logo, titlebar %}
-{% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort], #results input[name=show_applied]" %}
+{% set rerun_include = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied]" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 {# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
