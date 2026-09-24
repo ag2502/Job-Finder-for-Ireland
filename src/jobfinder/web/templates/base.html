@@ -25,17 +25,9 @@
    the one window that has all of them in it.
    =================================================================== */
 
-@view-transition{navigation:auto}
-/* Between pages the menu bar holds still and only the desk beneath it changes. */
-.menubar{view-transition-name:menubar}
-/* A quick cross-fade. It used to slide the new page up over half a second, which on
-   every click read as the site being slow to answer. */
-@media (prefers-reduced-motion:no-preference){
-  ::view-transition-old(root){animation:vt-out .12s linear both}
-  ::view-transition-new(root){animation:vt-in .2s cubic-bezier(.16,1,.3,1) both}
-}
-@keyframes vt-out{to{opacity:0}}
-@keyframes vt-in{from{opacity:0}}
+/* No cross-page view transition. It holds the old page on screen until the new one is
+   ready and then fades between them, which in Safari read as the site stalling on every
+   click. A plain navigation paints the new page as soon as it can. */
 
 :root{
   /* the desktop */

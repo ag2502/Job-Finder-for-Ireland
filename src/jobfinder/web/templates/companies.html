@@ -12,7 +12,7 @@
 {% block wide %}
 <section class="co-hero wrap">
   <div class="co-hero__copy">
-    <h1><span data-count>{{ "{:,}".format(employers_hiring) }}</span> companies are hiring in Dublin <span class="hl">right now.</span></h1>
+    <h1><span>{{ "{:,}".format(employers_hiring) }}</span> companies are hiring in Dublin <span class="hl">right now.</span></h1>
     <p class="lede">
       Sorted Place brings every one of them into one place:
       {% if global_names %}multinationals like {{ names(global_names[:4]) }},{% endif %}
@@ -54,9 +54,9 @@
     <h2 id="big-names" class="reveal">The big names</h2>
     <p class="hand launch__hint">tap any icon to see its jobs <svg class="scrawl" viewBox="0 0 34 20" width="30" height="18" aria-hidden="true"><path d="M3 11c9-3 18 1 27-2M30 9l-6-5M30 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
   </div>
-  <ul class="launch__grid">
+  <ul class="launch__grid opens">
     {% for e in top %}
-    <li class="launch__item opens" data-delay="{{ (loop.index0 % 12) * 30 }}">
+    <li class="launch__item">
       <button type="button" class="app" data-company="{{ e.id }}" data-name="{{ e.name }}">
         <span class="app__icon">{{ logo(e.name, e.domain, "logo--lg") }}<span class="badge">{{ e.jobs }}</span></span>
         <span class="app__name">{{ e.name }}</span>
@@ -248,6 +248,8 @@
   .colbtn.is-on{color:var(--aqua-deep)}
   .colbtn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
   .colist{list-style:none;margin:0;padding:0;max-height:560px;overflow-y:auto;overscroll-behavior:contain}
+  /* Hundreds of rows: the ones scrolled out of the box are not laid out or painted. */
+  .colist li{content-visibility:auto;contain-intrinsic-size:auto 49px}
   .corow{
     width:100%;padding:9px 24px;background:#fff;border:0;border-bottom:1px solid var(--line);
     border-radius:0;box-shadow:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;
