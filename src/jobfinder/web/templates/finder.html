@@ -64,7 +64,6 @@
         <svg width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></a>
       <a class="btn btn--ghost" href="/companies">See all {{ "{:,}".format(employers_hiring) }} companies</a>
     </div>
-    <p class="typed desk__meta">{% if updated %}{{ updated }} &middot; {% endif %}refreshed every 6 hours</p>
   </div>
 </section>
 
@@ -341,7 +340,6 @@
   .desk__copy .lede{margin:0 auto;max-width:44ch;font-size:clamp(1.08rem,1.5vw,1.25rem)}
   .desk__actions{position:relative;z-index:90;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:30px 0 16px}
   .desk__actions .btn{font-size:16px;padding:13px 26px}
-  .desk__meta{margin:0 auto}
 
   /* windows arrive one after another, like a login restoring a session */
   @media (prefers-reduced-motion:no-preference){

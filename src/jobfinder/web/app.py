@@ -379,7 +379,6 @@ def _index_context(request: Request) -> dict:
                 .order_by(JobPosting.first_seen_at.desc())
                 .limit(3)
             ).all()
-        updated = _last_updated(session)
 
     context = _base_context(request)
     context.update(
@@ -390,7 +389,6 @@ def _index_context(request: Request) -> dict:
         employers_hiring=len(hiring_employers),
         hiring_employers=hiring_employers,
         showcase=showcase,
-        updated=updated,
     )
     return context
 
