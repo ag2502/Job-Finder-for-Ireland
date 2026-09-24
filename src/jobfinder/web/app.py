@@ -236,6 +236,119 @@ MAX_SESSION_SKILLS = 60
 MAX_SESSION_TERMS = 120
 
 
+# Where each company's logo comes from. Most registry rows carry a website, and the
+# favicon service turns that into a proper app icon; these are the few whose website is
+# a jobs subdomain or a brand the service has no icon for.
+LOGO_DOMAINS = {
+    "Amazon": "amazon.com",
+    "BNY Mellon": "bnymellon.com",
+}
+
+# The platforms jobs are read from, in words a job seeker would recognise, with the
+# domain their logo is fetched from. Anything unlisted falls back to its adapter name.
+PLATFORMS = {
+    "workday": ("Workday", "workday.com"),
+    "greenhouse": ("Greenhouse", "greenhouse.com"),
+    "gradireland": ("gradireland", "gradireland.com"),
+    "amazon": ("amazon.jobs", "amazon.com"),
+    "publicjobs": ("publicjobs.ie", "publicjobs.ie"),
+    "google": ("Google Careers", "google.com"),
+    "oracle_recruiting": ("Oracle Recruiting", "oracle.com"),
+    "jsonld": ("Company careers sites", ""),
+    "careers_html": ("Company careers sites", ""),
+    "successfactors": ("SAP SuccessFactors", "sap.com"),
+    "oleeo": ("Oleeo", "oleeo.com"),
+    "workable": ("Workable", "workable.com"),
+    "ashby": ("Ashby", "ashbyhq.com"),
+    "smartrecruiters": ("SmartRecruiters", "smartrecruiters.com"),
+    "eightfold": ("Eightfold", "eightfold.ai"),
+    "icims": ("iCIMS", "icims.com"),
+    "pinpoint": ("Pinpoint", "pinpointhq.com"),
+    "candidatemanager": ("CandidateManager", "candidatemanager.net"),
+    "bamboohr": ("BambooHR", "bamboohr.com"),
+    "hirehive": ("HireHive", "hirehive.com"),
+    "lever": ("Lever", "lever.co"),
+    "teamtailor": ("Teamtailor", "teamtailor.com"),
+    "personio": ("Personio", "personio.com"),
+    "recruitee": ("Recruitee", "recruitee.com"),
+    "breezy": ("Breezy HR", "breezy.hr"),
+    "occupop": ("Occupop", "occupop.com"),
+    "adzuna": ("Adzuna", "adzuna.ie"),
+}
+
+# Names used in the companies page's description. Only the ones actually hiring today
+# are printed, so the sentence can never name a company that has nothing open.
+GLOBAL_NAMES = (
+    "Google", "Amazon", "Microsoft", "Meta", "Stripe", "Salesforce", "Mastercard",
+    "OpenAI", "Citi", "Accenture", "MongoDB", "Anthropic", "SAP",
+)
+IRISH_NAMES = (
+    "ESB", "Dunnes Stores", "Davy", "Version 1", "EirGrid", "Intercom", "CarTrawler",
+    "Arthur Cox", "Mason Hayes & Curran", "Penneys", "Codec",
+)
+
+
+def _logo_domain(name: str, website: str | None) -> str:
+    """The bare domain a company's logo is fetched for, or "" when there is none."""
+    if name in LOGO_DOMAINS:
+        return LOGO_DOMAINS[name]
+    if not website:
+        return ""
+    host = urlparse(website if "//" in website else f"//{website}").hostname or ""
+    return host.removeprefix("www.")
+
+
+def _hiring_employers(session) -> list[dict]:
+    """Every company with an open Dublin job, biggest first, with its logo domain and
+    the platforms its jobs were read from."""
+    rows = session.execute(
+        select(
+            Company.id,
+            Company.name,
+            Company.website,
+            Source.adapter,
+            func.count(JobPosting.id),
+        )
+        .join(JobPosting, JobPosting.company_id == Company.id)
+        .join(Source, Source.id == JobPosting.source_id)
+        .where(_is_offerable(), JobPosting.is_dublin.is_(True))
+        .group_by(Company.id, Company.name, Company.website, Source.adapter)
+    ).all()
+
+    employers: dict[int, dict] = {}
+    for company_id, name, website, adapter, n in rows:
+        entry = employers.setdefault(
+            company_id,
+            {
+                "id": company_id,
+                "name": name,
+                "domain": _logo_domain(name, website),
+                "jobs": 0,
+                "platforms": [],
+                "adapters": set(),
+            },
+        )
+        entry["jobs"] += n
+        entry["adapters"].add(adapter)
+        label = PLATFORMS.get(adapter, (adapter, ""))[0]
+        if label not in entry["platforms"]:
+            entry["platforms"].append(label)
+    return sorted(employers.values(), key=lambda e: (-e["jobs"], e["name"].lower()))
+
+
+def _last_updated(session) -> str:
+    """How long ago the last crawl finished, in words, or "" when none is recorded."""
+    finished = _as_utc(session.scalar(select(func.max(CrawlRun.finished_at))))
+    if finished is None:
+        return ""
+    hours = int((datetime.now(timezone.utc) - finished).total_seconds() // 3600)
+    if hours < 1:
+        return "updated under an hour ago"
+    if hours < 48:
+        return f"updated {hours} hour{'' if hours == 1 else 's'} ago"
+    return f"updated {hours // 24} days ago"
+
+
 def _index_context(request: Request) -> dict:
     """Home page context. Shared with the upload error path, which renders the same
     template and would otherwise be missing the counts it interpolates."""
@@ -248,35 +361,36 @@ def _index_context(request: Request) -> dict:
             )
         ) or 0
         companies = session.scalar(select(func.count()).select_from(Company)) or 0
-        # The registry size and the number of employers actually hiring are different
-        # numbers, and only the second one is true of the jobs on the page. Saying
-        # "618 employers' careers systems" when 48 are hiring is the claim a launch
-        # gets picked apart for, so both are passed and the copy uses each correctly.
-        hiring = session.scalar(
-            select(func.count(func.distinct(JobPosting.company_id))).where(
-                _is_offerable(), JobPosting.is_dublin.is_(True)
-            )
-        ) or 0
 
         # "All of Dublin in one place" is a claim, and naming the companies is how a
-        # visitor checks it rather than taking it. Every one of them is listed, not
-        # just the biggest: the page shows the first few and opens the rest in place,
-        # because a link to a page that does not exist is worse than no link.
-        rows = session.execute(
-            select(Company.name, func.count(JobPosting.id).label("n"))
-            .join(JobPosting, JobPosting.company_id == Company.id)
-            .where(_is_offerable(), JobPosting.is_dublin.is_(True))
-            .group_by(Company.name)
-            .order_by(func.count(JobPosting.id).desc(), Company.name)
-        ).all()
-        hiring_employers = [{"name": r[0], "jobs": r[1]} for r in rows]
+        # visitor checks it rather than taking it. The home page shows the biggest few
+        # as open windows, each carrying real titles from that company, and links the
+        # rest to /companies.
+        hiring_employers = _hiring_employers(session)
+        showcase = [e for e in hiring_employers if e["domain"]][:8]
+        for employer in showcase:
+            employer["titles"] = session.scalars(
+                select(JobPosting.title)
+                .where(
+                    _is_offerable(),
+                    JobPosting.is_dublin.is_(True),
+                    JobPosting.company_id == employer["id"],
+                )
+                .order_by(JobPosting.first_seen_at.desc())
+                .limit(3)
+            ).all()
+        updated = _last_updated(session)
 
     context = _base_context(request)
     context.update(
         dublin_count=dublin,
         company_count=companies,
-        employers_hiring=hiring,
+        # The registry size and the number of employers actually hiring are different
+        # numbers, and only the second one is true of the jobs on the page.
+        employers_hiring=len(hiring_employers),
         hiring_employers=hiring_employers,
+        showcase=showcase,
+        updated=updated,
     )
     return context
 
@@ -671,7 +785,9 @@ def _search_results(
                 want_graduate=want_graduate,
             )
         ]
-        companies = {c.id: c.name for c in session.execute(select(Company)).scalars()}
+        company_rows = session.execute(select(Company)).scalars().all()
+        companies = {c.id: c.name for c in company_rows}
+        domains = {c.id: _logo_domain(c.name, c.website) for c in company_rows}
 
         # Rank everything that matched rather than a fixed slice, so the reported
         # total is the real number of open roles and later pages are reachable.
@@ -698,6 +814,7 @@ def _search_results(
                 {
                     "job": job,
                     "company": companies.get(job.company_id, "Unknown"),
+                    "domain": domains.get(job.company_id, ""),
                     "score": entry.score,
                     "why": entry.explain(),
                     "is_new": has_history and bool(first_seen and first_seen >= cutoff),
@@ -1117,3 +1234,88 @@ def reset(request: Request):
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy(request: Request):
     return templates.TemplateResponse(request, "privacy.html", _base_context(request))
+
+
+# ------------------------------------------------------------------- companies
+
+
+@app.get("/companies", response_class=HTMLResponse)
+def companies(request: Request):
+    """Every company hiring in Dublin, the biggest shown as app icons, and the
+    platforms their jobs are read from."""
+    with session_scope() as session:
+        employers = _hiring_employers(session)
+        dublin = sum(e["jobs"] for e in employers)
+        updated = _last_updated(session)
+
+        per_platform = session.execute(
+            select(
+                Source.adapter,
+                func.count(JobPosting.id),
+                func.count(func.distinct(JobPosting.company_id)),
+            )
+            .join(Source, Source.id == JobPosting.source_id)
+            .where(_is_offerable(), JobPosting.is_dublin.is_(True))
+            .group_by(Source.adapter)
+        ).all()
+
+    # Two adapters read plain careers sites; to a job seeker they are one thing.
+    platforms: dict[str, dict] = {}
+    for adapter, jobs, n_companies in per_platform:
+        label, domain = PLATFORMS.get(adapter, (adapter, ""))
+        entry = platforms.setdefault(
+            label, {"label": label, "domain": domain, "jobs": 0, "companies": 0}
+        )
+        entry["jobs"] += jobs
+        entry["companies"] += n_companies
+    platforms_sorted = sorted(platforms.values(), key=lambda p: -p["jobs"])
+
+    hiring_names = {e["name"] for e in employers}
+    context = _base_context(request)
+    context.update(
+        employers=employers,
+        top=[e for e in employers if e["domain"]][:36],
+        dublin_count=dublin,
+        employers_hiring=len(employers),
+        platforms=platforms_sorted,
+        global_names=[n for n in GLOBAL_NAMES if n in hiring_names],
+        irish_names=[n for n in IRISH_NAMES if n in hiring_names],
+        public_sector=sum(1 for e in employers if "publicjobs" in e["adapters"]),
+        graduate_employers=sum(1 for e in employers if "gradireland" in e["adapters"]),
+        updated=updated,
+    )
+    return templates.TemplateResponse(request, "companies.html", context)
+
+
+@app.get("/companies/{company_id}/jobs", response_class=HTMLResponse)
+def company_jobs(request: Request, company_id: int):
+    """One company's open Dublin jobs, for the window that opens from its icon."""
+    with session_scope() as session:
+        company = session.get(Company, company_id)
+        if company is None:
+            raise HTTPException(status_code=404)
+        jobs = session.scalars(
+            select(JobPosting)
+            .where(
+                _is_offerable(),
+                JobPosting.is_dublin.is_(True),
+                JobPosting.company_id == company_id,
+            )
+            .order_by(JobPosting.first_seen_at.desc())
+        ).all()
+        rows = [
+            {
+                "title": job.title,
+                "url": job.url,
+                "location": job.location_raw or "Dublin",
+                "experience": _experience_label(job),
+            }
+            for job in jobs
+        ]
+        name = company.name
+        domain = _logo_domain(company.name, company.website)
+    return templates.TemplateResponse(
+        request,
+        "_company_jobs.html",
+        {"request": request, "name": name, "domain": domain, "jobs": rows},
+    )

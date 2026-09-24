@@ -1,346 +1,353 @@
 ---
 name: Sorted Place
-description: An accession register for Dublin's live job openings — a steel drawer of manila record cards that nothing is ever thrown out of.
+description: The tidy desktop. Job hunting is twenty careers sites open in twenty windows; Sorted Place is the one window that has all of them in it.
 colors:
-  steel-900: "#171d20"
-  steel-800: "#212a2e"
-  steel-700: "#2f383c"
-  steel-600: "#3c474c"
-  steel-500: "#55636a"
-  steel-400: "#adbac1"
-  manila: "#ddcfae"
-  manila-hi: "#e3d6b4"
-  manila-lo: "#c7b791"
-  manila-edge: "#b3a37c"
-  ink: "#231e17"
-  ink-2: "#5f5648"
-  ink-3: "#5d5444"
-  stamp: "#b7332a"
-  stamp-deep: "#8e2620"
-  brass: "#b08d3f"
-  brass-hi: "#d9bc72"
-  brass-lo: "#7d6228"
-  ledger: "#cfd9c2"
+  desk: "#eceef2"
+  desk-dot: "#c3c9d2"
+  desk-deep: "#dfe3e9"
+  win: "#ffffff"
+  win-bar: "#f4f5f7"
+  win-bar-2: "#e8eaee"
+  line: "#dde1e7"
+  line-strong: "#c4cad3"
+  ink: "#15171c"
+  ink-2: "#454b56"
+  ink-3: "#5c626d"
+  aqua: "#2b74f0"
+  aqua-hi: "#69a4ff"
+  aqua-deep: "#1a55c2"
+  aqua-wash: "#edf3ff"
+  sticker: "#ffd84a"
+  sticker-deep: "#e8b400"
+  tag-red: "#e8413c"
+  tag-red-deep: "#c02c28"
+  sorted: "#1c9a4a"
+  sorted-wash: "#e6f6ec"
+  tl-red: "#ff5f57"
+  tl-amber: "#febc2e"
+  tl-green: "#28c840"
+  g-engineering: "#2b74f0"
+  g-data-ai: "#9b51e0"
+  g-product-design: "#e84393"
+  g-science-health: "#0fa5a0"
+  g-industry: "#f2791c"
+  g-finance-legal: "#1c9a4a"
+  g-commercial: "#e8413c"
+  g-business-ops: "#5b5bd6"
+  g-people: "#d9a300"
+  g-public-education: "#9a6b3f"
+  g-service: "#7c828d"
 typography:
   display:
-    fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-    fontSize: "clamp(2.5rem, 6.4vw, 4.9rem)"
-    fontWeight: 900
-    lineHeight: 0.94
-    letterSpacing: "-0.032em"
-    fontVariation: "'wdth' 78"
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "clamp(2.6rem, 6.4vw, 5rem)"
+    fontWeight: 750
+    lineHeight: 0.98
+    letterSpacing: "-0.035em"
+    fontFeature: "\"ss01\", \"tnum\""
   headline:
-    fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-    fontSize: "clamp(1.25rem, 2.4vw, 1.6rem)"
-    fontWeight: 800
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "clamp(1.4rem, 2.6vw, 1.9rem)"
+    fontWeight: 700
     lineHeight: 1.12
-    letterSpacing: "-0.018em"
-    fontVariation: "'wdth' 84"
+    letterSpacing: "-0.03em"
   title:
-    fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
-    fontSize: "1.06rem"
-    fontWeight: 800
-    lineHeight: 1.32
-    letterSpacing: "-0.012em"
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "1.05rem"
+    fontWeight: 650
+    lineHeight: 1.3
+    letterSpacing: "-0.015em"
+  lede:
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "1.14rem"
+    fontWeight: 400
+    lineHeight: 1.5
   body:
-    fontFamily: "Archivo, 'Helvetica Neue', Helvetica, Arial, sans-serif"
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
     fontSize: "16px"
     fontWeight: 400
     lineHeight: 1.55
-    letterSpacing: "normal"
+    fontFeature: "\"ss01\", \"tnum\""
   label:
-    fontFamily: "'Courier Prime', ui-monospace, monospace"
-    fontSize: "11px"
-    fontWeight: 700
-    lineHeight: 1.4
-    letterSpacing: "0.17em"
+    fontFamily: "Geist, ui-sans-serif, system-ui, -apple-system, sans-serif"
+    fontSize: "13px"
+    fontWeight: 650
+    lineHeight: 1.3
+  mono:
+    fontFamily: "Geist Mono, ui-monospace, SFMono-Regular, Menlo, monospace"
+    fontSize: "12.5px"
+    fontWeight: 400
+    letterSpacing: "-0.01em"
+  hand:
+    fontFamily: "Gochi Hand, Comic Sans MS, cursive"
+    fontSize: "20px"
+    fontWeight: 400
+    lineHeight: 1.2
+    letterSpacing: "0.01em"
 rounded:
-  card: "2px"
-  tab: "2px 12px 0 0"
-  pill: "11px"
+  menu-item: "7px"
+  control: "10px"
+  window: "14px"
+  dock: "24px"
+  sky: "32px"
+  app-icon: "24%"
+  pill: "999px"
 spacing:
-  xs: "4px"
-  sm: "7px"
-  md: "14px"
-  lg: "22px"
-  xl: "34px"
+  xs: "6px"
+  sm: "8px"
+  md: "12px"
+  lg: "16px"
+  xl: "26px"
+  2xl: "64px"
+  menubar: "48px"
+  container: "1180px"
 components:
   button-primary:
-    backgroundColor: "{colors.stamp}"
-    textColor: "#ffffff"
-    rounded: "{rounded.card}"
-    padding: "13px 22px"
-    typography: "{typography.label}"
-  button-primary-hover:
-    backgroundColor: "{colors.stamp-deep}"
-    textColor: "#ffffff"
-  button-primary-disabled:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.aqua}"
+    textColor: "{colors.win}"
+    typography: "{typography.body}"
+    rounded: "{rounded.pill}"
+    padding: "11px 22px"
+  button-ghost:
+    backgroundColor: "{colors.win}"
+    textColor: "{colors.ink}"
+    rounded: "{rounded.pill}"
+    padding: "11px 22px"
+  button-apply:
+    backgroundColor: "{colors.win}"
+    textColor: "{colors.aqua-deep}"
+    rounded: "{rounded.pill}"
+    padding: "7px 15px"
+  button-apply-hover:
+    backgroundColor: "{colors.aqua}"
+    textColor: "{colors.win}"
+  save-toggle:
+    backgroundColor: "{colors.win}"
     textColor: "{colors.ink-2}"
-  button-outline:
-    backgroundColor: "transparent"
-    textColor: "{colors.stamp-deep}"
-    rounded: "{rounded.card}"
-    padding: "8px 14px"
-  button-outline-hover:
-    backgroundColor: "{colors.stamp}"
-    textColor: "{colors.manila-hi}"
-  record-card:
-    backgroundColor: "{colors.manila}"
+    rounded: "{rounded.pill}"
+    padding: "7px 13px"
+  save-toggle-on:
+    backgroundColor: "#fff4c7"
+    textColor: "#7a5800"
+  field-tag:
+    backgroundColor: "{colors.win}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.card}"
-    padding: "18px 22px 17px"
-  record-card-alt:
-    backgroundColor: "{colors.ledger}"
+    rounded: "{rounded.pill}"
+    padding: "7px 14px 7px 11px"
+  input-text:
+    backgroundColor: "{colors.win}"
     textColor: "{colors.ink}"
-  slip-card:
-    backgroundColor: "{colors.manila-hi}"
+    rounded: "{rounded.control}"
+    padding: "10px 13px"
+  window:
+    backgroundColor: "{colors.win}"
     textColor: "{colors.ink}"
-    rounded: "{rounded.card}"
-    padding: "26px 34px 30px"
-  tab-divider:
-    backgroundColor: "{colors.manila-lo}"
-    textColor: "#4a4235"
-    rounded: "{rounded.tab}"
-    padding: "10px 16px 9px"
-  tab-divider-checked:
-    backgroundColor: "{colors.manila-hi}"
+    rounded: "{rounded.window}"
+    padding: "26px 30px 30px"
+  window-titlebar:
+    backgroundColor: "{colors.win-bar}"
+    textColor: "{colors.ink-3}"
+    typography: "{typography.mono}"
+    height: "38px"
+    padding: "0 14px"
+  job-row:
+    backgroundColor: "{colors.win}"
     textColor: "{colors.ink}"
-  label-plate:
-    backgroundColor: "{colors.brass}"
-    textColor: "#120d02"
-    rounded: "{rounded.card}"
-    padding: "7px 18px 8px"
-  stamp-mark:
-    backgroundColor: "transparent"
-    textColor: "{colors.stamp-deep}"
-    rounded: "{rounded.card}"
-    padding: "2px 7px 1px"
+    padding: "19px 26px"
+  status-pill:
+    backgroundColor: "{colors.sorted-wash}"
+    textColor: "{colors.sorted}"
+    rounded: "{rounded.pill}"
+    padding: "3px 9px"
+  count-badge:
+    backgroundColor: "{colors.tag-red}"
+    textColor: "{colors.win}"
+    rounded: "{rounded.pill}"
+    height: "22px"
+    padding: "0 6px"
+  menubar:
+    backgroundColor: "rgba(246,247,249,.78)"
+    textColor: "{colors.ink-2}"
+    height: "48px"
+    padding: "0 18px"
 ---
 
 # Design System: Sorted Place
 
 ## Overview
 
-**Creative North Star: "The Accession Register"**
+**Creative North Star: "The Tidy Desktop"**
 
-This is a working library register rendered as an interface: an oxidised steel drawer,
-manila record cards threaded on a brass rod, a brass label holder screwed to the front,
-and a red stamp pad. The metaphor is not decoration. It was chosen because a register
-never throws anything out, which is the same promise the crawler underneath already
-makes — a role stays filed until two separate crawls confirm it is gone. When the world
-and the mechanism are the same idea, every component has an obvious correct form.
+The site is a light computer desktop. A cool grey ground with a faint dotted grid stands in for the screen; every piece of content that works (the find-my-jobs form, the results, the company list, a company's jobs, the privacy notes) sits in a white app window with a grey title bar, three traffic lights and a mono filename. Employers show up as app icons with their real favicons and a red notification badge carrying their open-job count. The home page acts out the premise: real employers' careers windows scattered across the desk, draggable and throwable, which one aqua button sorts into a single list below.
 
-The register is a **finite, countable, physically bounded** collection, and the system
-is built to say so. The count is the headline, it sits in brass hardware rather than in
-a stat tile, and every record carries a stamped date. Nothing here scrolls forever;
-the page is a drawer with a bottom.
+The light ground is chosen for how the site is actually used. Someone arrives mid-hunt on a laptop with twenty careers tabs open, or on a phone on a bus, and both need to read a long list in daylight. The desktop metaphor is literal enough to explain the product without copy ("close the other nineteen tabs"), and it stays out of the way once the visitor is working: from the first result onward the page is a plain white list inside a window.
 
-The register is the system's private logic, not its vocabulary. Visitors are job
-hunting, not filing: the world shapes the cards, the tabs and the stamps, while the
-words on them stay plain. An earlier build printed a serial number on every record and
-called the results "records pulled"; both were removed for reading as a filing clerk's
-interface rather than a job search.
-
-The system refuses two things by name. It refuses the category default — the centred
-hero, the wide search bar, three icon cards, a logo strip — because that arrangement is
-what every job board already ships. And it refuses the warm-cream-and-serif rendition
-that "archival" usually collapses into. Card stock is not paper: it is `#ddcfae` manila
-with a visible tooth, sitting in a `#2f383c` steel cabinet, marked in rubber-stamp red.
+Play lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing here signals alerts or notifications. The red badge is a count, not something unread.
 
 **Key Characteristics:**
-- Dark steel ground, light card stock — the content is always on a card, never loose on the page
-- Every number on screen is queryable from the database; nothing is rounded up for effect
-- Type is one variable grotesque plus one typewriter face, and the typewriter face means *record*, never *technical*
-- Motion is one grammar: things rise out of the drawer
-- Hardware is modelled (screws, rod, pull), surfaces are flat
+- Light desktop ground (#eceef2, 22px dotted grid) under white windows; no dark surfaces except the dock tooltip.
+- One action colour: glossy aqua pills. Green reads as "sorted / live". Red is kept to count badges and a few marks (applied, required, errors).
+- Finder tag colours identify the eleven field groups, and that is their only job.
+- Three typefaces with separate jobs: Geist carries the interface, Geist Mono types data, Gochi Hand scribbles asides.
+- Springy for anything you touch, an exponential settle for anything that arrives; everything still works and stays visible with reduced motion or without JS.
 
 ## Colors
 
-A cabinet palette: cold rolled steel against warm card stock, with red ink and brass as
-the only two saturated voices.
+A cool, near-neutral greyscale desktop with one saturated blue for action and a small set of Mac system colours, each with a single meaning.
 
 ### Primary
-- **Stamp Red** (`#b7332a`): the rubber stamp pad. Primary actions, the REQUIRED mark, the count of new records, the caret and text selection. It is ink struck onto a card, so it appears in small, dense marks rather than large fields.
-- **Stamp Red Deep** (`#8e2620`): the same ink read at text size. Every stamp *outline*, every outline button label, every link inside card stock. Stamp Red itself does not clear 4.5:1 on manila; this does.
+- **Aqua** (`aqua`): the one colour that means "do this". Glossy primary pills, the Apply outline, focus rings, the text caret, input focus borders, the active step marker and progress bar in the how-it-works story, and the sky-blue platforms band on /companies. Buttons shade it from `aqua-hi`-adjacent #5c9bff at the top to #2166e0 at the base, edged with `aqua-deep`.
+- **Deep Aqua** (`aqua-deep`): button edges, text links, the Apply label, sort-column active state. Aqua text is always this deeper value, never `aqua` itself, so it holds contrast on white.
+- **Aqua Wash** (`aqua-wash`): hover fill on company rows and job links in company windows, info notices, CV-drop hover, extracted-skill chips.
 
 ### Secondary
-- **Brass** (`#b08d3f`), **Brass Light** (`#d9bc72`), **Brass Dark** (`#7d6228`): hardware only — the label holder, the rod through the cards, the drawer pull, the selected-tab shoulder, the focus ring. Brass never carries body copy on steel; Brass Light does, at 6.5:1.
+- **Sorted Green** (`sorted`) and **Sorted Wash** (`sorted-wash`): "live and sorted". Open-in-Dublin counts on careers windows and company windows, default status pills, the loaded CV drop, completed story steps, the ready state of the form hint.
+- **Traffic-light Green** (`tl-green`): the live dot in the menu bar and the on state of switches, as in macOS.
+
+### Tertiary
+- **Highlighter Yellow** (`sticker`, `sticker-deep`): the highlighter sweep under one phrase of a headline, text selection, sticky notes, and the saved state of the Save toggle (fill #fff4c7, label #7a5800, edge `sticker-deep`). The "stretch" pill uses the same pale yellow.
+- **Tag Red** (`tag-red`, `tag-red-deep`): notification badges on app icons, the "applied" and "required" pills, the name-tag sticker header, error notices.
+
+### Field-group tags
+The eleven `g-*` colours are Finder tag colours, one per field group (engineering blue, data and AI purple, product and design pink, science and health teal, industry orange, finance and legal green, commercial red, business and operations indigo, people gold, public and education brown, service grey). Each group sets a local `--g` and every chip in it takes its dot, check fill, border and 11% tint from that value.
 
 ### Neutral
-- **Steel 700** (`#2f383c`): the drawer face, and the page ground everywhere.
-- **Steel 800** (`#212a2e`) / **Steel 900** (`#171d20`): the recess above the fold and the machined lip under every rail.
-- **Steel 600** (`#3c474c`): raised chrome — rails, the guide card, the pulling panel.
-- **Steel 400** (`#adbac1`): all body copy that sits directly on steel. 6.03:1 on Steel 700.
-- **Manila** (`#ddcfae`): standard card stock. Every filed record.
-- **Manila Light** (`#e3d6b4`): the raised card — the request slip and the results header, the cards standing proud of the drawer.
-- **Manila Low** (`#c7b791`): unselected tab dividers and file-input buttons.
-- **Manila Edge** (`#b3a37c`): the cut edge of every card, carried as the 1px offset in both card shadows.
-- **Ink** (`#231e17`): typewriter black. All primary text on card stock, 10.7:1.
-- **Ink 2** (`#5f5648`) / **Ink 3** (`#5d5444`): secondary copy and typed micro-labels.
-- **Ledger Green** (`#cfd9c2`): the tint band on alternate records. It is a banding device, never a status.
+- **Desk Grey** (`desk`) with **Desk Dot** (`desk-dot`) grid points and **Desk Deep** (`desk-deep`): the page ground, also the browser theme colour.
+- **Window White** (`win`), **Title-bar Grey** (`win-bar` to `win-bar-2` gradient): window bodies and title bars; `win-bar` also fills table heads, list column headers, footers of windows and the search field.
+- **Hairline** (`line`) and **Strong Hairline** (`line-strong`): row dividers inside windows; control borders and story step rules.
+- **Ink** (`ink`), **Ink 2** (`ink-2`), **Ink 3** (`ink-3`): headings and primary text; secondary copy, ledes, nav; mono metadata, employer names, filenames, placeholders are one step lighter (#7d838e).
 
 ### Named Rules
+**The One Go Colour Rule.** Full-strength aqua marks what the visitor can do next: the primary pill, Apply, focus, progress. Nothing decorative is aqua, and no second hue competes with it for an action. The platforms band is the single large aqua field, and it holds draggable pills, not text to read at length.
 
-**The Card Stock Rule.** Content sits on a card; chrome sits on steel. If something is
-readable text and it is not on manila, it is on steel and it takes Steel 400 or lighter —
-never Ink, which vanishes there. This rule exists because breaking it once made every
-job title on the site invisible.
+**The Tag Is The Field Rule.** Finder tag colours belong to field groups and appear only on field chips and group labels. They are never used as decoration, status, or brand colour elsewhere.
 
-**The Never Cream Rule.** No surface goes lighter than `#e3d6b4`. Cream, parchment and
-paper-white are the default this world was chosen against; the stock is dyed card, and
-at `#ece2c9` it stops reading as one.
-
-**The Two Saturated Voices Rule.** Red is ink and brass is metal. Red never appears as a
-large field and brass never carries a paragraph. Everything else is steel or stock.
+**The Green Means Sorted Rule.** Green says a thing is live, done or ready (open counts, a read CV, a completed step, a switch that is on). It never labels an action.
 
 ## Typography
 
-**Display Font:** Archivo (variable, wdth 62–125, wght 400–900), with Helvetica Neue
-**Body Font:** Archivo
-**Label/Mono Font:** Courier Prime (400/700)
+**Display / Body Font:** Geist (with ui-sans-serif, system-ui, -apple-system)
+**Label/Mono Font:** Geist Mono (with ui-monospace, SFMono-Regular, Menlo)
+**Hand Font:** Gochi Hand (with Comic Sans MS, cursive)
 
-**Character:** One workhorse grotesque doing all the structural work, narrowed hard at
-display sizes (`wdth 78`, `weight 900`) so headlines read like drawer-front signage
-rather than like a marketing hero. Beside it, a real typewriter face carrying exactly
-what a typewriter typed on a catalogue card: numbers, dates, field names, stamps.
+**Character:** Geist is the operating-system voice: neutral, tight and heavy in headlines, calm in lists, with stylistic set 01 and tabular figures on everywhere so counts line up. Geist Mono is what the machine typed (filenames, timestamps, page numbers, platform counts). Gochi Hand is what a person scribbled on the desk.
 
 ### Hierarchy
-- **Display** (900, `clamp(2.5rem, 6.4vw, 4.9rem)`, 0.94): page headline, engraved on the steel. Always on a drawer front, never on a card.
-- **Headline** (800, `clamp(1.25rem, 2.4vw, 1.6rem)`, 1.12): section and card headings.
-- **Title** (800, 1.06rem, 1.32): the job title on a record — the largest thing on any card.
-- **Body** (400, 16px, 1.55): running copy, capped at 68ch (`--measure`), 58–60ch for ledes.
-- **Label** (700, 11px, 0.17em, uppercase, Courier Prime): field names, dates, stamps, counts.
+- **Display** (750, clamp(2.6rem, 6.4vw, 5rem), line-height 0.98, -0.035em, balanced wrap): page headlines that sit on the desk, not in a window. The home hero runs slightly larger (clamp(2.9rem, 6.3vw, 5.3rem)).
+- **Headline** (700, clamp(1.4rem, 2.6vw, 1.9rem), 1.12, -0.03em): section and window headings; feature sections scale it up to around clamp(2rem, 4.2vw, 3.4rem).
+- **Title** (650, 1.05rem, 1.3, -0.015em): job titles in rows (1.04rem), company names, card headings.
+- **Lede** (400, 1.14rem, 1.5, `ink-2`, max 58ch): the one paragraph under a headline; its key figure is set in 650 `ink`.
+- **Body** (400, 16px, 1.55, max 68ch): prose and notices. List metadata runs 13.5px.
+- **Label** (600 to 650, 13 to 13.5px): field labels, group labels, menu items (500, 14px), list column heads (600, 12.5px).
+- **Mono** (400, 12.5px, -0.01em, `ink-3`): window title filenames (12px), "updated 3 hours ago", page counts, posted dates, platform counts.
+- **Hand** (400, 19 to 30px): sticky notes, the name tag, and short asides such as "hiring right now" or "psst, these windows move".
 
 ### Named Rules
+**The Sentence Case Rule.** Headlines are sentence case and usually end with a full stop ("Every job in Dublin, sorted."). Proper nouns keep their capitals. No all-lowercase or all-caps headlines; the only capitals-only text is the printed HELLO on the name-tag sticker, because that is what a name tag says.
 
-**The Typewriter Means Record Rule.** Courier Prime appears only where a register would
-actually have been typed: dates, counts, field names, stamp text. It
-never appears to make something look technical, and never sets a sentence longer than a
-line.
+**The Three Voices Rule.** Geist speaks, Mono types, the hand scribbles. The hand face never carries information the visitor needs that is not also stated in Geist; mono never sets a headline.
 
-**The 11px Floor Rule.** No functional text ships below 11px, footers and micro-labels
-included, and anything carrying a whole sentence goes to 12px.
-
-**The Plain Words Rule.** The world is a register; the copy is not. Nothing on screen
-asks a visitor to learn the metaphor to use the product: no "records pulled", no serial
-numbers, no "drawer 3 of 10". Name what the thing is in the words someone job hunting
-would use.
-
-**The Short Caps Rule.** Uppercase is for labels of roughly 21 characters or fewer. The
-24 role tabs were set in caps once; at 33 characters they scanned badly and failed
-contrast, and mixed case fixed both. The tab *shape* says "tab", not the capitals.
+**The One Highlight Rule.** A headline may sweep the highlighter under one phrase, once, left to right. Never more than one highlighted phrase per heading.
 
 ## Layout
 
-A single 1180px container with 24px gutters, dropping to 16px under 860px. The page is
-a vertical stack of cards on a steel ground — there is no multi-column page grid, and
-content columns only appear *inside* a card (`.grid2`, two equal columns collapsing to
-one at 860px).
+A centred container (1180px max, 24px gutters, 16px under 860px) sits under a fixed 48px menu bar. Page headings sit directly on the desk (64px top, 30px bottom); the working content sits in windows below them. The home page breaks the container: the desk hero is a full-width stage (up to 1600px) with careers windows absolutely placed around a centred headline, followed by a dock, a pinned 320vh how-it-works story (two columns: steps left, a live demo window right), then the find-my-jobs window.
 
-The drawer front (page heading, lede, ledger line) is a two-column grid at
-`1.35fr / 0.65fr`: copy left, a proof card right, collapsing to one column at 980px.
+Spacing runs on a loose 6 / 8 / 12 / 16 / 26 / 64px rhythm: 8px between chips, 12 to 16px between row parts, 26px of window padding, 64px above page headings. Window bodies pad 26px 30px; job rows 19px 26px. Prose keeps to 68ch, ledes to 58ch or less.
 
-Spacing rhythm runs 4 / 7 / 14 / 22 / 34px. Headings carry more space above than below.
-Filed records sit in a `.filed` column with 34px of left padding — that gutter is where
-the brass rod runs, and the rod and its notches are dropped entirely under 860px, where
-the padding would cost more than the metaphor returns.
-
-Breakpoints: 980px (drawer front unstacks), 860px (the main phone/desktop switch), 420px
-(label plate compaction).
-
-**The Drawer Has A Bottom Rule.** Any list that can exceed ~50 rows pages. Results page
-at 25, the employer register at 50. This is load-bearing: shipping the register
-unpaginated produced a 76,489px page on a phone.
+**Responsive.** Breakpoints at 1180px (two desk windows and the scribble drop), 980px (desk and story reflow), 860px (single column everywhere) and 420px.
+- The desk becomes a horizontal swipe strip: careers windows stand 250px wide in a scroll-snapped row at half their desktop tilt, below the headline; stickers and scribbles are hidden, and dragging is only enabled for a fine pointer.
+- The menu bar keeps the wordmark, the nav (which scrolls sideways) and the live count; it drops the clock and the ".place" suffix.
+- The dock scrolls sideways at 52px icons without tooltips; the story pins as a single column; hero primary and ghost pills fill the width.
+- Job rows wrap their action column beneath the title; company rows drop the platform column into a second line; company windows become bottom sheets (12px from the edges, 72vh max).
 
 ## Elevation & Depth
 
-A hybrid. Surfaces are flat and matte; *hardware* is modelled. Cards carry a two-part
-shadow whose first component is a 1px hard offset in Manila Edge — that is the cut edge
-of the card stock, not a neobrutalist block shadow — followed by a soft, offset ambient
-shadow. Brass objects carry inset highlight and shade to read as turned metal.
+Depth is literal: windows float over the desk on soft, cool, layered shadows, and height tells you what is being handled. Surfaces inside a window are flat and divided by hairlines. Glass (backdrop blur with saturation) is used only for things that float over scrolling content: the menu bar, the dock, sticky group headers, the loading pill and the sticky submit bar.
 
 ### Shadow Vocabulary
-- **Card** (`0 1px 0 #b3a37c, 0 6px 14px -6px rgba(0,0,0,.55)`): every filed record and standard card.
-- **Raised** (`0 2px 0 #b3a37c, 0 22px 38px -16px rgba(0,0,0,.7)`): cards standing proud of the drawer — the request slip, the proof card.
-- **Hardware inset** (`0 1px 0 rgba(255,255,255,.45) inset, 0 -1px 0 rgba(0,0,0,.35) inset`): the label plate and drawer pull.
-- **Notch** (`inset 0 1px 2px rgba(0,0,0,.7)`): the hole where the rod passes through a card.
+- **Resting window** (`box-shadow: 0 1px 2px rgba(20,24,33,.06), 0 12px 32px -10px rgba(20,24,33,.22)`): every ordinary window and card.
+- **Lifted window** (`box-shadow: 0 2px 4px rgba(20,24,33,.08), 0 30px 60px -18px rgba(20,24,33,.38)`): the window a page is about (results, find-my-jobs, company list, Get Info, story demo, careers windows on the desk), and floating pills.
+- **Held** (`box-shadow: 0 3px 6px rgba(20,24,33,.1), 0 44px 70px -20px rgba(20,24,33,.45)`, plus scale 1.04): a window being dragged.
+- **Popup window** (`box-shadow: 0 3px 8px rgba(20,24,33,.12), 0 50px 90px -24px rgba(20,24,33,.5)`): a company window opened over the page.
+- **Small** (`box-shadow: 0 1px 2px rgba(20,24,33,.08), 0 4px 10px -4px rgba(20,24,33,.16)`): chips, small controls.
+- **Aqua glow** (`0 6px 16px -6px rgba(43,116,240,.65)` under inset gloss): the primary pill only.
 
-**The Cut Edge Rule.** A card's hard 1px offset is always paired with a soft blurred
-shadow and is always Manila Edge. A zero-blur coloured shadow on its own is a costume
-this world did not choose.
+### Named Rules
+**The Height Means Handling Rule.** Resting, lifted, held, popup: four heights, each tied to what the visitor is doing with the window. Don't invent new ones, and don't lift a window just to decorate it.
+
+**The Glass Is For Floating Rule.** Backdrop blur only on chrome that stays put while content scrolls under it.
 
 ## Shapes
 
-Near-square. The card radius is 2px throughout — card stock is guillotined, not rounded.
-The single exception is the tab shoulder: guide cards and role tabs take `2px 12px 0 0`,
-an asymmetric corner that reads as the angled shoulder of a filing tab, and the drawer
-pull takes a full 11px pill because it is turned brass.
-
-Borders are hairlines (`rgba(35,30,23,.22)` on stock, `rgba(255,255,255,.09)` on steel)
-and act as ruled index lines, not as containers. Inputs have no box: they are a single
-1.5px baseline rule under the value, which goes Stamp Red on focus.
-
-**The Ruled Line Rule.** Separation is a ruled hairline or a change of stock colour.
-It is never a box inside a box; nested cards do not exist in this system.
+Windows have gently rounded corners (14px; careers windows on the desk 12px) and clip their content. Controls and fields are 10px. Everything you press is a full pill (999px): primary, ghost, Apply, Save, field chips, status pills, the loading and submit bars. App icons are squircles (24% radius) with a white tile behind real favicons, or a pale tint of a name-derived hue carrying the initial when there is none. The dock is a 24px glass tray; the /companies platforms band opens with a 32px top edge (24px on mobile). The sticky note is the one asymmetric shape (3px 3px 18px 3px, a curled corner). Small tilts, never over about 4 degrees, give the desk a hand-placed feel: careers windows, stickers, the Get Info and story demo windows, handwritten labels.
 
 ## Components
 
 ### Buttons
-- **Shape:** effectively square (2px radius).
-- **Primary:** Stamp Red field, white label, 13px/800 uppercase at 0.13em, 13px × 22px padding, with a 1px Stamp Deep offset under it so it sits like a struck stamp.
-- **Hover / Focus:** darkens to Stamp Deep and lifts 1px; active presses 1px down and drops the offset. Focus is a 2px Brass Light ring at 2px offset.
-- **Disabled:** loses its field entirely and becomes a dashed 1.5px outline with Ink 2 text — an unstruck stamp, still legible.
-- **Outline:** transparent with a 1.5px Stamp Deep edge, inverting to a filled stamp on hover. Used for every action that leaves this site.
-- **Link-ish:** underlined Stamp Deep text, for destructive or undo actions that must be POSTs.
+Glossy and springy, like Aqua-era Mac buttons made light.
+- **Shape:** full pill (999px).
+- **Primary:** aqua vertical gradient, 1px `aqua-deep` edge, white 600 15px label, 11px 22px (13px 26px in the hero), an inset top highlight plus a glossy highlight across the upper 45%, and an aqua glow beneath.
+- **Hover / Active:** rise 1px and scale 1.02 on the spring, 5% brighter, and any trailing arrow slides 3px. Press scales to 0.97 in 80ms. Disabled goes flat grey (#eef0f3, #6f7581 text) and loses the gloss.
+- **Ghost:** the secondary way in; a white-to-#f3f4f7 pill with a `line-strong` edge and `ink` label, no gloss.
+- **Apply:** leaves the site, so it is a white pill with a 1.5px aqua outline and `aqua-deep` label (13.5px, 7px 15px) that fills solid aqua on hover. It always opens the employer's posting in a new tab.
+- **Save:** a small white pill with a bookmark icon; when saved it turns highlighter yellow and the icon pops in on the spring.
+- **Text links:** `aqua-deep`, 600, underlined at a 3px offset; ink on hover.
 
-### Chips — role tabs (signature)
-- **Style:** Manila Low field, 1px Manila Edge, no bottom border, `2px 12px 0 0` shoulder, 13px/700 mixed case. The whole group stands on a 2px Manila Edge rule.
-- **State:** hover lifts 2px and warms to Manila; checked raises 6px, brightens to Manila Light, takes a Brass border and lays a 3px brass bar along its bottom edge. Selection is conveyed by *elevation*, not by a checkmark.
+### Chips
+- **Field tags:** white pills (14px, 500) with a 16px dot in the group's tag colour. Hover lifts 2px on the spring. Checked, the dot becomes a solid tag-colour circle with a white tick, the chip takes an 11% tint of the tag colour, a tag-coloured border and 600 weight. Groups are headed by a 13px label with a 9px dot in the same colour.
+- **Status pills:** 11.5px 650 pills, 3px 9px. Green on green wash by default; tag red for "applied" and "required"; pale yellow for "stretch".
+- **Count badges:** red pills (22px high, 11.5px 700 white) in the top-right corner of app icons, ringed in white.
 
 ### Cards / Containers
-- **Corner:** 2px.
-- **Background:** Manila standard, Manila Light when raised, Ledger Green on alternate records.
-- **Shadow:** Card, or Raised when the card stands proud.
-- **Texture:** two radial-gradient fibre specks at 7px and 11px — visible tooth at reading distance, not a pattern.
-- **Padding:** 26px/28px standard, 26px/34px raised, 18px/22px on a record, tightening to 13px/16px under 860px.
+- **Window:** white, 14px corners, 1px rgba(20,24,33,.12) edge, resting shadow, clipped. Title bar 38px, `win-bar` to `win-bar-2` gradient, traffic lights (12px, 7px apart), and a centred mono filename in `ink-3` (e.g. `amazon.com — careers`). Body padding 26px 30px 30px. The privacy notes window swaps the title bar for a pale legal-pad yellow.
+- **Card:** a window with no title bar, for empty states and notices that don't earn one; 26px 28px padding.
+- **Get Info:** a lifted, slightly tilted window with a 2x2 icon cluster and a definition list of live figures.
 
 ### Inputs / Fields
-- **Style:** no box. A translucent white wash (46%) under the value and a 1.5px Rule Strong baseline.
-- **Focus:** the wash goes to 72% and the baseline goes Stamp Red; the caret is Stamp Red everywhere.
-- **File input:** dashed baseline with a Manila Low button styled as a 11.5px uppercase label.
-- **Select:** an inline SVG chevron in Ink 2; no native arrow.
+- **Style:** white, 1px `line-strong` edge, 10px corners, 10px 13px, 15px text, a faint inset top shadow. Selects carry a small up/down chevron. The company search is a pill on `win-bar` with a search icon.
+- **Focus:** aqua border plus a 3.5px aqua halo at 20%. Global focus-visible is a 2.5px aqua outline offset 2px.
+- **CV drop:** a 1.5px dashed grey well; aqua edge and wash on hover or drag-over (scale 1.015), solid green with green wash once a file is read.
+- **Switches:** macOS switches, 38x22 grey track, white 18px knob that springs 16px across; the track turns traffic-light green when on.
+- **Error:** pale red (#fdeeed) notice with `tag-red-deep` text; info notices use aqua wash and `aqua-deep`.
 
 ### Navigation
-- 11.5px/700 uppercase at 0.14em in Steel 400, on the steel rail. Hover lifts to Manila Light over a 5% white wash; the current page takes Manila Light plus a 2px brass underline. Under 860px the rail becomes a horizontally scrolling strip with its scrollbar hidden.
+A fixed 48px glass menu bar (rgba(246,247,249,.78), blur 18px, saturate 1.6). Left: the two-window mark and the wordmark "sorted" in 700 with ".place" in `ink-3`; the mark tilts and grows on the spring on hover. Nav items are 14px 500 `ink-2`, 5px 10px with 7px corners; hover adds a 6% ink fill, the current page an 8% fill and 600 weight. Right: a live count with a green dot and the Dublin clock in `ink-3`. The menu bar holds still across page changes while the page beneath cross-fades (view transitions).
 
-### The Label Holder (signature)
-The brass plate screwed to the drawer front. A three-stop brass gradient with two
-radial-gradient screw heads, carrying the lowercase wordmark and, in Courier Prime, the
-live count of what is in the drawer. On load the count stamps up from zero over 900ms.
-It is the site's masthead, its counter and its status line in one object.
+### Job rows
+Rows in a white list inside the results window: logo (44px, 36px on mobile), employer in 13px `ink-3`, title in Title type with an aqua underline that draws in from the left on hover, 13.5px meta line, status pills, and a right-hand column with Save and Apply. Hover tints the row #f7f9fd. Sticky group headers, like Finder groups, sit under the menu bar in translucent `win-bar` with a small disclosure triangle.
 
-### The Rod (signature)
-Filed records sit in a 34px left gutter holding a 4px brass rod with a rounded bead at
-its foot. Each record punches a 12px steel-filled notch where the rod passes through it.
-Dropped entirely under 860px.
+### Signature: desktop objects
+- **Careers windows:** small windows (30px title bars, 10px lights) showing an employer's icon, "N open in Dublin" in green, and a few real titles. On the home desk they carry a slight tilt and depth-based pointer parallax, can be picked up and thrown with momentum, and fly into the form window when the primary button is pressed.
+- **Dock:** a glass tray of the biggest employers' icons (60px) with count badges and a "+N" aqua folder; icons swell up to 1.55x under the pointer and show a dark tooltip.
+- **App launcher:** a grid of 64px icons with names below; hover lifts the icon, jiggles it once, and a click opens that company's jobs in a popup window that can be dragged by its title bar and closed from its red light.
+- **Stickers:** a HELLO name tag with "sorted" handwritten, and a yellow sticky note carrying the live counts; both draggable on desktop.
+- **Beach ball:** the loading indicator, a 26px spinning conic gradient in the traffic-light and aqua colours, inside a floating glass pill that says what is happening.
+
+### Motion
+- **Spring** (`cubic-bezier(.34,1.56,.64,1)`) for anything the visitor touches: buttons, chips, switches, icons, windows opening, the Save pop.
+- **Exponential settle** (`cubic-bezier(.16,1,.3,1)`) for anything that arrives: rows filing in (34ms stagger, capped at 14 rows), windows opening on scroll, headings rising word by word (55ms per word), the highlighter sweep, page entry. The sort itself uses a fast ease-in-out (`cubic-bezier(.6,0,.25,1)`) so windows are pulled in, not bounced.
+- **Counts** run up to their real value over 1.1s with a quartic ease-out.
+- **Reduced motion:** all hidden start states apply only when JS is running and `prefers-reduced-motion: no-preference`; otherwise everything is shown in place, headings are not split, counts show their final value, the beach ball stops, the dock does not magnify, parallax is off, and smooth scrolling is off.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** put readable content on card stock and chrome on steel, and check the text colour against the ground it actually lands on.
-- **Do** state every number literally, from the database, including the unflattering ones — the register's whole claim is that its counts are checkable.
-- **Do** convey selection with elevation and hardware (the tab raises, brass appears), not with ticks or colour fills.
-- **Do** keep motion to the one grammar: things rise out of the drawer, on `cubic-bezier(.16,.84,.34,1)`, from a state that is already visible without JavaScript.
-- **Do** cap the stagger on entrance animations (14 steps × 38ms) so a hundred records never take ten seconds to arrive.
-- **Do** page any list that can exceed ~50 rows.
-- **Do** theme the browser's own surfaces — selection, caret, scrollbar, focus ring, tabular numerals.
+- **Do** put working content in a window with a title bar, traffic lights and a mono filename; put page headlines on the desk itself.
+- **Do** keep aqua (#2b74f0) for the next action, focus and progress, and use `aqua-deep` for any aqua text.
+- **Do** colour field chips by their Finder tag (`g-*`) and nothing else by those colours.
+- **Do** use real, live figures on every sticker, badge, window and headline, formatted with thousands separators, as PRODUCT.md requires.
+- **Do** write headlines in sentence case with proper nouns capitalised, and at most one highlighted phrase.
+- **Do** use the spring for touch and the exponential settle for arrival, and make sure every animated element is visible and usable with reduced motion or no JS.
+- **Do** turn the desk into a swipe strip on narrow screens and keep the live count in the menu bar.
+- **Do** show real company favicons in app icons, falling back to a lettered squircle.
 
 ### Don't:
-- **Don't** go lighter than `#e3d6b4` on any surface, and never reach for cream, parchment or a display serif.
-- **Don't** set a passage longer than ~21 characters in uppercase.
-- **Don't** use Courier Prime to make something look technical; it means *typed record*.
-- **Don't** put a coloured accent border on the side of a card, callout or alert — the brass belongs on a tab shoulder or a rod.
-- **Don't** nest a card inside a card, or use a box where a ruled hairline will separate.
-- **Don't** let red carry a large field or brass carry a paragraph.
-- **Don't** claim a capability the product lacks. There is no alerting of any kind; "everything in one place" means the complete live list.
+- **Don't** switch to a dark ground or a dark "serious" register; the desktop is light.
+- **Don't** add a second action colour, or use aqua, green or tag colours as decoration.
+- **Don't** use the red badge or any bell, envelope or "unread" treatment to suggest alerts; the badge is a count and the site sends nothing.
+- **Don't** set headlines in all lowercase or all caps, or in the mono or hand face.
+- **Don't** put information only in Gochi Hand; scribbles are asides.
+- **Don't** add a fifth shadow height or blur anything that doesn't float over scrolling content.
+- **Don't** make desk objects draggable on touch screens, where dragging would fight scrolling.
+- **Don't** add WebGL or 3D scenes; they were ruled out for phone performance.

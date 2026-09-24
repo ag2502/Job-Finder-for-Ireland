@@ -3,587 +3,636 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#eceef2">
 <title>{% block title %}Sorted Place &mdash; every job in Dublin, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Dublin right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Courier+Prime:wght@400;700&display=swap">
+<link rel="preconnect" href="https://www.google.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Geist+Mono:wght@400..600&family=Gochi+Hand&display=swap">
 <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 <style>
 /* ===================================================================
-   SORTED PLACE — the accession register
-   A drawer of manila cards in an oxidised steel cabinet. Nothing in
-   here is ever thrown out, which is the same promise the crawler makes.
+   SORTED PLACE — the tidy desktop
+   Job hunting is twenty careers sites open in twenty windows. This is
+   the one window that has all of them in it.
    =================================================================== */
 
+@view-transition{navigation:auto}
+/* Between pages the menu bar holds still and only the desk beneath it changes. */
+.menubar{view-transition-name:menubar}
+@media (prefers-reduced-motion:no-preference){
+  ::view-transition-old(root){animation:vt-out .22s cubic-bezier(.4,0,1,1) both}
+  ::view-transition-new(root){animation:vt-in .5s cubic-bezier(.16,1,.3,1) both}
+}
+@keyframes vt-out{to{opacity:0;transform:scale(.985)}}
+@keyframes vt-in{from{opacity:0;transform:translateY(14px)}}
+
 :root{
-  /* the cabinet */
-  --steel-900:#171d20; --steel-800:#212a2e; --steel-700:#2f383c;
-  --steel-600:#3c474c; --steel-500:#55636a; --steel-400:#adbac1;
+  /* the desktop */
+  --desk:#eceef2; --desk-dot:#c3c9d2; --desk-deep:#dfe3e9;
 
-  /* the card stock */
-  --manila:#ddcfae; --manila-hi:#e3d6b4; --manila-lo:#c7b791; --manila-edge:#b3a37c;
+  /* the windows */
+  --win:#ffffff; --win-bar:#f4f5f7; --win-bar-2:#e8eaee;
+  --line:#dde1e7; --line-strong:#c4cad3;
 
-  /* what is written on it */
-  --ink:#231e17; --ink-2:#5f5648; --ink-3:#5d5444;
+  /* ink */
+  --ink:#15171c; --ink-2:#454b56; --ink-3:#5c626d;
 
-  /* the stamp pad and the hardware */
-  --stamp:#b7332a; --stamp-deep:#8e2620;
-  --brass:#b08d3f; --brass-hi:#d9bc72; --brass-lo:#7d6228;
-  --ledger:#cfd9c2;
+  /* aqua: the one colour that means "do this" */
+  --aqua:#2b74f0; --aqua-hi:#69a4ff; --aqua-deep:#1a55c2; --aqua-wash:#edf3ff;
 
-  --rule:rgba(35,30,23,.22);
-  --rule-strong:rgba(35,30,23,.42);
-  --steel-rule:rgba(255,255,255,.09);
+  /* stickers and marks */
+  --sticker:#ffd84a; --sticker-deep:#e8b400;
+  --tag-red:#e8413c; --tag-red-deep:#c02c28;
+  --sorted:#1c9a4a; --sorted-wash:#e6f6ec;
 
-  --card-radius:2px;
-  --shadow-card:0 1px 0 var(--manila-edge), 0 6px 14px -6px rgba(0,0,0,.55);
-  --shadow-raised:0 2px 0 var(--manila-edge), 0 22px 38px -16px rgba(0,0,0,.7);
+  /* the traffic lights */
+  --tl-red:#ff5f57; --tl-amber:#febc2e; --tl-green:#28c840;
 
-  --ease:cubic-bezier(.16,.84,.34,1);
+  /* Finder tag colours, one per field group */
+  --g-engineering:#2b74f0; --g-data-ai:#9b51e0; --g-product-design:#e84393;
+  --g-science-health:#0fa5a0; --g-industry:#f2791c; --g-finance-legal:#1c9a4a;
+  --g-commercial:#e8413c; --g-business-ops:#5b5bd6; --g-people:#d9a300;
+  --g-public-education:#9a6b3f; --g-service:#7c828d;
+
+  --r-win:14px; --r-ctl:10px;
+  --shadow-win:0 1px 2px rgba(20,24,33,.06), 0 12px 32px -10px rgba(20,24,33,.22);
+  --shadow-lift:0 2px 4px rgba(20,24,33,.08), 0 30px 60px -18px rgba(20,24,33,.38);
+  --shadow-sm:0 1px 2px rgba(20,24,33,.08), 0 4px 10px -4px rgba(20,24,33,.16);
+
+  /* motion: an exponential settle, and a spring with a little overshoot */
+  --ease:cubic-bezier(.16,1,.3,1);
+  --spring:cubic-bezier(.34,1.56,.64,1);
+
   --measure:68ch;
+  --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
+  --hand:"Gochi Hand","Comic Sans MS",cursive;
 }
 
 *{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:64px}
+@media (prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 
 body{
-  margin:0;
-  background:var(--steel-700);
-  /* the drawer face: brushed steel, a faint vertical tooling grain, and the
-     darker recess the cards sit down inside */
-  background-image:
-    linear-gradient(180deg, var(--steel-800) 0, var(--steel-700) 340px, var(--steel-700) 100%);
-  color:var(--manila);
-  font-family:"Archivo","Helvetica Neue",Helvetica,Arial,sans-serif;
-  font-size:16px; line-height:1.55;
+  margin:0;min-height:100vh;display:flex;flex-direction:column;
+  background-color:var(--desk);
+  background-image:radial-gradient(var(--desk-dot) 1px, transparent 1.3px);
+  background-size:22px 22px;
+  background-position:-11px -11px;
+  color:var(--ink);
+  font-family:"Geist",ui-sans-serif,system-ui,-apple-system,sans-serif;
+  font-size:16px;line-height:1.55;
+  font-feature-settings:"ss01";
   font-variant-numeric:tabular-nums;
   -webkit-font-smoothing:antialiased;
+  padding-top:48px;
 }
 
-/* --- browser surfaces: these ship with the design, not with the browser --- */
-::selection{background:var(--stamp);color:#fff}
-::-moz-selection{background:var(--stamp);color:#fff}
-input,textarea,select{caret-color:var(--stamp)}
-html{scrollbar-color:var(--brass-lo) var(--steel-800);scrollbar-width:thin}
-::-webkit-scrollbar{width:12px;height:12px}
-::-webkit-scrollbar-track{background:var(--steel-800)}
-::-webkit-scrollbar-thumb{background:var(--steel-500);border:3px solid var(--steel-800);border-radius:6px}
-::-webkit-scrollbar-thumb:hover{background:var(--brass-lo)}
-:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px;border-radius:1px}
+/* --- browser surfaces carry the design too --- */
+::selection{background:var(--sticker);color:var(--ink)}
+input,textarea,select{caret-color:var(--aqua)}
+html{scrollbar-color:#b9c0ca transparent;scrollbar-width:thin}
+::-webkit-scrollbar{width:11px;height:11px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#bcc3cd;border:3px solid transparent;background-clip:padding-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:#9aa2ae;background-clip:padding-box}
+:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:6px}
 a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 
-/* ------------------------------------------------------------------ chrome */
+/* ------------------------------------------------------------ menu bar --- */
+.menubar{
+  position:fixed;inset:0 0 auto 0;z-index:100;height:48px;
+  display:flex;align-items:center;gap:6px;padding:0 18px;
+  background:rgba(246,247,249,.78);
+  -webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);
+  border-bottom:1px solid rgba(20,24,33,.08);
+  font-size:14px;
+}
+.brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
+  font-weight:700;letter-spacing:-.02em;font-size:15px;margin-right:10px;white-space:nowrap}
+.brand svg{width:22px;height:22px;flex:none;transition:transform .5s var(--spring)}
+.brand:hover svg{transform:rotate(-8deg) scale(1.08)}
+.brand b{font-weight:700}
+.brand span{color:var(--ink-3);font-weight:500}
+.menubar nav{display:flex;align-items:center;gap:2px;min-width:0}
+.menubar nav a,.menubar nav .linkish{
+  color:var(--ink-2);text-decoration:none;font-weight:500;font-size:14px;
+  padding:5px 10px;border-radius:7px;white-space:nowrap;letter-spacing:-.005em;
+  transition:background .2s var(--ease),color .2s var(--ease);
+}
+.menubar nav a:hover,.menubar nav .linkish:hover{background:rgba(20,24,33,.06);color:var(--ink)}
+.menubar nav a[aria-current="page"]{color:var(--ink);background:rgba(20,24,33,.08);font-weight:600}
+.menubar .status{margin-left:auto;display:flex;align-items:center;gap:16px;
+  font-size:13px;color:var(--ink-2);white-space:nowrap}
+.status .live{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
+.status .live i{width:8px;height:8px;border-radius:50%;background:var(--tl-green);
+  box-shadow:0 0 0 3px rgba(40,200,64,.18)}
+.status .clock{font-variant-numeric:tabular-nums;color:var(--ink-3)}
 
-.rail{
-  position:relative;
-  background:linear-gradient(180deg,var(--steel-600),var(--steel-800));
-  border-bottom:1px solid var(--steel-900);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
-}
-.rail--foot{position:relative;padding-top:12px}
-.rail--foot::before{ /* the drawer pull, where the rod terminates */
-  content:"";position:absolute;left:50%;top:-11px;width:132px;height:22px;
-  margin-left:-66px;border-radius:11px;
-  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 48%,#6d5620);
-  box-shadow:0 1px 0 rgba(255,255,255,.4) inset,0 -1px 0 rgba(0,0,0,.4) inset,
-             0 6px 14px -5px rgba(0,0,0,.75);
-}
-.rail::after{ /* the machined lip along the bottom of every drawer front */
-  content:"";position:absolute;left:0;right:0;bottom:-3px;height:3px;
-  background:linear-gradient(180deg,rgba(0,0,0,.5),transparent);
-}
+main{flex:1 0 auto;padding:0 0 110px}
 .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
-.rail .wrap{display:flex;align-items:center;gap:26px;min-height:74px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
 
-/* the brass label holder screwed to the drawer front */
-.plate{
-  display:inline-flex;align-items:baseline;gap:12px;
-  padding:7px 18px 8px;
-  background:linear-gradient(180deg,var(--brass-hi),var(--brass) 52%,#977834);
-  color:#120d02;
-  border-radius:2px;
-  box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -1px 0 rgba(0,0,0,.35) inset,0 4px 10px -3px rgba(0,0,0,.6);
+/* ------------------------------------------------------------- windows --- */
+.win{
   position:relative;
+  background:var(--win);
+  border:1px solid rgba(20,24,33,.12);
+  border-radius:var(--r-win);
+  box-shadow:var(--shadow-win);
+  overflow:clip;
 }
-.plate::before,.plate::after{ /* the two screws */
-  content:"";position:absolute;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,#f0dda6,#6d5620 70%);
-  box-shadow:0 0 0 1px rgba(0,0,0,.35);
+.win__bar{
+  display:flex;align-items:center;gap:12px;
+  height:38px;padding:0 14px;
+  background:linear-gradient(180deg,var(--win-bar),var(--win-bar-2));
+  border-bottom:1px solid var(--line);
+  user-select:none;
 }
-.plate::before{left:6px} .plate::after{right:6px}
-.plate .mark{
-  font-weight:900;font-stretch:88%;font-size:19px;letter-spacing:.015em;
-  text-transform:lowercase;padding-left:8px;
-}
-.plate .mark em{font-style:normal;opacity:.62}
-.plate .count{
-  font-family:"Courier Prime",ui-monospace,monospace;font-weight:700;font-size:12px;
-  letter-spacing:.04em;text-transform:uppercase;padding-right:8px;white-space:nowrap;
-}
+.lights{display:inline-flex;gap:7px;flex:none}
+.lights i{width:12px;height:12px;border-radius:50%;background:var(--tl-red);
+  box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+.lights i:nth-child(2){background:var(--tl-amber)}
+.lights i:nth-child(3){background:var(--tl-green)}
+.win__title{flex:1;min-width:0;text-align:center;margin-right:52px;
+  font-family:var(--mono);font-size:12px;color:var(--ink-3);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.win__body{padding:26px 30px 30px}
 
-nav.tabs{margin-left:auto;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
-nav.tabs a,nav.tabs .linkish{
-  font-size:11.5px;font-weight:700;font-stretch:84%;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--steel-400);text-decoration:none;padding:7px 11px;border-radius:2px;
-  transition:color .18s var(--ease),background .18s var(--ease);
-}
-nav.tabs a:hover,nav.tabs .linkish:hover{color:var(--manila-hi);background:rgba(255,255,255,.05)}
-nav.tabs a[aria-current="page"]{color:var(--manila-hi);box-shadow:inset 0 -2px 0 var(--brass)}
-
-main{padding:0 0 96px}
-
-/* ------------------------------------------------------------- the cards --- */
-
-.card{
-  position:relative;
-  background:var(--manila);
-  /* card stock: a flecked tooth, and the pink ruled index line across the head */
-  background-image:
-    radial-gradient(circle at 18% 22%,rgba(120,100,60,.05) .6px,transparent .7px),
-    radial-gradient(circle at 72% 68%,rgba(120,100,60,.045) .6px,transparent .7px);
-  background-size:7px 7px,11px 11px;
-  color:var(--ink);
-  border-radius:var(--card-radius);
-  box-shadow:var(--shadow-card);
-  padding:26px 28px;
-  margin-bottom:14px;
-}
-.card--raised{
-  background:var(--manila-hi);
-  box-shadow:var(--shadow-raised);
-  padding:26px 34px 30px;
-}
-/* the rod: every filed card is threaded onto the same brass rod */
-.filed{position:relative;padding-left:34px}
-.filed::before{
-  content:"";position:absolute;left:13px;top:0;bottom:0;width:4px;
-  background:linear-gradient(90deg,var(--brass-lo),var(--brass-hi) 40%,var(--brass-lo));
-  box-shadow:0 0 0 1px rgba(0,0,0,.45);
-}
-.filed::after{ /* the rod stops at the last card */
-  content:"";position:absolute;left:10px;bottom:-5px;width:10px;height:10px;border-radius:50%;
-  background:radial-gradient(circle at 35% 30%,var(--brass-hi),var(--brass-lo) 72%);
-  box-shadow:0 0 0 1px rgba(0,0,0,.45);
-}
+/* the page heading sits on the desktop itself, not in a window */
+.pagehead{padding:64px 0 30px}
+.pagehead h1{margin-bottom:12px}
+.pagehead .lede{color:var(--ink-2)}
 
 h1{
-  font-size:clamp(2.5rem,6.4vw,4.9rem);
-  line-height:.94; letter-spacing:-.032em;
-  font-weight:900; font-stretch:78%;
-  margin:0 0 18px; text-wrap:balance;
+  font-size:clamp(2.6rem,6.4vw,5rem);line-height:.98;letter-spacing:-.035em;word-spacing:.04em;
+  font-weight:750;margin:0 0 18px;text-wrap:balance;
 }
-h2{font-size:clamp(1.25rem,2.4vw,1.6rem);line-height:1.12;letter-spacing:-.018em;
-   font-weight:800;font-stretch:84%;margin:0 0 14px;text-wrap:balance}
-h3{font-size:1.02rem;line-height:1.32;letter-spacing:-.01em;font-weight:800;margin:0 0 6px}
+h2{font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.12;letter-spacing:-.03em;
+   font-weight:700;margin:0 0 12px;text-wrap:balance}
+h3{font-size:1.05rem;line-height:1.3;letter-spacing:-.015em;font-weight:650;margin:0 0 6px}
 p{margin:0 0 14px;max-width:var(--measure)}
-.lede{font-size:1.085rem;line-height:1.5;color:var(--ink-2);max-width:60ch}
+.lede{font-size:1.14rem;line-height:1.5;color:var(--ink-2);max-width:58ch}
+.lede strong{color:var(--ink);font-weight:650}
 .muted{color:var(--ink-2)}
-.small{font-size:13px}
+.small{font-size:13.5px}
+.hand{font-family:var(--hand);font-weight:400;letter-spacing:.01em}
+.scrawl{display:inline-block;vertical-align:middle;margin-left:4px;color:var(--ink-3)}
 
-/* typed record fields — this is data on a catalogue card, not decoration */
-.typed{font-family:"Courier Prime",ui-monospace,monospace;letter-spacing:-.01em}
-.fieldname{
-  font-family:"Courier Prime",ui-monospace,monospace;
-  font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
-  color:var(--ink-3);display:block;margin-bottom:7px;
+/* The highlighter pen: sweeps across once, left to right. */
+.hl{
+  background-image:linear-gradient(100deg,transparent 0 2%,var(--sticker) 2% 97%,transparent 97%);
+  background-repeat:no-repeat;background-size:100% 42%;background-position:0 86%;
+  padding:0 .06em;border-radius:3px;
+}
+@media (prefers-reduced-motion:no-preference){
+  .js .hl{background-size:0% 42%;animation:hl .9s .45s var(--ease) forwards}
+}
+@keyframes hl{to{background-size:100% 42%}}
+
+/* typed data: filenames, dates, counts */
+.typed,.accession{font-family:var(--mono);font-size:12.5px;letter-spacing:-.01em;color:var(--ink-3)}
+.fieldname{display:block;margin-bottom:8px;font-size:13.5px;font-weight:600;color:var(--ink)}
+.fieldname em{font-style:normal;font-weight:400;color:var(--ink-3)}
+
+/* ------------------------------------------------------------ app icons --- */
+.logo{
+  --size:44px;
+  position:relative;flex:none;display:inline-grid;place-items:center;
+  width:var(--size);height:var(--size);border-radius:24%;
+  background:hsl(var(--hue,210) 70% 92%);
+  box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 1px 2px rgba(20,24,33,.08);
+  overflow:hidden;
+}
+.logo::before{
+  content:attr(data-initial);
+  font-weight:750;font-size:calc(var(--size) * .44);letter-spacing:-.04em;
+  color:hsl(var(--hue,210) 55% 30%);
+}
+.logo img{position:absolute;inset:14%;width:72%;height:72%;object-fit:contain;border-radius:18%}
+.logo.has-img{background:#fff}
+.logo.has-img::before{content:none}
+.logo--sm{--size:30px}
+.logo--lg{--size:64px}
+
+/* the notification badge: how many jobs are open */
+.badge{
+  position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 6px;
+  display:inline-grid;place-items:center;border-radius:11px;
+  background:var(--tag-red);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:-.01em;
+  box-shadow:0 0 0 2px #fff,0 2px 6px -1px rgba(192,44,40,.5);
 }
 
 /* --------------------------------------------------------------- stamps --- */
-
+/* Small status pills. Names kept from the register so every template still fits. */
 .stamp{
-  display:inline-block;
-  font-family:"Courier Prime",ui-monospace,monospace;
-  font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;
-  color:var(--stamp-deep);
-  border:1.5px solid var(--stamp-deep);
-  border-radius:2px;
-  padding:2px 7px 1px;
-  opacity:.92;
-  transform:rotate(-1.4deg);
-  white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:11.5px;font-weight:650;letter-spacing:.01em;
+  color:var(--sorted);background:var(--sorted-wash);
+  border-radius:20px;padding:3px 9px;white-space:nowrap;line-height:1.3;
 }
-.stamp--filled{background:var(--stamp);color:#fff;border-color:var(--stamp)}
-.stamp--brass{color:var(--brass-lo);border-color:var(--brass-lo)}
+.stamp--filled{background:var(--tag-red);color:#fff}
+.stamp--brass{background:#fff4c7;color:#7a5800}
 .stamp--flat{transform:none}
-.accession{
-  font-family:"Courier Prime",ui-monospace,monospace;
-  font-size:12px;letter-spacing:.02em;color:var(--ink-3);white-space:nowrap;
-}
 
-/* --------------------------------------------------------------- controls - */
-
+/* ------------------------------------------------------------- controls --- */
 label{display:block}
-input[type=text],input[type=number],input[type=email],input[type=password],select,input[type=file]{
-  width:100%;
-  font:inherit;font-size:15px;
-  color:var(--ink);
-  background:rgba(255,255,255,.46);
-  border:0;
-  border-bottom:1.5px solid var(--rule-strong);
-  border-radius:0;
-  padding:9px 2px;
-  transition:border-color .18s var(--ease),background .18s var(--ease);
+input[type=text],input[type=number],input[type=email],input[type=password],input[type=search],select{
+  width:100%;font:inherit;font-size:15px;color:var(--ink);
+  background:#fff;border:1px solid var(--line-strong);border-radius:var(--r-ctl);
+  padding:10px 13px;
+  box-shadow:inset 0 1px 1.5px rgba(20,24,33,.05);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease);
 }
-input::placeholder{color:var(--ink-3);opacity:1}
-input[type=text]:focus,input[type=number]:focus,input[type=email]:focus,
-input[type=password]:focus,select:focus{
-  outline:none;background:rgba(255,255,255,.72);border-bottom-color:var(--stamp);
-}
-input[type=file]{padding:7px 0;border-bottom:1.5px dashed var(--rule-strong);background:transparent;font-size:13.5px}
-input[type=file]::file-selector-button{
-  font:inherit;font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
-  margin-right:12px;padding:7px 13px;cursor:pointer;
-  color:var(--ink);background:var(--manila-lo);
-  border:1px solid var(--manila-edge);border-radius:2px;
-}
-input[type=file]::file-selector-button:hover{background:var(--manila);border-color:var(--ink-3)}
-select{appearance:none;padding-right:26px;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='11' height='7' viewBox='0 0 11 7'%3E%3Cpath d='M1 1l4.5 4.5L10 1' fill='none' stroke='%235f5648' stroke-width='1.6' stroke-linecap='round'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 4px center;}
+input::placeholder{color:#7d838e;opacity:1}
+input:focus,select:focus{outline:none;border-color:var(--aqua);
+  box-shadow:0 0 0 3.5px rgba(43,116,240,.2)}
+select{appearance:none;padding-right:34px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='14' viewBox='0 0 10 14'%3E%3Cpath d='M2 5l3-3 3 3M2 9l3 3 3-3' fill='none' stroke='%235c626d' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
 
-/* the primary action reads as a struck rubber stamp */
+/* Aqua: the glossy pill that means "go". */
 button,.btn{
-  display:inline-flex;align-items:center;gap:10px;
-  font:inherit;font-size:13px;font-weight:800;font-stretch:88%;
-  letter-spacing:.13em;text-transform:uppercase;
-  color:var(--manila-hi);
-  background:var(--stamp);
-  border:0;border-radius:2px;
-  padding:13px 22px;
-  cursor:pointer;text-decoration:none;
-  box-shadow:0 1px 0 var(--stamp-deep),0 8px 16px -8px rgba(0,0,0,.6);
-  transition:transform .16s var(--ease),box-shadow .16s var(--ease),background .16s var(--ease);
+  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:9px;
+  font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;
+  color:#fff;text-decoration:none;cursor:pointer;
+  background:linear-gradient(180deg,#5c9bff 0%,var(--aqua) 52%,#2166e0 100%);
+  border:1px solid var(--aqua-deep);border-radius:999px;
+  padding:11px 22px;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 4px rgba(10,50,140,.18),
+             0 6px 16px -6px rgba(43,116,240,.65);
+  transition:transform .35s var(--spring),box-shadow .25s var(--ease),filter .2s;
+  -webkit-tap-highlight-color:transparent;
 }
-button:hover:not(:disabled),.btn:hover{background:var(--stamp-deep);transform:translateY(-1px);
-  box-shadow:0 2px 0 var(--stamp-deep),0 12px 20px -8px rgba(0,0,0,.6)}
-button:active:not(:disabled),.btn:active{transform:translateY(1px);box-shadow:0 0 0 var(--stamp-deep)}
-button:disabled{background:transparent;color:var(--ink-2);cursor:not-allowed;
-  box-shadow:none;border:1.5px dashed var(--rule-strong)}
-button.secondary{
-  background:transparent;color:var(--ink-2);
-  border:1.5px solid var(--rule-strong);box-shadow:none;
+button::after,.btn::after{ /* the gloss */
+  content:"";position:absolute;left:12%;right:12%;top:2px;height:45%;border-radius:999px;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));
+  pointer-events:none;
 }
-button.secondary:hover{background:rgba(255,255,255,.4);color:var(--ink);transform:none;box-shadow:none}
-/* the same control standing on the steel rather than on card stock */
-.on-steel button.secondary{color:var(--manila);border-color:var(--steel-500)}
-.on-steel button.secondary:hover{background:rgba(255,255,255,.08);color:var(--manila-hi);
-  border-color:var(--brass)}
+button svg,.btn svg{flex:none;transition:transform .35s var(--spring)}
+button:hover:not(:disabled),.btn:hover{transform:translateY(-1px) scale(1.02);filter:brightness(1.05);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 4px rgba(10,50,140,.18),
+             0 10px 22px -8px rgba(43,116,240,.7)}
+button:hover:not(:disabled) svg,.btn:hover svg{transform:translateX(3px)}
+button:active:not(:disabled),.btn:active{transform:scale(.97);transition-duration:.08s}
+button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color:var(--line-strong);
+  box-shadow:none}
+button:disabled::after{display:none}
+/* controls that only borrow the button element never carry the gloss */
+button[class*="colbtn"]::after,.lights button::after{display:none}
+
+/* the white pill: a secondary way in */
+.btn--ghost,button.secondary{
+  color:var(--ink);background:linear-gradient(180deg,#fff,#f3f4f7);
+  border:1px solid var(--line-strong);
+  box-shadow:inset 0 1px 0 #fff,0 4px 12px -6px rgba(20,24,33,.3);
+}
+.btn--ghost::after,button.secondary::after{display:none}
+.btn--ghost:hover,button.secondary:hover:not(:disabled){
+  box-shadow:inset 0 1px 0 #fff,0 8px 18px -8px rgba(20,24,33,.35)}
+
+/* Apply leaves this site, so it is the aqua outline that fills on hover. */
+.btn--apply{
+  font-size:13.5px;padding:7px 15px;color:var(--aqua-deep);
+  background:#fff;border:1.5px solid var(--aqua);
+  box-shadow:0 2px 6px -3px rgba(43,116,240,.5);
+}
+.btn--apply::after{display:none}
+.btn--apply:hover{color:#fff;background:var(--aqua);filter:none}
+
 .linkish{
-  background:none;border:0;padding:0;font:inherit;color:var(--stamp-deep);
-  cursor:pointer;text-decoration:underline;text-underline-offset:3px;
-  letter-spacing:normal;text-transform:none;font-size:inherit;font-weight:600;box-shadow:none;
+  background:none;border:0;padding:0;font:inherit;color:var(--aqua-deep);box-shadow:none;
+  cursor:pointer;text-decoration:underline;text-underline-offset:3px;font-weight:600;
+  font-size:inherit;letter-spacing:normal;border-radius:4px;
 }
-.linkish:hover{background:none;color:var(--stamp-deep);transform:none;box-shadow:none}
+.linkish::after{display:none}
+.linkish:hover:not(:disabled){background:none;color:var(--ink);transform:none;filter:none;box-shadow:none}
+.linky{appearance:none;background:none;border:0;padding:0;font:inherit;color:var(--aqua-deep);
+  font-weight:650;cursor:pointer;text-decoration:underline;text-underline-offset:3px;box-shadow:none;border-radius:4px}
+.linky::after{display:none}
+.linky:hover:not(:disabled){color:var(--ink);transform:none;filter:none;box-shadow:none;background:none}
 
-/* ------------------------------------------------------- tab dividers ----- */
-/* The role fields are the guide cards standing between the records. */
-
-.dividers{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end;
-  padding-bottom:0;border-bottom:2px solid var(--manila-edge)}
-.dividers--plain{border-bottom:0}
-/* One drawer per top-level group, so 56 fields read as eleven short shelves rather
-   than one unscannable run of tabs. */
-.drawer{margin:0 0 18px}
+/* ---------------------------------------------------------- field tags ---- */
+.drawer{--g:var(--aqua);margin:0 0 20px}
 .drawer:last-child{margin-bottom:0}
-.drawer__label{
-  font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 7px;padding-left:2px}
-
-/* An action that reads as a sentence, not a button: it sits inside running prose. */
-.linky{
-  appearance:none;background:none;border:0;padding:0;font:inherit;
-  color:var(--stamp-deep);font-weight:700;cursor:pointer;
-  text-decoration:underline;text-underline-offset:3px;
-  text-decoration-thickness:1px;text-decoration-color:var(--brass)}
-.linky:hover{color:var(--ink)}
+.drawer__label{display:flex;align-items:center;gap:8px;
+  font-size:13px;font-weight:650;color:var(--ink-2);margin:0 0 9px}
+.drawer__label::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--g)}
+.dividers{display:flex;flex-wrap:wrap;gap:8px}
 .divider{
-  position:relative;
-  display:inline-flex;align-items:center;
-  font-size:13px;font-weight:700;font-stretch:90%;letter-spacing:0;
-  color:#4a4235;
-  background:var(--manila-lo);
-  border:1px solid var(--manila-edge);
-  border-bottom:0;
-  border-radius:2px 12px 0 0;
-  padding:10px 16px 9px;
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.35);
-  cursor:pointer;
-  user-select:none;
-  transition:transform .2s var(--ease),background .2s var(--ease),color .2s var(--ease),box-shadow .2s var(--ease);
+  position:relative;display:inline-flex;align-items:center;gap:8px;
+  font-size:14px;font-weight:500;color:var(--ink);letter-spacing:-.01em;
+  background:#fff;border:1px solid var(--line-strong);border-radius:999px;
+  padding:7px 14px 7px 11px;cursor:pointer;user-select:none;
+  box-shadow:0 1px 2px rgba(20,24,33,.05);
+  transition:transform .4s var(--spring),background .2s var(--ease),border-color .2s var(--ease),box-shadow .25s var(--ease);
 }
-.divider:hover{background:var(--manila);color:var(--ink);transform:translateY(-2px)}
-.divider:has(input:checked){font-weight:800}
+.divider::before{ /* the tag dot, which becomes a tick */
+  content:"";flex:none;width:16px;height:16px;border-radius:50%;
+  background:color-mix(in srgb,var(--g) 22%,#fff);
+  box-shadow:inset 0 0 0 1.5px var(--g);
+  transition:background .2s var(--ease),transform .4s var(--spring);
+}
+.divider:hover{transform:translateY(-2px);box-shadow:0 6px 14px -8px rgba(20,24,33,.35);border-color:#aab1bc}
 .divider input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 .divider:has(input:checked){
-  background:var(--manila-hi);color:var(--ink);
-  transform:translateY(-6px);
-  box-shadow:0 -1px 0 var(--brass),0 8px 14px -8px rgba(0,0,0,.6);
-  border-color:var(--brass);
+  background:color-mix(in srgb,var(--g) 11%,#fff);
+  border-color:var(--g);font-weight:600;
+  box-shadow:0 0 0 1px var(--g),0 6px 14px -8px color-mix(in srgb,var(--g) 70%,transparent);
 }
-.divider:has(input:checked)::after{
-  content:"";position:absolute;left:0;right:0;bottom:-1px;height:3px;background:var(--brass);
+.divider:has(input:checked)::before{
+  background:var(--g) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;
+  box-shadow:none;transform:scale(1.08);
 }
-.divider:has(input:focus-visible){outline:2px solid var(--brass-hi);outline-offset:2px}
-/* the switches (remote / internships / graduate) are smaller guide tabs */
-.switch{
-  display:inline-flex;align-items:center;gap:9px;
-  font-size:13px;font-weight:600;color:var(--ink-2);
-  cursor:pointer;user-select:none;padding:6px 0;margin-right:22px;
-}
+.divider:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+.divider:active{transform:scale(.96)}
+
+/* macOS switches */
+.switch{display:inline-flex;align-items:center;gap:11px;font-size:14.5px;font-weight:500;
+  color:var(--ink);cursor:pointer;user-select:none;padding:6px 0;margin-right:26px}
 .switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 .switch .box{
-  flex:none;width:17px;height:17px;border-radius:2px;
-  border:1.5px solid var(--ink-3);background:rgba(255,255,255,.5);
-  display:inline-flex;align-items:center;justify-content:center;
-  transition:background .15s var(--ease),border-color .15s var(--ease);
+  position:relative;flex:none;width:38px;height:22px;border-radius:11px;
+  background:#d7dbe1;box-shadow:inset 0 1px 2px rgba(20,24,33,.18);
+  transition:background .25s var(--ease);
 }
-.switch .box svg{width:12px;height:12px;color:#fff;opacity:0;transform:scale(.6);
-  transition:opacity .15s var(--ease),transform .18s var(--ease)}
-.switch:hover .box{border-color:var(--ink)}
-.switch:has(input:checked){color:var(--ink)}
-.switch:has(input:checked) .box{background:var(--stamp);border-color:var(--stamp)}
-.switch:has(input:checked) .box svg{opacity:1;transform:none}
-.switch:has(input:focus-visible) .box{outline:2px solid var(--brass-lo);outline-offset:2px}
+.switch .box::after{
+  content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(20,24,33,.3);
+  transition:transform .4s var(--spring);
+}
+.switch .box svg{display:none}
+.switch:has(input:checked) .box{background:var(--tl-green)}
+.switch:has(input:checked) .box::after{transform:translateX(16px)}
+.switch:has(input:focus-visible) .box{outline:2.5px solid var(--aqua);outline-offset:2px}
 
-/* ------------------------------------------------------------ job records - */
-
+/* ------------------------------------------------------------ job rows ---- */
+.filed{position:relative}
 .record{
-  position:relative;
-  background:var(--manila);
-  border-radius:var(--card-radius);
-  box-shadow:var(--shadow-card);
-  padding:18px 22px 17px;
-  margin-bottom:10px;
-  color:var(--ink);
-  display:grid;
-  grid-template-columns:1fr auto;
-  gap:6px 22px;
-  align-items:start;
-  transition:transform .18s var(--ease),box-shadow .18s var(--ease),background .18s var(--ease);
+  position:relative;display:flex;align-items:flex-start;gap:16px;
+  padding:19px 26px;background:#fff;color:var(--ink);
+  border-bottom:1px solid var(--line);
+  transition:background .2s var(--ease);
 }
-/* nth-of-type, not nth-child: the guide cards between records are divs, and counting
-   them would make the ledger banding stagger every time a divider appears. */
-.record:nth-of-type(even){background:var(--ledger)}
-.record:hover{transform:translateX(3px);box-shadow:0 1px 0 var(--manila-edge),0 10px 22px -10px rgba(0,0,0,.6)}
-.record::before{ /* the notch where the rod passes through the card */
-  content:"";position:absolute;left:-25px;top:50%;margin-top:-6px;
-  width:12px;height:12px;border-radius:50%;
-  background:var(--steel-800);
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.7);
-}
-.record--state .record__employer{text-transform:none;letter-spacing:.02em;font-size:12px}
-.record__head{
-  display:flex;align-items:baseline;gap:14px;
-  margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid var(--rule);
-}
-.record__employer{
-  font-size:11px;font-weight:800;font-stretch:84%;letter-spacing:.15em;text-transform:uppercase;
-  color:var(--ink-3);
-}
-.record__no{
-  margin-left:auto;flex:none;
-  font-family:"Courier Prime",ui-monospace,monospace;
-  font-size:11px;letter-spacing:.04em;color:var(--ink-3);
-}
-.record__title{font-size:1.06rem;line-height:1.32;font-weight:800;letter-spacing:-.012em;margin:0}
-.record__title a{text-decoration:none}
-.record__title a:hover{text-decoration:underline;text-decoration-color:var(--stamp)}
-.record__meta{font-size:12.5px;line-height:1.5;color:var(--ink-2);margin-top:5px;max-width:74ch}
-.record__side{display:flex;flex-direction:column;align-items:flex-end;gap:9px;text-align:right}
-.exp{color:var(--stamp-deep);font-weight:700}
-.marks{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:7px}
+.record:last-child{border-bottom:0}
+.record:hover{background:#f7f9fd}
+.record .logo{margin-top:2px}
+.record__main{flex:1;min-width:0}
+.record__head{display:flex;align-items:baseline;gap:12px}
+.record__employer{display:block;font-size:13px;font-weight:550;color:var(--ink-3);margin-bottom:1px}
+.record__no{margin-left:auto;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.record__title{font-size:1.04rem;line-height:1.32;font-weight:650;letter-spacing:-.015em;margin:0}
+.record__title a{text-decoration:none;background-image:linear-gradient(var(--aqua),var(--aqua));
+  background-size:0 1.5px;background-repeat:no-repeat;background-position:0 100%;
+  transition:background-size .35s var(--ease),color .2s}
+.record__title a:hover{color:var(--aqua-deep);background-size:100% 1.5px}
+.record__meta{font-size:13.5px;line-height:1.55;color:var(--ink-2);margin:5px 0 0;max-width:80ch}
+.record__side{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:10px;text-align:right}
+.record__actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.exp{color:var(--ink);font-weight:600}
+.marks{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:8px}
 
-/* the guide card that separates chosen fields from adjacent ones */
+/* a group header inside a list, as Finder groups files */
 .guide{
-  background:var(--steel-600);
-  color:var(--manila-hi);
-  border-radius:2px 10px 2px 2px;
-  padding:9px 18px;
-  margin:20px 0 12px;
-  font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;
-  box-shadow:0 6px 14px -8px rgba(0,0,0,.7);
+  position:sticky;top:48px;z-index:2;
+  display:flex;align-items:center;gap:8px;
+  padding:9px 22px;background:rgba(244,245,247,.94);
+  -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--line);border-top:1px solid var(--line);
+  font-size:13px;font-weight:650;color:var(--ink-2);
 }
+.guide::before{content:"";width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
+  border-top:6px solid var(--ink-3)}
 
-/* --------------------------------------------- the front of the drawer --- */
-/* Page headings are engraved into the steel itself. Cards are for records only,
-   so nothing here ever sits on manila. */
-.drawerfront{padding:44px 0 22px}
-.drawerfront h1{color:var(--manila);
-  text-shadow:0 1px 0 rgba(0,0,0,.55),0 2px 22px rgba(0,0,0,.35)}
-.drawerfront .lede{color:var(--steel-400);max-width:58ch}
-.drawerfront .lede strong{color:var(--manila)}
-.drawerfront .lede em{color:var(--brass-hi);font-style:normal}
-.ledger-line{
-  /* Catalogue cards were typed in mixed case; a 68-character uppercase run here
-     was a readability cost the world never asked for. */
-  font-size:12.5px;letter-spacing:.04em;
-  color:var(--brass-hi);margin:22px 0 0;
-  padding-top:14px;border-top:1px solid var(--steel-rule);max-width:58ch;
-}
-
-/* the outlined action: used wherever the act leaves this site */
-.btn--apply{
-  background:transparent;color:var(--stamp-deep);
-  border:1.5px solid var(--stamp-deep);box-shadow:none;
-  padding:8px 14px;font-size:11.5px;
-}
-.btn--apply:hover{background:var(--stamp);color:var(--manila-hi);box-shadow:none;transform:none}
-
-/* ----------------------------------------------------------- save control - */
+/* ------------------------------------------------------------ save ------- */
 .savebtn{
-  display:inline-flex;align-items:center;gap:7px;
-  font-family:inherit;font-size:11.5px;font-weight:800;font-stretch:88%;
-  letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-2);background:transparent;
-  border:1.5px solid var(--rule-strong);border-radius:2px;
-  padding:8px 13px;cursor:pointer;box-shadow:none;text-decoration:none;
-  transition:color .16s var(--ease),border-color .16s var(--ease),background .16s var(--ease);
+  display:inline-flex;align-items:center;gap:6px;
+  font:inherit;font-size:13.5px;font-weight:600;letter-spacing:-.01em;
+  color:var(--ink-2);background:#fff;
+  border:1px solid var(--line-strong);border-radius:999px;
+  padding:7px 13px;cursor:pointer;text-decoration:none;
+  box-shadow:0 1px 2px rgba(20,24,33,.06);
 }
-.savebtn svg{width:14px;height:14px;flex:none}
-.savebtn:hover{color:var(--ink);border-color:var(--ink-3);background:rgba(255,255,255,.4);
-  transform:none;box-shadow:none}
-.savebtn--on{color:var(--brass-lo);border-color:var(--brass-lo);background:rgba(176,141,63,.14)}
-.savebtn--on svg path{fill:currentColor}
-.savebtn--on:hover{color:var(--ink);border-color:var(--ink-3)}
+.savebtn::after{display:none}
+.savebtn svg{width:14px;height:14px}
+.savebtn:hover:not(:disabled){color:var(--ink);border-color:#9aa2ae;filter:none;
+  box-shadow:0 4px 10px -5px rgba(20,24,33,.3)}
+.savebtn--on{color:#7a5800;background:#fff4c7;border-color:var(--sticker-deep)}
+.savebtn--on svg path{fill:var(--sticker)}
+@media (prefers-reduced-motion:no-preference){
+  .savebtn--on svg{animation:pop .5s var(--spring)}
+}
+@keyframes pop{0%{transform:scale(.4) rotate(-20deg)}100%{transform:none}}
 .save-mark{display:inline-flex}
 
 /* --------------------------------------------------------------- tables --- */
 table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule)}
-th{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-3)}
-tbody tr:hover td{background:rgba(255,255,255,.34)}
+th,td{text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12.5px;font-weight:600;color:var(--ink-3);background:var(--win-bar)}
 .scroll{overflow-x:auto}
 
 /* --------------------------------------------------------------- layout --- */
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:28px}
 .row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.spread{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap}
-hr.rule{border:0;border-top:1px solid var(--rule);margin:22px 0}
+.spread{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
+
+/* A plain white panel, for empty states and notices that do not earn a title bar. */
+.card{
+  position:relative;background:#fff;color:var(--ink);
+  border:1px solid rgba(20,24,33,.1);border-radius:var(--r-win);
+  box-shadow:var(--shadow-win);padding:26px 28px;margin-bottom:16px;
+}
+.card--raised{box-shadow:var(--shadow-lift)}
 
 /* --------------------------------------------------------------- notices -- */
 .notice,.error,.err{
-  border-radius:2px;padding:11px 15px;font-size:14px;margin:0 0 14px;
-  background:rgba(255,255,255,.55);color:var(--ink);font-weight:600;
-  box-shadow:inset 0 0 0 1px var(--rule-strong);
+  border-radius:var(--r-ctl);padding:11px 15px;font-size:14px;margin:0 0 16px;
+  background:var(--aqua-wash);color:var(--aqua-deep);font-weight:550;
+  border:1px solid rgba(43,116,240,.25);
 }
-.error,.err{background:rgba(183,51,42,.12);color:var(--stamp-deep);
-  box-shadow:inset 0 0 0 1px var(--stamp-deep)}
+.error,.err{background:#fdeeed;color:var(--tag-red-deep);border-color:rgba(232,65,60,.3)}
 
-/* --------------------------------------------------------------- motion --- */
-/* One grammar: things rise out of the drawer. Content is visible by default;
-   the drawer only opens when JS is present and motion is welcome. */
-@media (prefers-reduced-motion:no-preference){
-  .js .filing{opacity:0;transform:translateY(14px)}
-  .js .filing.filed-in{opacity:1;transform:none;
-    transition:opacity .5s var(--ease),transform .58s var(--ease)}
+/* -------------------------------------------------------------- stickers -- */
+.sticker{position:absolute;z-index:3;user-select:none;
+  filter:drop-shadow(0 8px 14px rgba(20,24,33,.2))}
+.nametag{
+  width:170px;background:#fff;border-radius:10px;overflow:hidden;
+  border:1px solid rgba(20,24,33,.1);text-align:center;
 }
-.htmx-indicator{opacity:0;transition:opacity .2s}
-.htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
+.nametag__head{background:var(--tag-red);color:#fff;padding:7px 0 6px;line-height:1}
+.nametag__head b{display:block;font-size:17px;font-weight:800;letter-spacing:.06em}
+.nametag__head span{font-size:10px;font-weight:600;letter-spacing:.02em}
+.nametag__name{display:block;padding:8px 10px 12px;font-family:var(--hand);font-size:30px;line-height:1;color:var(--ink)}
+.note{
+  width:190px;padding:16px 16px 18px;background:var(--sticker);color:#3d3000;
+  font-family:var(--hand);font-size:20px;line-height:1.2;border-radius:3px 3px 18px 3px;
+}
+
+/* ---------------------------------------------------------- beach ball --- */
+.beachball{
+  flex:none;width:26px;height:26px;border-radius:50%;position:relative;
+  background:conic-gradient(from 0deg,#ff5f57,#febc2e,#28c840,#2bc0e4,#2b74f0,#9b51e0,#ff5f57);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
+}
+.beachball::after{content:"";position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.75),rgba(255,255,255,0) 55%)}
+@media (prefers-reduced-motion:no-preference){.beachball{animation:spin .8s linear infinite}}
+@keyframes spin{to{transform:rotate(360deg)}}
 
 .pulling{
-  display:none;align-items:center;gap:16px;
-  position:sticky;top:14px;z-index:20;
-  background:var(--steel-600);color:var(--manila-hi);
-  border-radius:2px;padding:15px 20px;margin-bottom:16px;
-  box-shadow:0 14px 30px -12px rgba(0,0,0,.8);
+  display:none;align-items:center;gap:14px;
+  position:sticky;top:62px;z-index:20;
+  width:fit-content;max-width:100%;margin:0 auto 16px;
+  background:rgba(255,255,255,.9);color:var(--ink);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  border:1px solid rgba(20,24,33,.1);border-radius:999px;
+  padding:10px 22px 10px 12px;box-shadow:var(--shadow-lift);
 }
 .pulling.htmx-request{display:flex}
-.pulling strong{display:block;font-size:14px;letter-spacing:-.005em}
-.pulling span.sub{font-size:12.5px;color:var(--steel-400);display:block;max-width:62ch}
-.drawerspin{flex:none;width:26px;height:20px;position:relative}
-.drawerspin i{position:absolute;left:0;right:0;height:4px;background:var(--brass);border-radius:1px;
-  animation:pull 1.15s var(--ease) infinite}
-.drawerspin i:nth-child(1){top:0;animation-delay:0s}
-.drawerspin i:nth-child(2){top:8px;animation-delay:.14s;background:var(--brass-hi)}
-.drawerspin i:nth-child(3){top:16px;animation-delay:.28s}
-@keyframes pull{0%,100%{transform:translateX(0);opacity:.45}45%{transform:translateX(7px);opacity:1}}
-@media (prefers-reduced-motion:reduce){.drawerspin i{animation:none;opacity:.9}}
+.pulling strong{display:block;font-size:14.5px;font-weight:650}
+.pulling span.sub{display:block;font-size:13px;color:var(--ink-2);max-width:62ch}
+.htmx-indicator{opacity:0;transition:opacity .2s}
+.htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
+#results{transition:opacity .2s var(--ease),filter .2s var(--ease)}
+#results.htmx-request{opacity:.4;filter:blur(1.5px);pointer-events:none}
 
-#results{transition:opacity .18s var(--ease)}
-#results.htmx-request{opacity:.32;pointer-events:none}
+/* ---------------------------------------------------------------- motion -- */
+/* One grammar: things open like windows do. Everything is visible without JS; the
+   hidden start state only applies when JS is here and motion is welcome. */
+@media (prefers-reduced-motion:no-preference){
+  .js .filing{opacity:0;transform:translateY(10px)}
+  .js .filing.filed-in{opacity:1;transform:none;
+    transition:opacity .45s var(--ease),transform .6s var(--ease)}
+  .js .opens{opacity:0;transform:translateY(22px) scale(.965);filter:blur(4px)}
+  .js .opens.is-open{opacity:1;transform:none;filter:none;
+    transition:opacity .6s var(--ease),transform .9s var(--spring),filter .6s var(--ease)}
+}
 
-/* ----------------------------------------------------------- responsive --- */
+/* Headings rise into place a word at a time as they arrive. */
+@media (prefers-reduced-motion:no-preference){
+  .js .reveal .w{display:inline-block;overflow:hidden;vertical-align:top;padding-bottom:.1em;margin-bottom:-.1em}
+  .js .reveal .w > span{display:inline-block;transform:translateY(108%) rotate(4deg);transform-origin:0 100%;
+    transition:transform .95s var(--ease) calc(var(--wi) * 55ms)}
+  .js .reveal.is-in .w > span{transform:none}
+}
+
+/* ---------------------------------------------------------------- footer -- */
+.foot{border-top:1px solid rgba(20,24,33,.08);background:rgba(246,247,249,.7)}
+.foot .wrap{display:flex;align-items:center;gap:18px 28px;flex-wrap:wrap;min-height:76px;
+  font-size:13.5px;color:var(--ink-2);padding-top:18px;padding-bottom:18px}
+.foot .brand{font-size:14px}
+.foot nav{display:flex;gap:18px}
+.foot nav a{text-decoration:none;color:var(--ink-2)}
+.foot nav a:hover{color:var(--ink);text-decoration:underline}
+.foot p{margin:0 0 0 auto;max-width:52ch}
+
+/* ------------------------------------------------------------ responsive -- */
 @media (max-width:860px){
-  .grid2{grid-template-columns:1fr;gap:20px}
+  .grid2{grid-template-columns:1fr;gap:22px}
   .wrap{padding:0 16px}
-  .drawerfront{padding:36px 0 28px}
+  .pagehead{padding:40px 0 22px}
+  .win__body{padding:20px 18px 22px}
   .card{padding:20px 18px}
-  .card--raised{padding:22px 18px}
-  .filed{padding-left:0}
-  .filed::before,.filed::after{display:none}
-  .record::before{display:none}
-  .record{grid-template-columns:1fr;gap:7px;padding:13px 16px}
+  .menubar{padding:0 10px;gap:0}
+  .menubar .status{gap:0;font-size:12px}
+  .status .clock{display:none}
+  .status .live{white-space:nowrap}
+  .brand{margin-right:4px}
+  .brand .tld{display:none}
+  .brand{margin-right:6px;gap:7px}
+  .rail-long{display:none}
+  .menubar nav{overflow-x:auto;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .menubar nav::-webkit-scrollbar{display:none}
+  .menubar nav a,.menubar nav .linkish{padding:5px 8px;font-size:13.5px}
+  .record{padding:14px 16px;gap:12px;flex-wrap:wrap}
+  .record .logo{--size:36px}
+  .record__main{flex:1 1 calc(100% - 52px)}
   .record__side{flex-direction:row;align-items:center;justify-content:space-between;
-    text-align:left;width:100%;gap:12px;margin-top:2px}
-  .record__meta{max-width:none}
-  .rail .wrap{min-height:0;gap:12px}
-  nav.tabs{margin-left:0;width:100%;gap:2px;overflow-x:auto;
-    -webkit-overflow-scrolling:touch;scrollbar-width:none}
-  nav.tabs::-webkit-scrollbar{display:none}
-  nav.tabs a,nav.tabs .linkish{padding:6px 8px;white-space:nowrap}
+    text-align:left;width:100%;gap:10px;padding-left:48px}
+  .guide{padding:9px 16px}
+  .foot p{margin-left:0}
 }
 @media (max-width:420px){
-  .plate{padding:6px 14px 7px}
-  .plate .mark{font-size:17px}
-  .plate .count{font-size:11px}
+  .record__side{padding-left:0}
 }
 </style>
 </head>
 <body>
-<script>document.body.parentElement.classList.add('js');document.body.classList.add('js')</script>
+<script>document.documentElement.classList.add('js');document.body.classList.add('js')</script>
 
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
   <symbol id="i-arrow" viewBox="0 0 16 16">
     <path d="M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2" fill="none" stroke="currentColor"
-          stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-down" viewBox="0 0 16 16">
+    <path d="M8 2.5v11m-4.2-4.2L8 13.5l4.2-4.2" fill="none" stroke="currentColor"
+          stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
   <symbol id="i-check" viewBox="0 0 16 16">
     <path d="M3 8.4l3.2 3.2L13 4.8" fill="none" stroke="currentColor"
           stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
   <symbol id="i-save" viewBox="0 0 16 16">
-    <path d="M4 2.6h8a0 0 0 0 1 0 0v10.8L8 10.4l-4 3V2.6z" fill="none" stroke="currentColor"
+    <path d="M4 2.6h8v10.8L8 10.4l-4 3V2.6z" fill="none" stroke="currentColor"
           stroke-width="1.5" stroke-linejoin="round"/>
   </symbol>
-  <symbol id="i-undo" viewBox="0 0 16 16">
-    <path d="M6 3.5L2.6 6.8 6 10.1M2.6 6.8h6.6a4.2 4.2 0 010 8.4H6" fill="none"
-          stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+  <symbol id="i-doc" viewBox="0 0 24 24">
+    <path d="M6 2.8h8.2L19.2 8v12.2a1 1 0 01-1 1H6a1 1 0 01-1-1V3.8a1 1 0 011-1z" fill="#fff" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M8.5 12.5h7M8.5 15.5h7M8.5 18.5h4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-search" viewBox="0 0 16 16">
+    <circle cx="7" cy="7" r="4.6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path d="M10.4 10.4l3.2 3.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-mark" viewBox="0 0 32 32">
+    <rect x="3" y="9" width="20" height="16" rx="4" fill="#c9ced6"/>
+    <rect x="9" y="5" width="20" height="16" rx="4" fill="#2b74f0"/>
+    <circle cx="13" cy="9" r="1.4" fill="#fff"/><circle cx="17" cy="9" r="1.4" fill="#fff"/>
   </symbol>
 </svg>
 
-<header class="rail">
-  <div class="wrap">
-    <a href="/" class="plate" style="text-decoration:none">
-      <span class="mark">sorted<em>.</em>place</span>
-      <span class="count" id="rail-count">{% block railcount %}DUBLIN REGISTER{% endblock %}</span>
-    </a>
-    <nav class="tabs" aria-label="Sections">
-      <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Drawer</a>
-      {% if accounts_enabled %}
-        {% if account %}
-          <a href="/saved" {% if nav == 'saved' %}aria-current="page"{% endif %}>Saved</a>
-          <a href="/applications" {% if nav == 'applications' %}aria-current="page"{% endif %}>Applied</a>
-          <form method="post" action="/logout" style="display:inline">
-            <button class="linkish" style="font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--steel-400);text-decoration:none;padding:7px 11px"
-                    title="Signed in as {{ account.email }}">Sign out</button>
-          </form>
-        {% else %}
-          <a href="/login" {% if nav == 'account' %}aria-current="page"{% endif %}>Sign in</a>
-        {% endif %}
+<header class="menubar">
+  <a href="/" class="brand" aria-label="Sorted Place, home">
+    <svg aria-hidden="true"><use href="#i-mark"/></svg>
+    <span><b style="color:var(--ink)">sorted</b><span class="tld">.place</span></span>
+  </a>
+  <nav aria-label="Sections">
+    <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Find jobs</a>
+    <a href="/companies" {% if nav == 'companies' %}aria-current="page"{% endif %}>Companies</a>
+    {% if accounts_enabled %}
+      {% if account %}
+        <a href="/saved" {% if nav == 'saved' %}aria-current="page"{% endif %}>Saved</a>
+        <a href="/applications" {% if nav == 'applications' %}aria-current="page"{% endif %}>Applied</a>
+        <form method="post" action="/logout" style="display:inline">
+          <button class="linkish" style="text-decoration:none" title="Signed in as {{ account.email }}">Sign out</button>
+        </form>
+      {% else %}
+        <a href="/login" {% if nav == 'account' %}aria-current="page"{% endif %}>Sign in</a>
       {% endif %}
-    </nav>
+    {% endif %}
+  </nav>
+  <div class="status">
+    {% set rail %}{% block railcount %}{% endblock %}{% endset %}
+    {% if rail|trim %}<span class="live"><i aria-hidden="true"></i>{{ rail }}</span>{% endif %}
+    <span class="clock" id="clock" aria-label="Time in Dublin"></span>
   </div>
 </header>
 
-<main><div class="wrap">{% block content %}{% endblock %}</div></main>
+<main>{% block wide %}{% endblock %}<div class="wrap">{% block content %}{% endblock %}</div></main>
 
-<footer class="rail rail--foot" style="border-bottom:0;border-top:1px solid var(--steel-900);margin-top:0">
-  <div class="wrap" style="min-height:64px;font-size:12px;color:var(--steel-400);gap:18px">
-    <span class="typed" style="letter-spacing:.08em;text-transform:uppercase">SORTED PLACE &middot; DUBLIN</span>
-    <span style="margin-left:auto;max-width:58ch">We gather jobs from companies' own careers
-      pages. You apply on their site, never on ours.</span>
+<footer class="foot">
+  <div class="wrap">
+    <a href="/" class="brand"><svg aria-hidden="true"><use href="#i-mark"/></svg><span><b>sorted</b><span>.place</span></span></a>
+    <nav aria-label="More">
+      <a href="/companies">Companies</a>
+      <a href="/privacy">Your CV &amp; privacy</a>
+    </nav>
+    <p>We gather jobs from companies' own careers pages. You apply on their site, never on ours.</p>
   </div>
 </footer>
 
@@ -599,51 +648,169 @@ document.addEventListener('click', function (event) {
   window.open(link.href, '_blank', 'noopener');
 }, true);
 
-// The one authored moment: the drawer opens and the cards file in, once.
 (function () {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var fine = window.matchMedia('(pointer: fine)');
 
+  // The menu bar clock, on Dublin time wherever the visitor is.
+  var clock = document.getElementById('clock');
+  if (clock && window.Intl) {
+    var fmt = new Intl.DateTimeFormat('en-IE', {
+      timeZone: 'Europe/Dublin', weekday: 'short', hour: 'numeric', minute: '2-digit'
+    });
+    var tick = function () { clock.textContent = fmt.format(new Date()) + ' in Dublin'; };
+    tick(); setInterval(tick, 15000);
+  }
+
+  // Rows file into a list, a few at a time, and never take long about it.
   function fileIn(root) {
-    if (reduced.matches) return;
-    var cards = (root || document).querySelectorAll('.filing:not(.filed-in)');
-    Array.prototype.forEach.call(cards, function (el, i) {
-      // Cap the stagger: a hundred records must not take ten seconds to arrive.
-      setTimeout(function () { el.classList.add('filed-in'); }, Math.min(i, 14) * 38);
+    var rows = (root || document).querySelectorAll('.filing:not(.filed-in)');
+    Array.prototype.forEach.call(rows, function (el, i) {
+      if (reduced.matches) { el.classList.add('filed-in'); return; }
+      setTimeout(function () { el.classList.add('filed-in'); }, Math.min(i, 14) * 34);
     });
   }
-  // Reduced motion never hides anything: the class only applies under no-preference.
-  function revealAll() {
-    Array.prototype.forEach.call(document.querySelectorAll('.filing'), function (el) {
-      el.classList.add('filed-in');
-    });
-  }
+  fileIn(document);
+  document.body.addEventListener('htmx:afterSwap', function (e) { fileIn(e.target); opens(e.target); });
 
-  if (reduced.matches) revealAll(); else fileIn(document);
-  document.body.addEventListener('htmx:afterSwap', function (e) {
-    if (reduced.matches) revealAll(); else fileIn(e.target);
+  // Windows open as they scroll into view.
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (!entry.isIntersecting) return;
+      var el = entry.target, delay = parseFloat(el.getAttribute('data-delay') || 0);
+      setTimeout(function () { el.classList.add('is-open'); }, delay);
+      io.unobserve(el);
+    });
+  }, { rootMargin: '0px 0px -2% 0px' }) : null;
+  function opens(root) {
+    Array.prototype.forEach.call((root || document).querySelectorAll('.opens:not(.is-open)'), function (el) {
+      if (reduced.matches || !io) el.classList.add('is-open'); else io.observe(el);
+    });
+  }
+  opens(document);
+
+  // Headings made of plain words are split so each word can rise on its own.
+  Array.prototype.forEach.call(document.querySelectorAll('.reveal'), function (h) {
+    if (reduced.matches || h.children.length) { h.classList.add('is-in'); return; }
+    var words = h.textContent.trim().split(/\s+/);
+    h.setAttribute('aria-label', h.textContent.trim());
+    h.innerHTML = words.map(function (w, i) {
+      return '<span class="w" aria-hidden="true" style="--wi:' + i + '"><span>' + w.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</span></span>';
+    }).join(' ');
+    if (!io) { h.classList.add('is-in'); return; }
+    var once = new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting) { h.classList.add('is-in'); once.disconnect(); }
+    }, { rootMargin: '0px 0px -12% 0px' });
+    once.observe(h);
   });
 
-  // The count on the label holder stamps up to its real figure.
-  var el = document.getElementById('rail-count');
-  if (el && !reduced.matches) {
-    var m = el.textContent.match(/^(.*?)([\d,]+)(.*)$/);
-    if (m) {
-      var target = parseInt(m[2].replace(/,/g, ''), 10);
-      if (target > 0 && target < 100000) {
-        var t0 = null, dur = 900;
-        var step = function (ts) {
-          if (!t0) t0 = ts;
-          var p = Math.min(1, (ts - t0) / dur);
-          var eased = 1 - Math.pow(1 - p, 3);
-          el.textContent = m[1] + Math.round(target * eased).toLocaleString() + m[3];
-          if (p < 1) requestAnimationFrame(step);
-        };
-        el.textContent = m[1] + '0' + m[3];
-        requestAnimationFrame(step);
-      }
+  // Counts run up to their real figure.
+  function countUp(el) {
+    var m = el.textContent.match(/^(\D*?)([\d,]+)(.*)$/);
+    if (!m) return;
+    var target = parseInt(m[2].replace(/,/g, ''), 10);
+    if (!(target > 9 && target < 100000) || reduced.matches) return;
+    var t0 = null, dur = 1100;
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur), eased = 1 - Math.pow(1 - p, 4);
+      el.textContent = m[1] + Math.round(target * eased).toLocaleString('en-IE') + m[3];
+      if (p < 1) requestAnimationFrame(step);
     }
+    el.textContent = m[1] + '0' + m[3];
+    requestAnimationFrame(step);
   }
+  Array.prototype.forEach.call(document.querySelectorAll('[data-count]'), countUp);
+
+  // The dock: icons swell as the pointer passes over them.
+  Array.prototype.forEach.call(document.querySelectorAll('[data-dock]'), function (dock) {
+    if (!fine.matches || reduced.matches) return;
+    var items = dock.querySelectorAll('.dock__item');
+    dock.addEventListener('pointermove', function (e) {
+      Array.prototype.forEach.call(items, function (it) {
+        var r = it.getBoundingClientRect();
+        var d = Math.abs(e.clientX - (r.left + r.width / 2));
+        var s = 1 + Math.max(0, 1 - d / 150) * 0.55;
+        it.style.setProperty('--mag', s.toFixed(3));
+      });
+    });
+    dock.addEventListener('pointerleave', function () {
+      Array.prototype.forEach.call(items, function (it) { it.style.setProperty('--mag', 1); });
+    });
+  });
+
+  // Windows and stickers on the desktop can be picked up and thrown. Drag state lives
+  // in custom properties so the pointer parallax and the throw compose rather than fight.
+  window.SortedDesk = function (stage) {
+    var items = Array.prototype.slice.call(stage.querySelectorAll('[data-drag]'));
+    var z = 20;
+    items.forEach(function (el) {
+      var st = { x: 0, y: 0, vx: 0, vy: 0, tilt: 0, dragging: false, raf: 0 };
+      el._desk = st;
+      function apply() {
+        el.style.setProperty('--dx', st.x.toFixed(1) + 'px');
+        el.style.setProperty('--dy', st.y.toFixed(1) + 'px');
+        el.style.setProperty('--tilt', st.tilt.toFixed(2) + 'deg');
+      }
+      function bounds() {
+        var s = stage.getBoundingClientRect(), r = el.getBoundingClientRect();
+        return { minX: s.left - r.left + st.x - r.width * .4, maxX: s.right - r.right + st.x + r.width * .4,
+                 minY: s.top - r.top + st.y, maxY: s.bottom - r.bottom + st.y + r.height * .3 };
+      }
+      var lastX, lastY, lastT, b;
+      el.addEventListener('pointerdown', function (e) {
+        if (!fine.matches || e.button !== 0 || e.target.closest('a,button')) return;
+        cancelAnimationFrame(st.raf);
+        st.dragging = true; b = bounds();
+        lastX = e.clientX; lastY = e.clientY; lastT = performance.now();
+        el.style.zIndex = ++z; el.classList.add('is-held');
+        el.setPointerCapture(e.pointerId);
+        e.preventDefault();
+      });
+      el.addEventListener('pointermove', function (e) {
+        if (!st.dragging) return;
+        var now = performance.now(), dt = Math.max(1, now - lastT);
+        var mx = e.clientX - lastX, my = e.clientY - lastY;
+        st.x = Math.min(b.maxX, Math.max(b.minX, st.x + mx));
+        st.y = Math.min(b.maxY, Math.max(b.minY, st.y + my));
+        st.vx = mx / dt * 16; st.vy = my / dt * 16;
+        st.tilt = Math.max(-9, Math.min(9, st.vx * .6));
+        lastX = e.clientX; lastY = e.clientY; lastT = now;
+        apply();
+      });
+      function release() {
+        if (!st.dragging) return;
+        st.dragging = false; el.classList.remove('is-held');
+        (function glide() {
+          st.vx *= .92; st.vy *= .92; st.tilt *= .82;
+          st.x = Math.min(b.maxX, Math.max(b.minX, st.x + st.vx));
+          st.y = Math.min(b.maxY, Math.max(b.minY, st.y + st.vy));
+          apply();
+          if (Math.abs(st.vx) + Math.abs(st.vy) + Math.abs(st.tilt) > .15) st.raf = requestAnimationFrame(glide);
+        })();
+      }
+      el.addEventListener('pointerup', release);
+      el.addEventListener('pointercancel', release);
+    });
+
+    // Depth: the pointer drifts each window by its own amount, like a parallax stack.
+    if (fine.matches && !reduced.matches) {
+      var px = 0, py = 0, qx = 0, qy = 0, running = false;
+      function drift() {
+        qx += (px - qx) * .08; qy += (py - qy) * .08;
+        stage.style.setProperty('--px', qx.toFixed(3));
+        stage.style.setProperty('--py', qy.toFixed(3));
+        if (Math.abs(px - qx) + Math.abs(py - qy) > .001) requestAnimationFrame(drift); else running = false;
+      }
+      window.addEventListener('pointermove', function (e) {
+        px = e.clientX / window.innerWidth - .5; py = e.clientY / window.innerHeight - .5;
+        if (!running) { running = true; requestAnimationFrame(drift); }
+      }, { passive: true });
+    }
+    return items;
+  };
 })();
 </script>
+{% block scripts %}{% endblock %}
 </body>
 </html>

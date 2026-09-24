@@ -1,0 +1,20 @@
+{# A company's app icon: its favicon when the service has a real one, otherwise a
+   lettered tile in a colour derived from the name. The service answers a domain it has
+   no icon for with a 16px globe, so anything that small is treated as no icon. #}
+{% macro logo(name, domain, cls="") -%}
+{%- set hue = ((name|length) * 47 + ("abcdefghijklmnopqrstuvwxyz".find((name[:1])|lower) + 1) * 29) % 360 -%}
+<span class="logo {{ cls }}" style="--hue:{{ hue }}" data-initial="{{ name[:1]|upper }}" aria-hidden="true">
+  {%- if domain -%}
+  <img src="https://www.google.com/s2/favicons?domain={{ domain }}&amp;sz=128" alt="" loading="lazy" decoding="async"
+       onload="this.naturalWidth>16?this.parentNode.classList.add('has-img'):this.remove()" onerror="this.remove()">
+  {%- endif -%}
+</span>
+{%- endmacro %}
+
+{# Traffic lights and a filename: the title bar every window on the site carries. #}
+{% macro titlebar(title) -%}
+<div class="win__bar">
+  <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
+  <span class="win__title">{{ title }}</span>
+</div>
+{%- endmacro %}

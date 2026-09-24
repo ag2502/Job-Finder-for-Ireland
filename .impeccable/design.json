@@ -1,382 +1,812 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-09-23T16:35:00+00:00",
+  "generatedAt": "2026-09-24T12:23:22+00:00",
   "title": "Design System: Sorted Place",
   "extensions": {
     "colorMeta": {
-      "stamp": {
-        "role": "primary",
-        "displayName": "Stamp Red",
-        "canonical": "#b7332a",
-        "tonalRamp": [
-          "#3e110e",
-          "#6e1f19",
-          "#9d2c24",
-          "#cc392f",
-          "#da645c",
-          "#e4918b",
-          "#efbebb",
-          "#faebea"
-        ]
-      },
-      "stamp-deep": {
-        "role": "primary",
-        "displayName": "Stamp Red Deep",
-        "canonical": "#8e2620",
-        "tonalRamp": [
-          "#3e110e",
-          "#6e1d19",
-          "#9e2a24",
-          "#cd372e",
-          "#da625b",
-          "#e5908b",
-          "#f0bebb",
-          "#faebea"
-        ]
-      },
-      "brass": {
-        "role": "secondary",
-        "displayName": "Brass",
-        "canonical": "#b08d3f",
-        "tonalRamp": [
-          "#382d14",
-          "#635024",
-          "#8e7233",
-          "#b99442",
-          "#caad6b",
-          "#dac596",
-          "#e9ddc1",
-          "#f8f5ec"
-        ]
-      },
-      "brass-hi": {
-        "role": "secondary",
-        "displayName": "Brass Light",
-        "canonical": "#d9bc72",
-        "tonalRamp": [
-          "#3c3010",
-          "#6a541d",
-          "#987929",
-          "#c69d35",
-          "#d4b461",
-          "#e1ca8f",
-          "#ede0bd",
-          "#faf5eb"
-        ]
-      },
-      "steel-700": {
+      "desk": {
         "role": "neutral",
-        "displayName": "Drawer Steel",
-        "canonical": "#2f383c",
+        "displayName": "Desk Grey",
+        "canonical": "#eceef2",
         "tonalRamp": [
-          "#22282b",
-          "#3b474c",
-          "#55656c",
-          "#6e848d",
-          "#8fa0a7",
-          "#afbbc1",
-          "#d0d7da",
-          "#f1f3f4"
+          "#1f242d",
+          "#363e4f",
+          "#4d5870",
+          "#637391",
+          "#8693ac",
+          "#aab3c5",
+          "#cfd4de",
+          "#f0f1f5"
         ]
       },
-      "steel-400": {
+      "desk-dot": {
         "role": "neutral",
-        "displayName": "Steel Light",
-        "canonical": "#adbac1",
+        "displayName": "Desk Dot",
+        "canonical": "#c3c9d2",
         "tonalRamp": [
-          "#21282c",
-          "#3a464d",
-          "#53656e",
-          "#6c838f",
-          "#8d9fa9",
-          "#aebbc2",
-          "#cfd7db",
-          "#f0f3f4"
+          "#21252c",
+          "#39404c",
+          "#515c6c",
+          "#69778c",
+          "#8a96a8",
+          "#adb6c2",
+          "#d0d5dc",
+          "#f0f2f4"
         ]
       },
-      "manila": {
+      "desk-deep": {
         "role": "neutral",
-        "displayName": "Manila Stock",
-        "canonical": "#ddcfae",
+        "displayName": "Desk Deep",
+        "canonical": "#dfe3e9",
         "tonalRamp": [
-          "#362d17",
-          "#5f4f28",
-          "#887039",
-          "#b1924a",
-          "#c4ab72",
-          "#d5c49b",
-          "#e6dcc4",
-          "#f7f4ed"
+          "#1f252d",
+          "#36404f",
+          "#4d5b70",
+          "#647691",
+          "#8695ac",
+          "#aab5c5",
+          "#cfd5de",
+          "#f0f2f5"
         ]
       },
-      "manila-hi": {
+      "win": {
         "role": "neutral",
-        "displayName": "Manila Raised",
-        "canonical": "#e3d6b4",
+        "displayName": "Window White",
+        "canonical": "#ffffff",
         "tonalRamp": [
-          "#382e15",
-          "#625125",
-          "#8d7434",
-          "#b79744",
-          "#c9af6d",
-          "#d8c698",
-          "#e8dec2",
-          "#f8f5ec"
+          "#262626",
+          "#424242",
+          "#5e5e5e",
+          "#7a7a7a",
+          "#999999",
+          "#b8b8b8",
+          "#d6d6d6",
+          "#f2f2f2"
+        ]
+      },
+      "win-bar": {
+        "role": "neutral",
+        "displayName": "Title-bar Grey",
+        "canonical": "#f4f5f7",
+        "tonalRamp": [
+          "#20242c",
+          "#383f4d",
+          "#4f596d",
+          "#67748e",
+          "#8994a9",
+          "#acb4c3",
+          "#d0d4dd",
+          "#f0f2f4"
+        ]
+      },
+      "win-bar-2": {
+        "role": "neutral",
+        "displayName": "Title-bar Grey, lower",
+        "canonical": "#e8eaee",
+        "tonalRamp": [
+          "#21242c",
+          "#383f4c",
+          "#505a6d",
+          "#68748d",
+          "#8a94a8",
+          "#adb4c2",
+          "#d0d4dc",
+          "#f0f2f4"
+        ]
+      },
+      "line": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#dde1e7",
+        "tonalRamp": [
+          "#20252d",
+          "#37404e",
+          "#4e5b6f",
+          "#657690",
+          "#8795ab",
+          "#abb5c4",
+          "#cfd5dd",
+          "#f0f2f4"
+        ]
+      },
+      "line-strong": {
+        "role": "neutral",
+        "displayName": "Strong Hairline",
+        "canonical": "#c4cad3",
+        "tonalRamp": [
+          "#21252c",
+          "#39404c",
+          "#515c6c",
+          "#69778c",
+          "#8a96a8",
+          "#adb6c2",
+          "#d0d5dc",
+          "#f0f2f4"
         ]
       },
       "ink": {
         "role": "neutral",
-        "displayName": "Typewriter Ink",
-        "canonical": "#231e17",
+        "displayName": "Ink",
+        "canonical": "#15171c",
         "tonalRamp": [
-          "#2e281e",
-          "#514635",
-          "#75644d",
-          "#988264",
-          "#b09e86",
-          "#c7baa9",
-          "#ded7cc",
-          "#f5f3f0"
+          "#21242c",
+          "#393e4c",
+          "#51596c",
+          "#69738c",
+          "#8a93a8",
+          "#adb3c2",
+          "#d0d4dc",
+          "#f0f1f4"
         ]
       },
-      "ledger": {
-        "role": "tertiary",
-        "displayName": "Ledger Green",
-        "canonical": "#cfd9c2",
+      "ink-2": {
+        "role": "neutral",
+        "displayName": "Ink 2",
+        "canonical": "#454b56",
         "tonalRamp": [
-          "#272f1d",
-          "#455334",
-          "#63774a",
-          "#819b60",
-          "#9eb284",
-          "#bac8a7",
-          "#d6dfcb",
-          "#f3f5ef"
+          "#22252a",
+          "#3b404a",
+          "#545b69",
+          "#6d7688",
+          "#8e96a4",
+          "#b0b5bf",
+          "#d2d5db",
+          "#f1f2f4"
+        ]
+      },
+      "ink-3": {
+        "role": "neutral",
+        "displayName": "Ink 3",
+        "canonical": "#5c626d",
+        "tonalRamp": [
+          "#232529",
+          "#3d4148",
+          "#565c66",
+          "#707785",
+          "#9096a2",
+          "#b2b6be",
+          "#d3d5da",
+          "#f1f2f3"
+        ]
+      },
+      "aqua": {
+        "role": "primary",
+        "displayName": "Aqua",
+        "canonical": "#2b74f0",
+        "tonalRamp": [
+          "#051e47",
+          "#09337c",
+          "#0c49b0",
+          "#105fe5",
+          "#4082f2",
+          "#7aa8f6",
+          "#b3cdfa",
+          "#e7effd"
+        ]
+      },
+      "aqua-hi": {
+        "role": "primary",
+        "displayName": "Aqua Highlight",
+        "canonical": "#69a4ff",
+        "tonalRamp": [
+          "#001e4c",
+          "#003485",
+          "#004abd",
+          "#0060f5",
+          "#3383ff",
+          "#70a8ff",
+          "#adcdff",
+          "#e5f0ff"
+        ]
+      },
+      "aqua-deep": {
+        "role": "primary",
+        "displayName": "Deep Aqua",
+        "canonical": "#1a55c2",
+        "tonalRamp": [
+          "#091e43",
+          "#103375",
+          "#1649a6",
+          "#1d5fd8",
+          "#4b82e7",
+          "#81a7ee",
+          "#b7cdf5",
+          "#e9effc"
+        ]
+      },
+      "aqua-wash": {
+        "role": "primary",
+        "displayName": "Aqua Wash",
+        "canonical": "#edf3ff",
+        "tonalRamp": [
+          "#00194c",
+          "#002c85",
+          "#003fbd",
+          "#0052f5",
+          "#3377ff",
+          "#70a0ff",
+          "#adc9ff",
+          "#e5eeff"
+        ]
+      },
+      "sticker": {
+        "role": "tertiary",
+        "displayName": "Highlighter Yellow",
+        "canonical": "#ffd84a",
+        "tonalRamp": [
+          "#4c3c00",
+          "#856800",
+          "#bd9400",
+          "#f5c000",
+          "#ffd333",
+          "#ffe070",
+          "#ffedad",
+          "#fffae5"
+        ]
+      },
+      "sticker-deep": {
+        "role": "tertiary",
+        "displayName": "Highlighter Edge",
+        "canonical": "#e8b400",
+        "tonalRamp": [
+          "#4c3b00",
+          "#856700",
+          "#bd9200",
+          "#f5be00",
+          "#ffd133",
+          "#ffdf70",
+          "#ffedad",
+          "#fff9e5"
+        ]
+      },
+      "tag-red": {
+        "role": "tertiary",
+        "displayName": "Tag Red",
+        "canonical": "#e8413c",
+        "tonalRamp": [
+          "#440a08",
+          "#77110e",
+          "#a91814",
+          "#db1f1a",
+          "#e94d49",
+          "#f0837f",
+          "#f6b8b6",
+          "#fce9e8"
+        ]
+      },
+      "tag-red-deep": {
+        "role": "tertiary",
+        "displayName": "Deep Tag Red",
+        "canonical": "#c02c28",
+        "tonalRamp": [
+          "#3f0f0d",
+          "#6e1917",
+          "#9c2421",
+          "#cb2e2a",
+          "#dc5a56",
+          "#e68b89",
+          "#f1bdbb",
+          "#fbeaea"
+        ]
+      },
+      "sorted": {
+        "role": "secondary",
+        "displayName": "Sorted Green",
+        "canonical": "#1c9a4a",
+        "tonalRamp": [
+          "#0c411f",
+          "#147036",
+          "#1da04d",
+          "#26cf64",
+          "#52e086",
+          "#86e9aa",
+          "#baf2cf",
+          "#e9fbf0"
+        ]
+      },
+      "sorted-wash": {
+        "role": "secondary",
+        "displayName": "Sorted Wash",
+        "canonical": "#e6f6ec",
+        "tonalRamp": [
+          "#143822",
+          "#23623b",
+          "#328b53",
+          "#41b46c",
+          "#69c98d",
+          "#96d9af",
+          "#c3e9d1",
+          "#ecf8f1"
+        ]
+      },
+      "tl-red": {
+        "role": "secondary",
+        "displayName": "Traffic-light Red",
+        "canonical": "#ff5f57",
+        "tonalRamp": [
+          "#4c0400",
+          "#850600",
+          "#bd0900",
+          "#f50c00",
+          "#ff3d33",
+          "#ff7770",
+          "#ffb1ad",
+          "#ffe7e5"
+        ]
+      },
+      "tl-amber": {
+        "role": "secondary",
+        "displayName": "Traffic-light Amber",
+        "canonical": "#febc2e",
+        "tonalRamp": [
+          "#4c3400",
+          "#845a01",
+          "#bc8001",
+          "#f4a701",
+          "#febe34",
+          "#fed171",
+          "#ffe5ae",
+          "#fff7e6"
+        ]
+      },
+      "tl-green": {
+        "role": "secondary",
+        "displayName": "Traffic-light Green",
+        "canonical": "#28c840",
+        "tonalRamp": [
+          "#0d4014",
+          "#166e23",
+          "#1f9d32",
+          "#29cc41",
+          "#55dd69",
+          "#88e796",
+          "#bbf1c3",
+          "#eafbec"
+        ]
+      },
+      "g-engineering": {
+        "role": "tertiary",
+        "displayName": "Field tag: Engineering",
+        "canonical": "#2b74f0",
+        "tonalRamp": [
+          "#051e47",
+          "#09337c",
+          "#0c49b0",
+          "#105fe5",
+          "#4082f2",
+          "#7aa8f6",
+          "#b3cdfa",
+          "#e7effd"
+        ]
+      },
+      "g-data-ai": {
+        "role": "tertiary",
+        "displayName": "Field tag: Data Ai",
+        "canonical": "#9b51e0",
+        "tonalRamp": [
+          "#270c41",
+          "#441471",
+          "#611da0",
+          "#7d25d0",
+          "#9b52e0",
+          "#b986e9",
+          "#d7baf3",
+          "#f3e9fb"
+        ]
+      },
+      "g-product-design": {
+        "role": "tertiary",
+        "displayName": "Field tag: Product Design",
+        "canonical": "#e84393",
+        "tonalRamp": [
+          "#440825",
+          "#760e41",
+          "#a8155c",
+          "#da1b77",
+          "#e94997",
+          "#ef80b6",
+          "#f6b6d5",
+          "#fce8f2"
+        ]
+      },
+      "g-science-health": {
+        "role": "tertiary",
+        "displayName": "Field tag: Science Health",
+        "canonical": "#0fa5a0",
+        "tonalRamp": [
+          "#064644",
+          "#0b7a76",
+          "#10ada8",
+          "#14e0da",
+          "#44eee8",
+          "#7cf3ef",
+          "#b4f8f6",
+          "#e8fdfc"
+        ]
+      },
+      "g-industry": {
+        "role": "tertiary",
+        "displayName": "Field tag: Industry",
+        "canonical": "#f2791c",
+        "tonalRamp": [
+          "#482204",
+          "#7d3b07",
+          "#b2530a",
+          "#e86c0d",
+          "#f48d3e",
+          "#f7af78",
+          "#fbd1b2",
+          "#fef1e7"
+        ]
+      },
+      "g-finance-legal": {
+        "role": "tertiary",
+        "displayName": "Field tag: Finance Legal",
+        "canonical": "#1c9a4a",
+        "tonalRamp": [
+          "#0c411f",
+          "#147036",
+          "#1da04d",
+          "#26cf64",
+          "#52e086",
+          "#86e9aa",
+          "#baf2cf",
+          "#e9fbf0"
+        ]
+      },
+      "g-commercial": {
+        "role": "tertiary",
+        "displayName": "Field tag: Commercial",
+        "canonical": "#e8413c",
+        "tonalRamp": [
+          "#440a08",
+          "#77110e",
+          "#a91814",
+          "#db1f1a",
+          "#e94d49",
+          "#f0837f",
+          "#f6b8b6",
+          "#fce9e8"
+        ]
+      },
+      "g-business-ops": {
+        "role": "tertiary",
+        "displayName": "Field tag: Business Ops",
+        "canonical": "#5b5bd6",
+        "tonalRamp": [
+          "#0f0f3d",
+          "#1b1b6a",
+          "#262697",
+          "#3131c4",
+          "#5c5cd6",
+          "#8d8de2",
+          "#bebeef",
+          "#ebebfa"
+        ]
+      },
+      "g-people": {
+        "role": "tertiary",
+        "displayName": "Field tag: People",
+        "canonical": "#d9a300",
+        "tonalRamp": [
+          "#4c3900",
+          "#856400",
+          "#bd8e00",
+          "#f5b800",
+          "#ffcc33",
+          "#ffdb70",
+          "#ffebad",
+          "#fff9e5"
+        ]
+      },
+      "g-public-education": {
+        "role": "tertiary",
+        "displayName": "Field tag: Public Education",
+        "canonical": "#9a6b3f",
+        "tonalRamp": [
+          "#362616",
+          "#5e4126",
+          "#865d37",
+          "#ae7947",
+          "#c4986e",
+          "#d6b79a",
+          "#e7d6c5",
+          "#f8f2ed"
+        ]
+      },
+      "g-service": {
+        "role": "tertiary",
+        "displayName": "Field tag: Service",
+        "canonical": "#7c828d",
+        "tonalRamp": [
+          "#242529",
+          "#3e4147",
+          "#585c65",
+          "#727883",
+          "#9297a0",
+          "#b3b6bd",
+          "#d3d5d9",
+          "#f1f2f3"
         ]
       }
     },
     "typographyMeta": {
       "display": {
-        "displayName": "Drawer Front",
-        "purpose": "Page headline, engraved on the steel. Never on a card."
+        "displayName": "Display",
+        "purpose": "Page headlines on the desk; sentence case, one highlighted phrase at most."
       },
       "headline": {
-        "displayName": "Card Heading",
-        "purpose": "Section and card headings."
+        "displayName": "Headline",
+        "purpose": "Section and window headings; feature sections scale it up."
       },
       "title": {
-        "displayName": "Record Title",
-        "purpose": "The job title on a record; the largest thing on any card."
+        "displayName": "Title",
+        "purpose": "Job titles, company names, card headings."
+      },
+      "lede": {
+        "displayName": "Lede",
+        "purpose": "The one paragraph under a headline, in ink-2, key figure in 650 ink."
       },
       "body": {
         "displayName": "Body",
-        "purpose": "Running copy, capped at 68ch."
+        "purpose": "Prose and notices, 68ch measure, tabular figures and ss01 on."
       },
       "label": {
-        "displayName": "Typed Label",
-        "purpose": "Accession numbers, dates, field names, stamps. Courier Prime means 'typed record', never 'technical'."
+        "displayName": "Label",
+        "purpose": "Field and group labels, list column heads, pills."
+      },
+      "mono": {
+        "displayName": "Geist Mono",
+        "purpose": "What the machine typed: window filenames, timestamps, page counts, platform counts. Never headlines."
+      },
+      "hand": {
+        "displayName": "Gochi Hand",
+        "purpose": "What a person scribbled: stickers, the name tag, short asides. Never the only carrier of needed information."
       }
     },
     "shadows": [
       {
-        "name": "card",
-        "value": "0 1px 0 #b3a37c, 0 6px 14px -6px rgba(0,0,0,.55)",
-        "purpose": "Every filed record and standard card. The 1px offset is the cut edge of the stock."
+        "name": "shadow-win",
+        "value": "0 1px 2px rgba(20,24,33,.06), 0 12px 32px -10px rgba(20,24,33,.22)",
+        "purpose": "Resting window and card."
       },
       {
-        "name": "raised",
-        "value": "0 2px 0 #b3a37c, 0 22px 38px -16px rgba(0,0,0,.7)",
-        "purpose": "Cards standing proud of the drawer: the request slip, the proof card."
+        "name": "shadow-lift",
+        "value": "0 2px 4px rgba(20,24,33,.08), 0 30px 60px -18px rgba(20,24,33,.38)",
+        "purpose": "The window a page is about, desk careers windows, floating pills."
       },
       {
-        "name": "hardware-inset",
-        "value": "0 1px 0 rgba(255,255,255,.45) inset, 0 -1px 0 rgba(0,0,0,.35) inset",
-        "purpose": "Brass objects: the label holder and the drawer pull."
+        "name": "held",
+        "value": "0 3px 6px rgba(20,24,33,.1), 0 44px 70px -20px rgba(20,24,33,.45)",
+        "purpose": "A window being dragged (with scale 1.04)."
       },
       {
-        "name": "notch",
-        "value": "inset 0 1px 2px rgba(0,0,0,.7)",
-        "purpose": "The hole where the brass rod passes through a filed card."
+        "name": "popup",
+        "value": "0 3px 8px rgba(20,24,33,.12), 0 50px 90px -24px rgba(20,24,33,.5)",
+        "purpose": "Company window opened over the page."
+      },
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(20,24,33,.08), 0 4px 10px -4px rgba(20,24,33,.16)",
+        "purpose": "Chips and small controls."
+      },
+      {
+        "name": "aqua-glow",
+        "value": "inset 0 1px 0 rgba(255,255,255,.45), inset 0 -2px 4px rgba(10,50,140,.18), 0 6px 16px -6px rgba(43,116,240,.65)",
+        "purpose": "Primary aqua pill only."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 2.5px solid #2b74f0; outline-offset: 2px",
+        "purpose": "Global focus-visible."
+      },
+      {
+        "name": "input-focus",
+        "value": "0 0 0 3.5px rgba(43,116,240,.2)",
+        "purpose": "Halo on focused fields."
+      },
+      {
+        "name": "glass",
+        "value": "backdrop-filter: saturate(1.6) blur(18px); background: rgba(246,247,249,.78)",
+        "purpose": "Menu bar; dock, sticky headers and floating bars use the same recipe at 8 to 20px blur."
       }
     ],
     "motion": [
       {
-        "name": "ease-drawer",
-        "value": "cubic-bezier(.16,.84,.34,1)",
-        "purpose": "The only easing in the system. Exponential-ish out; everything rises out of the drawer."
+        "name": "spring",
+        "value": "cubic-bezier(.34,1.56,.64,1)",
+        "purpose": "Anything touched: buttons (.35s), chips and switches (.4s), icons (.5s), windows opening (.9s), the Save pop."
       },
       {
-        "name": "file-in",
-        "value": "opacity .5s, transform .58s, stagger 38ms capped at 14 steps",
-        "purpose": "Records filing in after a swap. Capped so a hundred rows never take ten seconds."
+        "name": "ease",
+        "value": "cubic-bezier(.16,1,.3,1)",
+        "purpose": "Anything arriving: rows filing in (34ms stagger, max 14), windows opening on scroll, word-by-word headings (.95s, 55ms per word), highlighter sweep (.9s), page entry (.5s)."
       },
       {
-        "name": "count-stamp",
-        "value": "900ms cubic ease-out",
-        "purpose": "The label holder's count stamping up from zero on load."
+        "name": "sort",
+        "value": "cubic-bezier(.6,0,.25,1) .7s, 35ms stagger",
+        "purpose": "Desk windows pulled into the form window."
+      },
+      {
+        "name": "view-transition-out",
+        "value": ".22s cubic-bezier(.4,0,1,1), fade and scale .985",
+        "purpose": "Leaving page; the menu bar holds still."
+      },
+      {
+        "name": "count-up",
+        "value": "1.1s, quartic ease-out",
+        "purpose": "Live counts run up to their real value."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "prefers-reduced-motion: reduce",
+        "purpose": "No hidden start states, no word splitting, final counts shown, beach ball still, no dock magnify, no parallax, no smooth scroll."
       }
     ],
     "breakpoints": [
       {
-        "name": "drawer-front",
+        "name": "desk-narrow",
+        "value": "1180px"
+      },
+      {
+        "name": "tablet",
         "value": "980px"
       },
       {
-        "name": "phone",
+        "name": "mobile",
         "value": "860px"
       },
       {
-        "name": "plate",
+        "name": "small",
         "value": "420px"
       }
     ]
   },
   "components": [
     {
-      "name": "Primary Button",
+      "name": "Primary Button (Aqua)",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "The struck stamp. Every action that stays on this site.",
-      "html": "<button class=\"ds-btn-primary\">Open the drawer <svg viewBox=\"0 0 16 16\" width=\"15\" height=\"15\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
-      "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:10px;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:13px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#fff;background:#b7332a;border:0;border-radius:2px;padding:13px 22px;cursor:pointer;box-shadow:0 1px 0 #8e2620,0 8px 16px -8px rgba(0,0,0,.6);transition:transform .16s cubic-bezier(.16,.84,.34,1),background .16s cubic-bezier(.16,.84,.34,1)}.ds-btn-primary:hover{background:#8e2620;transform:translateY(-1px)}.ds-btn-primary:active{transform:translateY(1px);box-shadow:0 0 0 #8e2620}.ds-btn-primary:focus-visible{outline:2px solid #d9bc72;outline-offset:2px}"
+      "description": "The glossy aqua pill; the one colour that means go. One per view for the next action.",
+      "html": "<button class=\"ds-btn\">Find my jobs <svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></button>",
+      "css": ".ds-btn{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;position:relative;display:inline-flex;align-items:center;gap:9px;font-size:15px;font-weight:600;letter-spacing:-.01em;color:#fff;background:linear-gradient(180deg,#5c9bff 0%,var(--aqua) 52%,#2166e0 100%);border:1px solid var(--aqua-deep);border-radius:999px;padding:11px 22px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 4px rgba(10,50,140,.18),0 6px 16px -6px rgba(43,116,240,.65);transition:transform .35s var(--spring),box-shadow .25s var(--ease),filter .2s}.ds-btn::after{content:'';position:absolute;left:12%;right:12%;top:2px;height:45%;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,0));pointer-events:none}.ds-btn svg{transition:transform .35s var(--spring)}.ds-btn:hover{transform:translateY(-1px) scale(1.02);filter:brightness(1.05);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 -2px 4px rgba(10,50,140,.18),0 10px 22px -8px rgba(43,116,240,.7)}.ds-btn:hover svg{transform:translateX(3px)}.ds-btn:active{transform:scale(.97);transition-duration:.08s}.ds-btn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}"
     },
     {
-      "name": "Outline Button",
+      "name": "Ghost Button",
       "kind": "button",
-      "refersTo": "button-outline",
-      "description": "Every action that leaves this site, e.g. Apply. Inverts to a filled stamp on hover.",
-      "html": "<a class=\"ds-btn-outline\" href=\"#\">Apply <svg viewBox=\"0 0 16 16\" width=\"14\" height=\"14\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a>",
-      "css": ".ds-btn-outline{display:inline-flex;align-items:center;gap:8px;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:800;letter-spacing:.13em;text-transform:uppercase;color:#8e2620;background:transparent;border:1.5px solid #8e2620;border-radius:2px;padding:8px 14px;text-decoration:none;cursor:pointer}.ds-btn-outline:hover{background:#b7332a;color:#e3d6b4;border-color:#b7332a}.ds-btn-outline:focus-visible{outline:2px solid #d9bc72;outline-offset:2px}"
+      "refersTo": "button-ghost",
+      "description": "The white pill: a secondary way in, beside the aqua one.",
+      "html": "<button class=\"ds-btn-ghost\">See all 311 companies</button>",
+      "css": ".ds-btn-ghost{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:inline-flex;align-items:center;font-size:15px;font-weight:600;letter-spacing:-.01em;color:var(--ink);background:linear-gradient(180deg,#fff,#f3f4f7);border:1px solid var(--line-strong);border-radius:999px;padding:11px 22px;cursor:pointer;box-shadow:inset 0 1px 0 #fff,0 4px 12px -6px rgba(20,24,33,.3);transition:transform .35s var(--spring),box-shadow .25s var(--ease)}.ds-btn-ghost:hover{transform:translateY(-1px) scale(1.02);box-shadow:inset 0 1px 0 #fff,0 8px 18px -8px rgba(20,24,33,.35)}.ds-btn-ghost:active{transform:scale(.97)}.ds-btn-ghost:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}"
     },
     {
-      "name": "Role Tab",
+      "name": "Apply and Save",
+      "kind": "button",
+      "refersTo": "button-apply",
+      "description": "Row actions: Apply is an aqua outline that fills on hover and opens the employer's posting; Save turns highlighter yellow when on.",
+      "html": "<div class=\"ds-actions\"><button class=\"ds-save\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M4 2.6h8v10.8L8 10.4l-4 3V2.6z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg>Save</button><button class=\"ds-save ds-save--on\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M4 2.6h8v10.8L8 10.4l-4 3V2.6z\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linejoin=\"round\"/></svg>Saved</button><a class=\"ds-apply\" href=\"#\">Apply <svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><path d=\"M2.5 8h11m-4.2-4.2L13.5 8l-4.2 4.2\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></a></div>",
+      "css": ".ds-actions{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:flex;gap:8px;align-items:center}.ds-apply,.ds-save{display:inline-flex;align-items:center;gap:6px;font-size:13.5px;font-weight:600;letter-spacing:-.01em;border-radius:999px;text-decoration:none;cursor:pointer;transition:transform .35s var(--spring),background .2s var(--ease),color .2s var(--ease)}.ds-apply{padding:7px 15px;color:var(--aqua-deep);background:#fff;border:1.5px solid var(--aqua);box-shadow:0 2px 6px -3px rgba(43,116,240,.5)}.ds-apply:hover{color:#fff;background:var(--aqua);transform:translateY(-1px) scale(1.02)}.ds-save{padding:7px 13px;color:var(--ink-2);background:#fff;border:1px solid var(--line-strong);box-shadow:0 1px 2px rgba(20,24,33,.06)}.ds-save:hover{color:var(--ink);border-color:#9aa2ae;box-shadow:0 4px 10px -5px rgba(20,24,33,.3)}.ds-save--on{color:#7a5800;background:#fff4c7;border-color:var(--sticker-deep)}.ds-save--on svg path{fill:var(--sticker)}.ds-apply:focus-visible,.ds-save:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}"
+    },
+    {
+      "name": "Field Tags",
       "kind": "chip",
-      "refersTo": "tab-divider",
-      "description": "Signature. A guide card standing between the records. Selection is elevation plus brass, never a tick.",
-      "html": "<div class=\"ds-tabs\"><label class=\"ds-tab\"><input type=\"checkbox\"> Data Science</label><label class=\"ds-tab\"><input type=\"checkbox\" checked> Software Engineering</label></div>",
-      "css": ".ds-tabs{display:flex;flex-wrap:wrap;gap:7px;align-items:flex-end;border-bottom:2px solid #b3a37c}.ds-tab{position:relative;display:inline-flex;align-items:center;font-family:Archivo,Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;color:#4a4235;background:#c7b791;border:1px solid #b3a37c;border-bottom:0;border-radius:2px 12px 0 0;padding:10px 16px 9px;cursor:pointer;box-shadow:inset 0 1px 0 rgba(255,255,255,.35);transition:transform .2s cubic-bezier(.16,.84,.34,1),background .2s cubic-bezier(.16,.84,.34,1)}.ds-tab input{position:absolute;opacity:0;width:1px;height:1px}.ds-tab:hover{background:#ddcfae;color:#231e17;transform:translateY(-2px)}.ds-tab:has(input:checked){background:#e3d6b4;color:#231e17;font-weight:800;transform:translateY(-6px);border-color:#b08d3f;box-shadow:0 -1px 0 #b08d3f,0 8px 14px -8px rgba(0,0,0,.6)}.ds-tab:has(input:checked)::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:3px;background:#b08d3f}"
+      "refersTo": "field-tag",
+      "description": "Finder-tag chips, coloured by their field group through a local --g; checked chips tint and show a tick.",
+      "html": "<div class=\"ds-tags\"><label class=\"ds-tag\" style=\"--g:#2b74f0\"><input type=\"checkbox\" checked>Software Engineering</label><label class=\"ds-tag\" style=\"--g:#9b51e0\"><input type=\"checkbox\">Machine Learning &amp; AI</label><label class=\"ds-tag\" style=\"--g:#0fa5a0\"><input type=\"checkbox\" checked>Pharmaceutical &amp; Medtech</label><label class=\"ds-tag\" style=\"--g:#1c9a4a\"><input type=\"checkbox\">Finance &amp; Financial Services</label></div>",
+      "css": ".ds-tags{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:flex;flex-wrap:wrap;gap:8px}.ds-tag{position:relative;display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink);letter-spacing:-.01em;background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:7px 14px 7px 11px;cursor:pointer;user-select:none;box-shadow:0 1px 2px rgba(20,24,33,.05);transition:transform .4s var(--spring),background .2s var(--ease),border-color .2s var(--ease),box-shadow .25s var(--ease)}.ds-tag::before{content:'';flex:none;width:16px;height:16px;border-radius:50%;background:color-mix(in srgb,var(--g) 22%,#fff);box-shadow:inset 0 0 0 1.5px var(--g);transition:transform .4s var(--spring)}.ds-tag input{position:absolute;opacity:0;width:1px;height:1px;margin:0}.ds-tag:hover{transform:translateY(-2px);box-shadow:0 6px 14px -8px rgba(20,24,33,.35);border-color:#aab1bc}.ds-tag:has(input:checked){background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:600;box-shadow:0 0 0 1px var(--g),0 6px 14px -8px color-mix(in srgb,var(--g) 70%,transparent)}.ds-tag:has(input:checked)::before{background:var(--g) url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\") center/100% no-repeat;box-shadow:none;transform:scale(1.08)}.ds-tag:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}.ds-tag:active{transform:scale(.96)}"
     },
     {
-      "name": "Record Card",
-      "kind": "card",
-      "refersTo": "record-card",
-      "description": "Signature. One filed opening: accession number, employer, title, meta, stamped date.",
-      "html": "<article class=\"ds-record\"><div class=\"ds-record-main\"><div class=\"ds-record-head\"><span class=\"ds-record-employer\">Stripe</span><span class=\"ds-record-no\">&#8470;&nbsp;000048</span></div><h3 class=\"ds-record-title\">Senior Backend Engineer</h3><p class=\"ds-record-meta\">Dublin, Ireland &middot; <span class=\"ds-exp\">5y+ (estimated)</span> &middot; in your chosen field</p></div><div class=\"ds-record-side\"><span class=\"ds-accession\">18 Aug 2026</span><a class=\"ds-btn-outline\" href=\"#\">Apply</a></div></article>",
-      "css": ".ds-record{position:relative;display:grid;grid-template-columns:1fr auto;gap:6px 22px;align-items:start;background:#ddcfae;color:#231e17;border-radius:2px;padding:18px 22px 17px;box-shadow:0 1px 0 #b3a37c,0 6px 14px -6px rgba(0,0,0,.55);font-family:Archivo,Helvetica,Arial,sans-serif;transition:transform .18s cubic-bezier(.16,.84,.34,1)}.ds-record:hover{transform:translateX(3px)}.ds-record-head{display:flex;align-items:baseline;gap:14px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid rgba(35,30,23,.22)}.ds-record-employer{font-size:11px;font-weight:800;letter-spacing:.15em;text-transform:uppercase;color:#5d5444}.ds-record-no{margin-left:auto;font-family:'Courier Prime',monospace;font-size:11px;letter-spacing:.04em;color:#5d5444}.ds-record-title{font-size:1.06rem;line-height:1.32;font-weight:800;letter-spacing:-.012em;margin:0}.ds-record-meta{font-size:12.5px;line-height:1.5;color:#5f5648;margin:5px 0 0}.ds-exp{color:#8e2620;font-weight:700}.ds-record-side{display:flex;flex-direction:column;align-items:flex-end;gap:9px}.ds-accession{font-family:'Courier Prime',monospace;font-size:12px;color:#5d5444;white-space:nowrap}"
-    },
-    {
-      "name": "Text Input",
+      "name": "Text Field and Switch",
       "kind": "input",
-      "refersTo": "input-ruled",
-      "description": "No box: a wash and a baseline rule that goes stamp red on focus.",
-      "html": "<label class=\"ds-field\"><span class=\"ds-fieldname\">Filter by title &mdash; optional</span><input class=\"ds-input\" type=\"text\" placeholder=\"engineer, analyst, nurse&hellip;\"></label>",
-      "css": ".ds-field{display:block;font-family:Archivo,Helvetica,Arial,sans-serif}.ds-fieldname{display:block;font-family:'Courier Prime',monospace;font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;color:#5d5444;margin-bottom:7px}.ds-input{width:100%;font-family:inherit;font-size:15px;color:#231e17;background:rgba(255,255,255,.46);border:0;border-bottom:1.5px solid rgba(35,30,23,.42);border-radius:0;padding:9px 2px;caret-color:#b7332a;transition:background .18s cubic-bezier(.16,.84,.34,1)}.ds-input::placeholder{color:#5d5444;opacity:1}.ds-input:focus{outline:none;background:rgba(255,255,255,.72);border-bottom-color:#b7332a}"
+      "refersTo": "input-text",
+      "description": "White field with an aqua focus halo, and the macOS switch that springs green.",
+      "html": "<div class=\"ds-form\"><label class=\"ds-label\">Search job titles <em>optional</em><input class=\"ds-input\" type=\"text\" placeholder=\"engineer, analyst, nurse...\"></label><label class=\"ds-switch\"><input type=\"checkbox\" checked><span class=\"ds-box\"></span>Include remote jobs</label></div>",
+      "css": ".ds-form{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:grid;gap:14px;max-width:360px}.ds-label{display:block;font-size:13.5px;font-weight:600;color:var(--ink)}.ds-label em{font-style:normal;font-weight:400;color:var(--ink-3)}.ds-input{display:block;width:100%;box-sizing:border-box;margin-top:8px;font:inherit;font-size:15px;font-weight:400;color:var(--ink);background:#fff;border:1px solid var(--line-strong);border-radius:10px;padding:10px 13px;box-shadow:inset 0 1px 1.5px rgba(20,24,33,.05);caret-color:var(--aqua);transition:border-color .18s var(--ease),box-shadow .18s var(--ease)}.ds-input::placeholder{color:#7d838e}.ds-input:focus{outline:none;border-color:var(--aqua);box-shadow:0 0 0 3.5px rgba(43,116,240,.2)}.ds-switch{display:inline-flex;align-items:center;gap:11px;font-size:14.5px;font-weight:500;color:var(--ink);cursor:pointer}.ds-switch input{position:absolute;opacity:0;width:1px;height:1px}.ds-box{position:relative;width:38px;height:22px;border-radius:11px;background:#d7dbe1;box-shadow:inset 0 1px 2px rgba(20,24,33,.18);transition:background .25s var(--ease)}.ds-box::after{content:'';position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(20,24,33,.3);transition:transform .4s var(--spring)}.ds-switch:has(input:checked) .ds-box{background:var(--tl-green)}.ds-switch:has(input:checked) .ds-box::after{transform:translateX(16px)}.ds-switch:has(input:focus-visible) .ds-box{outline:2.5px solid var(--aqua);outline-offset:2px}"
     },
     {
-      "name": "Label Holder",
-      "kind": "custom",
-      "refersTo": "label-plate",
-      "description": "Signature. The brass plate screwed to the drawer front: wordmark, live count, masthead.",
-      "html": "<span class=\"ds-plate\"><span class=\"ds-mark\">sorted<em>.</em>place</span><span class=\"ds-count\">DUBLIN &middot; LIVE OPENINGS &middot; 1,048</span></span>",
-      "css": ".ds-plate{position:relative;display:inline-flex;align-items:baseline;gap:12px;padding:7px 18px 8px;background:linear-gradient(180deg,#d9bc72,#b08d3f 52%,#977834);color:#120d02;border-radius:2px;box-shadow:0 1px 0 rgba(255,255,255,.45) inset,0 -1px 0 rgba(0,0,0,.35) inset,0 4px 10px -3px rgba(0,0,0,.6);font-family:Archivo,Helvetica,Arial,sans-serif}.ds-plate::before,.ds-plate::after{content:'';position:absolute;top:50%;width:5px;height:5px;margin-top:-2.5px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#f0dda6,#6d5620 70%);box-shadow:0 0 0 1px rgba(0,0,0,.35)}.ds-plate::before{left:6px}.ds-plate::after{right:6px}.ds-mark{font-weight:900;font-size:19px;letter-spacing:.015em;text-transform:lowercase;padding-left:8px}.ds-mark em{font-style:normal;opacity:.62}.ds-count{font-family:'Courier Prime',monospace;font-weight:700;font-size:12px;letter-spacing:.04em;text-transform:uppercase;padding-right:8px;white-space:nowrap}"
-    },
-    {
-      "name": "Stamp",
-      "kind": "chip",
-      "refersTo": "stamp-mark",
-      "description": "Rubber-stamp mark: NEW, REQUIRED, APPLIED, STRETCH. Outline is ink; filled is a struck stamp.",
-      "html": "<span class=\"ds-stamp\">new</span> <span class=\"ds-stamp ds-stamp-filled\">required</span>",
-      "css": ".ds-stamp{display:inline-block;font-family:'Courier Prime',monospace;font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase;color:#8e2620;border:1.5px solid #8e2620;border-radius:2px;padding:2px 7px 1px;opacity:.92;transform:rotate(-1.4deg)}.ds-stamp-filled{background:#b7332a;color:#fff;border-color:#b7332a}"
-    },
-    {
-      "name": "Rail Navigation",
+      "name": "Menu Bar",
       "kind": "nav",
-      "refersTo": "nav-rail",
-      "description": "The steel drawer rail. Uppercase micro-labels; the current page takes a brass underline.",
-      "html": "<nav class=\"ds-rail\"><a href=\"#\" class=\"ds-rail-link\" aria-current=\"page\">Drawer</a><a href=\"#\" class=\"ds-rail-link\">Employers</a><a href=\"#\" class=\"ds-rail-link\">Your CV</a></nav>",
-      "css": ".ds-rail{display:flex;gap:4px;background:linear-gradient(180deg,#3c474c,#212a2e);padding:14px 20px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}.ds-rail-link{font-family:Archivo,Helvetica,Arial,sans-serif;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#adbac1;text-decoration:none;padding:7px 11px;border-radius:2px;transition:color .18s cubic-bezier(.16,.84,.34,1),background .18s cubic-bezier(.16,.84,.34,1)}.ds-rail-link:hover{color:#e3d6b4;background:rgba(255,255,255,.05)}.ds-rail-link[aria-current=page]{color:#e3d6b4;box-shadow:inset 0 -2px 0 #b08d3f}"
+      "refersTo": "menubar",
+      "description": "Fixed glass menu bar: mark and wordmark, section nav, live count with a green dot, and the Dublin clock.",
+      "html": "<header class=\"ds-menubar\"><a class=\"ds-brand\" href=\"#\"><svg width=\"22\" height=\"22\" viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"3\" y=\"9\" width=\"20\" height=\"16\" rx=\"4\" fill=\"#c9ced6\"/><rect x=\"9\" y=\"5\" width=\"20\" height=\"16\" rx=\"4\" fill=\"#2b74f0\"/><circle cx=\"13\" cy=\"9\" r=\"1.4\" fill=\"#fff\"/><circle cx=\"17\" cy=\"9\" r=\"1.4\" fill=\"#fff\"/></svg><b>sorted</b><span>.place</span></a><nav><a href=\"#\" aria-current=\"page\">Find jobs</a><a href=\"#\">Companies</a><a href=\"#\">Sign in</a></nav><div class=\"ds-status\"><span class=\"ds-live\"><i></i>2,295 open in Dublin</span><span class=\"ds-clock\">Thu 13:15 in Dublin</span></div></header>",
+      "css": ".ds-menubar{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:flex;align-items:center;gap:6px;height:48px;padding:0 18px;background:rgba(246,247,249,.78);-webkit-backdrop-filter:saturate(1.6) blur(18px);backdrop-filter:saturate(1.6) blur(18px);border-bottom:1px solid rgba(20,24,33,.08);font-size:14px;color:var(--ink)}.ds-brand{display:inline-flex;align-items:center;gap:9px;margin-right:10px;text-decoration:none;color:var(--ink);font-size:15px;font-weight:700;letter-spacing:-.02em}.ds-brand svg{transition:transform .5s var(--spring)}.ds-brand:hover svg{transform:rotate(-8deg) scale(1.08)}.ds-brand span{color:var(--ink-3);font-weight:500;margin-left:-9px}.ds-menubar nav{display:flex;gap:2px}.ds-menubar nav a{color:var(--ink-2);text-decoration:none;font-weight:500;padding:5px 10px;border-radius:7px;transition:background .2s var(--ease),color .2s var(--ease)}.ds-menubar nav a:hover{background:rgba(20,24,33,.06);color:var(--ink)}.ds-menubar nav a[aria-current=page]{color:var(--ink);background:rgba(20,24,33,.08);font-weight:600}.ds-menubar a:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}.ds-status{margin-left:auto;display:flex;gap:16px;font-size:13px;color:var(--ink-2);white-space:nowrap}.ds-live{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}.ds-live i{width:8px;height:8px;border-radius:50%;background:var(--tl-green);box-shadow:0 0 0 3px rgba(40,200,64,.18)}.ds-clock{color:var(--ink-3)}"
+    },
+    {
+      "name": "Window with Job Row",
+      "kind": "card",
+      "refersTo": "window",
+      "description": "The app window every working surface sits in: gradient title bar, traffic lights, mono filename; here holding one job row with its app icon and a status pill.",
+      "html": "<section class=\"ds-win\"><div class=\"ds-bar\"><span class=\"ds-lights\"><i></i><i></i><i></i></span><span class=\"ds-title\">results — 214 found</span></div><article class=\"ds-row\"><span class=\"ds-logo\">S</span><div class=\"ds-main\"><span class=\"ds-emp\">Stripe</span><h3 class=\"ds-jt\"><a href=\"#\">Backend Engineer, Payments</a></h3><p class=\"ds-meta\">Dublin · Hybrid · <span class=\"ds-mono\">posted 2 days ago</span></p><span class=\"ds-pill\">new</span></div></article></section>",
+      "css": ".ds-win{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;background:#fff;border:1px solid rgba(20,24,33,.12);border-radius:14px;overflow:clip;max-width:520px;box-shadow:0 2px 4px rgba(20,24,33,.08),0 30px 60px -18px rgba(20,24,33,.38);color:var(--ink)}.ds-bar{display:flex;align-items:center;gap:12px;height:38px;padding:0 14px;background:linear-gradient(180deg,var(--win-bar),var(--win-bar-2));border-bottom:1px solid var(--line)}.ds-lights{display:inline-flex;gap:7px}.ds-lights i{width:12px;height:12px;border-radius:50%;background:var(--tl-red);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}.ds-lights i:nth-child(2){background:var(--tl-amber)}.ds-lights i:nth-child(3){background:var(--tl-green)}.ds-title{flex:1;text-align:center;margin-right:52px;font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--ink-3)}.ds-row{display:flex;gap:16px;padding:19px 26px;transition:background .2s var(--ease)}.ds-row:hover{background:#f7f9fd}.ds-logo{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:24%;background:hsl(250 70% 92%);color:hsl(250 55% 30%);font-weight:750;font-size:19px;box-shadow:inset 0 0 0 1px rgba(20,24,33,.08)}.ds-emp{display:block;font-size:13px;font-weight:550;color:var(--ink-3)}.ds-jt{margin:0;font-size:1.04rem;line-height:1.32;font-weight:650;letter-spacing:-.015em}.ds-jt a{color:inherit;text-decoration:none;background-image:linear-gradient(var(--aqua),var(--aqua));background-size:0 1.5px;background-repeat:no-repeat;background-position:0 100%;transition:background-size .35s var(--ease),color .2s}.ds-jt a:hover{color:var(--aqua-deep);background-size:100% 1.5px}.ds-jt a:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:4px}.ds-meta{margin:5px 0 8px;font-size:13.5px;color:var(--ink-2)}.ds-mono{font-family:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;color:var(--ink-3)}.ds-pill{display:inline-flex;font-size:11.5px;font-weight:650;color:var(--sorted);background:var(--sorted-wash);border-radius:20px;padding:3px 9px}"
+    },
+    {
+      "name": "App Icon with Count Badge",
+      "kind": "custom",
+      "refersTo": "count-badge",
+      "description": "Employer squircle (favicon or lettered tint) with a red badge carrying its open-job count; lifts on the spring.",
+      "html": "<div class=\"ds-dock\"><a class=\"ds-app\" href=\"#\"><span class=\"ds-icon\" style=\"--hue:30\">A</span><span class=\"ds-badge\">197</span></a><a class=\"ds-app\" href=\"#\"><span class=\"ds-icon\" style=\"--hue:210\">G</span><span class=\"ds-badge\">119</span></a><a class=\"ds-app\" href=\"#\"><span class=\"ds-folder\">+301</span></a></div>",
+      "css": ".ds-dock{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:inline-flex;align-items:flex-end;gap:10px;padding:10px 14px;border-radius:24px;background:rgba(255,255,255,.55);-webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);border:1px solid rgba(255,255,255,.8);box-shadow:0 0 0 1px rgba(20,24,33,.08),0 20px 40px -18px rgba(20,24,33,.35)}.ds-app{position:relative;display:block;text-decoration:none;transition:transform .5s var(--spring)}.ds-app:hover{transform:translateY(-5px) scale(1.08)}.ds-app:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:14px}.ds-icon,.ds-folder{display:grid;place-items:center;width:60px;height:60px;border-radius:24%;font-weight:750;letter-spacing:-.04em;box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 4px 10px -4px rgba(20,24,33,.35)}.ds-icon{background:hsl(var(--hue) 70% 92%);color:hsl(var(--hue) 55% 30%);font-size:26px}.ds-folder{color:#fff;font-size:17px;background:linear-gradient(180deg,#2766d6,var(--aqua-deep))}.ds-badge{position:absolute;top:-4px;right:-6px;min-width:22px;height:22px;padding:0 6px;box-sizing:border-box;display:grid;place-items:center;border-radius:11px;background:var(--tag-red);color:#fff;font-size:11.5px;font-weight:700;box-shadow:0 0 0 2px #fff,0 2px 6px -1px rgba(192,44,40,.5)}"
+    },
+    {
+      "name": "Stickers",
+      "kind": "custom",
+      "refersTo": "hand",
+      "description": "Desk stickers in the hand face: a HELLO name tag and a yellow note with live counts.",
+      "html": "<div class=\"ds-stickers\"><div class=\"ds-nametag\"><div class=\"ds-nt-head\"><b>HELLO</b><span>my name is</span></div><span class=\"ds-nt-name\">sorted</span></div><div class=\"ds-note\">311 companies.<br>2,295 jobs.<br>one tab.</div></div>",
+      "css": ".ds-stickers{--aqua:#2b74f0;--aqua-deep:#1a55c2;--aqua-wash:#edf3ff;--ink:#15171c;--ink-2:#454b56;--ink-3:#5c626d;--line:#dde1e7;--line-strong:#c4cad3;--win-bar:#f4f5f7;--win-bar-2:#e8eaee;--sticker:#ffd84a;--sticker-deep:#e8b400;--tag-red:#e8413c;--sorted:#1c9a4a;--sorted-wash:#e6f6ec;--tl-red:#ff5f57;--tl-amber:#febc2e;--tl-green:#28c840;--spring:cubic-bezier(.34,1.56,.64,1);--ease:cubic-bezier(.16,1,.3,1);font-family:Geist,ui-sans-serif,system-ui,-apple-system,sans-serif;display:flex;gap:28px;align-items:center;padding:12px}.ds-nametag,.ds-note{filter:drop-shadow(0 8px 14px rgba(20,24,33,.2));transition:transform .4s var(--spring)}.ds-nametag:hover,.ds-note:hover{transform:scale(1.04) rotate(0deg)}.ds-nametag{width:170px;background:#fff;border-radius:10px;overflow:hidden;border:1px solid rgba(20,24,33,.1);text-align:center;transform:rotate(-7deg)}.ds-nt-head{background:var(--tag-red);color:#fff;padding:7px 0 6px;line-height:1}.ds-nt-head b{display:block;font-size:17px;font-weight:800;letter-spacing:.06em}.ds-nt-head span{font-size:10px;font-weight:600}.ds-nt-name{display:block;padding:8px 10px 12px;font-family:'Gochi Hand','Comic Sans MS',cursive;font-size:30px;line-height:1;color:var(--ink)}.ds-note{width:190px;padding:16px 16px 18px;background:var(--sticker);color:#3d3000;font-family:'Gochi Hand','Comic Sans MS',cursive;font-size:20px;line-height:1.2;border-radius:3px 3px 18px 3px;transform:rotate(4deg)}"
     }
   ],
   "narrative": {
-    "northStar": "The Accession Register",
-    "overview": "This is a working library register rendered as an interface: an oxidised steel drawer, manila record cards threaded on a brass rod, a brass label holder screwed to the front, and a red stamp pad. The metaphor is not decoration. It was chosen because a register never throws anything out, which is the same promise the crawler underneath already makes.\n\nThe register is a finite, countable, physically bounded collection, and the system is built to say so. The count is the headline, it sits in brass hardware rather than in a stat tile, and every record carries an accession number and a stamped date.\n\nThe system refuses the category default - centred hero, wide search bar, three icon cards - and refuses the warm-cream-and-serif rendition that 'archival' usually collapses into.",
+    "northStar": "The Tidy Desktop",
+    "overview": "The site is a light computer desktop. A cool grey ground with a faint dotted grid stands in for the screen; every piece of content that works (the find-my-jobs form, the results, the company list, a company's jobs, the privacy notes) sits in a white app window with a grey title bar, three traffic lights and a mono filename. Employers show up as app icons with their real favicons and a red notification badge carrying their open-job count. The home page acts out the premise: real employers' careers windows scattered across the desk, draggable and throwable, which one aqua button sorts into a single list below.\n\nThe light ground is chosen for how the site is actually used. Someone arrives mid-hunt on a laptop with twenty careers tabs open, or on a phone on a bus, and both need to read a long list in daylight. The desktop metaphor is literal enough to explain the product without copy (\"close the other nineteen tabs\"), and it stays out of the way once the visitor is working: from the first result onward the page is a plain white list inside a window.\n\nPlay lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing here signals alerts or notifications. The red badge is a count, not something unread.",
     "keyCharacteristics": [
-      "Dark steel ground, light card stock - content is always on a card, never loose on the page",
-      "Every number on screen is queryable from the database; nothing is rounded up for effect",
-      "One variable grotesque plus one typewriter face; the typewriter face means record, never technical",
-      "Motion is one grammar: things rise out of the drawer",
-      "Hardware is modelled (screws, rod, pull), surfaces are flat"
+      "Light desktop ground (#eceef2, 22px dotted grid) under white windows; no dark surfaces except the dock tooltip.",
+      "One action colour: glossy aqua pills. Green reads as \"sorted / live\". Red is kept to count badges and a few marks (applied, required, errors).",
+      "Finder tag colours identify the eleven field groups, and that is their only job.",
+      "Three typefaces with separate jobs: Geist carries the interface, Geist Mono types data, Gochi Hand scribbles asides.",
+      "Springy for anything you touch, an exponential settle for anything that arrives; everything still works and stays visible with reduced motion or without JS."
     ],
     "rules": [
       {
-        "name": "The Card Stock Rule",
-        "body": "Content sits on a card; chrome sits on steel. If something is readable text and it is not on manila, it is on steel and it takes Steel 400 or lighter - never Ink, which vanishes there.",
+        "name": "The One Go Colour Rule",
+        "body": "Full-strength aqua marks what the visitor can do next: the primary pill, Apply, focus, progress. Nothing decorative is aqua, and no second hue competes with it for an action. The platforms band is the single large aqua field, and it holds draggable pills, not text to read at length.",
         "section": "colors"
       },
       {
-        "name": "The Never Cream Rule",
-        "body": "No surface goes lighter than #e3d6b4. Cream, parchment and paper-white are the default this world was chosen against.",
+        "name": "The Tag Is The Field Rule",
+        "body": "Finder tag colours belong to field groups and appear only on field chips and group labels. They are never used as decoration, status, or brand colour elsewhere.",
         "section": "colors"
       },
       {
-        "name": "The Two Saturated Voices Rule",
-        "body": "Red is ink and brass is metal. Red never appears as a large field and brass never carries a paragraph.",
+        "name": "The Green Means Sorted Rule",
+        "body": "Green says a thing is live, done or ready (open counts, a read CV, a completed step, a switch that is on). It never labels an action.",
         "section": "colors"
       },
       {
-        "name": "The Typewriter Means Record Rule",
-        "body": "Courier Prime appears only where a register would actually have been typed. It never appears to make something look technical.",
+        "name": "The Sentence Case Rule",
+        "body": "Headlines are sentence case and usually end with a full stop (\"Every job in Dublin, sorted.\"). Proper nouns keep their capitals. No all-lowercase or all-caps headlines; the only capitals-only text is the printed HELLO on the name-tag sticker, because that is what a name tag says.",
         "section": "typography"
       },
       {
-        "name": "The 11px Floor Rule",
-        "body": "No functional text ships below 11px, footers included, and anything carrying a whole sentence goes to 12px.",
+        "name": "The Three Voices Rule",
+        "body": "Geist speaks, Mono types, the hand scribbles. The hand face never carries information the visitor needs that is not also stated in Geist; mono never sets a headline.",
         "section": "typography"
       },
       {
-        "name": "The Plain Words Rule",
-        "body": "The world is a register; the copy is not. Nothing on screen asks a visitor to learn the metaphor to use the product: no 'records pulled', no serial numbers, no 'drawer 3 of 10'.",
+        "name": "The One Highlight Rule",
+        "body": "A headline may sweep the highlighter under one phrase, once, left to right. Never more than one highlighted phrase per heading.",
         "section": "typography"
       },
       {
-        "name": "The Short Caps Rule",
-        "body": "Uppercase is for labels of roughly 21 characters or fewer. The tab shape says 'tab', not the capitals.",
-        "section": "typography"
-      },
-      {
-        "name": "The Drawer Has A Bottom Rule",
-        "body": "Any list that can exceed ~50 rows pages. Shipping the employer register unpaginated produced a 76,489px page on a phone.",
-        "section": "layout"
-      },
-      {
-        "name": "The Cut Edge Rule",
-        "body": "A card's hard 1px offset is always paired with a soft blurred shadow and is always Manila Edge.",
+        "name": "The Height Means Handling Rule",
+        "body": "Resting, lifted, held, popup: four heights, each tied to what the visitor is doing with the window. Don't invent new ones, and don't lift a window just to decorate it.",
         "section": "elevation"
       },
       {
-        "name": "The Ruled Line Rule",
-        "body": "Separation is a ruled hairline or a change of stock colour, never a box inside a box.",
-        "section": "shapes"
+        "name": "The Glass Is For Floating Rule",
+        "body": "Backdrop blur only on chrome that stays put while content scrolls under it.",
+        "section": "elevation"
       }
     ],
     "dos": [
-      "Do put readable content on card stock and chrome on steel, and check the text colour against the ground it actually lands on.",
-      "Do state every number literally, from the database, including the unflattering ones.",
-      "Do convey selection with elevation and hardware, not with ticks or colour fills.",
-      "Do keep motion to the one grammar: things rise out of the drawer, from a state already visible without JavaScript.",
-      "Do cap the stagger on entrance animations so a hundred records never take ten seconds to arrive.",
-      "Do page any list that can exceed ~50 rows.",
-      "Do theme the browser's own surfaces - selection, caret, scrollbar, focus ring, tabular numerals."
+      "**Do** put working content in a window with a title bar, traffic lights and a mono filename; put page headlines on the desk itself.",
+      "**Do** keep aqua (#2b74f0) for the next action, focus and progress, and use `aqua-deep` for any aqua text.",
+      "**Do** colour field chips by their Finder tag (`g-*`) and nothing else by those colours.",
+      "**Do** use real, live figures on every sticker, badge, window and headline, formatted with thousands separators, as PRODUCT.md requires.",
+      "**Do** write headlines in sentence case with proper nouns capitalised, and at most one highlighted phrase.",
+      "**Do** use the spring for touch and the exponential settle for arrival, and make sure every animated element is visible and usable with reduced motion or no JS.",
+      "**Do** turn the desk into a swipe strip on narrow screens and keep the live count in the menu bar.",
+      "**Do** show real company favicons in app icons, falling back to a lettered squircle."
     ],
     "donts": [
-      "Don't go lighter than #e3d6b4 on any surface, and never reach for cream, parchment or a display serif.",
-      "Don't set a passage longer than ~21 characters in uppercase.",
-      "Don't use Courier Prime to make something look technical; it means typed record.",
-      "Don't put a coloured accent border on the side of a card, callout or alert.",
-      "Don't nest a card inside a card, or use a box where a ruled hairline will separate.",
-      "Don't let red carry a large field or brass carry a paragraph.",
-      "Don't claim a capability the product lacks. There is no alerting of any kind.",
-      "Don't make the visitor learn the filing metaphor to use the product; the world shapes the components, the words stay plain."
+      "**Don't** switch to a dark ground or a dark \"serious\" register; the desktop is light.",
+      "**Don't** add a second action colour, or use aqua, green or tag colours as decoration.",
+      "**Don't** use the red badge or any bell, envelope or \"unread\" treatment to suggest alerts; the badge is a count and the site sends nothing.",
+      "**Don't** set headlines in all lowercase or all caps, or in the mono or hand face.",
+      "**Don't** put information only in Gochi Hand; scribbles are asides.",
+      "**Don't** add a fifth shadow height or blur anything that doesn't float over scrolling content.",
+      "**Don't** make desk objects draggable on touch screens, where dragging would fight scrolling.",
+      "**Don't** add WebGL or 3D scenes; they were ruled out for phone performance."
     ]
   }
 }

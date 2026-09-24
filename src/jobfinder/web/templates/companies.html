@@ -1,0 +1,467 @@
+{% extends "base.html" %}
+{% from "_macros.html" import logo, titlebar %}
+{% set nav = 'companies' %}
+{% block title %}{{ "{:,}".format(employers_hiring) }} companies hiring in Dublin &mdash; Sorted Place{% endblock %}
+{% block description %}{{ "{:,}".format(employers_hiring) }} companies have {{ "{:,}".format(dublin_count) }} jobs open in Dublin right now, from multinationals to Irish firms and the public sector, all in one place.{% endblock %}
+{% block railcount %}{{ "{:,}".format(employers_hiring) }}<span class="rail-long"> companies</span> hiring{% endblock %}
+
+{% macro names(list) -%}
+{%- for n in list -%}{{ n }}{% if not loop.last %}{{ ", " if loop.revindex > 2 else " and " }}{% endif %}{%- endfor -%}
+{%- endmacro %}
+
+{% block wide %}
+<section class="co-hero wrap">
+  <div class="co-hero__copy">
+    <h1><span data-count>{{ "{:,}".format(employers_hiring) }}</span> companies are hiring in Dublin <span class="hl">right now.</span></h1>
+    <p class="lede">
+      Sorted Place brings every one of them into one place:
+      {% if global_names %}multinationals like {{ names(global_names[:4]) }},{% endif %}
+      {% if irish_names %}Irish companies like {{ names(irish_names[:3]) }},{% endif %}
+      {% if public_sector %}{{ public_sector }} public-sector employers{% endif %}
+      {%- if graduate_employers %} and {{ graduate_employers }} graduate recruiters{% endif %}.
+      Between them that's <strong>{{ "{:,}".format(dublin_count) }} jobs</strong>, read straight
+      from each company's own careers site and refreshed every six hours.
+    </p>
+    <div class="row" style="gap:12px;margin-top:26px">
+      <a class="btn" href="/#find">Find jobs that fit you
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a class="btn btn--ghost" href="#all">Browse the full list</a>
+    </div>
+  </div>
+
+  <aside class="win getinfo opens" aria-label="About this list">
+    {{ titlebar("companies — get info") }}
+    <div class="getinfo__top">
+      <span class="getinfo__icon" aria-hidden="true">
+        {% for e in top[:4] %}{{ logo(e.name, e.domain, "logo--sm") }}{% endfor %}
+      </span>
+      <div><b>Dublin, all of it</b><span>{{ updated or "refreshed every 6 hours" }}</span></div>
+    </div>
+    <dl class="getinfo__rows">
+      <div><dt>Companies hiring</dt><dd data-count>{{ "{:,}".format(employers_hiring) }}</dd></div>
+      <div><dt>Jobs open in Dublin</dt><dd data-count>{{ "{:,}".format(dublin_count) }}</dd></div>
+      <div><dt>Hiring platforms read</dt><dd>{{ platforms|length }}</dd></div>
+      {% if public_sector %}<div><dt>Public-sector employers</dt><dd>{{ public_sector }}</dd></div>{% endif %}
+      {% if graduate_employers %}<div><dt>Graduate recruiters</dt><dd>{{ graduate_employers }}</dd></div>{% endif %}
+      <div><dt>Refreshed</dt><dd>every 6 hours</dd></div>
+    </dl>
+  </aside>
+</section>
+
+{# The biggest names as app icons, laid out the way a launcher lays out apps. The badge
+   is the number of jobs open; tapping one opens a window listing them. #}
+<section class="wrap launch" aria-labelledby="big-names">
+  <div class="spread launch__head">
+    <h2 id="big-names" class="reveal">The big names</h2>
+    <p class="hand launch__hint">tap any icon to see its jobs <svg class="scrawl" viewBox="0 0 34 20" width="30" height="18" aria-hidden="true"><path d="M3 11c9-3 18 1 27-2M30 9l-6-5M30 9l-5 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+  </div>
+  <ul class="launch__grid">
+    {% for e in top %}
+    <li class="launch__item opens" data-delay="{{ (loop.index0 % 12) * 30 }}">
+      <button type="button" class="app" data-company="{{ e.id }}" data-name="{{ e.name }}">
+        <span class="app__icon">{{ logo(e.name, e.domain, "logo--lg") }}<span class="badge">{{ e.jobs }}</span></span>
+        <span class="app__name">{{ e.name }}</span>
+      </button>
+    </li>
+    {% endfor %}
+  </ul>
+  {% if employers_hiring > top|length %}
+  <p class="launch__more">
+    &hellip;and <a href="#all">{{ employers_hiring - top|length }} more companies</a>, big and small,
+    in the full list below.
+  </p>
+  {% endif %}
+</section>
+
+{# Where the jobs come from. Every sticker is a platform actually read today, with the
+   number of Dublin jobs it carried. #}
+<section class="sky" aria-labelledby="where">
+  <div class="wrap">
+    <h2 id="where" class="reveal">We read {{ platforms|length }} hiring platforms, so you don't have to.</h2>
+    <p class="sky__lede">
+      Companies post jobs on their own careers site, which usually runs on one of these.
+      We check every one of them every six hours and bring back what's open in Dublin.
+    </p>
+    <div class="sky__stage" id="sky-stage">
+      {% set tilts = ["-3deg","2deg","-1.5deg","3.5deg","-2.5deg","1deg","-4deg","2.5deg"] %}
+      {% for p in platforms %}
+      <div class="plat" data-drag style="--r:{{ tilts[loop.index0 % 8] }}">
+        {% if p.domain %}{{ logo(p.label, p.domain, "logo--sm") }}{% else %}<span class="plat__glyph" aria-hidden="true"><svg width="18" height="18"><use href="#i-doc"/></svg></span>{% endif %}
+        <span class="plat__name">{{ p.label }}</span>
+        <span class="plat__count">{{ "{:,}".format(p.jobs) }}</span>
+      </div>
+      {% endfor %}
+      <div class="sticker note sky__note" data-drag style="--r:3deg">
+        not LinkedIn or Indeed &mdash; their terms don't allow it. most Dublin jobs posted there
+        come from the same careers sites we already read.
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section id="all" class="allco" aria-labelledby="all-title">
+  <div class="win allwin opens">
+    {{ titlebar("all-companies") }}
+    <div class="allwin__tools">
+      <h2 id="all-title">Every company hiring in Dublin</h2>
+      <label class="finder-search">
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-search"/></svg>
+        <span class="sr">Search companies</span>
+        <input type="search" id="co-filter" placeholder="Search {{ employers_hiring }} companies" autocomplete="off">
+      </label>
+    </div>
+    <div class="allwin__cols" role="presentation">
+      <button type="button" class="colbtn" data-sort="name">Company</button>
+      <span class="allwin__platcol">Found on</span>
+      <button type="button" class="colbtn is-on" data-sort="jobs" aria-pressed="true">Open jobs</button>
+    </div>
+    <ul class="colist" id="co-list">
+      {% for e in employers %}
+      <li data-name="{{ e.name|lower }}" data-jobs="{{ e.jobs }}">
+        <button type="button" class="corow" data-company="{{ e.id }}" data-name="{{ e.name }}">
+          {{ logo(e.name, e.domain, "logo--sm") }}
+          <span class="corow__name">{{ e.name }}</span>
+          <span class="corow__plat">{{ e.platforms|join(" · ") }}</span>
+          <span class="corow__jobs">{{ e.jobs }}</span>
+        </button>
+      </li>
+      {% endfor %}
+    </ul>
+    <p class="colist__none" id="co-none" hidden>No company by that name is hiring in Dublin right now.</p>
+    <div class="allwin__foot typed"><span id="co-shown">{{ employers_hiring }}</span> of {{ employers_hiring }} companies &middot; {{ "{:,}".format(dublin_count) }} jobs</div>
+  </div>
+</section>
+
+<section class="coclose">
+  <h2 class="reveal">Found a few you like?</h2>
+  <p class="lede">Tell us the kind of work you want and we'll line up every matching job
+    across all {{ "{:,}".format(employers_hiring) }} of them, best fit first.</p>
+  <a class="btn" href="/#find">Find my jobs <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+</section>
+
+<div id="popwins" aria-live="polite"></div>
+
+<style>
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  /* ------------------------------------------------------------- hero */
+  .co-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:56px;
+    align-items:center;padding-top:72px;padding-bottom:40px}
+  .co-hero h1{font-size:clamp(2.6rem,5.6vw,4.6rem)}
+  .co-hero .lede{max-width:56ch}
+  .getinfo{box-shadow:var(--shadow-lift);transform:rotate(1.2deg)}
+  .getinfo__top{display:flex;align-items:center;gap:14px;padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+  .getinfo__icon{display:grid;grid-template-columns:repeat(2,26px);gap:4px;padding:6px;
+    background:var(--win-bar);border-radius:12px;box-shadow:inset 0 0 0 1px var(--line)}
+  .getinfo__icon .logo{--size:26px}
+  .getinfo__top b{display:block;font-size:16px;font-weight:650;letter-spacing:-.015em}
+  .getinfo__top span{font-size:13px;color:var(--ink-3)}
+  .getinfo__rows{margin:0;padding:8px 22px 16px}
+  .getinfo__rows div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;
+    border-bottom:1px solid var(--line);font-size:14px}
+  .getinfo__rows div:last-child{border-bottom:0}
+  .getinfo__rows dt{color:var(--ink-3)}
+  .getinfo__rows dd{margin:0;font-weight:650;font-variant-numeric:tabular-nums}
+
+  /* ----------------------------------------------------------- launcher */
+  .launch{padding-top:48px;padding-bottom:70px}
+  .launch__head{margin-bottom:22px}
+  .launch__head h2{margin:0}
+  .launch__hint{margin:0;font-size:20px;color:var(--ink-2);transform:rotate(-2deg)}
+  .launch__grid{list-style:none;margin:0;padding:0;display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:26px 10px}
+  .app{
+    display:flex;flex-direction:column;align-items:center;gap:9px;width:100%;
+    background:none;border:0;box-shadow:none;padding:8px 4px;border-radius:16px;color:var(--ink);
+    font:inherit;cursor:pointer;
+  }
+  .app::after{display:none}
+  .app:hover:not(:disabled){background:rgba(255,255,255,.55);transform:none;filter:none;box-shadow:none}
+  .app__icon{position:relative;display:block;transition:transform .5s var(--spring)}
+  .app__icon .logo{box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 8px 18px -8px rgba(20,24,33,.45)}
+  .app:hover .app__icon{transform:translateY(-5px) scale(1.08)}
+  @media (prefers-reduced-motion:no-preference){
+    .app:hover .app__icon .logo{animation:jiggle .5s var(--ease)}
+  }
+  @keyframes jiggle{0%,100%{rotate:0deg}25%{rotate:-6deg}60%{rotate:5deg}}
+  .app:active .app__icon{transform:scale(.92);transition-duration:.1s}
+  .app__name{font-size:13px;font-weight:550;line-height:1.25;text-align:center;
+    max-width:100%;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;
+    -webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .launch__more{margin:30px auto 0;text-align:center;color:var(--ink-2);max-width:none}
+  .launch__more a{color:var(--aqua-deep);font-weight:600}
+
+  /* ------------------------------------------------------------ the sky */
+  .sky{
+    position:relative;color:#fff;padding:84px 0 96px;
+    border-radius:32px 32px 0 0;
+    background-color:var(--aqua);
+    background-image:radial-gradient(rgba(255,255,255,.22) 1px,transparent 1.3px);
+    background-size:22px 22px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
+  }
+  .sky h2{font-size:clamp(1.9rem,4.2vw,3.2rem);max-width:20ch;margin-bottom:14px}
+  .sky__lede{color:#e3edff;font-size:1.1rem;max-width:56ch}
+  .sky__stage{position:relative;display:flex;flex-wrap:wrap;gap:16px 14px;margin-top:40px;
+    align-items:center;padding-right:230px;min-height:230px}
+  .plat{
+    display:inline-flex;align-items:center;gap:10px;
+    background:#fff;color:var(--ink);border-radius:999px;padding:8px 16px 8px 8px;
+    box-shadow:0 10px 24px -12px rgba(8,30,90,.6);
+    transform:translate(var(--dx,0px),var(--dy,0px)) rotate(calc(var(--r) + var(--tilt,0deg)));
+    touch-action:none;cursor:grab;user-select:none;
+    transition:scale .3s var(--spring),box-shadow .3s var(--ease);
+  }
+  .plat .logo{--size:30px;border-radius:50%}
+  .plat__glyph{display:grid;place-items:center;width:30px;height:30px;border-radius:50%;
+    background:var(--win-bar);color:var(--ink-3)}
+  .plat__name{font-weight:600;font-size:14.5px;letter-spacing:-.01em;white-space:nowrap}
+  .plat__count{font-family:var(--mono);font-size:12.5px;color:var(--aqua-deep);
+    background:var(--aqua-wash);border-radius:20px;padding:2px 8px}
+  .plat.is-held,.sky .sticker.is-held{scale:1.06;cursor:grabbing}
+  .sky__note{position:absolute;right:0;top:0;width:210px;font-size:18.5px;
+    transform:translate(var(--dx,0px),var(--dy,0px)) rotate(calc(var(--r) + var(--tilt,0deg)));
+    touch-action:none;cursor:grab}
+  @media (prefers-reduced-motion:no-preference){
+    .js .sky .plat{opacity:0;translate:0 26px}
+    .js .sky.is-up .plat{opacity:1;translate:0 0;
+      transition:opacity .5s var(--ease) calc(var(--i) * 35ms),translate .8s var(--spring) calc(var(--i) * 35ms),scale .3s var(--spring)}
+  }
+
+  /* -------------------------------------------------------- the full list */
+  .allco{position:relative;margin-top:-40px;scroll-margin-top:70px}
+  .allwin{box-shadow:var(--shadow-lift)}
+  .allwin__tools{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+    padding:22px 24px 16px}
+  .allwin__tools h2{margin:0;font-size:clamp(1.3rem,2.4vw,1.7rem)}
+  .finder-search{position:relative;width:min(320px,100%)}
+  .finder-search svg{position:absolute;left:12px;top:50%;margin-top:-7.5px;color:var(--ink-3)}
+  .finder-search input{padding-left:36px;border-radius:999px;background:var(--win-bar)}
+  .finder-search input:focus{background:#fff}
+  .allwin__cols,.corow{display:grid;align-items:center;gap:14px}
+  .allwin__cols{padding:7px 24px;background:var(--win-bar);border-top:1px solid var(--line);
+    border-bottom:1px solid var(--line);font-size:12.5px;font-weight:600;color:var(--ink-3)}
+  .colbtn{all:unset;cursor:pointer;font:inherit;color:inherit;border-radius:4px}
+  .colbtn:last-child{text-align:right}
+  .colbtn:hover{color:var(--ink)}
+  .colbtn.is-on{color:var(--aqua-deep)}
+  .colbtn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .colist{list-style:none;margin:0;padding:0;max-height:560px;overflow-y:auto;overscroll-behavior:contain}
+  .corow{
+    width:100%;padding:9px 24px;background:#fff;border:0;border-bottom:1px solid var(--line);
+    border-radius:0;box-shadow:none;color:var(--ink);font:inherit;text-align:left;cursor:pointer;
+    grid-template-columns:30px minmax(0,1.3fr) minmax(0,1fr) 70px;
+  }
+  .corow::after{display:none}
+  .corow:hover:not(:disabled){background:var(--aqua-wash);transform:none;filter:none;box-shadow:none}
+  .corow:focus-visible{outline-offset:-3px}
+  .allwin__cols{grid-template-columns:30px minmax(0,1.3fr) minmax(0,1fr) 70px}
+  .allwin__cols .colbtn:first-child{grid-column:1 / span 2}
+  .corow__name{font-size:14.5px;font-weight:600;letter-spacing:-.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .corow__plat{font-size:13px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .corow__jobs{text-align:right;font-weight:650;font-variant-numeric:tabular-nums}
+  .colist__none{padding:30px 24px;margin:0;color:var(--ink-2)}
+  .allwin__foot{padding:10px 24px;background:var(--win-bar);border-top:1px solid var(--line)}
+
+  .coclose{text-align:center;padding:90px 0 20px}
+  .coclose h2{font-size:clamp(1.8rem,4vw,2.8rem)}
+  .coclose .lede{margin:0 auto 26px;max-width:48ch}
+
+  /* ------------------------------------------------ the company window */
+  .popwin{
+    position:fixed;z-index:120;width:min(460px,calc(100vw - 24px));
+    max-height:min(620px,calc(100vh - 90px));display:flex;flex-direction:column;
+    box-shadow:0 3px 8px rgba(20,24,33,.12),0 50px 90px -24px rgba(20,24,33,.5);
+  }
+  .popwin:focus{outline:none}
+  .popwin .win__bar{cursor:grab;touch-action:none;flex:none}
+  .popwin.is-held .win__bar{cursor:grabbing}
+  .popwin .lights button{all:unset;width:12px;height:12px;border-radius:50%;cursor:pointer;
+    background:var(--tl-red);box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18);display:grid;place-items:center}
+  .popwin .lights button svg{opacity:0;width:8px;height:8px;color:#7a1410}
+  .popwin .lights:hover button svg{opacity:1}
+  .popwin .lights button:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .popwin__body{overflow-y:auto;overscroll-behavior:contain;flex:1}
+  .popwin__loading{display:flex;align-items:center;gap:12px;padding:28px 22px;color:var(--ink-2)}
+  .cj__head{display:flex;align-items:center;gap:14px;padding:20px 22px 16px;border-bottom:1px solid var(--line)}
+  .cj__head h3{margin:0;font-size:1.2rem}
+  .cj__head p{margin:0;font-size:13.5px;color:var(--sorted);font-weight:600}
+  .cj__list{list-style:none;margin:0;padding:0}
+  .cj__list a{display:block;padding:11px 22px;border-bottom:1px solid var(--line);text-decoration:none;
+    transition:background .15s}
+  .cj__list a:hover{background:var(--aqua-wash)}
+  .cj__list b{display:block;font-size:14.5px;font-weight:600;letter-spacing:-.01em;line-height:1.35}
+  .cj__list span{font-size:12.5px;color:var(--ink-3)}
+  .cj__foot{position:sticky;bottom:0;padding:14px 22px;background:#fff;border-top:1px solid var(--line);
+    box-shadow:0 -8px 16px -10px rgba(20,24,33,.18)}
+  .cj__foot .btn{width:100%}
+
+  @media (max-width:980px){
+    .co-hero{grid-template-columns:1fr;gap:34px;padding-top:44px}
+    .getinfo{transform:none;max-width:460px}
+    .sky__stage{padding-right:0}
+    .sky__note{position:relative;right:auto;top:auto;margin-top:10px}
+  }
+  @media (max-width:860px){
+    .launch__grid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:18px 4px}
+    .launch__grid .logo--lg{--size:56px}
+    .app__name{font-size:12px}
+    .launch__hint{display:none}
+    .sky{padding:60px 0 70px;border-radius:24px 24px 0 0}
+    .plat{touch-action:auto;cursor:default}
+    .allwin__tools{padding:18px 16px 14px}
+    .allwin__cols{display:none}
+    .corow{padding:10px 16px;grid-template-columns:30px minmax(0,1fr) auto}
+    .corow__plat{grid-column:2;grid-row:2;font-size:12px;margin-top:-4px}
+    .corow__jobs{grid-row:1 / span 2;grid-column:3}
+    .colist{max-height:480px}
+    .popwin{left:12px !important;right:12px;top:auto !important;bottom:12px;width:auto;
+      max-height:72vh}
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var fine = window.matchMedia('(pointer: fine)').matches;
+
+  // The platforms are stickers: they float up in turn and can be thrown about.
+  var sky = document.querySelector('.sky'), stage = document.getElementById('sky-stage');
+  if (sky && stage) {
+    Array.prototype.forEach.call(stage.querySelectorAll('.plat'), function (el, i) {
+      el.style.setProperty('--i', Math.min(i, 20));
+    });
+    window.SortedDesk(stage);
+    if ('IntersectionObserver' in window) {
+      var io = new IntersectionObserver(function (es) {
+        if (es[0].isIntersecting) { sky.classList.add('is-up'); io.disconnect(); }
+      }, { rootMargin: '0px 0px -15% 0px' });
+      io.observe(sky);
+    } else sky.classList.add('is-up');
+  }
+
+  // The full list: filter as you type, sort by either column.
+  var list = document.getElementById('co-list');
+  var filter = document.getElementById('co-filter');
+  var none = document.getElementById('co-none'), shown = document.getElementById('co-shown');
+  if (list && filter) {
+    var rows = Array.prototype.slice.call(list.children);
+    filter.addEventListener('input', function () {
+      var q = filter.value.trim().toLowerCase(), n = 0;
+      rows.forEach(function (li) {
+        var hit = !q || li.getAttribute('data-name').indexOf(q) !== -1;
+        li.hidden = !hit; if (hit) n++;
+      });
+      none.hidden = n > 0; shown.textContent = n;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.colbtn'), function (btn) {
+      btn.addEventListener('click', function () {
+        var by = btn.getAttribute('data-sort');
+        document.querySelectorAll('.colbtn').forEach(function (b) {
+          b.classList.toggle('is-on', b === btn); b.setAttribute('aria-pressed', b === btn);
+        });
+        rows.sort(function (a, b) {
+          return by === 'name'
+            ? a.getAttribute('data-name').localeCompare(b.getAttribute('data-name'))
+            : b.getAttribute('data-jobs') - a.getAttribute('data-jobs');
+        });
+        rows.forEach(function (li) { list.appendChild(li); });
+        list.scrollTop = 0;
+      });
+    });
+  }
+
+  // A company's window: opens out of whatever was clicked, can be dragged by its title
+  // bar, and several can be open at once, cascading like real windows do.
+  var host = document.getElementById('popwins');
+  var open = [], z = 120, cascade = 0;
+  function closeWin(win) {
+    open = open.filter(function (w) { return w !== win; });
+    if (reduced || !win.animate) { win.remove(); return; }
+    win.animate([{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'scale(.92)' }],
+      { duration: 180, easing: 'cubic-bezier(.4,0,1,1)' }).onfinish = function () { win.remove(); };
+  }
+  function openCompany(id, name, from) {
+    for (var i = 0; i < open.length; i++) {
+      if (open[i].getAttribute('data-company') === String(id)) { open[i].style.zIndex = ++z; open[i].focus(); return; }
+    }
+    if (open.length >= 4) closeWin(open[0]);
+    var win = document.createElement('section');
+    win.className = 'win popwin';
+    win.setAttribute('role', 'dialog');
+    win.setAttribute('aria-label', name + ' jobs in Dublin');
+    win.setAttribute('data-company', id);
+    win.tabIndex = -1;
+    win.innerHTML =
+      '<div class="win__bar"><span class="lights"><button type="button" aria-label="Close">' +
+      '<svg viewBox="0 0 8 8"><path d="M1.5 1.5l5 5m0-5l-5 5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' +
+      '</button><i></i><i></i></span><span class="win__title"></span></div>' +
+      '<div class="popwin__body"><div class="popwin__loading"><span class="beachball"></span>Opening&hellip;</div></div>';
+    win.querySelector('.win__title').textContent = name.toLowerCase() + ' — dublin jobs';
+    var w = Math.min(460, window.innerWidth - 24);
+    var left = Math.max(12, Math.min(window.innerWidth - w - 12, window.innerWidth / 2 - w / 2 + cascade * 28));
+    var top = Math.max(64, 90 + cascade * 28);
+    cascade = (cascade + 1) % 5;
+    win.style.left = left + 'px'; win.style.top = top + 'px'; win.style.zIndex = ++z;
+    host.appendChild(win);
+    open.push(win);
+
+    if (!reduced && win.animate) {
+      var r = win.getBoundingClientRect(), fr = from ? from.getBoundingClientRect() : null;
+      var dx = fr ? (fr.left + fr.width / 2) - (r.left + r.width / 2) : 0;
+      var dy = fr ? (fr.top + fr.height / 2) - (r.top + 60) : 30;
+      win.animate([
+        { opacity: 0, transform: 'translate(' + dx + 'px,' + dy + 'px) scale(.15)' },
+        { opacity: 1, offset: .4 },
+        { opacity: 1, transform: 'none' }
+      ], { duration: 520, easing: 'cubic-bezier(.2,1.1,.3,1)' });
+    }
+
+    win.addEventListener('pointerdown', function () { win.style.zIndex = ++z; });
+    win.querySelector('.lights button').addEventListener('click', function () { closeWin(win); if (from) from.focus(); });
+    win.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeWin(win); if (from) from.focus(); } });
+
+    var bar = win.querySelector('.win__bar'), sx, sy, ox, oy, held = false;
+    bar.addEventListener('pointerdown', function (e) {
+      if (e.target.closest('button') || window.innerWidth <= 860) return;
+      held = true; sx = e.clientX; sy = e.clientY; ox = win.offsetLeft; oy = win.offsetTop;
+      win.classList.add('is-held'); bar.setPointerCapture(e.pointerId);
+    });
+    bar.addEventListener('pointermove', function (e) {
+      if (!held) return;
+      win.style.left = Math.max(-w + 80, Math.min(window.innerWidth - 80, ox + e.clientX - sx)) + 'px';
+      win.style.top = Math.max(48, Math.min(window.innerHeight - 40, oy + e.clientY - sy)) + 'px';
+    });
+    ['pointerup', 'pointercancel'].forEach(function (t) {
+      bar.addEventListener(t, function () { held = false; win.classList.remove('is-held'); });
+    });
+
+    fetch('/companies/' + encodeURIComponent(id) + '/jobs', { headers: { 'HX-Request': 'true' } })
+      .then(function (res) { if (!res.ok) throw new Error(res.status); return res.text(); })
+      .then(function (html) { win.querySelector('.popwin__body').innerHTML = html; win.focus({ preventScroll: true }); })
+      .catch(function () {
+        win.querySelector('.popwin__body').innerHTML =
+          '<p class="popwin__loading">Couldn’t load these jobs just now. Close this and try again.</p>';
+      });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-company]');
+    if (!btn || btn.classList.contains('popwin')) return;
+    openCompany(btn.getAttribute('data-company'), btn.getAttribute('data-name'), btn);
+  });
+
+  // Arriving from the home page dock opens that company straight away.
+  var wanted = new URLSearchParams(location.search).get('open');
+  if (wanted) {
+    var src = document.querySelector('.app[data-company="' + CSS.escape(wanted) + '"]') ||
+              document.querySelector('.corow[data-company="' + CSS.escape(wanted) + '"]');
+    if (src) setTimeout(function () { openCompany(wanted, src.getAttribute('data-name'), src); }, reduced ? 0 : 450);
+  }
+})();
+</script>
+{% endblock %}

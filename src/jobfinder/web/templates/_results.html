@@ -1,4 +1,4 @@
-{# The pulled drawer: one manila record per opening, threaded onto the rod.
+{# The results window: one row per opening, company logo first.
    Rendered standalone for HTMX swaps and inlined on a full page load. #}
 {#
   What the sort and paging controls re-submit. The CV file input is left out on purpose:
@@ -8,6 +8,7 @@
   The sort select is named explicitly because it sits outside the form, and without it
   paging would quietly revert to "Best match".
 #}
+{% from "_macros.html" import logo, titlebar %}
 {% set rerun_include = "#finder-form input:not([type=file]), #results select[name=sort], #results input[name=show_applied]" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
@@ -18,7 +19,9 @@
      3: "Matched on your skills, not your fields",
    } %}
 
-<div class="card drawerhead">
+<div class="win resultswin">
+{{ titlebar("results — " ~ ("{:,}".format(total)) ~ " found") }}
+<div class="drawerhead">
   <div class="spread">
     <h2 style="margin:0">
       {% if internships_only and graduate_only %}
@@ -92,7 +95,7 @@
 </div>
 
 {% if items %}
-<div class="filed">
+<div class="filed" id="result-list">
   {% for item in items %}
     {% if tiered and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
     {# Everything above sits in a field that was actually pulled. Below are one hop
@@ -103,6 +106,7 @@
     {% endif %}
 
     <article class="record filing">
+      {{ logo(item.company, item.domain) }}
       <div class="record__main">
         <span class="record__employer">{{ item.company }}</span>
         <h3 class="record__title">
@@ -182,7 +186,7 @@
 </div>
 
 {% if pages > 1 %}
-<div class="paging on-steel">
+<div class="paging">
   {% if page > 1 %}
     <button class="secondary" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
        hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Back</button>
@@ -196,7 +200,8 @@
 {% endif %}
 
 {% else %}
-<div class="card">
+<div class="empty">
+  <span class="beachball beachball--still" aria-hidden="true"></span>
   <h3 style="margin-bottom:8px">No jobs matched</h3>
   <p class="muted" style="margin:0">
     {% if graduate_only and not internships_only %}
@@ -214,18 +219,31 @@
   </p>
 </div>
 {% endif %}
+</div>
 
 <style>
-  .drawerhead{background:var(--manila-hi);margin-bottom:18px}
-  .record__actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
-  .record__main{min-width:0}
+  .resultswin{margin-top:6px;box-shadow:var(--shadow-lift);overflow:visible}
+  .resultswin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
+  .drawerhead{padding:26px 26px 20px;border-bottom:1px solid var(--line);background:#fff}
+  .drawerhead h2{font-size:clamp(1.5rem,3vw,2.1rem)}
+  .drawerhead select{width:auto;font-size:14px;padding:7px 32px 7px 12px}
+  .drawerhead .accession{font-size:13px}
+  .filed{border-radius:0 0 var(--r-win) var(--r-win)}
+  .filed .record:last-child{border-radius:0 0 var(--r-win) var(--r-win)}
   .paging{
     display:flex;align-items:center;justify-content:space-between;gap:18px;
-    margin-top:22px;padding:0 4px;
+    padding:16px 22px;border-top:1px solid var(--line);background:var(--win-bar);
+    border-radius:0 0 var(--r-win) var(--r-win);
   }
-  .paging .accession{color:var(--steel-400)}
+  .paging button{padding:8px 18px;font-size:14px}
+  .empty{padding:48px 24px 52px;text-align:center}
+  .empty p{margin:0 auto}
+  .empty .beachball{width:40px;height:40px;margin:0 auto 16px;display:block}
+  .beachball--still{animation:none}
   @media (max-width:860px){
+    .drawerhead{padding:18px 16px 16px}
     .drawerhead .spread{gap:12px}
-    .paging button{flex:1;justify-content:center}
+    .paging{padding:12px 16px}
+    .paging button{flex:1}
   }
 </style>

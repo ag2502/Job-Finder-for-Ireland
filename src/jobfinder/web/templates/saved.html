@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% set nav = 'saved' %}
 {% block title %}Saved for later &mdash; Sorted Place{% endblock %}
-{% block railcount %}{{ saved|length if saved else 0 }} SAVED JOBS{% endblock %}
+{% from "_macros.html" import titlebar %}
+{% block railcount %}{{ saved|length if saved else 0 }} saved{% endblock %}
 {% block content %}
 
-<section class="drawerfront">
+<section class="pagehead">
   <h1>{% if saved %}{{ saved|length }} saved job{{ "" if saved|length == 1 else "s" }}.{% else %}Nothing saved yet.{% endif %}</h1>
   {% if saved %}
   <p class="lede">
@@ -23,7 +24,7 @@
         <a class="btn" href="/login?next=/saved">Sign in
           <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
         </a>
-        <a class="accession" href="/signup?next=/saved" style="color:var(--ink-3)">or create an account</a>
+        <a class="small muted" href="/signup?next=/saved">or create an account</a>
       </div>
     {% endif %}
   </div>
@@ -42,6 +43,8 @@
   </div>
 
 {% else %}
+  <div class="win opens" style="box-shadow:var(--shadow-lift)">
+  {{ titlebar("saved-for-later") }}
   <div class="filed" id="saved-list">
     {% for item in saved %}
     <article class="record filing">
@@ -80,10 +83,13 @@
     </article>
     {% endfor %}
   </div>
+  </div>
 {% endif %}
 
 <style>
   .record__actions{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
+  #saved-list .record__side{min-width:212px}
+  @media (max-width:860px){ #saved-list .record__side{min-width:0} }
 </style>
 
 {% endblock %}

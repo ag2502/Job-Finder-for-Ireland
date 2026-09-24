@@ -35,6 +35,56 @@ def test_home_renders(client):
     assert "Dublin" in response.text
 
 
+def test_home_links_the_rest_of_the_companies_to_their_own_page(client):
+    """The "and N more companies" link used to expand a list in place; it now goes to
+    /companies, where every hiring company is listed."""
+    response = client.get("/")
+    assert 'href="/companies"' in response.text
+
+
+def test_companies_page_lists_every_hiring_company(client):
+    from jobfinder.core.db import session_scope
+    from jobfinder.web.app import _hiring_employers
+
+    with session_scope() as session:
+        employers = _hiring_employers(session)
+
+    response = client.get("/companies")
+    assert response.status_code == 200
+    # One row per hiring company in the full list, whatever the snapshot holds.
+    assert response.text.count('class="corow"') == len(employers)
+    if employers:
+        assert employers[0]["name"].replace("&", "&amp;") in response.text
+
+
+def test_company_jobs_window_lists_its_jobs(client):
+    from jobfinder.core.db import session_scope
+    from jobfinder.web.app import _hiring_employers
+
+    with session_scope() as session:
+        employers = _hiring_employers(session)
+    if not employers:
+        pytest.skip("no hiring companies in this database")
+
+    top = employers[0]
+    response = client.get(f"/companies/{top['id']}/jobs")
+    assert response.status_code == 200
+    assert "<!doctype html>" not in response.text.lower(), "a fragment, not a page"
+    assert response.text.count("<li>") == top["jobs"]
+
+
+def test_company_jobs_for_an_unknown_company_is_404(client):
+    assert client.get("/companies/999999999/jobs").status_code == 404
+
+
+def test_logo_domain_prefers_overrides_and_strips_www():
+    from jobfinder.web.app import _logo_domain
+
+    assert _logo_domain("Amazon", "https://amazon.jobs") == "amazon.com"
+    assert _logo_domain("Stripe", "https://www.stripe.com/") == "stripe.com"
+    assert _logo_domain("Uniphar", None) == ""
+
+
 def test_privacy_page_renders(client):
     response = client.get("/privacy")
     assert response.status_code == 200

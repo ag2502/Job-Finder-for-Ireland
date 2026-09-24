@@ -1,10 +1,11 @@
 {% extends "base.html" %}
 {% set nav = 'applications' %}
 {% block title %}What you have applied to &mdash; Sorted Place{% endblock %}
-{% block railcount %}{{ applications|length if applications else 0 }} APPLICATIONS{% endblock %}
+{% from "_macros.html" import titlebar %}
+{% block railcount %}{{ applications|length if applications else 0 }} applied{% endblock %}
 {% block content %}
 
-<section class="drawerfront">
+<section class="pagehead">
   <h1>{% if applications %}You have applied to {{ applications|length }}.{% else %}Nothing marked yet.{% endif %}</h1>
   {% if applications %}
   <p class="lede">
@@ -22,7 +23,7 @@
         <a class="btn" href="/login">Sign in
           <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
         </a>
-        <a class="accession" href="/signup" style="color:var(--ink-3)">or create an account</a>
+        <a class="small muted" href="/signup">or create an account</a>
       </div>
     {% endif %}
   </div>
@@ -41,6 +42,8 @@
   </div>
 
 {% else %}
+  <div class="win opens" style="box-shadow:var(--shadow-lift)">
+  {{ titlebar("applied") }}
   <div class="filed">
     {% for item in applications %}
     <article class="record filing">
@@ -54,13 +57,14 @@
       </div>
       <div class="record__side">
         <span class="stamp stamp--filled">applied</span>
-        <form method="post" action="/applications/remove">
+        <form style="margin:0" method="post" action="/applications/remove">
           <input type="hidden" name="advert_key" value="{{ item.advert_key }}">
           <button class="linkish small" title="File this record back into your results">Undo</button>
         </form>
       </div>
     </article>
     {% endfor %}
+  </div>
   </div>
 {% endif %}
 

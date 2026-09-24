@@ -1,58 +1,175 @@
 {% extends "base.html" %}
+{% from "_macros.html" import logo, titlebar %}
 {% set nav = 'finder' %}
-{% block railcount %}{{ "{:,}".format(dublin_count) }} JOBS OPEN IN DUBLIN{% endblock %}
-{% block content %}
+{% block railcount %}{{ "{:,}".format(dublin_count) }} open<span class="rail-long"> in Dublin</span>{% endblock %}
 
-{# The headline is engraved on the steel itself; the cards are for records only. The
-   card beside it names real companies with real counts, so the "all in one place"
-   claim can be checked rather than taken on trust. #}
-<section class="drawerfront">
-  <div class="front">
-    <div class="front__copy">
-      <h1>Every job in Dublin,<br>under one roof.</h1>
-      <p class="lede">
-        <strong>{{ "{:,}".format(dublin_count) }} jobs</strong> are open in Dublin right
-        now, collected from companies' own careers pages &mdash; so you don't have to
-        check LinkedIn, Indeed and twenty company sites one by one. If a job is open,
-        it's here, and it stays here until the company actually takes it down.
-      </p>
-      <p class="ledger-line typed">
-        {{ employers_hiring }} companies hiring today &middot; updated every 6 hours
-      </p>
+{% block wide %}
+{# The desktop everyone job hunting already has: a careers site per window. Each window
+   is a real company with its real count and its newest real titles, so the claim on
+   the page can be checked rather than taken on trust. #}
+{# left, top, width, tilt, parallax depth, how many titles it shows #}
+{% set slots = [
+  ("2.5%", "36px", "250px", "-4deg", "1.4", 3),
+  ("76%", "28px", "262px", "3deg", "1", 2),
+  ("20%", "6px", "214px", "2.5deg", ".6", 1),
+  ("57.5%", "0px", "214px", "-2deg", ".8", 1),
+  ("3%", "350px", "232px", "3deg", "1.2", 2),
+  ("82.5%", "312px", "228px", "-3.5deg", ".9", 2),
+  ("5%", "620px", "244px", "-2deg", "1.1", 2),
+  ("74%", "612px", "250px", "4deg", ".7", 2),
+] %}
+<section class="desk" aria-labelledby="desk-title">
+  <div class="desk__stage" id="desk-stage">
+    {% for e in showcase %}
+    {% set s = slots[loop.index0] %}
+    <article class="win fw" data-drag
+             style="--x:{{ s[0] }};--y:{{ s[1] }};--w:{{ s[2] }};--r:{{ s[3] }};--d:{{ s[4] }};--i:{{ loop.index0 }};--side:{{ -1 if s[0][:-1]|float < 50 else 1 }}">
+      {{ titlebar(e.domain ~ " — careers") }}
+      <div class="fw__body">
+        <div class="fw__head">
+          {{ logo(e.name, e.domain) }}
+          <div><b>{{ e.name }}</b><span>{{ e.jobs }} open in Dublin</span></div>
+        </div>
+        {% if e.titles %}
+        <ul class="fw__list">
+          {% for t in e.titles[:s[5]] %}<li>{{ t }}</li>{% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+    </article>
+    {% endfor %}
+
+    <div class="sticker nametag" data-drag style="--x:57%;--y:664px;--r:-7deg;--d:1.5;--i:9">
+      <div class="nametag__head"><b>HELLO</b><span>my name is</span></div>
+      <span class="nametag__name">sorted</span>
     </div>
+    <div class="sticker note" data-drag style="--x:30%;--y:658px;--r:4deg;--d:1.3;--i:10">
+      {{ "{:,}".format(employers_hiring) }} companies.<br>{{ "{:,}".format(dublin_count) }} jobs.<br>one tab.
+    </div>
+    <p class="scribble hand" aria-hidden="true">
+      psst &mdash; these windows move.<br>try dragging one
+      <svg viewBox="0 0 80 40" width="80" height="40"><path d="M6 34C22 30 30 16 26 6M26 6l-7 6M26 6l6 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </p>
+  </div>
 
-    {% if hiring_employers %}
-    <aside class="indexcard" aria-label="Companies hiring in Dublin right now">
-      <span class="indexcard__head">Hiring right now</span>
-      <ol class="indexcard__list">
-        {% for e in hiring_employers[:8] %}
-        <li><span class="nm">{{ e.name }}</span><span class="ct">{{ e.jobs }}</span></li>
-        {% endfor %}
-      </ol>
-      {% if hiring_employers|length > 8 %}
-      <details class="indexmore">
-        <summary>
-          <span class="indexmore__open">and {{ hiring_employers|length - 8 }} more companies</span>
-          <span class="indexmore__shut">show fewer</span>
-        </summary>
-        <ol class="indexcard__list indexcard__list--rest">
-          {% for e in hiring_employers[8:] %}
-          <li><span class="nm">{{ e.name }}</span><span class="ct">{{ e.jobs }}</span></li>
-          {% endfor %}
-        </ol>
-      </details>
-      {% endif %}
-    </aside>
-    {% endif %}
+  <div class="desk__copy">
+    <h1 id="desk-title">Every job in Dublin, <span class="hl">sorted.</span></h1>
+    <p class="lede">
+      <strong data-count>{{ "{:,}".format(dublin_count) }} jobs</strong> open right now at
+      {{ "{:,}".format(employers_hiring) }} companies, collected straight from their own careers
+      pages &mdash; so you can close the other nineteen tabs.
+    </p>
+    <div class="desk__actions">
+      <a class="btn" href="#find" id="sort-btn">Find my jobs
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></a>
+      <a class="btn btn--ghost" href="/companies">See all {{ "{:,}".format(employers_hiring) }} companies</a>
+    </div>
+    <p class="typed desk__meta">{% if updated %}{{ updated }} &middot; {% endif %}refreshed every 6 hours</p>
   </div>
 </section>
 
+{# The biggest employers sit in a dock; the rest are one click away on /companies. #}
+{% if hiring_employers %}
+<section class="dockrow opens" aria-label="Companies hiring in Dublin right now">
+  <p class="dockrow__label hand">hiring right now <svg class="scrawl" viewBox="0 0 24 30" width="18" height="24" aria-hidden="true"><path d="M11 3c2 7-1 14 1 23M12 26l-6-6M12 26l5-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
+  <div class="dock" data-dock>
+    {% for e in hiring_employers if e.domain %}{% if loop.index <= 10 %}
+    <a class="dock__item" href="/companies?open={{ e.id }}" title="{{ e.name }} &middot; {{ e.jobs }} jobs">
+      {{ logo(e.name, e.domain, "logo--lg") }}<span class="badge">{{ e.jobs }}</span>
+      <span class="dock__tip">{{ e.name }}</span>
+    </a>
+    {% endif %}{% endfor %}
+    <span class="dock__sep" aria-hidden="true"></span>
+    <a class="dock__item dock__more" href="/companies" title="Every company hiring in Dublin">
+      <span class="dock__folder">+{{ employers_hiring - 10 if employers_hiring > 10 else employers_hiring }}</span>
+      <span class="dock__tip">all companies</span>
+    </a>
+  </div>
+  <a class="dockrow__link" href="/companies">and {{ employers_hiring - 10 if employers_hiring > 10 else 0 }} more companies <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+</section>
+{% endif %}
+
+{# How it works, acted out. The section pins while it scrolls, the steps on the left
+   advance, and the window on the right does each one: real fields tick themselves, an
+   example CV is read, and real jobs from real companies sort into a list. #}
+<section class="story" id="how" data-step="0" aria-labelledby="how-title">
+  <div class="story__pin wrap">
+    <div class="story__copy">
+      <h2 id="how-title" class="reveal">Twenty careers sites. One list.</h2>
+      <ol class="steps">
+        <li class="step" data-i="0">
+          <button type="button" class="step__btn"><span class="step__n">1</span>Pick the work you want</button>
+          <p>Tick one area or ten. You get every job that matches, plus closely related ones you might not have thought to search for.</p>
+          <span class="step__bar" aria-hidden="true"><i></i></span>
+        </li>
+        <li class="step" data-i="1">
+          <button type="button" class="step__btn"><span class="step__n">2</span>Add your CV, if you like</button>
+          <p>It's read once to put the closest jobs first, then thrown away. Your CV is never stored.</p>
+          <span class="step__bar" aria-hidden="true"><i></i></span>
+        </li>
+        <li class="step" data-i="2">
+          <button type="button" class="step__btn"><span class="step__n">3</span>Apply on the company's own site</button>
+          <p>Every job links straight to the company's real posting. We never take your application.</p>
+          <span class="step__bar" aria-hidden="true"><i></i></span>
+        </li>
+      </ol>
+    </div>
+
+    <div class="win story__demo" aria-hidden="true">
+      {{ titlebar("sorted.place — find my jobs") }}
+      <div class="demo">
+        <div class="demo__pane demo__pane--0">
+          <p class="demo__label">What kind of work are you looking for?</p>
+          <div class="demo__chips">
+            {% for group_label, group_fields in field_groups[:6] %}{% if group_fields %}
+            <span class="divider demo-chip{% if loop.index0 in (0, 1, 3) %} is-pick{% endif %}"
+                  style="--g:var(--g-{{ group_fields[0].group }});--k:{{ [0,1,3].index(loop.index0) if loop.index0 in (0,1,3) else 0 }}">{{ group_fields[0].label }}</span>
+            {% endif %}{% endfor %}
+          </div>
+          <p class="demo__count"><span class="demo__num">3 areas selected</span></p>
+        </div>
+
+        <div class="demo__pane demo__pane--1">
+          <div class="demo__file">
+            <svg width="38" height="38"><use href="#i-doc"/></svg>
+            <div><b>example-cv.pdf</b><span class="demo__reading">reading&hellip;</span></div>
+          </div>
+          <p class="demo__label">Picked up from the CV <em>(an example)</em></p>
+          <div class="demo__tags">
+            {% for t in ["python", "sql", "stakeholder management", "tableau", "3 years", "agile"] %}
+            <span class="demo__tag" style="--k:{{ loop.index0 }}">{{ t }}</span>
+            {% endfor %}
+          </div>
+          <p class="demo__bin">then it goes in the bin <svg width="15" height="15"><use href="#i-check"/></svg></p>
+        </div>
+
+        <div class="demo__pane demo__pane--2">
+          <p class="demo__label">{{ "{:,}".format(dublin_count) }} jobs checked &middot; best fit first</p>
+          <ul class="demo__rows">
+            {% for e in showcase[:4] %}{% if e.titles %}
+            <li style="--k:{{ loop.index0 }}">
+              {{ logo(e.name, e.domain, "logo--sm") }}
+              <span><b>{{ e.titles[0] }}</b><small>{{ e.name }} &middot; Dublin</small></span>
+              <span class="btn btn--apply demo__apply">Apply <svg width="13" height="13"><use href="#i-arrow"/></svg></span>
+            </li>
+            {% endif %}{% endfor %}
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block content %}
+<section id="find" class="findsec">
 {% if error %}<p class="err">{{ error }}</p>{% endif %}
 
 {# Once a search has run the form folds to a summary: on a phone the choices are most of
    the page, and nobody re-reads them while scanning results. #}
 <details class="slipwrap" id="slipwrap" {% if items is not defined %}open{% endif %}>
   <summary class="slipsummary">
+    <span class="lights" aria-hidden="true"><i></i><i></i><i></i></span>
     <span class="slipsummary__label">
       {% if profile and profile.fields %}
         {{ profile.fields|length }} area{{ "" if profile.fields|length == 1 else "s" }} selected
@@ -60,114 +177,117 @@
         Tell us what you're looking for
       {% endif %}
     </span>
-    <span class="slipsummary__hint typed">change</span>
+    <span class="slipsummary__hint">Change</span>
   </summary>
 
-  <form id="finder-form" class="card card--raised slip"
-        hx-post="/search"
-        hx-target="#results"
-        hx-swap="innerHTML"
-        hx-encoding="multipart/form-data"
-        hx-indicator="#search-loading, #results"
-        hx-disabled-elt="#find-btn">
+  <div class="win slipwin opens" id="slipwin">
+    {{ titlebar("find-my-jobs") }}
+    <form id="finder-form" class="win__body slip"
+          hx-post="/search"
+          hx-target="#results"
+          hx-swap="innerHTML"
+          hx-encoding="multipart/form-data"
+          hx-indicator="#search-loading, #results"
+          hx-disabled-elt="#find-btn">
 
-    <div class="slip__head">
-      <h2 id="roles-heading">What kind of work are you looking for?</h2>
-      <span class="stamp stamp--filled">required</span>
-    </div>
-    <p class="small muted" style="margin:0 0 14px;max-width:64ch">
-      Pick one or more. We'll show you every job that matches, plus closely related ones
-      you might not have thought to search for.
-    </p>
+      <div class="slip__head">
+        <h2 id="roles-heading">What kind of work are you looking for?</h2>
+        <span class="stamp stamp--filled">required</span>
+      </div>
+      <p class="muted" style="margin:0 0 26px;max-width:64ch">
+        Pick one or more. We'll show you every job that matches, plus closely related ones
+        you might not have thought to search for.
+      </p>
 
-    <div id="field-chips" role="group" aria-labelledby="roles-heading">
-      {% for group_label, group_fields in field_groups %}
-      <div class="drawer">
-        <div class="drawer__label">{{ group_label }}</div>
-        <div class="dividers">
-          {% for f in group_fields %}
-          <label class="divider">
-            <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
-                   {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
-            {{ f.label }}
-          </label>
-          {% endfor %}
+      <div id="field-chips" class="chipgrid" role="group" aria-labelledby="roles-heading">
+        {% for group_label, group_fields in field_groups %}
+        <div class="drawer" style="--g:var(--g-{{ group_fields[0].group if group_fields else 'engineering' }})">
+          <div class="drawer__label">{{ group_label }}</div>
+          <div class="dividers">
+            {% for f in group_fields %}
+            <label class="divider">
+              <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
+                     {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
+              {{ f.label }}
+            </label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="slip__extras">
+        <label class="drop" for="resume">
+          <svg class="drop__icon" width="40" height="40" aria-hidden="true"><use href="#i-doc"/></svg>
+          <span class="drop__text">
+            <b id="cv-name">Drop your CV here</b>
+            <span>or <u>browse</u> &mdash; optional, and it puts the closest jobs first.
+              Read once and thrown away, never saved. <a href="/privacy">What we keep</a></span>
+          </span>
+          <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
+        </label>
+
+        <div class="slip__inputs">
+          <div>
+            <label for="years"><span class="fieldname">Years of experience <em>&mdash; optional</em></span></label>
+            <input type="number" id="years" name="years" min="0" max="50" step="1"
+                   placeholder="leave blank to see everything"
+                   value="{{ profile.years if profile and profile.years is not none else '' }}">
+            <p class="small muted" style="margin:7px 0 0">
+              {% if profile and profile.cv_years and profile.years is none %}
+                Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Put a
+                number in to narrow things down, or leave it blank to see everything.
+              {% else %}
+                Shows jobs asking for that many years <strong>or fewer</strong>. Put 2 or
+                less and graduate jobs come in too.
+              {% endif %}
+            </p>
+          </div>
+          <div>
+            <label for="q"><span class="fieldname">Search job titles <em>&mdash; optional</em></span></label>
+            <input type="text" id="q" name="q" placeholder="engineer, analyst, nurse&hellip;"
+                   value="{{ profile.query if profile and profile.query else '' }}">
+          </div>
         </div>
       </div>
-      {% endfor %}
-    </div>
 
-    <div class="slip__action">
-      <button type="submit" id="find-btn" disabled>
-        Find my jobs
-        <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
-      </button>
-      <span id="find-hint" class="accession">Pick at least one above</span>
-    </div>
-
-    <div class="switches">
-      <label class="switch">
-        <input type="checkbox" name="include_remote" value="1"
-               {% if profile and profile.include_remote %}checked{% endif %}>
-        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-        Include remote jobs
-      </label>
-      <label class="switch">
-        <input type="checkbox" name="internships_only" value="1"
-               {% if profile and profile.internships_only %}checked{% endif %}>
-        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-        Internships only
-      </label>
-      <label class="switch">
-        <input type="checkbox" name="graduate_only" value="1"
-               {% if profile and profile.graduate_only %}checked{% endif %}>
-        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-        Graduate programmes only
-      </label>
-    </div>
-
-    <div class="slip__rule"></div>
-
-    <div class="grid2">
-      <div>
-        <label for="resume"><span class="fieldname">Your CV &mdash; optional</span></label>
-        <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
-        <p class="small muted" style="margin:8px 0 0">
-          Helps put the closest jobs first. Read and thrown away straight away &mdash;
-          never saved. <a href="/privacy">What we keep</a>.
-        </p>
-      </div>
-      <div>
-        <label for="years"><span class="fieldname">Years of experience &mdash; optional</span></label>
-        <input type="number" id="years" name="years" min="0" max="50" step="1"
-               placeholder="leave blank to see everything"
-               value="{{ profile.years if profile and profile.years is not none else '' }}">
-        <p class="small muted" style="margin:8px 0 0">
-          {% if profile and profile.cv_years and profile.years is none %}
-            Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Put a
-            number in to narrow things down, or leave it blank to see everything.
-          {% else %}
-            Shows jobs asking for that many years <strong>or fewer</strong>. Put 2 or
-            less and graduate jobs come in too.
-          {% endif %}
-        </p>
-
-        <label for="q" style="margin-top:18px;display:block">
-          <span class="fieldname">Search job titles &mdash; optional</span>
+      <div class="switches">
+        <label class="switch">
+          <input type="checkbox" name="include_remote" value="1"
+                 {% if profile and profile.include_remote %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Include remote jobs
         </label>
-        <input type="text" id="q" name="q" placeholder="engineer, analyst, nurse&hellip;"
-               value="{{ profile.query if profile and profile.query else '' }}">
+        <label class="switch">
+          <input type="checkbox" name="internships_only" value="1"
+                 {% if profile and profile.internships_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Internships only
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="graduate_only" value="1"
+                 {% if profile and profile.graduate_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Graduate programmes only
+        </label>
       </div>
-    </div>
-  </form>
+
+      <div class="slip__action">
+        <span id="find-hint" class="slip__hint">Pick at least one above</span>
+        <button type="submit" id="find-btn" disabled>
+          Find my jobs
+          <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
+        </button>
+      </div>
+    </form>
+  </div>
 </details>
 
 <div id="search-loading" class="pulling" role="status" aria-live="polite">
-  <span class="drawerspin" aria-hidden="true"><i></i><i></i><i></i></span>
+  <span class="beachball" aria-hidden="true"></span>
   <div>
-    <strong>Finding your jobs&hellip; <span id="search-elapsed" class="accession" style="color:var(--steel-400)"></span></strong>
-    <span class="sub">Checking what you picked against every job open in Dublin. Usually
-      a few seconds, a little longer the first time.</span>
+    <strong>Finding your jobs&hellip; <span id="search-elapsed" class="accession"></span></strong>
+    <span class="sub">Checking what you picked against every job open in Dublin.</span>
   </div>
 </div>
 
@@ -176,95 +296,294 @@
     {% include "_results.html" %}
   {% endif %}
 </div>
+</section>
 
 <style>
-  .front{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,.65fr);
-    gap:56px;align-items:start}
-  .front__copy .lede{max-width:none}
-  .front__copy .ledger-line{max-width:none}
+  /* ------------------------------------------------------------ the desk */
+  .desk{position:relative;min-height:880px;padding:222px 24px 60px;overflow:hidden}
+  .desk__stage{position:absolute;inset:26px 0 0;max-width:1600px;margin:0 auto;
+    --px:0;--py:0;pointer-events:none}
+  .desk__stage > *{pointer-events:auto}
+  .fw,.sticker{
+    position:absolute;left:var(--x);top:var(--y);
+    transform:
+      translate(calc(var(--dx,0px) + var(--px) * var(--d) * -38px + var(--sy,0) * var(--side,1) * var(--d) * 90px),
+                calc(var(--dy,0px) + var(--py) * var(--d) * -26px - var(--sy,0) * var(--d) * 170px))
+      rotate(calc(var(--r) + var(--tilt,0deg) + var(--sy,0) * var(--side,1) * 6deg));
+    touch-action:none;cursor:grab;will-change:transform;
+  }
+  .fw{width:var(--w);z-index:2;border-radius:12px;box-shadow:var(--shadow-lift);
+    transition:box-shadow .3s var(--ease),scale .3s var(--spring)}
+  .fw .win__bar{height:30px;padding:0 11px}
+  .fw .lights{gap:6px}
+  .fw .lights i{width:10px;height:10px}
+  .fw .win__title{font-size:11px;margin-right:40px}
+  .is-held{cursor:grabbing;scale:1.04;
+    box-shadow:0 3px 6px rgba(20,24,33,.1),0 44px 70px -20px rgba(20,24,33,.45)}
+  .sticker.is-held{filter:drop-shadow(0 22px 22px rgba(20,24,33,.3))}
+  .fw__body{padding:13px 14px 14px}
+  .fw__head{display:flex;align-items:center;gap:11px}
+  .fw__head .logo{--size:40px}
+  .fw__head b{display:block;font-size:14.5px;font-weight:650;letter-spacing:-.015em;line-height:1.2}
+  .fw__head span{font-size:12.5px;color:var(--sorted);font-weight:600}
+  .fw__list{list-style:none;margin:11px 0 0;padding:9px 0 0;border-top:1px solid var(--line)}
+  .fw__list li{font-size:12.5px;color:var(--ink-2);padding:3px 0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fw__list li::before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;
+    background:#c4cad3;margin:0 8px 2px 0;vertical-align:middle}
+  .scribble{position:absolute;left:3%;top:246px;margin:0;font-size:19px;line-height:1.15;
+    color:var(--ink-2);transform:rotate(-4deg);pointer-events:none}
+  .scribble svg{display:block;margin:2px 0 0 60px;color:var(--ink-3);transform:scaleY(-1)}
 
-  /* a card lifted out of the drawer and laid on the steel */
-  .indexcard{
-    background:var(--manila);
-    color:var(--ink);
-    border-radius:2px;
-    padding:17px 20px 14px;
-    margin-top:8px;
-    transform:rotate(-.7deg);
-    box-shadow:var(--shadow-raised);
-  }
-  .indexcard__head{
-    display:block;font-family:"Courier Prime",ui-monospace,monospace;
-    font-size:11px;font-weight:700;letter-spacing:.17em;text-transform:uppercase;
-    color:var(--ink-3);padding-bottom:9px;margin-bottom:4px;
-    border-bottom:1.5px solid var(--stamp-deep);
-  }
-  .indexcard__list{list-style:none;margin:0;padding:0}
-  .indexcard__list li{
-    display:flex;align-items:baseline;gap:10px;
-    padding:5px 0;border-bottom:1px solid var(--rule);
-  }
-  .indexcard__list .nm{font-size:14px;font-weight:600;letter-spacing:-.005em;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .indexcard__list .ct{margin-left:auto;font-family:"Courier Prime",ui-monospace,monospace;
-    font-weight:700;font-size:13px;color:var(--stamp-deep)}
+  .desk__copy{position:relative;max-width:880px;margin:0 auto;text-align:center;pointer-events:none}
+  .desk__copy > *{pointer-events:auto}
+  .desk__copy h1{font-size:clamp(2.9rem,6.3vw,5.3rem);margin:0 auto 22px}
+  .desk__copy .lede{margin:0 auto;max-width:44ch;font-size:clamp(1.08rem,1.5vw,1.25rem)}
+  .desk__actions{position:relative;z-index:90;display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin:30px 0 16px}
+  .desk__actions .btn{font-size:16px;padding:13px 26px}
+  .desk__meta{margin:0 auto}
 
-  /* The rest of the companies open in place. There is no separate register page to send
-     anyone to, and a link that goes nowhere is worse than no link at all. */
-  .indexmore summary{
-    list-style:none;cursor:pointer;
-    display:inline-flex;align-items:center;gap:6px;margin-top:11px;
-    font-size:12px;font-weight:600;color:var(--ink-2);
-    border-bottom:1.5px solid var(--stamp-deep);padding-bottom:1px;
-  }
-  .indexmore summary::-webkit-details-marker{display:none}
-  .indexmore summary:hover{color:var(--stamp-deep)}
-  .indexmore summary:focus-visible{outline:2px solid var(--brass-lo);outline-offset:3px}
-  .indexmore .indexmore__shut{display:none}
-  .indexmore[open] .indexmore__open{display:none}
-  .indexmore[open] .indexmore__shut{display:inline}
-  .indexcard__list--rest{
-    max-height:260px;overflow-y:auto;margin-top:8px;
-    border-top:1px solid var(--rule);
+  /* windows arrive one after another, like a login restoring a session */
+  @media (prefers-reduced-motion:no-preference){
+    .js .fw,.js .sticker{opacity:0;scale:.82}
+    .js .desk.is-up .fw,.js .desk.is-up .sticker{opacity:1;scale:1;
+      transition:opacity .45s var(--ease) calc(var(--i) * 70ms + 150ms),
+                 scale .8s var(--spring) calc(var(--i) * 70ms + 150ms),
+                 box-shadow .3s var(--ease)}
+    .js .desk.is-up .is-held{scale:1.04;transition:scale .3s var(--spring),box-shadow .3s var(--ease)}
+    .js .scribble{opacity:0}
+    .js .desk.is-up .scribble{opacity:1;transition:opacity .8s var(--ease) 1.4s}
+    /* the sort: every window flies into the one below */
+    .desk.is-sorting .fw,.desk.is-sorting .sticker{
+      transition:transform .7s cubic-bezier(.6,0,.25,1) calc(var(--i) * 35ms),
+                 scale .7s cubic-bezier(.6,0,.25,1) calc(var(--i) * 35ms),
+                 opacity .3s var(--ease) calc(var(--i) * 35ms + 420ms) !important;
+      scale:.12 !important;opacity:0 !important}
+    #sort-btn.is-full{animation:gulp .45s var(--spring)}
   }
 
-  .slipwrap{margin-bottom:14px}
+  /* ------------------------------------------------------------ the dock */
+  .dockrow{display:flex;flex-direction:column;align-items:center;gap:6px;padding:0 16px 70px}
+  .dockrow__label{margin:0;font-size:22px;color:var(--ink-2);transform:rotate(-2deg)}
+  .dock{
+    display:flex;align-items:flex-end;gap:10px;
+    padding:10px 14px;border-radius:24px;max-width:100%;
+    background:rgba(255,255,255,.55);
+    -webkit-backdrop-filter:blur(20px) saturate(1.6);backdrop-filter:blur(20px) saturate(1.6);
+    border:1px solid rgba(255,255,255,.8);
+    box-shadow:0 0 0 1px rgba(20,24,33,.08),0 20px 40px -18px rgba(20,24,33,.35);
+  }
+  .dock__item{--mag:1;position:relative;display:block;flex:none;text-decoration:none;
+    width:calc(60px * var(--mag));transition:width .18s var(--ease)}
+  .dock__item .logo{--size:calc(60px * var(--mag));transition:--size .18s;border-radius:24%;
+    box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 4px 10px -4px rgba(20,24,33,.35)}
+  .dock__item .badge{top:-4px;right:-6px}
+  .dock__tip{position:absolute;bottom:calc(100% + 14px);left:50%;translate:-50% 4px;
+    background:rgba(30,32,38,.86);color:#fff;font-size:12.5px;font-weight:550;white-space:nowrap;
+    padding:4px 10px;border-radius:7px;opacity:0;pointer-events:none;
+    transition:opacity .15s,translate .25s var(--spring)}
+  .dock__item:hover .dock__tip,.dock__item:focus-visible .dock__tip{opacity:1;translate:-50% 0}
+  .dock__item:active .logo{filter:brightness(.85)}
+  .dock__sep{align-self:stretch;width:1px;margin:6px 2px;background:rgba(20,24,33,.16)}
+  .dock__folder{display:grid;place-items:center;width:calc(60px * var(--mag));height:calc(60px * var(--mag));
+    border-radius:24%;font-weight:750;font-size:17px;letter-spacing:-.03em;color:#fff;
+    background:linear-gradient(180deg,#2766d6,var(--aqua-deep));
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 4px 10px -4px rgba(20,24,33,.35);
+    transition:width .18s var(--ease),height .18s var(--ease)}
+  .dockrow__link{display:inline-flex;align-items:center;gap:6px;margin-top:10px;
+    font-size:15px;font-weight:600;color:var(--aqua-deep);text-decoration:none}
+  .dockrow__link:hover{text-decoration:underline}
+  .dockrow__link svg{transition:transform .35s var(--spring)}
+  .dockrow__link:hover svg{transform:translateX(4px)}
+
+  /* ------------------------------------------------------- how it works */
+  .story{position:relative;height:320vh}
+  .story__pin{position:sticky;top:48px;height:calc(100vh - 48px);min-height:560px;
+    display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:64px;align-items:center}
+  .story h2{font-size:clamp(2rem,4.2vw,3.4rem);margin-bottom:34px;max-width:12ch}
+  .steps{list-style:none;margin:0;padding:0;border-top:1px solid var(--line-strong)}
+  .step{position:relative;border-bottom:1px solid var(--line-strong);padding:0 0 0 2px}
+  .step__btn{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:14px;width:100%;
+    padding:18px 0;cursor:pointer;font-size:1.12rem;font-weight:600;letter-spacing:-.015em;
+    color:var(--ink-3);transition:color .3s var(--ease)}
+  .step__btn::after{display:none}
+  .step__btn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:6px}
+  .step__n{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;flex:none;
+    font-size:13px;font-weight:700;background:#fff;color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line-strong);
+    transition:background .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease),transform .5s var(--spring)}
+  .step p{margin:0;max-height:0;overflow:hidden;opacity:0;color:var(--ink-2);padding-left:42px;
+    transition:max-height .6s var(--ease),opacity .4s var(--ease),padding .6s var(--ease)}
+  .step__bar{position:absolute;left:0;right:0;bottom:-1px;height:2px;overflow:hidden}
+  .step__bar i{display:block;height:100%;width:100%;background:var(--aqua);transform-origin:0 50%;
+    transform:scaleX(var(--sp,0))}
+  .story[data-step="0"] .step[data-i="0"] .step__btn,.story[data-step="1"] .step[data-i="1"] .step__btn,.story[data-step="2"] .step[data-i="2"] .step__btn{color:var(--ink)}
+  .story[data-step="0"] .step[data-i="0"] .step__n,.story[data-step="1"] .step[data-i="1"] .step__n,.story[data-step="2"] .step[data-i="2"] .step__n{
+    background:var(--aqua);color:#fff;box-shadow:none;transform:scale(1.08)}
+  .story[data-step="0"] .step[data-i="0"] p,.story[data-step="1"] .step[data-i="1"] p,.story[data-step="2"] .step[data-i="2"] p{
+    max-height:120px;opacity:1;padding-bottom:20px}
+  .story[data-step="1"] .step[data-i="0"] .step__n,.story[data-step="2"] .step[data-i="0"] .step__n,.story[data-step="2"] .step[data-i="1"] .step__n{
+    background:var(--sorted);color:#fff;box-shadow:none}
+  .story[data-step="1"] .step[data-i="0"] .step__bar i,.story[data-step="2"] .step[data-i="0"] .step__bar i,.story[data-step="2"] .step[data-i="1"] .step__bar i{transform:none;background:var(--sorted)}
+
+  .story__demo{box-shadow:var(--shadow-lift);transform:rotate(1deg)}
+  .demo{position:relative;height:390px;overflow:hidden;background:#fff}
+  .demo__pane{position:absolute;inset:0;padding:28px 30px;opacity:0;visibility:hidden;
+    transform:translateY(24px) scale(.98);filter:blur(6px);
+    transition:opacity .45s var(--ease),transform .7s var(--ease),filter .45s var(--ease),visibility 0s .45s}
+  .story[data-step="0"] .demo__pane--0,.story[data-step="1"] .demo__pane--1,.story[data-step="2"] .demo__pane--2{
+    opacity:1;visibility:visible;transform:none;filter:none;transition-delay:.1s,.1s,.1s,0s}
+  .demo__label{font-size:15px;font-weight:650;margin:0 0 16px;max-width:none}
+  .demo__label em{font-style:normal;font-weight:400;color:var(--ink-3)}
+  .demo__chips{display:flex;flex-wrap:wrap;gap:9px}
+  .demo-chip{cursor:default}
+  .demo-chip:hover{transform:none;box-shadow:0 1px 2px rgba(20,24,33,.05);border-color:var(--line-strong)}
+  .demo__count{margin:22px 0 0;font-weight:650;color:var(--sorted)}
+  .demo__file{display:flex;align-items:center;gap:14px;padding:16px;border-radius:12px;
+    background:var(--sorted-wash);border:1.5px solid var(--sorted);margin-bottom:24px;color:var(--ink-3)}
+  .demo__file b{display:block;color:var(--ink);font-size:15px}
+  .demo__reading{font-size:13px;color:var(--sorted);font-weight:600}
+  .demo__tags{display:flex;flex-wrap:wrap;gap:8px}
+  .demo__tag{font-family:var(--mono);font-size:13px;padding:5px 11px;border-radius:8px;
+    background:var(--aqua-wash);color:var(--aqua-deep);border:1px solid rgba(43,116,240,.25)}
+  .demo__bin{display:flex;align-items:center;gap:7px;margin:26px 0 0;font-family:var(--hand);font-size:21px;color:var(--ink-2)}
+  .demo__bin svg{color:var(--sorted)}
+  .demo__rows{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .demo__rows li{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--line);background:#fff}
+  .demo__rows li:last-child{border-bottom:0}
+  .demo__rows li > span:not(.logo):not(.btn){flex:1;min-width:0}
+  .demo__rows b{display:block;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .demo__rows small{font-size:12.5px;color:var(--ink-3)}
+  .demo__apply{pointer-events:none;flex:none}
+
+  @media (prefers-reduced-motion:no-preference){
+    /* step one: the fields tick themselves, one after another */
+    .demo-chip.is-pick{transition:none}
+    .story[data-step="0"] .demo-chip.is-pick{animation:pick .5s var(--spring) calc(var(--k) * 380ms + 450ms) both}
+    .story[data-step="0"] .demo__count{animation:rise .5s var(--ease) 1.7s both}
+    /* step two: the CV is read, and what it says appears */
+    .story[data-step="1"] .demo__file{animation:drop .7s var(--spring) .2s both}
+    .story[data-step="1"] .demo__tag{animation:rise .45s var(--spring) calc(var(--k) * 110ms + 800ms) both}
+    .story[data-step="1"] .demo__bin{animation:rise .5s var(--ease) 1.7s both}
+    /* step three: jobs sort into place, best first */
+    .story[data-step="2"] .demo__rows li{animation:sortin .7s var(--spring) calc(var(--k) * 130ms + 250ms) both}
+    .story[data-step="2"] .demo__rows li:first-child .demo__apply{animation:nudge 1.6s var(--ease) 1.4s 2}
+  }
+  .demo-chip.is-pick{background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:600;
+    box-shadow:0 0 0 1px var(--g)}
+  .demo-chip.is-pick::before{background:var(--g) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;box-shadow:none}
+  @keyframes pick{0%{background:#fff;border-color:var(--line-strong);box-shadow:none;transform:scale(1)}
+    45%{transform:scale(1.08)}100%{transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(12px)}}
+  @keyframes drop{from{opacity:0;transform:translateY(-40px) rotate(-6deg) scale(.9)}}
+  @keyframes sortin{from{opacity:0;transform:translateY(calc((4 - var(--k)) * 26px)) rotate(calc((var(--k) - 1.5) * 2deg))}}
+  @keyframes nudge{0%,100%{transform:none}50%{transform:scale(1.07)}}
+
+  /* ------------------------------------------------------- find my jobs */
+  .findsec{scroll-margin-top:70px}
+  .slipwrap{margin-bottom:22px}
   .slipwrap>summary{list-style:none;cursor:pointer}
   .slipwrap>summary::-webkit-details-marker{display:none}
   .slipsummary{
     display:flex;align-items:center;gap:14px;
-    background:var(--manila-lo);color:var(--ink);
-    border-radius:2px 14px 2px 2px;
-    padding:14px 20px;
-    font-size:14px;font-weight:700;letter-spacing:-.005em;
-    box-shadow:var(--shadow-card);
-    transition:background .16s var(--ease);
+    background:#fff;border:1px solid rgba(20,24,33,.12);border-radius:var(--r-win);
+    padding:14px 18px;font-size:15px;font-weight:600;box-shadow:var(--shadow-win);
+    transition:box-shadow .25s var(--ease),transform .35s var(--spring);
   }
-  .slipsummary:hover{background:var(--manila)}
-  .slipsummary__hint{
-    margin-left:auto;font-size:11px;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--ink-2);border-bottom:1.5px solid var(--stamp-deep);padding-bottom:1px;
-  }
+  .slipsummary:hover{box-shadow:var(--shadow-lift);transform:translateY(-1px)}
+  .slipsummary__hint{margin-left:auto;font-size:13.5px;color:var(--aqua-deep);font-weight:600}
   .slipwrap[open]>summary{display:none}
-  .slipwrap>summary:focus-visible{outline:2px solid var(--brass-hi);outline-offset:2px}
+  .slipwrap>summary:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
 
-  .switches{display:flex;flex-wrap:wrap;gap:0 4px;margin-top:22px}
-  .slip__head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:4px}
+  .slipwin{box-shadow:var(--shadow-lift);overflow:visible}
+  .slipwin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
+  .slip{padding:34px 40px 0}
+  .slip__head{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px}
   .slip__head h2{margin:0}
-  .slip__rule{height:1px;background:var(--rule);margin:26px 0 24px}
-  .slip__action{display:flex;align-items:center;gap:18px;flex-wrap:wrap;margin-top:24px}
+  .chipgrid{display:grid;grid-template-columns:1fr 1fr;gap:24px 44px}
+  .chipgrid .drawer{margin:0}
 
+  .slip__extras{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;
+    margin:34px -40px 0;padding:28px 40px;background:#f7f8fa;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .slip__inputs{display:grid;gap:20px}
+  .drop{position:relative;display:flex;align-items:center;gap:16px;
+    border:1.5px dashed #b3bac5;border-radius:12px;background:#fff;padding:20px;cursor:pointer;
+    transition:border-color .2s var(--ease),background .2s var(--ease),transform .35s var(--spring)}
+  .drop:hover,.drop.is-over{border-color:var(--aqua);background:var(--aqua-wash)}
+  .drop.is-over{transform:scale(1.015)}
+  .drop.has-file{border-style:solid;border-color:var(--sorted);background:var(--sorted-wash)}
+  .drop__icon{flex:none;color:var(--ink-3);transition:transform .45s var(--spring)}
+  .drop:hover .drop__icon{transform:rotate(-6deg) translateY(-2px)}
+  .drop__text b{display:block;font-size:15px;font-weight:650;margin-bottom:3px}
+  .drop__text span{display:block;font-size:13.5px;color:var(--ink-2);line-height:1.45}
+  .drop__text u{color:var(--aqua-deep);text-decoration-thickness:1px}
+  .drop__text a{position:relative;z-index:2;color:var(--aqua-deep);font-weight:600}
+  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+  .drop:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+
+  .switches{display:flex;flex-wrap:wrap;gap:4px 0;padding:22px 0 6px}
+  .slip__action{
+    position:sticky;bottom:14px;z-index:5;
+    display:flex;align-items:center;justify-content:flex-end;gap:16px;
+    margin:14px -22px 0;padding:12px 12px 12px 24px;
+    background:rgba(255,255,255,.88);
+    -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+    border:1px solid rgba(20,24,33,.1);border-radius:999px;
+    box-shadow:0 14px 30px -14px rgba(20,24,33,.35);
+    translate:0 -18px;
+  }
+  .slip__hint{margin-right:auto;font-size:14px;font-weight:600;color:var(--ink-2)}
+  .slip__hint.is-ready{color:var(--sorted)}
+  .slip__action button{font-size:16px;padding:12px 26px;white-space:nowrap;flex:none}
+  .slipwin.is-received{animation:receive .7s var(--spring)}
+  @keyframes gulp{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:none}}
+  @keyframes receive{0%{transform:scale(.97)}50%{transform:scale(1.012)}100%{transform:none}}
+
+  /* ------------------------------------------------------------- smaller */
+  @media (max-width:1180px){
+    .fw:nth-of-type(3),.fw:nth-of-type(4){display:none}
+    .scribble{display:none}
+  }
   @media (max-width:980px){
-    .front{grid-template-columns:1fr;gap:28px}
-    .indexcard{transform:none;margin-top:0}
+    .story{height:300vh}
+    .story__pin{grid-template-columns:1fr;gap:22px;align-content:center;padding-top:12px;padding-bottom:12px}
+    .story h2{margin-bottom:16px;font-size:clamp(1.8rem,7vw,2.4rem)}
+    .step__btn{padding:12px 0;font-size:1rem}
+    .step p{font-size:14.5px}
+    .story__demo{transform:none}
+    .demo{height:300px}
+    .demo__pane{padding:20px 18px}
+    .desk{min-height:0;padding:56px 16px 20px;overflow:visible}
+    .desk__stage{position:relative;inset:auto;order:2;display:flex;gap:14px;
+      overflow-x:auto;scroll-snap-type:x mandatory;padding:34px 16px 30px;margin:0 -16px;
+      scrollbar-width:none;pointer-events:auto}
+    .desk__stage::-webkit-scrollbar{display:none}
+    .desk{display:flex;flex-direction:column}
+    .fw{position:relative;left:auto;top:auto;flex:none;width:250px;scroll-snap-align:center;
+      transform:rotate(calc(var(--r) * .5));cursor:default;touch-action:auto}
+    .fw:nth-of-type(3),.fw:nth-of-type(4){display:block}
+    .sticker,.scribble{display:none}
+    .desk__copy h1{font-size:clamp(2.6rem,11vw,4rem)}
+    .dockrow{padding-bottom:50px}
+    .dock{overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+    .dock::-webkit-scrollbar{display:none}
+    .dock__item{width:52px}
+    .dock__item .logo,.dock__folder{--size:52px;width:52px;height:52px}
+    .dock__tip{display:none}
   }
   @media (max-width:860px){
-    .slip__action{gap:12px}
-    .slip__action button{width:100%;justify-content:center}
+    .slip{padding:24px 18px 0}
+    .chipgrid{grid-template-columns:1fr;gap:20px}
+    .slip__extras{grid-template-columns:1fr;margin:28px -18px 0;padding:22px 18px}
     .switches{flex-direction:column;gap:2px}
+    .slip__action{margin:10px -8px 0;padding:10px 10px 10px 18px}
+    .slip__hint{font-size:13px}
+    .slip__action button{padding:11px 18px;font-size:15px}
+    .desk__actions .btn{flex:1 1 220px}
   }
 </style>
+{% endblock %}
 
+{% block scripts %}
 <script>
   // The search stays closed until something is chosen. The server enforces it too; this
   // explains the requirement before the click instead of after it.
@@ -285,11 +604,29 @@
       var n = chosen();
       button.disabled = n === 0;
       hint.textContent = n === 0 ? 'Pick at least one above' : label(n);
+      hint.classList.toggle('is-ready', n > 0);
     }
     form.addEventListener('change', function (event) {
       if (event.target.name === 'chosen_fields') sync();
     });
     sync();
+
+    // The CV drop zone says which file it is holding.
+    var cv = document.getElementById('resume'), cvName = document.getElementById('cv-name');
+    var drop = cv && cv.closest('.drop');
+    if (cv && drop) {
+      cv.addEventListener('change', function () {
+        var f = cv.files && cv.files[0];
+        cvName.textContent = f ? f.name : 'Drop your CV here';
+        drop.classList.toggle('has-file', !!f);
+      });
+      ['dragenter', 'dragover'].forEach(function (t) {
+        drop.addEventListener(t, function () { drop.classList.add('is-over'); });
+      });
+      ['dragleave', 'drop'].forEach(function (t) {
+        drop.addEventListener(t, function () { drop.classList.remove('is-over'); });
+      });
+    }
 
     // "Search those instead" on the CV reading. It ticks the boxes rather than posting
     // the fields straight through, so what runs and what the form shows cannot diverge.
@@ -328,6 +665,97 @@
     });
     document.body.addEventListener('htmx:afterRequest', stop);
   })();
-</script>
 
+  // The desk: windows open, can be thrown about, and are sorted into one on request.
+  (function () {
+    var desk = document.querySelector('.desk');
+    var stage = document.getElementById('desk-stage');
+    if (!desk || !stage) return;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var wide = window.matchMedia('(min-width: 981px)');
+    var items = window.SortedDesk(stage);
+    requestAnimationFrame(function () { desk.classList.add('is-up'); });
+
+    // As the desk scrolls away its windows scatter outward, each at its own depth.
+    if (!reduced) {
+      var ticking = false;
+      window.addEventListener('scroll', function () {
+        if (ticking || !wide.matches) return;
+        ticking = true;
+        requestAnimationFrame(function () {
+          var p = Math.min(1, Math.max(0, window.scrollY / desk.offsetHeight));
+          stage.style.setProperty('--sy', p.toFixed(3));
+          ticking = false;
+        });
+      }, { passive: true });
+    }
+
+    // How it works: the scroll position picks the step and fills its bar.
+    var story = document.querySelector('.story');
+    if (story) {
+      var steps = story.querySelectorAll('.step');
+      var sync = function () {
+        var travel = story.offsetHeight - window.innerHeight;
+        var p = travel > 0 ? Math.min(1, Math.max(0, -story.getBoundingClientRect().top / travel)) : 0;
+        var step = Math.min(2, Math.floor(p * 3));
+        if (story.getAttribute('data-step') !== String(step)) story.setAttribute('data-step', step);
+        Array.prototype.forEach.call(steps, function (li, i) {
+          li.style.setProperty('--sp', i === step ? Math.min(1, p * 3 - step).toFixed(3) : 0);
+        });
+      };
+      var queued = false;
+      window.addEventListener('scroll', function () {
+        if (queued) return; queued = true;
+        requestAnimationFrame(function () { queued = false; sync(); });
+      }, { passive: true });
+      sync();
+      Array.prototype.forEach.call(steps, function (li, i) {
+        li.querySelector('.step__btn').addEventListener('click', function () {
+          var travel = story.offsetHeight - window.innerHeight;
+          var top = story.getBoundingClientRect().top + window.scrollY;
+          window.scrollTo({ top: top + travel * (i + .35) / 3, behavior: reduced ? 'auto' : 'smooth' });
+        });
+      });
+    }
+
+    var sortBtn = document.getElementById('sort-btn');
+    var target = document.getElementById('slipwin');
+    var wrap = document.getElementById('slipwrap');
+    if (!sortBtn || !target) return;
+    // "Find my jobs": every careers window flies into the button and shrinks away -
+    // twenty sites sorted into one - and then the form arrives.
+    sortBtn.addEventListener('click', function (event) {
+      if (wrap && !wrap.open) wrap.open = true;
+      if (reduced || !wide.matches) return;   // the link's own jump is the whole behaviour
+      event.preventDefault();
+      var t = sortBtn.getBoundingClientRect();
+      var tx = t.left + t.width / 2, ty = t.top + t.height / 2;
+      items.forEach(function (el) {
+        var r = el.getBoundingClientRect(), st = el._desk;
+        st.x += tx - (r.left + r.width / 2);
+        st.y += ty - (r.top + r.height / 2);
+        el.style.setProperty('--dx', st.x + 'px');
+        el.style.setProperty('--dy', st.y + 'px');
+      });
+      desk.classList.add('is-sorting');
+      setTimeout(function () { sortBtn.classList.add('is-full'); }, 520);
+      setTimeout(function () {
+        window.scrollTo(0, target.getBoundingClientRect().top + window.scrollY - 72);
+        history.replaceState(null, '', '#find');
+        target.classList.remove('is-received'); void target.offsetWidth;
+        target.classList.add('is-received');
+        sortBtn.classList.remove('is-full');
+      }, 1000);
+      // Put the desk back, quietly, for whoever scrolls up again.
+      setTimeout(function () {
+        items.forEach(function (el) {
+          el._desk.x = 0; el._desk.y = 0;
+          el.style.setProperty('--dx', '0px'); el.style.setProperty('--dy', '0px');
+        });
+        desk.classList.remove('is-sorting', 'is-up');
+        requestAnimationFrame(function () { requestAnimationFrame(function () { desk.classList.add('is-up'); }); });
+      }, 1300);
+    });
+  })();
+</script>
 {% endblock %}

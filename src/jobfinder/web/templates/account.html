@@ -1,12 +1,13 @@
 {% extends "base.html" %}
 {% set nav = 'account' %}
 {% block title %}{{ "Create an account" if mode == "signup" else "Sign in" }} &mdash; Sorted Place{% endblock %}
-{% block railcount %}{{ "CREATE ACCOUNT" if mode == "signup" else "SIGN IN" }}{% endblock %}
+{% from "_macros.html" import titlebar %}
+{% block railcount %}{% endblock %}
 {% block content %}
 
 <div class="ticket">
-  <section class="drawerfront" style="padding:56px 0 30px">
-    <h1 style="font-size:clamp(2rem,4.6vw,3rem)">
+  <section class="pagehead" style="text-align:center">
+    <h1 style="font-size:clamp(2.2rem,5vw,3.4rem)">
       {% if reason %}One step first.
       {% else %}{{ "Create your account." if mode == "signup" else "Welcome back." }}{% endif %}
     </h1>
@@ -17,7 +18,9 @@
     </p>
   </section>
 
-  <form class="card card--raised" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
+  <div class="win opens" style="box-shadow:var(--shadow-lift)">
+  {{ titlebar("sign-in" if mode != "signup" else "create-account") }}
+  <form class="win__body" method="post" action="{{ '/signup' if mode == 'signup' else '/login' }}">
     {% if reason %}<p class="notice">{{ reason }}</p>{% endif %}
     {% if error %}<p class="error">{{ error }}</p>{% endif %}
     {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
@@ -35,12 +38,12 @@
     <input type="password" id="acc-pw" name="password" required minlength="8"
            autocomplete="{{ 'new-password' if mode == 'signup' else 'current-password' }}">
 
-    <div class="row" style="margin-top:28px;gap:18px">
+    <div class="row" style="margin-top:28px;gap:18px;justify-content:space-between">
       <button type="submit">
         {{ "Create account" if mode == "signup" else "Sign in" }}
         <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg>
       </button>
-      <span class="accession" style="color:var(--ink-3)">
+      <span class="small muted">
         {% if mode == "signup" %}
           Already have one? <a href="/login">Sign in</a>
         {% else %}
@@ -49,15 +52,17 @@
       </span>
     </div>
   </form>
+  </div>
 
-  <p class="accession" style="color:var(--steel-400);text-align:center;margin-top:20px">
+  <p class="accession" style="text-align:center;margin-top:20px">
     Held by Supabase in the EU &middot; <a href="/privacy">what is kept</a>
   </p>
 </div>
 
 <style>
   .ticket{max-width:560px;margin:0 auto}
-  .ticket .drawerfront .lede{max-width:none}
+  .ticket .pagehead .lede{max-width:none;margin:0 auto}
+  .ticket .win__body{padding:30px 32px 32px}
 </style>
 
 {% endblock %}

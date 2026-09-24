@@ -1,18 +1,21 @@
 {% extends "base.html" %}
 {% set nav = 'privacy' %}
 {% block title %}What happens to your CV &mdash; Sorted Place{% endblock %}
-{% block railcount %}YOUR CV IS NEVER STORED{% endblock %}
+{% from "_macros.html" import titlebar %}
+{% block railcount %}{% endblock %}
 {% block content %}
 
-<section class="drawerfront">
-  <h1>Your CV is never<br>stored.</h1>
+<section class="pagehead">
+  <h1>Your CV is <span class="hl">never stored.</span></h1>
   <p class="lede">
     We read it to work out which jobs suit you, then throw the file away before the
     page has even finished loading. It is never written to a disk or a database.
   </p>
 </section>
 
-<div class="card card--raised prose">
+<div class="win notes opens">
+  {{ titlebar("what-we-keep.txt") }}
+  <div class="win__body prose">
   <h2>What is kept</h2>
   <p class="muted">Only what matching needs, held in a signed cookie in your own browser:</p>
   <ul class="muted">
@@ -74,16 +77,22 @@
     pages. Every one links back to the company's original posting, which is where you
     apply. This site never takes an application itself.
   </p>
+  </div>
 </div>
 
 <style>
-  .prose{max-width:none}
+  .notes{box-shadow:var(--shadow-lift)}
+  .notes .win__bar{background:linear-gradient(180deg,#fbf3c8,#f3e6a6);border-bottom-color:#e6d58a}
+  .notes .win__title{color:#6b5a14}
+  .prose{max-width:none;padding:34px 44px 40px}
+  @media (max-width:860px){.prose{padding:24px 20px 28px}}
   .prose h2{margin-top:0}
   .prose p,.prose ul{max-width:66ch}
   .prose ul{padding-left:20px;margin:0 0 14px}
   .prose li{margin-bottom:7px}
-  .prose em{font-style:normal;font-family:"Courier Prime",ui-monospace,monospace;font-size:.92em}
-  .prose a{color:var(--stamp);font-weight:600}
+  .prose em{font-style:normal;font-family:var(--mono);font-size:.9em;background:var(--win-bar);padding:1px 5px;border-radius:5px}
+  .prose a{color:var(--aqua-deep);font-weight:600}
+  .prose h2{font-size:1.45rem}
 </style>
 
 {% endblock %}

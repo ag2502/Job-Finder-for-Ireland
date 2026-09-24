@@ -1,0 +1,28 @@
+{% from "_macros.html" import logo %}
+{# The inside of a company's window on /companies: every open Dublin job it has, each
+   linking to the company's own posting. #}
+<div class="cj__head">
+  {{ logo(name, domain, "logo--lg") }}
+  <div>
+    <h3>{{ name }}</h3>
+    <p>{{ jobs|length }} job{{ "" if jobs|length == 1 else "s" }} open in Dublin</p>
+  </div>
+</div>
+{% if jobs %}
+<ul class="cj__list">
+  {% for j in jobs %}
+  <li>
+    <a href="{{ j.url }}" target="_blank" rel="noopener">
+      <b>{{ j.title }}</b>
+      <span>{{ j.location }}{% if j.experience %} &middot; {{ j.experience }}{% endif %}</span>
+    </a>
+  </li>
+  {% endfor %}
+</ul>
+{% else %}
+<p class="popwin__loading">Nothing open in Dublin at the moment. This list refreshes every six hours.</p>
+{% endif %}
+<div class="cj__foot">
+  <a class="btn" href="/#find">Find the ones that fit you
+    <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+</div>
