@@ -336,19 +336,6 @@ def _hiring_employers(session) -> list[dict]:
     return sorted(employers.values(), key=lambda e: (-e["jobs"], e["name"].lower()))
 
 
-def _last_updated(session) -> str:
-    """How long ago the last crawl finished, in words, or "" when none is recorded."""
-    finished = _as_utc(session.scalar(select(func.max(CrawlRun.finished_at))))
-    if finished is None:
-        return ""
-    hours = int((datetime.now(timezone.utc) - finished).total_seconds() // 3600)
-    if hours < 1:
-        return "updated under an hour ago"
-    if hours < 48:
-        return f"updated {hours} hour{'' if hours == 1 else 's'} ago"
-    return f"updated {hours // 24} days ago"
-
-
 def _index_context(request: Request) -> dict:
     """Home page context. Shared with the upload error path, which renders the same
     template and would otherwise be missing the counts it interpolates."""
@@ -1244,7 +1231,6 @@ def companies(request: Request):
     with session_scope() as session:
         employers = _hiring_employers(session)
         dublin = sum(e["jobs"] for e in employers)
-        updated = _last_updated(session)
 
         per_platform = session.execute(
             select(
@@ -1280,7 +1266,6 @@ def companies(request: Request):
         irish_names=[n for n in IRISH_NAMES if n in hiring_names],
         public_sector=sum(1 for e in employers if "publicjobs" in e["adapters"]),
         graduate_employers=sum(1 for e in employers if "gradireland" in e["adapters"]),
-        updated=updated,
     )
     return templates.TemplateResponse(request, "companies.html", context)
 

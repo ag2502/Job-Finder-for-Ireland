@@ -20,7 +20,7 @@
       {% if public_sector %}{{ public_sector }} public-sector employers{% endif %}
       {%- if graduate_employers %} and {{ graduate_employers }} graduate recruiters{% endif %}.
       Between them that's <strong>{{ "{:,}".format(dublin_count) }} jobs</strong>, read straight
-      from each company's own careers site and refreshed every six hours.
+      from each company's own careers site.
     </p>
     <div class="row" style="gap:12px;margin-top:26px">
       <a class="btn" href="/#find">Find jobs that fit you
@@ -35,7 +35,7 @@
       <span class="getinfo__icon" aria-hidden="true">
         {% for e in top[:4] %}{{ logo(e.name, e.domain, "logo--sm") }}{% endfor %}
       </span>
-      <div><b>Dublin, all of it</b><span>{{ updated or "refreshed every 6 hours" }}</span></div>
+      <div><b>Dublin, all of it</b><span>every job open right now</span></div>
     </div>
     <dl class="getinfo__rows">
       <div><dt>Companies hiring</dt><dd data-count>{{ "{:,}".format(employers_hiring) }}</dd></div>
@@ -43,7 +43,6 @@
       <div><dt>Hiring platforms read</dt><dd>{{ platforms|length }}</dd></div>
       {% if public_sector %}<div><dt>Public-sector employers</dt><dd>{{ public_sector }}</dd></div>{% endif %}
       {% if graduate_employers %}<div><dt>Graduate recruiters</dt><dd>{{ graduate_employers }}</dd></div>{% endif %}
-      <div><dt>Refreshed</dt><dd>every 6 hours</dd></div>
     </dl>
   </aside>
 </section>
@@ -80,7 +79,7 @@
     <h2 id="where" class="reveal">We read {{ platforms|length }} hiring platforms, so you don't have to.</h2>
     <p class="sky__lede">
       Companies post jobs on their own careers site, which usually runs on one of these.
-      We check every one of them every six hours and bring back what's open in Dublin.
+      We check every one of them and bring back what's open in Dublin.
     </p>
     <div class="sky__stage" id="sky-stage">
       {% set tilts = ["-3deg","2deg","-1.5deg","3.5deg","-2.5deg","1deg","-4deg","2.5deg"] %}
