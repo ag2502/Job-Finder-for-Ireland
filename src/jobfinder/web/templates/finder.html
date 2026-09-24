@@ -615,14 +615,14 @@
   @media (pointer:coarse){ .yrs{--thumb:32px} }
   @media (max-width:420px){ .yrs__bands li{font-size:11px} }
   .switches{display:flex;flex-wrap:wrap;gap:4px 0;padding:22px 0 6px}
+  /* The window's footer: where the form ends, it says what is chosen and offers the
+     search. It used to float pinned to the bottom of the screen and slide over the
+     chips all the way down the form, which was distracting rather than helpful. */
   .slip__action{
-    position:sticky;bottom:14px;z-index:5;
-    display:flex;align-items:center;justify-content:flex-end;gap:16px;
-    margin:14px -22px 0;padding:12px 12px 12px 24px;
-    background:#fff;
-    border:1px solid rgba(20,24,33,.1);border-radius:999px;
-    box-shadow:0 14px 30px -14px rgba(20,24,33,.35);
-    translate:0 -18px;
+    display:flex;align-items:center;justify-content:flex-end;gap:12px 16px;flex-wrap:wrap;
+    margin:18px -40px 0;padding:18px 40px 20px;
+    background:var(--win-bar);border-top:1px solid var(--line);
+    border-radius:0 0 var(--r-win) var(--r-win);
   }
   .slip__hint{margin-right:auto;font-size:14px;font-weight:600;color:var(--ink-2)}
   .slip__hint.is-ready{color:var(--sorted)}
@@ -687,10 +687,14 @@
     .chipgrid{grid-template-columns:1fr;gap:20px}
     .slip__extras{grid-template-columns:1fr;margin:28px -18px 0;padding:22px 18px}
     .switches{flex-direction:column;gap:2px}
-    .slip__action{margin:10px -8px 0;padding:10px 10px 10px 18px}
-    .slip__hint{font-size:13px}
-    .slip__action button{padding:11px 18px;font-size:15px}
+    .slip__action{margin:14px -18px 0;padding:16px 18px 18px}
+    .slip__hint{font-size:13.5px}
+    .slip__action button{padding:12px 22px;font-size:15.5px}
     .desk__actions .btn{flex:1 1 220px}
+  }
+  @media (max-width:520px){
+    .slip__hint{width:100%;text-align:center}
+    .slip__action button{flex:1 1 auto}
   }
 </style>
 {% endblock %}
