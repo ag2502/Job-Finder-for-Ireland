@@ -864,13 +864,32 @@ def _ticked(page: str) -> list[str]:
     return re.findall(r'name="chosen_fields" value="([^"]+)"\s+checked', page)
 
 
-def test_signing_in_starts_a_fresh_search(client: TestClient):
-    """Regression: the last visitor's ticked fields, and the skills from their CV, were
-    still there for whoever signed in next on the same browser."""
-    client.post("/search", data={"chosen_fields": ["machine-learning", "data-science"]})
-    assert _ticked(client.get("/").text) == ["machine-learning", "data-science"]
+def _can_page(client: TestClient) -> bool:
+    """Whether a search is still in the session: page two re-runs it without fields."""
+    return client.post("/search?page=2", data={}).status_code == 200
 
+
+def test_every_visit_starts_with_a_blank_form(client: TestClient):
+    """The owner's rule: a refresh, the logo or a later visit all begin again."""
+    client.post("/search", data={"chosen_fields": ["accounting"]})
+    home = client.get("/")
+    assert _ticked(home.text) == []
+    assert 'class="record' not in home.text
+    # Nor may Back bring the old page out of the browser's memory.
+    assert home.headers["cache-control"] == "no-store"
+
+
+def test_paging_still_works_while_on_the_page(client: TestClient):
+    client.post("/search", data={"chosen_fields": ["backend"]})
+    assert _can_page(client)
+
+
+def test_signing_in_starts_a_fresh_search(client: TestClient):
+    """Regression: the last visitor's fields, and the skills from their CV, carried
+    over to whoever signed in next on the same browser."""
+    client.post("/search", data={"chosen_fields": ["machine-learning", "data-science"]})
     _signed_in(client)
+    assert not _can_page(client)
     assert _ticked(client.get("/").text) == []
 
 
@@ -879,15 +898,14 @@ def test_google_sign_in_also_starts_fresh(client: TestClient, monkeypatch: pytes
     client.post("/search", data={"chosen_fields": ["backend"]})
     _start_google(client)
     client.get("/auth/callback", params={"code": "abc"})
-    assert _ticked(client.get("/").text) == []
+    assert not _can_page(client)
 
 
 def test_signing_out_clears_the_search(client: TestClient):
     _signed_in(client)
     client.post("/search", data={"chosen_fields": ["backend"]})
-    assert _ticked(client.get("/").text) == ["backend"]
     client.post("/logout")
-    assert _ticked(client.get("/").text) == []
+    assert not _can_page(client)
 
 
 def test_staying_signed_in_keeps_the_search(client: TestClient, monkeypatch: pytest.MonkeyPatch):
@@ -898,4 +916,4 @@ def test_staying_signed_in_keeps_the_search(client: TestClient, monkeypatch: pyt
     stale.expires_at = (datetime.now(timezone.utc) - timedelta(minutes=5)).timestamp()
     monkeypatch.setattr(supabase.Account, "from_session", classmethod(lambda cls, d: stale if d else None))
     monkeypatch.setattr(supabase, "refresh", lambda account: _account())
-    assert _ticked(client.get("/").text) == ["backend"]
+    assert _can_page(client)

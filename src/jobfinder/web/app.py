@@ -521,26 +521,23 @@ def static_file(name: str):
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    """The finder: upload form, with results rendered underneath once a search exists."""
+    """The finder: the upload form, blank on every visit. Results arrive by /search."""
     # Supabase falls back to the project's Site URL - this page - when the callback
     # address is not on its allow list. Finish the sign-in rather than dropping it.
     if request.query_params.get("code") and "oauth" in request.session:
         return RedirectResponse(f"/auth/callback?{request.url.query}", status_code=303)
 
+    # Every visit starts with a blank form. The search is still kept in the session
+    # while the page is open, because paging and re-sorting re-run it, but a refresh,
+    # the logo, or coming back later all begin again: the owner decided a search should
+    # not follow anyone around.
+    request.session.pop("profile", None)
     context = _index_context(request)
-    profile = _profile(request)
-    if profile:
-        applied, saved_keys = _account_marks(_account(request))
-        context.update(
-            _search_results(
-                profile,
-                query=profile.get("query"),
-                applied_keys=applied,
-                saved_keys=saved_keys,
-                show_applied=bool(profile.get("show_applied")),
-            )
-        )
-    return templates.TemplateResponse(request, "finder.html", context)
+    response = templates.TemplateResponse(request, "finder.html", context)
+    # No back-forward cache either, or Back would restore the old ticks and results
+    # from memory without asking the server.
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @app.post("/search", response_class=HTMLResponse)

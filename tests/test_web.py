@@ -781,8 +781,6 @@ def test_fifteen_plus_asks_for_every_role(client):
     for sent in ("16", "15+"):
         page = client.post("/search", data={"chosen_fields": ["backend"], "years": sent}).text
         assert "15+ years of experience" in page
-    home = client.get("/").text
-    assert re.search(r'<option value="16" selected>', home)
 
 
 # ------------------------------------------------------------------ copy
