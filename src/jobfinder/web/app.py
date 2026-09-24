@@ -1075,12 +1075,10 @@ def _safe_next(value: str | None) -> str:
     return value
 
 
-REASONS = {
-    "apply": "Applying is recorded against your account, which is how this job stops "
-             "being offered to you tomorrow.",
-    "save": "Saving keeps a job on your own list, so you can come back and apply when "
-            "you have time.",
-}
+# Why sign-in was asked for, when it interrupted an Apply or a Save. It only changes
+# the heading to "One step first."; an explanation box above the Google button was
+# judged unnecessary, and the lede already says what an account is for.
+REASONS = frozenset({"apply", "save"})
 
 
 def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = "",
@@ -1089,7 +1087,7 @@ def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = ""
     context = _base_context(request)
     context.update(
         mode=mode, error=error, notice=notice, email=email, next_to=next_to,
-        reason=REASONS.get(reason, ""),
+        reason=reason in REASONS,
         google_enabled=bool(supabase.providers().get("google")),
         # The email form stays folded away behind Google unless it is the only way in,
         # or the person was already using it: an error or a typed address mean they are

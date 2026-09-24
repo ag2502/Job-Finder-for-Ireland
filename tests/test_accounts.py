@@ -623,10 +623,12 @@ def test_a_signed_out_visitor_is_sent_to_sign_in_before_applying(client: TestCli
     assert "why=save" in response.text, "Save must route through sign-in"
 
 
-def test_the_sign_in_page_says_why_it_is_asking(client: TestClient):
+def test_sign_in_from_apply_is_a_short_step_not_a_lecture(client: TestClient):
     page = client.get("/login", params={"why": "apply"})
     assert page.status_code == 200
-    assert "stops being offered to you tomorrow" in page.text
+    assert "One step first." in page.text
+    assert "stops being offered to you tomorrow" not in page.text
+    assert 'class="notice"' not in page.text
 
 
 def test_sign_in_returns_you_to_where_you_were(client: TestClient):

@@ -20,7 +20,6 @@
   <div class="win opens" style="box-shadow:var(--shadow-lift)">
   {{ titlebar("sign-in" if mode != "signup" else "create-account") }}
   <div class="win__body">
-    {% if reason %}<p class="notice">{{ reason }}</p>{% endif %}
     {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
     {% if notice %}<p class="notice">{{ notice }}</p>{% endif %}
 
