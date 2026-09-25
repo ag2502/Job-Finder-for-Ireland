@@ -1,0 +1,55 @@
+{# Where the CV drop zone used to be. The CV now lives on the profile and goes up once;
+   this says whose CV will rank the results, with a switch to leave it out of one search,
+   or where to add one. #}
+{% set use_cv_on = profile.use_cv if profile and profile.use_cv is defined else true %}
+{% if me and me.cv %}
+<div class="cvcard cvcard--on" data-tilt>
+  <span class="minipaper" aria-hidden="true">
+    <span class="minipaper__sheet">
+      <i class="minipaper__head"></i>
+      <i></i><i class="hlbar"></i><i></i><i class="short"></i>
+      <i></i><i class="hlbar short"></i><i></i>
+    </span>
+  </span>
+  <div class="cvcard__text">
+    <span class="cvcard__eyebrow">Ranking with your CV</span>
+    <b class="cvcard__name" title="{{ me.cv.name }}">{{ me.cv.name }}</b>
+    <span class="cvcard__meta">
+      {{ me.cv.skills|length }} skill{{ "" if me.cv.skills|length == 1 else "s" }}
+      {%- if me.cv.field_list %} &middot; points to {{ me.cv.field_list[0].label }}{% if me.cv.field_list|length > 1 %} +{{ me.cv.field_list|length - 1 }}{% endif %}{% endif %}
+    </span>
+    <div class="cvcard__row">
+      <label class="switch switch--sm">
+        <input type="checkbox" name="use_cv" value="1" {% if use_cv_on %}checked{% endif %}>
+        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+        Use it for this search
+      </label>
+      <a class="cvcard__link" href="/profile#cv">Change</a>
+    </div>
+  </div>
+</div>
+{% elif account %}
+<a class="cvcard cvcard--add" href="/profile#cv" data-tilt>
+  <span class="minipaper minipaper--ghost" aria-hidden="true">
+    <span class="minipaper__sheet"><span class="minipaper__plus">+</span></span>
+  </span>
+  <span class="cvcard__text">
+    <span class="cvcard__eyebrow">Optional</span>
+    <b>Add your CV to your profile</b>
+    <span class="cvcard__meta">Once, and every search puts the jobs closest to it first.</span>
+    <span class="cvcard__go">Add it now <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+  </span>
+</a>
+{% else %}
+<a class="cvcard cvcard--add" href="/login?next=/profile" data-tilt>
+  <span class="minipaper minipaper--ghost" aria-hidden="true">
+    <span class="minipaper__sheet"><span class="minipaper__plus">+</span></span>
+  </span>
+  <span class="cvcard__text">
+    <span class="cvcard__eyebrow">Optional</span>
+    <b>Rank jobs against your CV</b>
+    <span class="cvcard__meta">Sign in and add it to your profile once. Every search after that uses it.</span>
+    <span class="cvcard__go">Sign in <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></span>
+  </span>
+</a>
+{% endif %}

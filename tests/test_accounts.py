@@ -8,6 +8,7 @@ untestable if it did.
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timedelta, timezone
 
@@ -36,7 +37,9 @@ class FakeSupabase:
     def __init__(self) -> None:
         self.rows: list[dict] = []
         self.saved_rows: list[dict] = []
+        self.profile: dict | None = None
         self.fail_with: Exception | None = None
+        self.profile_fails_with: Exception | None = None
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> FakeSupabase:
         monkeypatch.setattr(supabase, "configured", lambda: True)
@@ -49,6 +52,8 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "list_saved", self._list_saved)
         monkeypatch.setattr(supabase, "add_saved", self._add_saved)
         monkeypatch.setattr(supabase, "remove_saved", self._remove_saved)
+        monkeypatch.setattr(supabase, "get_profile", self._get_profile)
+        monkeypatch.setattr(supabase, "save_profile", self._save_profile)
         monkeypatch.setattr(supabase, "providers", lambda: {"google": True})
         monkeypatch.setattr(supabase.settings, "supabase_url", "https://proj.supabase.co")
         return self
@@ -104,6 +109,17 @@ class FakeSupabase:
         self.saved_rows = [
             r for r in self.saved_rows if r["advert_key"] != advert_key
         ]
+
+    def _get_profile(self, account):
+        if self.profile_fails_with:
+            raise self.profile_fails_with
+        return dict(self.profile) if self.profile is not None else None
+
+    def _save_profile(self, account, **columns):
+        if self.profile_fails_with:
+            raise self.profile_fails_with
+        # Only the columns named change, as with the real upsert.
+        self.profile = {**(self.profile or {}), **columns}
 
 
 @pytest.fixture
@@ -770,10 +786,10 @@ def test_a_cv_search_and_a_google_account_both_survive(
     client.get("/auth/callback", params={"code": "abc"})
 
     cv = b"Senior Software Engineer. Python, Kubernetes, Kafka, Terraform, AWS. " * 200
+    client.post("/profile/cv", files={"resume": ("cv.txt", cv, "text/plain")})
     client.post(
         "/search",
-        files={"resume": ("cv.txt", cv, "text/plain")},
-        data={"chosen_fields": ["backend"], "years": "6"},
+        data={"chosen_fields": ["backend"], "years": "6", "use_cv": "1"},
     )
     for name in ("session", "sp_account"):
         value = client.cookies.get(name) or ""
@@ -917,3 +933,318 @@ def test_staying_signed_in_keeps_the_search(client: TestClient, monkeypatch: pyt
     monkeypatch.setattr(supabase.Account, "from_session", classmethod(lambda cls, d: stale if d else None))
     monkeypatch.setattr(supabase, "refresh", lambda account: _account())
     assert _can_page(client)
+
+
+# ---------------------------------------------------------------- the profile CV
+#
+# The CV goes up once, on the profile, and every search after that is ranked against
+# it. What is kept is the reading of it; the document itself is never stored.
+
+CV_BYTES = b"""
+Jane Doe
+jane@example.com
++353 87 123 4567
+Senior Software Engineer at Acme (2019-2026)
+Python, Kubernetes, Kafka, Terraform, AWS. 6 years of experience.
+"""
+
+
+def _with_cv(client: TestClient) -> TestClient:
+    _signed_in(client)
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("jane-doe-cv.txt", CV_BYTES, "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    return client
+
+
+def test_a_cv_is_read_into_the_profile_and_the_document_is_not_kept(
+    client: TestClient, fake
+):
+    _with_cv(client)
+    cv = fake.profile["cv"]
+    assert cv["name"] == "jane-doe-cv.txt"
+    assert "python" in cv["skills"]
+    assert cv["seniority"] == "senior"
+    assert cv["years"] == 6
+    assert cv["bytes"] == len(CV_BYTES)
+    kept = json.dumps(fake.profile).lower()
+    # Nothing that identifies the person, and none of the document's own text.
+    assert "jane@example.com" not in kept
+    assert "123 4567" not in kept
+    assert "senior software engineer at acme" not in kept
+    assert "text" not in cv
+
+
+def test_the_upload_answers_with_the_floating_sheet(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("jane-doe-cv.txt", CV_BYTES, "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert 'id="cvpanel"' in response.text
+    assert "data-cvstage" in response.text
+    assert "is-fresh" in response.text
+    assert "Replace with a newer CV" in response.text and "Remove" in response.text
+    # The header's "CV added" step is updated alongside, without a reload.
+    assert 'id="step-cv"' in response.text and 'hx-swap-oob="true"' in response.text
+    assert "<!doctype html>" not in response.text.lower()
+
+
+def test_the_profile_shows_the_cv_or_asks_for_one(client: TestClient, fake):
+    _signed_in(client)
+    empty = client.get("/profile").text
+    assert "Drop your CV here" in empty and "data-cvstage" not in empty
+    assert "Add your CV" in empty
+
+    _with_cv(client)
+    page = client.get("/profile").text
+    assert "data-cvstage" in page and "jane-doe-cv.txt" in page
+    assert "CV added" in page
+    assert "/static/cvsheet-1.js" in page
+
+
+def test_a_new_upload_replaces_the_old_one(client: TestClient, fake):
+    _with_cv(client)
+    client.post(
+        "/profile/cv",
+        files={"resume": ("newer.txt", b"Data Analyst. SQL, Tableau, Excel.", "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert fake.profile["cv"]["name"] == "newer.txt"
+    assert "kubernetes" not in fake.profile["cv"]["skills"]
+
+
+def test_removing_the_cv_deletes_the_reading(client: TestClient, fake):
+    _with_cv(client)
+    fake.profile["years"] = 3
+    response = client.post("/profile/cv/remove", headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert fake.profile["cv"] is None
+    assert fake.profile["years"] == 3, "removing the CV must leave the details alone"
+    assert "Drop your CV here" in response.text
+
+
+def test_an_oversized_cv_is_refused_and_nothing_is_kept(client: TestClient, fake):
+    _signed_in(client)
+    huge = b"x" * (5 * 1024 * 1024 + 10)
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("big.txt", huge, "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert "larger than 5 MB" in response.text
+    assert fake.profile is None
+
+
+def test_a_file_with_no_text_says_so(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("scan.pdf", b"%PDF-1.4 not really a pdf", "application/pdf")},
+        headers={"HX-Request": "true"},
+    )
+    assert "could not find any text" in response.text
+    assert fake.profile is None
+
+
+def test_a_cv_that_cannot_be_saved_says_so(client: TestClient, fake):
+    _signed_in(client)
+    fake.profile_fails_with = supabase.SupabaseError("relation does not exist")
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 200
+    assert "could not be saved just now" in response.text
+
+
+def test_without_javascript_an_upload_comes_back_to_the_profile(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
+        follow_redirects=False,
+    )
+    assert response.status_code == 303
+    assert response.headers["location"] == "/profile#cv"
+    failed = client.post(
+        "/profile/cv",
+        files={"resume": ("big.txt", b"x" * (5 * 1024 * 1024 + 10), "text/plain")},
+        follow_redirects=False,
+    )
+    assert failed.headers["location"].startswith("/profile?cv_error=too-big")
+    assert "larger than 5 MB" in client.get(failed.headers["location"]).text
+
+
+def test_the_cv_needs_an_account(client: TestClient):
+    response = client.post(
+        "/profile/cv",
+        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
+        headers={"HX-Request": "true"},
+    )
+    assert response.status_code == 401
+    assert client.post("/profile/cv/remove", headers={"HX-Request": "true"}).status_code == 401
+
+
+# ------------------------------------------------------- searching with the CV
+
+
+def test_a_search_is_ranked_against_the_stored_cv(client: TestClient, fake):
+    _with_cv(client)
+    ranked = client.post(
+        "/search", data={"chosen_fields": ["backend"], "use_cv": "1"},
+        headers={"HX-Request": "true"},
+    ).text
+    assert "closest to your CV first" in ranked
+    assert "jane-doe-cv.txt" in ranked
+
+    plain = client.post(
+        "/search", data={"chosen_fields": ["backend"]}, headers={"HX-Request": "true"}
+    ).text
+    assert "best matches first" in plain, "switching the CV off leaves it out"
+
+
+def test_paging_keeps_ranking_with_the_cv(client: TestClient, fake):
+    _with_cv(client)
+    client.post("/search", data={"chosen_fields": ["backend"], "use_cv": "1"})
+    page_two = client.post(
+        "/search?page=2",
+        data={"chosen_fields": ["backend"], "use_cv": "1"},
+        headers={"HX-Request": "true"},
+    )
+    assert page_two.status_code == 200
+    assert "closest to your CV first" in page_two.text
+
+
+def test_the_finder_says_whose_cv_ranks_the_results(client: TestClient, fake):
+    home = client.get("/").text
+    assert "Rank jobs against your CV" in home and 'href="/login?next=/profile"' in home
+
+    _signed_in(client)
+    assert "Add your CV to your profile" in client.get("/").text
+
+    _with_cv(client)
+    home = client.get("/").text
+    assert "Ranking with your CV" in home and "jane-doe-cv.txt" in home
+    assert 'name="use_cv" value="1" checked' in home
+
+
+def test_typed_experience_overrides_the_cv(client: TestClient, fake):
+    """The CV says six years; the slider says one. The slider wins."""
+    _with_cv(client)
+    response = client.post(
+        "/search", data={"chosen_fields": ["backend"], "years": "1", "use_cv": "1"}
+    )
+    assert "asking 1 year or less" in response.text
+
+
+def test_a_blank_slider_shows_everything_even_when_the_cv_states_years(
+    client: TestClient, fake
+):
+    """Not stated means not stated: the CV's six years must not quietly filter."""
+    import re
+
+    def total(page: str) -> int:
+        match = re.search(r"([\d,]+) (?:job|internship)", page)
+        return int(match.group(1).replace(",", "")) if match else 0
+
+    _with_cv(client)
+    with_cv = total(client.post(
+        "/search", data={"chosen_fields": ["backend"], "years": "", "use_cv": "1"}
+    ).text)
+    without = total(client.post(
+        "/search", data={"chosen_fields": ["backend"], "years": ""}
+    ).text)
+    assert with_cv == without
+
+
+def test_fields_the_cv_points_to_are_offered_below_the_chosen_ones(
+    client: TestClient, fake
+):
+    _signed_in(client)
+    fake.profile = {"cv": {
+        "name": "cv.pdf", "skills": ["excel"], "fields": ["accounting"], "terms": [],
+        "summary": "An accountant.", "seniority": "mid", "years": 4,
+    }}
+    page = client.post(
+        "/search", data={"chosen_fields": ["backend"], "use_cv": "1"},
+        headers={"HX-Request": "true"},
+    ).text
+    assert "Your CV also points to" in page and "Accounting" in page
+    assert "Where your CV points" in page
+
+
+def test_a_profile_outage_does_not_take_the_search_down(client: TestClient, fake):
+    _with_cv(client)
+    fake.profile_fails_with = httpx.ConnectError("down")
+    response = client.post("/search", data={"chosen_fields": ["backend"], "use_cv": "1"})
+    assert response.status_code == 200
+    assert "best matches first" in response.text
+
+
+# ----------------------------------------------------------------- the details
+
+
+def test_details_are_saved_and_offered_back_on_the_finder(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post(
+        "/profile/details",
+        data={"chosen_fields": ["backend", "not-a-field", "backend"], "years": "3",
+              "include_remote": "1"},
+        headers={"HX-Request": "true"},
+    )
+    assert "Saved" in response.text
+    assert fake.profile["fields"] == ["backend"]
+    assert fake.profile["years"] == 3
+    assert fake.profile["include_remote"] is True
+    assert fake.profile["graduate_only"] is False
+
+    home = client.get("/").text
+    assert 'id="fill-me"' in home and "Use my profile" in home
+    # Offered, never applied: the form itself still starts blank.
+    assert not re.findall(r'value="backend"\s+checked', home)
+
+
+def test_any_on_the_profile_slider_saves_no_years(client: TestClient, fake):
+    _signed_in(client)
+    client.post("/profile/details", data={"chosen_fields": ["backend"], "years": "-1"},
+                headers={"HX-Request": "true"})
+    assert fake.profile["years"] is None
+
+
+def test_saving_details_leaves_the_cv_alone(client: TestClient, fake):
+    _with_cv(client)
+    client.post("/profile/details", data={"chosen_fields": ["backend"]},
+                headers={"HX-Request": "true"})
+    assert fake.profile["cv"]["name"] == "jane-doe-cv.txt"
+
+
+def test_the_profile_marks_what_is_set_up(client: TestClient, fake):
+    _signed_in(client)
+    page = client.get("/profile").text
+    assert "Say what you are after" in page
+    fake.profile = {"fields": ["backend"], "years": None}
+    page = client.get("/profile").text
+    assert "Details saved" in page
+    assert re.search(r'value="backend"\s+checked', page)
+
+
+def test_a_failed_details_save_says_so(client: TestClient, fake):
+    _signed_in(client)
+    fake.profile_fails_with = supabase.SupabaseError("nope")
+    response = client.post("/profile/details", data={"chosen_fields": ["backend"]},
+                           headers={"HX-Request": "true"})
+    assert "Could not save" in response.text
+
+
+def test_the_profile_still_loads_when_the_profile_row_cannot(client: TestClient, fake):
+    _signed_in(client)
+    fake.profile_fails_with = httpx.ConnectError("down")
+    page = client.get("/profile")
+    assert page.status_code == 200
+    assert "could not be loaded just now" in page.text

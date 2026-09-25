@@ -1,10 +1,11 @@
 {# The results window: one row per opening, company logo first.
    Rendered standalone for HTMX swaps and inlined on a full page load. #}
 {#
-  What the sort and paging controls re-submit. The CV file input is left out on purpose:
-  these controls sit outside the multipart form, so htmx url-encodes them and a selected
-  file would go up as the string "[object File]", which the server rejects with a 422
-  that htmx then silently declines to swap. The CV signals already live in the session.
+  What the sort and paging controls re-submit. File inputs are left out on purpose:
+  these controls sit outside the form, so htmx url-encodes them and a selected file
+  would go up as the string "[object File]", which the server rejects with a 422 that
+  htmx then silently declines to swap. The form has none today, since the CV lives on
+  the profile, and the exclusion keeps it that way if one returns.
   The sort select is named explicitly because it sits outside the form, and without it
   paging would quietly revert to "Best match". Selects inside the form are listed too:
   when years of experience became a list, paging stopped sending it, and page two of a
@@ -16,9 +17,10 @@
 {% set early_only = internships_only or graduate_only %}
 {# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
 {% set tier_bands = {
-     1: "Closely related roles",
-     2: "A sideways move into another field",
-     3: "Matched on your skills, not your fields",
+     1: "Where your CV points",
+     2: "Closely related roles",
+     3: "A sideways move into another field",
+     4: "Matched on your skills, not your fields",
    } %}
 
 <div class="win resultswin">
@@ -68,22 +70,21 @@
       {% if candidate_years > 15 %}15+ years of experience &middot;
       {% else %}asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;{% endif %}
     {% endif %}
-    {% if skill_count %}closest to your CV first{% else %}best matches first{% endif %}
+    {% if skill_count %}closest to your CV first{% if cv_name %} ({{ cv_name }}){% endif %}{% else %}best matches first{% endif %}
     {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
       &middot; graduate and entry-level jobs included
     {% endif %}
   </p>
 
-  {% if cv_fields and cv_fields_differ %}
-  {# The CV read as something other than what was ticked. Offered, never applied: the
-     boxes say what someone wants to do next, and a CV only says what they have done. #}
+  {% if cv_fields %}
+  {# The CV points somewhere the boxes do not. Those roles are listed in a band of their
+     own below the chosen ones, never mixed in: the boxes say what someone wants to do
+     next, and a CV only says what they have done. #}
   <p class="small" style="margin:12px 0 0;color:var(--ink-3);line-height:1.6">
     {% if cv_summary %}<strong style="color:var(--ink)">{{ cv_summary }}</strong><br>{% endif %}
-    Your CV reads as
-    {% for f in cv_fields %}<strong>{{ f.label }}</strong>{% if not loop.last %}, {% endif %}{% endfor %}.
-    <button type="button" class="linky" data-cv-fields="{{ cv_fields | map(attribute='key') | join(',') }}">
-      Search those instead
-    </button>
+    Your CV also points to
+    {% for f in cv_fields %}<strong>{{ f.label }}</strong>{% if not loop.last %}, {% endif %}{% endfor %},
+    so those jobs are included too{% if tiered %}, after the ones you picked{% endif %}.
   </p>
   {% endif %}
 

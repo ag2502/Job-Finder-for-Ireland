@@ -1,0 +1,161 @@
+{# The CV window's contents on the profile. Rendered inside the page, and on its own for
+   htmx to swap in after an upload, a replacement or a removal.
+
+   With a CV: the reading of it drawn as a sheet of paper that floats on the desk (WebGL
+   when it can, a plain CSS sheet when it cannot or motion is unwelcome), beside
+   everything that was kept, written out in full. Without one: a drop zone. #}
+{% from "_macros.html" import cv_step %}
+{% set cv = me.cv if me else none %}
+{% if oob %}{{ cv_step(cv, oob=true) }}{% endif %}
+<div id="cvpanel" class="cvpanel {{ 'cvpanel--has' if cv else 'cvpanel--empty' }}{% if cv_fresh %} is-fresh{% endif %}">
+
+{% if cv %}
+  {% set paper = {
+      "name": cv.name, "kind": cv.kind, "size": cv.size_label, "added": cv.added_on,
+      "summary": cv.summary, "years": cv.years, "seniority": cv.seniority,
+      "words": cv.words or 0, "skills": (cv.skills or [])[:24],
+      "fields": cv.field_list,
+    } %}
+  <div class="cvstage" data-cvstage data-cv='{{ paper|tojson }}'>
+    {# The sheet as plain HTML: what shows without WebGL, with reduced motion, and
+       until the WebGL one has drawn. Decorative; the same facts are written out in
+       full beside it. #}
+    <figure class="paper" aria-hidden="true">
+      <div class="paper__top"><span>{{ cv.name }}</span><span>{{ cv.kind }} &middot; {{ cv.size_label }}</span></div>
+      <p class="paper__title">{{ cv.summary or "Curriculum vitae" }}</p>
+      {% if cv.years is not none %}<p class="paper__sub">About {{ cv.years }} year{{ "" if cv.years == 1 else "s" }}{% if cv.seniority %} &middot; {{ cv.seniority }} level{% endif %}</p>{% endif %}
+      {% if cv.field_list %}
+      <p class="paper__label">Where it points</p>
+      <div class="paper__pills">{% for f in cv.field_list %}<span style="--g:var(--g-{{ f.group }})">{{ f.label }}</span>{% endfor %}</div>
+      {% endif %}
+      {% if cv.skills %}
+      <p class="paper__label">Skills we picked up</p>
+      <div class="paper__skills">{% for s in cv.skills[:14] %}<span{% if loop.index <= 4 %} class="is-hl"{% endif %}>{{ s }}</span>{% endfor %}</div>
+      {% endif %}
+      <div class="paper__lines"><i></i><i></i><i></i><i></i><i></i></div>
+      <span class="paper__stamp">sorted</span>
+    </figure>
+    <canvas class="cvstage__gl" aria-hidden="true"></canvas>
+    <span class="cvstage__shadow" aria-hidden="true"></span>
+    <span class="cvstage__cursor" aria-hidden="true">drag</span>
+    <p class="cvstage__hint hand" aria-hidden="true">go on, give it a nudge</p>
+  </div>
+
+  <div class="cvread">
+    <div class="cvread__file">
+      <svg width="34" height="34" aria-hidden="true"><use href="#i-doc"/></svg>
+      <div>
+        <b>{{ cv.name }}</b>
+        <span class="typed">{{ cv.kind }} &middot; {{ cv.size_label }}{% if cv.added_on %} &middot; added {{ cv.added_on }}{% endif %}</span>
+      </div>
+      <span class="stamp cvread__live"><svg width="12" height="12" aria-hidden="true"><use href="#i-check"/></svg>ranking your searches</span>
+    </div>
+
+    {% if cv_error %}<p class="error" role="alert">{{ cv_error }}</p>{% endif %}
+
+    {% if cv.summary %}<p class="cvread__summary">{{ cv.summary }}</p>{% endif %}
+
+    <div class="cvread__facts">
+      <div class="fact"><span>Experience</span><b>{% if cv.years is not none %}about {{ cv.years }} year{{ "" if cv.years == 1 else "s" }}{% else %}not stated{% endif %}</b></div>
+      <div class="fact"><span>Level</span><b>{{ cv.seniority or "not stated" }}</b></div>
+      <div class="fact"><span>Skills found</span><b>{{ cv.skills|length }}</b></div>
+    </div>
+
+    {% if cv.field_list %}
+    <h3 class="cvread__h">Where it points</h3>
+    <p class="small muted cvread__note">Jobs in these fields come up in your results too, just below the ones you pick.</p>
+    <div class="cvread__fields">
+      {% for f in cv.field_list %}<span class="fpill" style="--g:var(--g-{{ f.group }});--k:{{ loop.index0 }}">{{ f.label }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
+    {% if cv.skills %}
+    <h3 class="cvread__h">Skills we picked up</h3>
+    <div class="cvread__skills">
+      {% for s in cv.skills[:18] %}<span class="skill" style="--k:{{ loop.index0 }}">{{ s }}</span>{% endfor %}
+    </div>
+    {% if cv.skills|length > 18 %}
+    <details class="cvread__more">
+      <summary>and {{ cv.skills|length - 18 }} more</summary>
+      <div class="cvread__skills">{% for s in cv.skills[18:] %}<span class="skill">{{ s }}</span>{% endfor %}</div>
+    </details>
+    {% endif %}
+    {% endif %}
+
+    <div class="cvread__actions">
+      <form class="cvreplace" method="post" action="/profile/cv" enctype="multipart/form-data"
+            hx-post="/profile/cv" hx-encoding="multipart/form-data" hx-trigger="change"
+            hx-target="#cvpanel" hx-swap="outerHTML" hx-indicator="#cvpanel" data-cv-upload>
+        <label class="btn btn--ghost cvpick">
+          <svg width="16" height="16" aria-hidden="true"><use href="#i-doc"/></svg>Replace with a newer CV
+          <input type="file" name="resume" accept=".pdf,.docx,.doc,.txt" aria-label="Choose a newer CV to replace this one">
+        </label>
+        <noscript><button type="submit" class="secondary">Upload</button></noscript>
+      </form>
+      <form class="cvremove" method="post" action="/profile/cv/remove"
+            hx-post="/profile/cv/remove" hx-target="#cvpanel" hx-swap="outerHTML">
+        <button type="submit" class="secondary cvremove__ask" data-cv-ask>Remove</button>
+        <span class="cvremove__confirm" hidden>
+          <span class="cvremove__q">Remove it for good?</span>
+          <button type="submit" class="cvremove__yes">Yes, remove</button>
+          <button type="button" class="linkish" data-cv-keep>Keep it</button>
+        </span>
+      </form>
+    </div>
+    <p class="small muted cvread__privacy">
+      The file itself was read once and thrown away. What you see here is everything we
+      kept, and removing it deletes it outright. <a href="/privacy">More on privacy</a>
+    </p>
+  </div>
+
+{% else %}
+  <form class="cvdrop" method="post" action="/profile/cv" enctype="multipart/form-data"
+        hx-post="/profile/cv" hx-encoding="multipart/form-data" hx-trigger="change"
+        hx-target="#cvpanel" hx-swap="outerHTML" hx-indicator="#cvpanel" data-cv-upload>
+    <label class="cvdrop__zone" for="cv-file">
+      <span class="ghost" aria-hidden="true">
+        <span class="ghost__sheet"><i></i><i></i><i class="short"></i><i></i><i></i><i class="short"></i></span>
+        <span class="ghost__arrow"><svg width="22" height="22"><use href="#i-down"/></svg></span>
+      </span>
+      <span class="cvdrop__copy">
+        <b>Drop your CV here</b>
+        <span>or <u>choose a file</u>. PDF, Word or plain text, up to 5 MB.</span>
+      </span>
+      <input type="file" id="cv-file" name="resume" accept=".pdf,.docx,.doc,.txt">
+    </label>
+    <noscript><button type="submit">Upload</button></noscript>
+  </form>
+
+  <div class="cvwhy">
+    <h2 id="cv-title">Add your CV once. Every search uses it.</h2>
+    {% if cv_error %}<p class="error" role="alert">{{ cv_error }}</p>{% endif %}
+    <ul class="cvwhy__list">
+      <li><span class="cvwhy__n">1</span><div><b>The closest jobs come first.</b> Results are ranked
+        against the skills and experience in it, so you do not have to upload it on every search.</div></li>
+      <li><span class="cvwhy__n">2</span><div><b>Roles you had not thought of.</b> Jobs in the fields
+        your CV points to show up too, below the ones you pick.</div></li>
+      <li><span class="cvwhy__n">3</span><div><b>The file is thrown away.</b> We keep only what we
+        read from it: skills, a rough number of years, the fields it points to. Replace or remove
+        it whenever you like.</div></li>
+    </ul>
+  </div>
+{% endif %}
+
+  {# Shown while a CV is going up and being read. The steps are the ones the server
+     really takes; the pace they tick at is only a guide. #}
+  <div class="cvreading" role="status" aria-live="polite">
+    <div class="scanpaper" aria-hidden="true">
+      <i></i><i></i><i class="short"></i><i></i><i></i><i class="short"></i><i></i><i></i>
+      <span class="scanpaper__beam"></span>
+    </div>
+    <div class="cvreading__text">
+      <b>Reading <span data-reading-name>your CV</span></b>
+      <ol class="readsteps">
+        <li>Pulling out the text</li>
+        <li>Picking out your skills</li>
+        <li>Matching it to the words employers use</li>
+        <li>Filing it on your profile</li>
+      </ol>
+    </div>
+  </div>
+</div>

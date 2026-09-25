@@ -117,3 +117,56 @@ create policy "update own saved jobs"
 create policy "delete own saved jobs"
     on public.saved_jobs for delete
     using (auth.uid() = user_id);
+
+
+-- ------------------------------------------------------------------ profiles
+--
+-- One row per account: what the searcher told us about themselves, and what was read
+-- from their CV, so the CV goes up once rather than on every search.
+--
+-- **The CV document is still never stored.** `cv` holds the reading of it - skill
+-- keywords, the fields it points to, a seniority guess, a rough number of years, a
+-- one-line summary, and the file's name and size so the profile can show which CV it
+-- is. The file itself is parsed in memory and dropped, exactly as before. Removing the
+-- CV sets `cv` to null, which deletes the reading outright.
+
+create table if not exists public.profiles (
+    user_id          uuid primary key references auth.users (id) on delete cascade,
+
+    -- What they want next: field keys from `jobfinder.normalize.taxonomy.FIELDS`.
+    fields           text[] not null default '{}',
+    -- Years of experience as they stated it. Null means not stated.
+    years            smallint check (years between 0 and 50),
+    include_remote   boolean not null default false,
+    internships_only boolean not null default false,
+    graduate_only    boolean not null default false,
+
+    -- The reading of their CV, or null when there is none.
+    cv               jsonb,
+
+    updated_at       timestamptz not null default now()
+);
+
+alter table public.profiles enable row level security;
+
+drop policy if exists "read own profile"   on public.profiles;
+drop policy if exists "insert own profile" on public.profiles;
+drop policy if exists "update own profile" on public.profiles;
+drop policy if exists "delete own profile" on public.profiles;
+
+create policy "read own profile"
+    on public.profiles for select
+    using (auth.uid() = user_id);
+
+create policy "insert own profile"
+    on public.profiles for insert
+    with check (auth.uid() = user_id);
+
+create policy "update own profile"
+    on public.profiles for update
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "delete own profile"
+    on public.profiles for delete
+    using (auth.uid() = user_id);

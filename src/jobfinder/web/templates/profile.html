@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set nav = 'profile' %}
 {% block title %}Your profile | Sorted Place{% endblock %}
-{% from "_macros.html" import titlebar, avatar %}
+{% from "_macros.html" import titlebar, avatar, years_slider, field_tag, cv_step %}
 {% block railcount %}{% if account %}{{ saved|length }} saved &middot; {{ applications|length }} applied{% endif %}{% endblock %}
 {% block content %}
 
@@ -29,17 +29,111 @@
           {% else %}Signed in with email{% endif %}{% if joined_on %} &middot; joined {{ joined_on }}{% endif %}
         </span>
       </p>
+      <div class="me__steps">
+        {{ cv_step(me.cv) }}
+        <a id="step-about" class="mestep{% if me.has_details %} is-done{% endif %}" href="#about">
+          <span class="mestep__tick" aria-hidden="true"><svg width="12" height="12"><use href="#i-check"/></svg></span>
+          {{- "Details saved" if me.has_details else "Say what you are after" -}}
+        </a>
+      </div>
     </div>
   </div>
-  <form method="post" action="/logout" class="me__out">
-    <button class="secondary"><svg width="16" height="16" aria-hidden="true"><use href="#i-out"/></svg>Sign out</button>
-  </form>
+  <div class="me__acts">
+    <a class="btn" href="/#find">Find jobs <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    <form method="post" action="/logout" class="me__out">
+      <button class="secondary"><svg width="16" height="16" aria-hidden="true"><use href="#i-out"/></svg>Sign out</button>
+    </form>
+  </div>
 </section>
 
 {% if error %}<p class="error">{{ error }}</p>{% endif %}
+{% if me_unavailable %}
+<p class="notice">Your CV and details could not be loaded just now. Your searches still work;
+  try this page again in a moment.</p>
+{% endif %}
+
+{# The CV: added once here, used by every search. #}
+<section class="win cvwin opens" id="cv" aria-label="Your CV">
+  {{ titlebar("your-cv") }}
+  {% include "_cv_panel.html" %}
+</section>
 
 <div class="me__grid">
-  <section class="win profilewin opens" aria-label="Your jobs">
+  {# What they are looking for, saved for the finder to offer back. #}
+  {% set cv_fields = me.cv.fields if me.cv else [] %}
+  <section class="win aboutwin opens" id="about" aria-labelledby="about-title" data-delay="80">
+    {{ titlebar("about-you") }}
+    <form class="about" method="post" action="/profile/details"
+          hx-post="/profile/details" hx-target="#about-status" hx-swap="innerHTML" data-about>
+      <h2 id="about-title">What you are looking for</h2>
+      <p class="muted about__lede">Saved here, and offered on the finder with one click. Nothing
+        is filtered by it until you use it there.</p>
+
+      <div class="about__block">
+        <div class="about__row">
+          <span class="fieldname" id="kinds-label">Kinds of work</span>
+          <span class="about__count" data-about-count>{{ me.fields|length }} picked</span>
+        </div>
+        {% if cv_fields %}
+        <button type="button" class="cvpickall" data-cv-pick='{{ cv_fields|tojson }}'>
+          <span class="cvmark">cv</span>Tick the {{ cv_fields|length }} your CV points to
+        </button>
+        {% endif %}
+        <div class="fgroups" role="group" aria-labelledby="kinds-label">
+          {% for group_label, group_fields in field_groups %}
+          {% set ticked = group_fields|selectattr("key", "in", me.fields)|list %}
+          {% set from_cv = group_fields|selectattr("key", "in", cv_fields)|list %}
+          <details class="fgroup" style="--g:var(--g-{{ group_fields[0].group if group_fields else 'engineering' }})"
+                   {% if ticked or from_cv %}open{% endif %}>
+            <summary>
+              <span class="fgroup__dot" aria-hidden="true"></span>
+              <span class="fgroup__name">{{ group_label }}</span>
+              <span class="fgroup__n" data-group-count {% if not ticked %}hidden{% endif %}>{{ ticked|length }}</span>
+              <svg class="fgroup__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </summary>
+            <div class="dividers">
+              {% for f in group_fields %}{{ field_tag(f, f.key in me.fields, cv_fields) }}{% endfor %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="about__block">
+        {% call years_slider(me.years) %}
+          {% if me.cv and me.cv.years is not none %}
+            Your CV looks like about <strong>{{ me.cv.years }} years</strong>.
+          {% endif %}
+          The finder shows jobs asking for this many years or fewer.
+        {% endcall %}
+      </div>
+
+      <div class="about__block about__switches">
+        <label class="switch">
+          <input type="checkbox" name="include_remote" value="1" {% if me.include_remote %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Include remote jobs
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="internships_only" value="1" {% if me.internships_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Internships only
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="graduate_only" value="1" {% if me.graduate_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Graduate programmes only
+        </label>
+      </div>
+
+      <div class="about__foot">
+        <span id="about-status" class="about__status" aria-live="polite"></span>
+        <button type="submit" data-about-save>Save</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="win profilewin opens" aria-label="Your jobs" data-delay="160">
     {{ titlebar("profile: " ~ account.email) }}
     <div class="tabs" role="tablist" aria-label="Your jobs">
       <a role="tab" id="tab-saved" href="/profile?tab=saved" aria-controls="panel-saved"
@@ -129,7 +223,16 @@
       </div>
     </div>
   </section>
+</div>
 
+{# Drag a file anywhere over the page and it can be dropped anywhere, not only on the
+   drop zone. #}
+<div class="dropveil" aria-hidden="true">
+  <div class="dropveil__card">
+    <span class="dropveil__sheet"><i></i><i></i><i class="short"></i><i></i></span>
+    <b>Drop it to add your CV</b>
+    <span>It is read once, then the file is thrown away.</span>
+  </div>
 </div>
 {% endif %}
 
@@ -144,12 +247,268 @@
   .me__email{font-weight:600;color:var(--ink);overflow-wrap:anywhere}
   .me__via{display:flex;align-items:flex-start;gap:7px;font-size:13.5px;line-height:1.45;color:var(--ink-3)}
   .me__via svg{width:14px;height:14px;flex:none;margin-top:3px}
+  .me__acts{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   .me__out{margin:0}
-  .me__out button{padding:9px 18px;font-size:14.5px}
+  .me__acts .btn,.me__out button{padding:9px 18px;font-size:14.5px}
   .me__out svg{transform:none!important}
 
-  .me__grid{display:grid;grid-template-columns:minmax(0,1fr)}
-  .profilewin{box-shadow:var(--shadow-lift)}
+  .me__steps{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+  .mestep{display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 6px;border-radius:999px;
+    font-size:13px;font-weight:600;color:var(--ink-2);text-decoration:none;background:#fff;
+    border:1px dashed var(--line-strong);transition:border-color .2s var(--ease),transform .35s var(--spring)}
+  .mestep:hover{border-color:var(--aqua);color:var(--aqua-deep);transform:translateY(-1px)}
+  .mestep__tick{display:grid;place-items:center;width:18px;height:18px;border-radius:50%;
+    background:#eef0f3;color:transparent;box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+  .mestep.is-done{border-style:solid;border-color:color-mix(in srgb,var(--sorted) 40%,var(--line));color:var(--ink)}
+  .mestep.is-done .mestep__tick{background:var(--sorted);color:#fff;box-shadow:none}
+  @media (prefers-reduced-motion:no-preference){
+    .mestep.is-done .mestep__tick{animation:pop .5s var(--spring)}
+  }
+
+  /* ----------------------------------------------------------- the CV */
+  .cvwin{box-shadow:var(--shadow-lift);margin-bottom:28px;scroll-margin-top:70px}
+  .cvpanel{position:relative;display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);min-height:520px}
+
+  /* The stage: a patch of desk inside the window for the sheet to float over. */
+  .cvstage{position:relative;overflow:hidden;min-height:520px;touch-action:pan-y;
+    background-color:#e9ecf1;
+    background-image:radial-gradient(rgba(20,24,33,.13) 1px,transparent 1.3px),
+      radial-gradient(120% 80% at 50% 0%,rgba(255,255,255,.7),rgba(255,255,255,0) 70%);
+    background-size:22px 22px,100% 100%;background-position:-11px -11px,0 0;
+    border-right:1px solid var(--line)}
+  .cvstage__gl{position:absolute;inset:0;width:100%;height:100%;display:block;opacity:0;
+    transition:opacity .5s var(--ease);cursor:grab;z-index:2}
+  .cvstage.is-gl .cvstage__gl{opacity:1}
+  .cvstage.is-held .cvstage__gl{cursor:grabbing}
+  .cvstage.is-gl .paper{opacity:0;visibility:hidden;transition:opacity .4s var(--ease),visibility 0s .4s}
+  .cvstage__shadow{position:absolute;left:50%;bottom:7%;width:52%;height:34px;margin-left:-26%;z-index:1;
+    border-radius:50%;background:radial-gradient(closest-side,rgba(20,24,33,.34),rgba(20,24,33,0));
+    filter:blur(6px);pointer-events:none;opacity:0;transition:opacity .4s}
+  .cvstage.is-gl .cvstage__shadow{opacity:1}
+  .cvstage__hint{position:absolute;left:22px;bottom:16px;margin:0;z-index:3;font-size:19px;color:var(--ink-3);
+    transform:rotate(-3deg);pointer-events:none;opacity:0;transition:opacity .6s var(--ease) 1.2s}
+  .cvstage.is-gl .cvstage__hint{opacity:1}
+  .cvstage.was-moved .cvstage__hint{opacity:0;transition-delay:0s}
+  /* A cursor that says what the sheet does, following the pointer over the stage. */
+  .cvstage__cursor{position:absolute;left:0;top:0;z-index:4;pointer-events:none;
+    margin:-26px 0 0 -26px;width:52px;height:52px;border-radius:50%;display:grid;place-items:center;
+    font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.04em;color:#fff;
+    background:rgba(21,23,28,.82);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);
+    opacity:0;scale:.4;transition:opacity .2s var(--ease),scale .35s var(--spring)}
+  .cvstage.is-hovering .cvstage__cursor{opacity:1;scale:1}
+  @media (pointer:fine){ .cvstage.is-gl.is-hovering .cvstage__gl{cursor:none} }
+
+  /* The sheet in HTML: the fallback, and the first thing painted. */
+  .paper{--rx:0deg;--ry:0deg;position:absolute;left:50%;top:50%;z-index:1;margin:0;
+    width:min(62%,360px);aspect-ratio:600/848;translate:-50% -50%;
+    display:flex;flex-direction:column;padding:6% 7.5%;overflow:hidden;
+    background:linear-gradient(135deg,#fff,#f8f9fb);border-radius:3px;
+    box-shadow:0 0 0 1px rgba(20,24,33,.08),0 2px 4px rgba(20,24,33,.06),0 40px 60px -26px rgba(20,24,33,.45);
+    transform:perspective(900px) rotateX(var(--rx)) rotateY(var(--ry)) rotate(-2deg);
+    transition:transform .6s var(--spring),opacity .4s var(--ease);font-size:clamp(9px,1.05vw,12px)}
+  .paper__top{display:flex;justify-content:space-between;gap:10px;padding-bottom:.9em;margin-bottom:1.3em;
+    border-bottom:1px solid var(--line);font-family:var(--mono);font-size:.92em;color:var(--ink-3)}
+  .paper__top span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .paper__title{margin:0 0 .6em;font-size:1.75em;line-height:1.2;font-weight:700;letter-spacing:-.025em;color:var(--ink);
+    display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .paper__sub{margin:0 0 .4em;color:var(--ink-2);font-size:1.02em}
+  .paper__label{margin:1.4em 0 .6em;font-size:.8em;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .paper__pills,.paper__skills{display:flex;flex-wrap:wrap;gap:.45em}
+  .paper__pills span{display:inline-flex;align-items:center;gap:.45em;padding:.35em .8em;border-radius:99px;
+    border:1.5px solid var(--g);font-weight:600;font-size:.95em}
+  .paper__pills span::before{content:"";width:.6em;height:.6em;border-radius:50%;background:var(--g)}
+  .paper__skills span{font-family:var(--mono);font-size:.88em;padding:.25em .6em;border-radius:.45em;
+    background:var(--aqua-wash);color:var(--aqua-deep)}
+  .paper__skills span.is-hl{background:var(--sticker);color:#3d3000}
+  .paper__lines{display:grid;gap:.9em;margin-top:auto;padding-top:1.4em}
+  .paper__lines i{display:block;height:.55em;border-radius:1em;background:#eceef2}
+  .paper__lines i:nth-child(2n){width:86%}
+  .paper__lines i:last-child{width:58%}
+  .paper__stamp{position:absolute;right:7%;bottom:4.5%;padding:.25em .7em;border:2.5px solid var(--sorted);border-radius:.4em;
+    color:var(--sorted);font-weight:800;font-size:1.25em;letter-spacing:.06em;text-transform:uppercase;transform:rotate(-8deg);opacity:.85}
+  @media (prefers-reduced-motion:no-preference){
+    .paper{animation:paper-float 5s ease-in-out infinite}
+    .is-fresh .paper{animation:paper-land .9s var(--spring) both,paper-float 5s ease-in-out .9s infinite}
+  }
+  @keyframes paper-float{0%,100%{translate:-50% -50%}50%{translate:-50% calc(-50% - 8px)}}
+  @keyframes paper-land{from{opacity:0;translate:-50% 20%;transform:perspective(900px) rotateX(40deg) rotate(-8deg)}}
+
+  /* What was read, written out. */
+  .cvread{padding:30px 34px 28px;display:flex;flex-direction:column;min-width:0}
+  .cvread__file{display:flex;align-items:center;gap:13px;padding-bottom:18px;margin-bottom:18px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  .cvread__file > svg{flex:none;color:var(--ink-3)}
+  .cvread__file > div{min-width:0;flex:1 1 220px}
+  .cvread__file b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cvread__live svg{flex:none}
+  .cvread__summary{font-size:1.2rem;line-height:1.4;font-weight:600;letter-spacing:-.02em;margin:0 0 18px;text-wrap:pretty}
+  .cvread__facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 22px;
+    background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .fact{background:#fff;padding:11px 14px}
+  .fact span{display:block;font-size:12px;font-weight:600;color:var(--ink-3)}
+  .fact b{display:block;font-size:15px;font-weight:650;letter-spacing:-.01em;text-transform:none}
+  .fact b::first-letter{text-transform:uppercase}
+  .cvread__h{font-size:13.5px;font-weight:650;margin:0 0 4px;color:var(--ink)}
+  .cvread__note{margin:0 0 10px}
+  .cvread__fields{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
+  .fpill{display:inline-flex;align-items:center;gap:8px;padding:6px 13px 6px 10px;border-radius:999px;font-size:14px;font-weight:600;
+    background:color-mix(in srgb,var(--g) 9%,#fff);border:1.5px solid var(--g)}
+  .fpill::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--g)}
+  .cvread__skills{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .skill{font-family:var(--mono);font-size:13px;padding:4px 10px;border-radius:8px;
+    background:var(--aqua-wash);color:var(--aqua-deep);border:1px solid rgba(43,116,240,.22)}
+  .cvread__more{margin-top:10px}
+  .cvread__more summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--aqua-deep);width:fit-content}
+  .cvread__actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:auto;padding-top:26px}
+  .cvread__actions form{margin:0}
+  .cvread__actions .btn,.cvread__actions button{padding:9px 18px;font-size:14.5px;min-height:42px}
+  .cvread__privacy{margin:14px 0 0}
+  @media (prefers-reduced-motion:no-preference){
+    .is-fresh .fpill,.is-fresh .skill{animation:tag-in .5s var(--spring) calc(var(--k,0) * 45ms + 350ms) both}
+    .is-fresh .cvread__summary,.is-fresh .cvread__facts{animation:rise-in .5s var(--ease) .2s both}
+  }
+  @keyframes tag-in{from{opacity:0;transform:translateY(10px) scale(.85)}}
+
+  /* A file input dressed as a button. */
+  .cvpick{position:relative;overflow:hidden}
+  .cvpick svg{transform:none!important}
+  .cvpick input{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0}
+  .cvpick:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:3px}
+
+  /* Remove asks once more, in place, rather than in a browser dialog. */
+  .cvremove{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .cvremove__confirm{display:inline-flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .cvremove__confirm[hidden],.cvremove__ask[hidden]{display:none}
+  .cvremove__q{font-size:14px;font-weight:600;color:var(--tag-red-deep)}
+  button.cvremove__yes{background:var(--tag-red);background-image:linear-gradient(180deg,#f0605b,var(--tag-red) 55%,#d4322d);
+    border-color:var(--tag-red-deep);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 8px 18px -8px rgba(232,65,60,.7)}
+  button.cvremove__yes:hover:not(:disabled){box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 12px 22px -10px rgba(232,65,60,.8)}
+  @media (prefers-reduced-motion:no-preference){
+    .cvremove__confirm:not([hidden]){animation:rise-in .35s var(--spring)}
+  }
+
+  /* No CV yet: the drop zone, with an empty sheet waiting in it. */
+  .cvdrop{margin:0;padding:26px;border-right:1px solid var(--line);background:#f7f8fa;display:flex}
+  .cvdrop__zone{--rx:0deg;--ry:0deg;position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;
+    min-height:440px;padding:30px;border-radius:16px;border:2px dashed #b3bac5;background:#fff;cursor:pointer;text-align:center;
+    transition:border-color .2s var(--ease),background .25s var(--ease)}
+  .cvdrop__zone:hover,html.is-dropping .cvdrop__zone{border-color:var(--aqua);background:var(--aqua-wash)}
+  .cvdrop__zone:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:3px}
+  .cvdrop__zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+  .cvdrop__copy b{display:block;font-size:1.4rem;font-weight:700;letter-spacing:-.025em;margin-bottom:4px}
+  .cvdrop__copy span{color:var(--ink-2);font-size:14.5px}
+  .cvdrop__copy u{color:var(--aqua-deep);text-decoration-thickness:1px}
+  .ghost{position:relative;display:block;width:150px;height:200px;perspective:800px}
+  .ghost__sheet{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;padding:30px 22px;border-radius:6px;
+    background:#fff;border:2px dashed #aab1bc;
+    transform:rotateX(var(--rx)) rotateY(var(--ry)) rotate(-3deg);transition:transform .6s var(--spring),border-color .2s}
+  .ghost__sheet i{display:block;height:7px;border-radius:4px;background:#e3e6eb}
+  .ghost__sheet i.short{width:62%}
+  .ghost__arrow{position:absolute;left:50%;top:-18px;margin-left:-22px;width:44px;height:44px;border-radius:50%;
+    display:grid;place-items:center;color:#fff;background:var(--aqua);
+    box-shadow:0 10px 20px -8px rgba(43,116,240,.8);transition:transform .4s var(--spring)}
+  .ghost__arrow svg{transform:none!important}
+  .cvdrop__zone:hover .ghost__sheet,html.is-dropping .ghost__sheet{border-color:var(--aqua);transform:rotateX(var(--rx)) rotateY(var(--ry)) rotate(0deg) scale(1.05)}
+  .cvdrop__zone:hover .ghost__arrow,html.is-dropping .ghost__arrow{transform:translateY(8px)}
+  @media (prefers-reduced-motion:no-preference){
+    .ghost{animation:bob-lg 4.6s ease-in-out infinite}
+    .ghost__arrow{animation:nudge-down 1.8s var(--ease) infinite}
+  }
+  @keyframes bob-lg{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  @keyframes nudge-down{0%,100%{translate:0 0}50%{translate:0 6px}}
+
+  .cvwhy{padding:40px 38px}
+  .cvwhy h2{font-size:clamp(1.5rem,2.6vw,2rem);max-width:16ch;margin-bottom:22px}
+  .cvwhy__list{list-style:none;margin:0;padding:0;display:grid;gap:18px}
+  .cvwhy__list li{display:flex;gap:14px;color:var(--ink-2);font-size:15px;line-height:1.5}
+  .cvwhy__list b{color:var(--ink)}
+  .cvwhy__n{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;
+    font-size:13px;font-weight:700;background:var(--aqua-wash);color:var(--aqua-deep);box-shadow:inset 0 0 0 1px rgba(43,116,240,.25)}
+
+  /* Reading: shown while an upload is with the server. */
+  .cvreading{position:absolute;inset:0;z-index:10;display:none;align-items:center;justify-content:center;gap:34px;flex-wrap:wrap;
+    padding:30px;background:rgba(247,248,250,.94);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .cvpanel.htmx-request .cvreading{display:flex}
+  .scanpaper{position:relative;width:150px;height:200px;flex:none;display:flex;flex-direction:column;gap:11px;padding:28px 20px;
+    border-radius:5px;background:#fff;overflow:hidden;
+    box-shadow:0 0 0 1px rgba(20,24,33,.08),0 30px 50px -22px rgba(20,24,33,.45)}
+  .scanpaper i{display:block;height:7px;border-radius:4px;background:#e3e6eb}
+  .scanpaper i.short{width:60%}
+  .scanpaper__beam{position:absolute;left:0;right:0;top:0;height:46px;
+    background:linear-gradient(180deg,rgba(43,116,240,0),rgba(43,116,240,.22) 70%,rgba(43,116,240,.9) 96%,rgba(43,116,240,0));}
+  .cvreading__text b{display:block;font-size:1.2rem;font-weight:700;letter-spacing:-.02em;margin-bottom:12px;max-width:26ch;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cvreading__text b span{font-family:var(--mono);font-size:.85em}
+  .readsteps{list-style:none;margin:0;padding:0;display:grid;gap:9px}
+  .readsteps li{display:flex;align-items:center;gap:10px;font-size:14.5px;color:var(--ink-3)}
+  .readsteps li::before{content:"";flex:none;width:16px;height:16px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--line-strong)}
+  @media (prefers-reduced-motion:no-preference){
+    .cvpanel.htmx-request .scanpaper__beam{animation:scan 1.6s cubic-bezier(.45,0,.55,1) infinite}
+    .cvpanel.htmx-request .readsteps li{animation:step-on .01s linear both}
+    .cvpanel.htmx-request .readsteps li::before{animation:step-tick .01s linear both}
+    .cvpanel.htmx-request .readsteps li:nth-child(1),.cvpanel.htmx-request .readsteps li:nth-child(1)::before{animation-delay:.5s}
+    .cvpanel.htmx-request .readsteps li:nth-child(2),.cvpanel.htmx-request .readsteps li:nth-child(2)::before{animation-delay:1.3s}
+    .cvpanel.htmx-request .readsteps li:nth-child(3),.cvpanel.htmx-request .readsteps li:nth-child(3)::before{animation-delay:2.4s}
+  }
+  @keyframes scan{from{transform:translateY(-50px)}to{transform:translateY(210px)}}
+  @keyframes step-on{to{color:var(--ink)}}
+  @keyframes step-tick{to{box-shadow:none;background:var(--sorted) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat}}
+
+  /* A file dragged over the page: the whole page will take it. */
+  .dropveil{position:fixed;inset:0;z-index:150;display:grid;place-items:center;padding:24px;pointer-events:none;
+    background:rgba(237,243,255,.82);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);
+    opacity:0;transition:opacity .2s var(--ease)}
+  html.is-dropping .dropveil{opacity:1}
+  .dropveil__card{display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center;padding:34px 44px;
+    border-radius:20px;border:2px dashed var(--aqua);background:#fff;box-shadow:var(--shadow-lift);
+    transform:scale(.94);transition:transform .45s var(--spring)}
+  html.is-dropping .dropveil__card{transform:none}
+  .dropveil__card b{font-size:1.35rem;letter-spacing:-.02em;margin-top:14px}
+  .dropveil__card span{color:var(--ink-2);font-size:14.5px}
+  .dropveil__sheet{display:flex;flex-direction:column;gap:8px;width:84px;height:110px;padding:18px 14px;border-radius:4px;
+    background:#fff;box-shadow:0 0 0 1px rgba(20,24,33,.1),0 16px 28px -12px rgba(20,24,33,.45)}
+  .dropveil__sheet i{display:block;height:5px;border-radius:3px;background:#dfe3e9}
+  .dropveil__sheet i.short{width:60%}
+  @media (prefers-reduced-motion:no-preference){
+    html.is-dropping .dropveil__sheet{animation:bob-lg 1.6s ease-in-out infinite}
+  }
+
+  /* ------------------------------------------------------- about you */
+  .me__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:28px;align-items:start}
+  .aboutwin,.profilewin{box-shadow:var(--shadow-lift)}
+  .aboutwin{scroll-margin-top:70px}
+  .about{padding:26px 28px 0}
+  .about h2{margin-bottom:6px}
+  .about__lede{margin:0 0 22px;font-size:14.5px}
+  .about__block{padding:20px 0;border-top:1px solid var(--line)}
+  .about__row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  .about__row .fieldname{margin:0}
+  .about__count{font-size:12.5px;font-weight:600;color:var(--ink-3)}
+  .cvpickall{all:unset;box-sizing:border-box;display:inline-flex;align-items:center;gap:8px;margin:10px 0 2px;cursor:pointer;
+    font-size:13.5px;font-weight:600;color:var(--aqua-deep);border-radius:6px}
+  .cvpickall:hover{text-decoration:underline;text-underline-offset:3px}
+  .cvpickall:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .fgroups{margin-top:12px;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .fgroup{border-bottom:1px solid var(--line);--g:var(--aqua)}
+  .fgroup:last-child{border-bottom:0}
+  .fgroup summary{list-style:none;display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;
+    font-size:14px;font-weight:600;color:var(--ink);transition:background .15s}
+  .fgroup summary::-webkit-details-marker{display:none}
+  .fgroup summary:hover{background:#f7f8fa}
+  .fgroup__dot{width:10px;height:10px;border-radius:50%;background:var(--g);flex:none}
+  .fgroup__name{flex:1}
+  .fgroup__n{min-width:22px;padding:1px 7px;border-radius:20px;font-size:12px;text-align:center;
+    background:color-mix(in srgb,var(--g) 14%,#fff);color:color-mix(in srgb,var(--g) 75%,#000)}
+  .fgroup__chev{width:11px;height:11px;color:var(--ink-3);transition:transform .25s var(--ease)}
+  .fgroup[open] .fgroup__chev{transform:rotate(180deg)}
+  .fgroup .dividers{padding:4px 14px 16px}
+  @media (prefers-reduced-motion:no-preference){
+    .fgroup[open] .dividers{animation:rise-in .3s var(--ease)}
+  }
+  .about__switches{display:flex;flex-direction:column;gap:2px}
+  .about__foot{display:flex;align-items:center;justify-content:flex-end;gap:14px;
+    margin:0 -28px;padding:16px 28px 18px;background:var(--win-bar);border-top:1px solid var(--line)}
+  .about__status{margin-right:auto}
+  .about__foot button{padding:10px 26px}
 
   /* tabs: a segmented control, as in a Finder toolbar */
   .tabs{display:flex;gap:4px;margin:16px 20px 0;padding:4px;width:fit-content;
@@ -180,21 +539,42 @@
   .pempty h3{font-size:1.2rem;margin-bottom:6px}
   .pempty p{margin:0 auto 20px;max-width:46ch}
 
+  @media (max-width:1080px){
+    .me__grid{grid-template-columns:minmax(0,1fr)}
+  }
+  @media (max-width:900px){
+    .cvpanel{grid-template-columns:minmax(0,1fr);min-height:0}
+    .cvstage{min-height:420px;border-right:0;border-bottom:1px solid var(--line)}
+    .cvdrop{border-right:0;border-bottom:1px solid var(--line);padding:16px}
+    .cvdrop__zone{min-height:320px}
+    .cvwhy{padding:26px 20px 30px}
+    .cvread{padding:22px 18px 24px}
+    .paper{width:min(58%,300px);font-size:clamp(8px,2.2vw,11px)}
+  }
   @media (max-width:860px){
     .me{padding:34px 0 22px}
-    .me__id{gap:16px}
+    .me__id{gap:16px;align-items:flex-start}
     .me__id .avatar{--av:60px}
+    .about{padding:20px 18px 0}
+    .about__foot{margin:0 -18px;padding:14px 18px 16px}
     .tabs{margin:14px 14px 0;width:auto}
     .tabs a{flex:1;justify-content:center;padding:10px 8px}
     .panel .record__side{padding-left:0}
   }
   @media (max-width:520px){
-    .me__out,.me__out button{width:100%}
+    .me__acts,.me__acts .btn,.me__out,.me__out button{width:100%}
+    .cvstage{min-height:380px}
+    .cvstage__hint{bottom:auto;top:12px;left:16px;font-size:17px}
+    .cvread__facts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+    .cvread__facts .fact:last-child{grid-column:1 / -1}
+    .cvread__actions > form,.cvread__actions .btn{width:100%}
+    .cvreading{flex-direction:column;gap:20px}
   }
 </style>
 {% endblock %}
 
 {% block scripts %}
+{% if account %}<script src="/static/cvsheet-1.js" defer></script>{% endif %}
 <script>
 (function () {
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));
@@ -230,6 +610,159 @@
       n.textContent = left;
       panel.querySelector('.pempty').hidden = left > 0;
     }).observe(list, { childList: true });
+  });
+})();
+
+// The CV. Everything is delegated from the document, because the panel is swapped out
+// whole after every upload and removal.
+(function () {
+  var MAX = 5 * 1024 * 1024;
+  var fine = window.matchMedia('(pointer: fine)');
+
+  function panel() { return document.getElementById('cvpanel'); }
+  function say(message) {
+    var p = panel(); if (!p) return;
+    var old = p.querySelector('[data-cv-client-error]'); if (old) old.remove();
+    if (!message) return;
+    var note = document.createElement('p');
+    note.className = 'error'; note.setAttribute('role', 'alert'); note.setAttribute('data-cv-client-error', '');
+    note.textContent = message;
+    var where = p.querySelector('.cvwhy h2, .cvread__file');
+    if (where) where.insertAdjacentElement('afterend', note);
+  }
+
+  // Captured before htmx sees the change, so a file that is too big never goes up.
+  document.addEventListener('change', function (e) {
+    var input = e.target;
+    if (!input.matches || !input.matches('[data-cv-upload] input[type=file]')) return;
+    var file = input.files && input.files[0];
+    if (!file) { e.stopPropagation(); return; }
+    if (file.size > MAX) {
+      e.stopPropagation(); input.value = '';
+      say('That file is larger than 5 MB. Please upload a smaller CV.');
+      return;
+    }
+    say('');
+    var name = panel() && panel().querySelector('[data-reading-name]');
+    if (name) name.textContent = file.name;
+  }, true);
+
+  // Remove asks once more, in place.
+  document.addEventListener('click', function (e) {
+    var ask = e.target.closest('[data-cv-ask]');
+    if (ask) {
+      e.preventDefault();
+      var confirm = ask.parentNode.querySelector('.cvremove__confirm');
+      ask.hidden = true; confirm.hidden = false;
+      confirm.querySelector('button[type=submit]').focus();
+      return;
+    }
+    var keep = e.target.closest('[data-cv-keep]');
+    if (keep) {
+      var form = keep.closest('.cvremove');
+      form.querySelector('.cvremove__confirm').hidden = true;
+      var back = form.querySelector('[data-cv-ask]'); back.hidden = false; back.focus();
+    }
+  });
+
+  // The empty sheet in the drop zone leans toward the pointer.
+  document.addEventListener('pointermove', function (e) {
+    var zone = e.target.closest && e.target.closest('.cvdrop__zone');
+    if (!zone || !fine.matches) return;
+    var r = zone.getBoundingClientRect();
+    zone.style.setProperty('--ry', ((e.clientX - r.left) / r.width - .5) * 24 + 'deg');
+    zone.style.setProperty('--rx', -((e.clientY - r.top) / r.height - .5) * 20 + 'deg');
+  }, { passive: true });
+
+  // With reduced motion or no WebGL, the HTML sheet leans instead.
+  document.addEventListener('pointermove', function (e) {
+    var stage = e.target.closest && e.target.closest('.cvstage:not(.is-gl)');
+    if (!stage || !fine.matches) return;
+    var paper = stage.querySelector('.paper'), r = stage.getBoundingClientRect();
+    paper.style.setProperty('--ry', ((e.clientX - r.left) / r.width - .5) * 14 + 'deg');
+    paper.style.setProperty('--rx', -((e.clientY - r.top) / r.height - .5) * 12 + 'deg');
+  }, { passive: true });
+
+  // A file dragged anywhere over the page can be dropped anywhere on it.
+  var depth = 0, root = document.documentElement;
+  function hasFiles(e) {
+    var types = e.dataTransfer && e.dataTransfer.types;
+    return types && Array.prototype.indexOf.call(types, 'Files') !== -1;
+  }
+  window.addEventListener('dragenter', function (e) {
+    if (!hasFiles(e)) return;
+    depth++; root.classList.add('is-dropping');
+  });
+  window.addEventListener('dragleave', function (e) {
+    if (!hasFiles(e)) return;
+    depth = Math.max(0, depth - 1);
+    if (!depth) root.classList.remove('is-dropping');
+  });
+  window.addEventListener('dragover', function (e) { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener('drop', function (e) {
+    if (!hasFiles(e)) return;
+    depth = 0; root.classList.remove('is-dropping');
+    // The drop zone's own input takes a file dropped straight onto it.
+    if (e.target.matches && e.target.matches('[data-cv-upload] input[type=file]')) return;
+    e.preventDefault();
+    var input = document.querySelector('#cvpanel [data-cv-upload] input[type=file]');
+    if (!input || !e.dataTransfer.files.length) return;
+    input.files = e.dataTransfer.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    document.getElementById('cv').scrollIntoView({ block: 'start', behavior: 'smooth' });
+  });
+})();
+
+// About you: the Save button wakes up when something changes, and the counts keep up.
+(function () {
+  var form = document.querySelector('[data-about]');
+  if (!form) return;
+  var save = form.querySelector('[data-about-save]'), status = document.getElementById('about-status');
+  var count = form.querySelector('[data-about-count]');
+  var clean = true;
+
+  function recount() {
+    var n = form.querySelectorAll('input[name="chosen_fields"]:checked').length;
+    count.textContent = n + ' picked';
+    Array.prototype.forEach.call(form.querySelectorAll('.fgroup'), function (g) {
+      var k = g.querySelectorAll('input[name="chosen_fields"]:checked').length, badge = g.querySelector('[data-group-count]');
+      badge.textContent = k; badge.hidden = !k;
+    });
+  }
+  function dirty() {
+    if (clean) { clean = false; status.textContent = ''; }
+    save.disabled = false; save.textContent = 'Save changes';
+    recount();
+  }
+  save.disabled = true;
+  form.addEventListener('change', dirty);
+  form.addEventListener('input', function (e) { if (e.target.type === 'range') dirty(); });
+  form.addEventListener('htmx:afterRequest', function (e) {
+    if (!e.detail.successful) return;
+    clean = true; save.disabled = true; save.textContent = 'Save';
+    var step = document.getElementById('step-about');
+    if (step && !status.querySelector('.savednote--bad')) {
+      step.classList.add('is-done');
+      step.lastChild.textContent = 'Details saved';
+    }
+  });
+
+  // "Tick the ones your CV points to", one after another.
+  var pick = form.querySelector('[data-cv-pick]');
+  if (pick) pick.addEventListener('click', function () {
+    var wanted = JSON.parse(pick.getAttribute('data-cv-pick'));
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    wanted.forEach(function (key, i) {
+      var box = form.querySelector('input[name="chosen_fields"][value="' + key + '"]');
+      if (!box || box.checked) return;
+      box.closest('.fgroup').open = true;
+      setTimeout(function () {
+        box.checked = true;
+        var tag = box.closest('.divider');
+        if (!reduced) { tag.classList.remove('is-filled'); void tag.offsetWidth; tag.classList.add('is-filled'); }
+        dirty();
+      }, reduced ? 0 : i * 110);
+    });
   });
 })();
 </script>

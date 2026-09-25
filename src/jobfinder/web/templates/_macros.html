@@ -29,3 +29,55 @@
   {%- if account.avatar %}<img src="{{ account.avatar }}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">{% endif -%}
 </span>
 {%- endmacro %}
+
+{# Years of experience, as a slider from Any through 0 to 15 and on to 15+. Built on the
+   native range input, so arrow keys, touch and screen readers all work without help.
+   Any is sent as -1 (nothing stated, every level); 15+ as 16, which asks for every role
+   stating 16 years or fewer. The level names match `seniority_from_years`, the scale
+   ranking itself uses. The hint under it is the caller's. Its styles and script live in
+   base.html, so the finder and the profile share one. #}
+{% macro years_slider(stated, label="Years of experience") -%}
+{%- set start = -1 if stated is none else (16 if stated > 15 else stated) -%}
+<div class="yrs" data-yrs>
+  <div class="yrs__head">
+    <label for="years" id="years-label"><span class="fieldname">{{ label }} <em>(optional)</em></span></label>
+    <output class="yrs__read" for="years" aria-hidden="true">
+      <b class="yrs__num" data-yrs-num>Any</b>
+      <span class="yrs__unit" data-yrs-unit></span>
+      <span class="yrs__level" data-yrs-level>every level</span>
+    </output>
+  </div>
+  <div class="yrs__track" style="--p:{{ '%.4f' % ((start + 1) / 17) }}">
+    <span class="yrs__ticks" aria-hidden="true">{% for _ in range(18) %}<i></i>{% endfor %}</span>
+    <input type="range" id="years" name="years" min="-1" max="16" step="1" value="{{ start }}"
+           aria-describedby="years-hint">
+  </div>
+  <ol class="yrs__bands" aria-hidden="true">
+    <li data-from="-1" data-to="-1"></li>
+    <li data-from="0" data-to="1">Junior</li>
+    <li data-from="2" data-to="4">Mid</li>
+    <li data-from="5" data-to="7">Senior</li>
+    <li data-from="8" data-to="11">Lead</li>
+    <li data-from="12" data-to="16">Principal</li>
+  </ol>
+  <p class="small muted yrs__hint" id="years-hint">{{ caller() }}</p>
+</div>
+{%- endmacro %}
+
+{# One field as a tickable tag. Marked when the searcher's CV points to it. #}
+{% macro field_tag(f, checked=false, cv_fields=()) -%}
+<label class="divider{% if f.key in cv_fields %} divider--cv{% endif %}">
+  <input type="checkbox" name="chosen_fields" value="{{ f.key }}" {% if checked %}checked{% endif %}>
+  {{ f.label }}
+  {%- if f.key in cv_fields %}<span class="cvmark" title="Your CV points here">cv</span>{% endif %}
+</label>
+{%- endmacro %}
+
+{# The profile header's reminder of what is set up. The CV one is re-sent out of band
+   after an upload or removal, so the header keeps up without a reload. #}
+{% macro cv_step(has_cv, oob=false) -%}
+<a id="step-cv" class="mestep{% if has_cv %} is-done{% endif %}" href="#cv"{% if oob %} hx-swap-oob="true"{% endif %}>
+  <span class="mestep__tick" aria-hidden="true"><svg width="12" height="12"><use href="#i-check"/></svg></span>
+  {{- "CV added" if has_cv else "Add your CV" -}}
+</a>
+{%- endmacro %}

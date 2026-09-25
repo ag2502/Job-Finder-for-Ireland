@@ -22,8 +22,9 @@ the early-career path must be visible rather than hidden behind a checkbox.
 ## Product Purpose
 
 Every live opening in one place, so nothing is missed and nobody has to hunt across
-platforms. The searcher states the fields they want to work in, optionally uploads a CV,
-and receives every currently-active matching Dublin role ranked against their profile.
+platforms. The searcher states the fields they want to work in and receives every
+currently-active matching Dublin role, ranked against the CV they added once to their
+profile if they have one.
 
 Success is that a searcher can stop checking other sites, because anything they would
 have found there is already here.
@@ -56,8 +57,13 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
 
 **Has today:**
 
-- Field selection (required — at least one), CV upload, years-of-experience filter,
-  title filter, remote toggle, internships-only and graduate-only filters.
+- Field selection (required — at least one), years-of-experience filter, title filter,
+  remote toggle, internships-only and graduate-only filters.
+- A profile (2026-09-25) where a signed-in searcher adds their CV once, replaces or
+  removes it, and saves what they are looking for. The finder ranks against the stored
+  CV (switchable per search), lists the fields the CV points to in their own band below
+  the chosen ones, and offers the saved details with one "Use my profile" button rather
+  than filling the form in: every visit to the finder still starts blank.
 - Ranking against a vocabulary learned from the job corpus, not a hardcoded skill list.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
@@ -77,8 +83,11 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   on Vercel. There is no Node toolchain on the development machine, so React component
   libraries and any build step requiring npm are unavailable. UI work is hand-authored
   CSS and vanilla JS inside the existing templates.
-- The CV is parsed in memory and never written to disk or database. Derived signals live
-  in a signed session cookie. This is a GDPR decision and is not negotiable.
+- The CV document is parsed in memory and never written to disk or database. Changed
+  2026-09-25 at the owner's request: the *reading* of it (skills, fields, seniority,
+  years, a one-line summary, file name and size) is now kept on the searcher's profile
+  in Supabase so they upload once, and Remove deletes it. The document itself staying
+  unstored is still not negotiable.
 
 ## Brand Commitments
 

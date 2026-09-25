@@ -29,10 +29,14 @@ Budget about 20 minutes.
 2. Open [`schema.sql`](../schema.sql) from this repo, copy all of it, paste it in.
 3. Click **Run**.
 
-You should see `Success. No rows returned`. To confirm, go to **Table Editor** — there
-should be an `applications` table with a shield icon showing RLS is enabled.
+You should see `Success. No rows returned`. To confirm, go to **Table Editor**: there
+should be `applications`, `saved_jobs` and `profiles` tables, each with a shield icon
+showing RLS is enabled.
 
-It is safe to run this file again; every statement is guarded.
+It is safe to run this file again; every statement is guarded. **Run it again whenever
+`schema.sql` changes.** The `profiles` table (the searcher's details and the reading of
+their CV) was added after the others, and until it exists the profile says it could not
+load, and adding a CV says it could not be saved.
 
 ---
 
@@ -219,6 +223,7 @@ function is serving the snapshot as expected.
 | Sign-up works, sign-in says invalid credentials | Email confirmation is on and the link was not clicked |
 | No confirmation email arrives | Built-in sender rate limit — set up custom SMTP (step 3) |
 | Applying says "could not save" | `schema.sql` was not run, or the RLS policies are missing |
+| Adding a CV says it "could not be saved just now" | The `profiles` table is missing: run `schema.sql` again |
 | Applied jobs still show | Sign-in is not actually active; check the header shows your name |
 | No **Continue with Google** button | Google provider not enabled in Supabase (step 6b) |
 | Google says "access blocked" or only some people can sign in | OAuth consent screen still in *Testing*; publish it |

@@ -99,9 +99,10 @@ def test_old_results_url_still_redirects_home(client):
     assert response.headers["location"] == "/"
 
 
-def test_cv_alone_is_rejected(client):
-    """A CV says what someone has done, not what they want next. Searching on it alone
-    matched half the market, so roles are required."""
+def test_the_finder_no_longer_takes_a_cv(client):
+    """The CV goes up once, on the profile. The finder has no file input, and a file
+    posted to the search anyway is not read: roles are still what a search needs."""
+    assert 'type="file"' not in client.get("/").text
     response = client.post(
         "/search", files={"resume": ("cv.txt", CV_BYTES, "text/plain")}
     )
@@ -128,10 +129,9 @@ def test_roles_are_marked_required_in_the_form(client):
     assert 'stamp--filled">required' in response.text
 
 
-def test_cv_plus_roles_succeeds(client):
+def test_roles_alone_succeed(client):
     response = client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
@@ -139,10 +139,9 @@ def test_cv_plus_roles_succeeds(client):
 
 
 def test_paging_does_not_re_trigger_the_roles_requirement(client):
-    """Page two posts without re-uploading, so the session must satisfy the check."""
+    """Page two posts without the boxes, so the session must satisfy the check."""
     client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
     )
     page_two = client.post(
@@ -154,19 +153,17 @@ def test_paging_does_not_re_trigger_the_roles_requirement(client):
 def test_search_renders_results_on_the_same_page(client):
     response = client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
     )
     assert response.status_code == 200
     assert "jobs match" in response.text
-    # The upload form is still present: it is one page, not a separate results view.
+    # The search form is still present: it is one page, not a separate results view.
     assert 'id="finder-form"' in response.text
 
 
 def test_every_record_carries_employer_title_and_date(client):
     response = client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
     )
     for part in ("record__employer", "record__title", "accession"):
@@ -177,7 +174,6 @@ def test_every_record_carries_employer_title_and_date(client):
 def test_htmx_request_returns_only_the_table(client):
     response = client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
         headers={"HX-Request": "true"},
     )
@@ -188,30 +184,13 @@ def test_htmx_request_returns_only_the_table(client):
     assert 'id="finder-form"' not in response.text
 
 
-def test_paging_keeps_cv_signals_from_the_session(client):
-    """A file input cannot be repopulated by the browser, so page 2 must not silently
-    downgrade to a fields-only search."""
-    client.post(
-        "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
-        data={"chosen_fields": ["backend"]},
-    )
-    page_two = client.post(
-        "/search?page=2",
-        data={"chosen_fields": ["backend"]},
-        headers={"HX-Request": "true"},
-    )
-    assert page_two.status_code == 200
-    assert "closest to your CV first" in page_two.text
-
-
-def test_sort_and_paging_controls_do_not_resend_the_cv_input(client):
-    """The sort select and paging links sit outside the multipart form, so htmx
-    url-encodes them. Including the file input sent "[object File]", the server answered
-    422, and htmx silently dropped the response - both controls appeared dead."""
+def test_sort_and_paging_controls_do_not_resend_a_file_input(client):
+    """The sort select and paging links sit outside the form, so htmx url-encodes them.
+    Including a file input sent "[object File]", the server answered 422, and htmx
+    silently dropped the response - both controls appeared dead. The form has no file
+    input now, and the exclusion stays so one cannot bring the bug back."""
     response = client.post(
         "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
         data={"chosen_fields": ["backend"]},
         headers={"HX-Request": "true"},
     )
@@ -236,77 +215,25 @@ def test_paging_keeps_the_chosen_sort(client):
     assert '<option value="newest" selected>' in page_two.text
 
 
-def test_uploaded_cv_is_not_retained_in_the_session(client):
-    """The GDPR property: derived signals are kept, the document is not.
-
-    The session must hold skills and seniority - never the CV text verbatim, and never
-    identifying details like the email address lifted from it.
-    """
-    client.post(
-        "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
-        data={"chosen_fields": ["backend"]},
-        follow_redirects=False,
-    )
-
-    from itsdangerous import TimestampSigner
-    from jobfinder.core.config import settings
-    import base64
-
-    cookie = client.cookies.get("session")
-    assert cookie, "expected a session cookie"
-
-    unsigned = TimestampSigner(settings.session_secret).unsign(cookie)
-    payload = json.loads(base64.urlsafe_b64decode(unsigned))
-    profile = json.loads(payload["profile"])
-
-    assert "python" in profile["skills"]
-    assert profile["seniority"] == "senior"
-    # The parsed email must not be carried into the session. This assertion used to end
-    # in `or True`, which made it pass no matter what - and it was failing, because the
-    # 6,000-character CV excerpt the session carried had the address inside it.
-    assert "jane@example.com" not in json.dumps(profile).lower()
-    # The document does not go into the session at all now, in any length.
-    assert not profile.get("text")
-
-
-def test_the_session_cookie_fits_in_a_browser(client):
-    """Regression: with a CV attached the cookie was 8,571 bytes.
-
-    Browsers drop a cookie over about 4KB silently - no error, the next request simply
-    arrives without it - so every CV-backed search was running against a session that
-    had already been discarded, and paging quietly fell back to a fields-only search.
-    """
+def test_the_session_holds_only_what_was_typed_and_ticked(client):
+    """The CV's reading lives on the profile now, not in the session cookie. What the
+    session carries is the form, which is small whatever CV is on file."""
     import base64
 
     from itsdangerous import TimestampSigner
 
     from jobfinder.core.config import settings
 
-    client.post(
-        "/search",
-        files={"resume": ("cv.txt", CV_BYTES * 40, "text/plain")},
-        data={"chosen_fields": ["backend"], "years": "6"},
-    )
+    client.post("/search", data={"chosen_fields": ["backend"], "years": "6"})
     cookie = client.cookies.get("session")
-    assert cookie and len(cookie) <= 4096, f"cookie is {len(cookie)} bytes"
-
+    assert cookie and len(cookie) <= 1024, f"cookie is {len(cookie)} bytes"
     payload = json.loads(
         base64.urlsafe_b64decode(TimestampSigner(settings.session_secret).unsign(cookie))
     )
     profile = json.loads(payload["profile"])
-    assert len(profile["skills"]) <= 60
-    assert len(profile["corpus_terms"]) <= 120
-
-
-def test_oversized_upload_is_rejected(client):
-    huge = b"x" * (5 * 1024 * 1024 + 10)
-    response = client.post(
-        "/search",
-        files={"resume": ("big.txt", huge, "text/plain")},
-        data={"chosen_fields": ["backend"]},
-    )
-    assert response.status_code == 413
+    assert profile["fields"] == ["backend"]
+    for key in ("skills", "corpus_terms", "seniority", "cv_summary", "titles"):
+        assert key not in profile
 
 
 def test_search_without_a_cv_still_works(client):
@@ -388,32 +315,6 @@ def test_graduate_only_switches_the_result_set(client):
     assert "graduate" in response.text.lower()
     assert "jobs match" not in response.text
     assert "asking 6 years or less" not in response.text
-
-
-def test_typed_experience_overrides_the_cv(client):
-    """The CV says six years; the box says one. The box wins."""
-    response = client.post(
-        "/search",
-        files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
-        data={"chosen_fields": ["backend"], "years": "1"},
-    )
-    assert "asking 1 year or less" in response.text
-
-
-def test_blank_box_shows_everything_even_when_the_cv_states_years(client):
-    """A blank box means "not stated" and must not silently filter on a number the
-    searcher never entered - it would hide roles they never asked to hide."""
-    with_cv = _total(
-        client.post(
-            "/search",
-            files={"resume": ("cv.txt", CV_BYTES, "text/plain")},
-            data={"chosen_fields": ["backend"], "years": ""},
-        )
-    )
-    fields_only = _total(
-        client.post("/search", data={"chosen_fields": ["backend"], "years": ""})
-    )
-    assert with_cv == fields_only
 
 
 def test_non_numeric_experience_is_ignored(client):

@@ -1,15 +1,17 @@
 """FastAPI + HTMX web portal.
 
-One GDPR decision shapes this module: **the uploaded CV is never written to disk or to
-the database.** It is parsed in memory, the derived signals (skills, seniority, field
-guesses) go into a signed session cookie, and the document itself is discarded before
-the response is sent.
+One GDPR decision shapes this module: **the uploaded CV document is never written to
+disk or to the database.** It is parsed in memory and discarded before the response is
+sent. What survives is the reading of it - skill keywords, the fields it points to, a
+seniority guess, a rough number of years, a one-line summary - which is kept on the
+searcher's profile so they upload once rather than on every search, and which they can
+remove at any time.
 
-That is not a shortcut, it is the stronger design. A CV is personal data — under Irish
-and EU law, storing one makes you a controller with retention, access and deletion
-duties, and it becomes the single most sensitive asset in the system. Extracting the few
-hundred bytes of signal that matching actually needs and dropping the rest removes that
-liability outright while losing nothing a searcher would notice.
+That is not a shortcut, it is the stronger design. A CV is personal data, and the
+document itself - addresses, phone numbers, employment history in full - would be the
+single most sensitive asset in the system. Keeping the few kilobytes that matching
+actually needs and dropping the rest removes that liability while losing nothing a
+searcher would notice.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import and_, func, select
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from markupsafe import Markup
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.sessions import SessionMiddleware
 
 import httpx
@@ -294,15 +297,123 @@ def _applied_keys(account: supabase.Account | None) -> set[str]:
         return set()
 
 
-def _account_marks(account: supabase.Account | None) -> tuple[set[str], set[str]]:
-    """Applied and saved keys together, fetched side by side rather than one after the
-    other: each is a round trip to Supabase, and a search waits on both."""
+def _account_marks(
+    account: supabase.Account | None,
+) -> tuple[set[str], set[str], dict | None]:
+    """Applied keys, saved keys and the stored profile, fetched side by side rather than
+    one after the other: each is a round trip to Supabase, and a search waits on all."""
     if account is None:
-        return set(), set()
-    with ThreadPoolExecutor(max_workers=2) as pool:
+        return set(), set(), None
+    with ThreadPoolExecutor(max_workers=3) as pool:
         applied = pool.submit(_applied_keys, account)
         saved = pool.submit(_saved_keys, account)
-        return applied.result(), saved.result()
+        stored = pool.submit(_stored_profile, account)
+        return applied.result(), saved.result(), stored.result()
+
+
+def _stored_profile(account: supabase.Account | None) -> dict | None:
+    """This account's saved profile, or None.
+
+    Fails open like the lists above. The worst case is a search ranked without the CV
+    for one request, which is exactly what a searcher without a CV gets anyway.
+    """
+    if account is None:
+        return None
+    try:
+        return supabase.get_profile(account)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not load the profile", exc_info=True)
+        return None
+
+
+# What is kept of a CV. The document is gone the moment it has been read; these caps
+# bound the reading that is stored in its place. Both are the caps the session cookie
+# used to impose, kept so that moving the CV onto the profile does not also
+# quietly change how results rank.
+MAX_CV_SKILLS = 60
+MAX_CV_TERMS = 120
+CV_KINDS = {".pdf": "PDF", ".docx": "Word", ".doc": "Word", ".txt": "Text"}
+
+
+def _read_cv(data: bytes, filename: str) -> dict | None:
+    """Read a CV into the signals the profile keeps, or None when it holds no text.
+
+    Runs the rule-based reader and, where one is configured, the model reader (see
+    matching/llm_profile.py), then reads the text against the vocabulary learned from
+    the adverts themselves (see matching/corpus.py). The document itself is not in what
+    comes back.
+    """
+    parsed = parse_resume(data, filename)
+    if not parsed.text.strip():
+        return None
+    reading = llm_profile.read_cv(parsed.text)
+    try:
+        terms = sorted(vocabulary.terms_for(parsed.text))[:MAX_CV_TERMS]
+    except Exception:  # noqa: BLE001 - matching must still work without it
+        logger.warning("corpus vocabulary unavailable", exc_info=True)
+        terms = []
+
+    # Only the tokens the taxonomy knows can score against a job, because the other
+    # half of that comparison is `extract_skills` over the advert. A skill the model
+    # named that nothing in the corpus asks for would be a word in a list, not a match.
+    skills = parsed.skills | (
+        {s for s in reading.skills if s in ALL_SKILLS} if reading else set()
+    )
+    fields = (reading.fields if reading and reading.fields else parsed.fields) or []
+    # The model's figure wins where it has one: `detect_years` falls back to the span
+    # between the earliest and latest years printed anywhere on the page, so a CV
+    # listing a 2016 school-leaving date reads as nine years of experience.
+    years = (
+        reading.years_experience
+        if reading and reading.years_experience is not None
+        else parsed.years_experience
+    )
+    name = Path(filename.replace("\\", "/")).name.strip() or "cv"
+    return {
+        "name": name[:120],
+        "kind": CV_KINDS.get(Path(name).suffix.lower(), "Document"),
+        "bytes": len(data),
+        "words": len(parsed.text.split()),
+        "added_at": datetime.now(timezone.utc).isoformat(),
+        "skills": sorted(skills)[:MAX_CV_SKILLS],
+        "fields": [f for f in fields if f in FIELDS][: llm_profile.MAX_FIELDS],
+        "summary": (reading.summary if reading else "")[:300],
+        "seniority": (reading.seniority if reading and reading.seniority else parsed.seniority),
+        "years": years,
+        "terms": terms,
+        "titles": parsed.titles[:5],
+    }
+
+
+def _cv_view(cv: dict | None) -> dict | None:
+    """The stored CV reading, with what the templates print worked out once."""
+    if not cv:
+        return None
+    size = int(cv.get("bytes") or 0)
+    return {
+        **cv,
+        "added_on": _format_applied_at(cv.get("added_at")),
+        "size_label": f"{max(1, round(size / 1024))} KB" if size < 1024 * 1024
+        else f"{size / 1024 / 1024:.1f} MB",
+        "field_list": [
+            {"key": key, "label": FIELDS[key].label, "group": FIELDS[key].group}
+            for key in (cv.get("fields") or []) if key in FIELDS
+        ],
+    }
+
+
+def _me(stored: dict | None) -> dict:
+    """The stored profile as the templates use it, blank when there is none."""
+    stored = stored or {}
+    return {
+        "fields": [f for f in (stored.get("fields") or []) if f in FIELDS],
+        "years": stored.get("years"),
+        "include_remote": bool(stored.get("include_remote")),
+        "internships_only": bool(stored.get("internships_only")),
+        "graduate_only": bool(stored.get("graduate_only")),
+        "cv": _cv_view(stored.get("cv")),
+        "has_details": bool(stored.get("fields") or stored.get("years") is not None),
+    }
 
 
 def _saved_keys(account: supabase.Account | None) -> set[str]:
@@ -340,20 +451,9 @@ def _base_context(request: Request) -> dict:
 
 
 # The session lives in one signed cookie, and browsers drop a cookie over about 4KB
-# without a word - no error, no warning, the request simply arrives without it. The
-# profile was 8,571 bytes whenever a CV was attached, so every CV search was running
-# with a session the browser had already thrown away.
-#
-# The document itself is gone from it. A 6,000-character excerpt was 95% of that weight,
-# and it bought nothing: `BM25Index.score` scores `set(query_tokens)`, so only the
-# distinct terms count, and `skills` plus `corpus_terms` already carry them. Measured
-# against the live Dublin set, dropping it left the top 25 results identical. It also
-# ends a real leak, since the excerpt carried whatever the CV said - including the
-# email address the privacy page promises is never kept.
-#
-# These caps keep the rest inside the budget: roughly 2KB of JSON, ~2.8KB signed.
-MAX_SESSION_SKILLS = 60
-MAX_SESSION_TERMS = 120
+# without a word. It used to carry the CV's signals between pages and needed caps to
+# stay under that; the reading now lives on the profile, and the session holds only
+# what was typed and ticked in the form.
 
 
 # Where each company's logo comes from. Most registry rows carry a website, and the
@@ -519,9 +619,20 @@ def static_file(name: str):
     )
 
 
+def _finder_context(request: Request, stored: dict | None = None) -> dict:
+    """The home page context plus the signed-in searcher's saved profile, which the form
+    uses to say whose CV will rank the results and to offer their saved details."""
+    context = _index_context(request)
+    account = context["account"]
+    if account is not None and stored is None:
+        stored = _stored_profile(account)
+    context["me"] = _me(stored) if account is not None else None
+    return context
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    """The finder: the upload form, blank on every visit. Results arrive by /search."""
+    """The finder: the search form, blank on every visit. Results arrive by /search."""
     # Supabase falls back to the project's Site URL - this page - when the callback
     # address is not on its allow list. Finish the sign-in rather than dropping it.
     if request.query_params.get("code") and "oauth" in request.session:
@@ -530,9 +641,10 @@ def home(request: Request):
     # Every visit starts with a blank form. The search is still kept in the session
     # while the page is open, because paging and re-sorting re-run it, but a refresh,
     # the logo, or coming back later all begin again: the owner decided a search should
-    # not follow anyone around.
+    # not follow anyone around. A saved profile is different, because saving it was a
+    # choice: the form offers it with one button rather than filling itself in.
     request.session.pop("profile", None)
-    context = _index_context(request)
+    context = _finder_context(request)
     response = templates.TemplateResponse(request, "finder.html", context)
     # No back-forward cache either, or Back would restore the old ticks and results
     # from memory without asking the server.
@@ -544,7 +656,6 @@ def home(request: Request):
 async def search(
     request: Request,
     page: int = 1,
-    resume: UploadFile | None = None,
     chosen_fields: list[str] = Form(default=[]),
     include_remote: str | None = Form(default=None),
     internships_only: str | None = Form(default=None),
@@ -553,6 +664,7 @@ async def search(
     q: str | None = Form(default=None),
     sort: str | None = Form(default=None),
     show_applied: str | None = Form(default=None),
+    use_cv: str | None = Form(default=None),
 ):
     previous_profile = _profile(request) or {}
 
@@ -562,7 +674,7 @@ async def search(
     # boxes still ticked, so the fallback to the existing session only covers that.
     effective_fields = chosen_fields or previous_profile.get("fields") or []
     if not effective_fields:
-        context = _index_context(request)
+        context = _finder_context(request)
         context["error"] = (
             "Pick at least one role or field you want to work in. Your CV tells us "
             "what you have done; the roles tell us what you are looking for."
@@ -572,34 +684,6 @@ async def search(
         return templates.TemplateResponse(
             request, "finder.html", context, status_code=422
         )
-
-    parsed = None
-    reading: llm_profile.CvReading | None = None
-    cv_corpus_terms: list[str] = []
-    if resume is not None and resume.filename:
-        data = await resume.read(MAX_UPLOAD_BYTES + 1)
-        if len(data) > MAX_UPLOAD_BYTES:
-            context = _index_context(request)
-            context["error"] = "That file is larger than 5 MB. Please upload a smaller CV."
-            return templates.TemplateResponse(
-                request, "finder.html", context, status_code=413
-            )
-        parsed = parse_resume(data, resume.filename)
-        del data  # the document itself goes no further
-        # The rules above read the CV as a bag of keywords; this reads it as a
-        # document. It is what lets a CV that never says "machine learning" still be
-        # recognised as one, and it returns None whenever it cannot run, leaving the
-        # rule-based reading in place. See matching/llm_profile.py.
-        reading = llm_profile.read_cv(parsed.text)
-        # Read the CV against the vocabulary learned from the adverts themselves,
-        # rather than a hand-written skills list. See matching/corpus.py.
-        try:
-            cv_corpus_terms = sorted(vocabulary.terms_for(parsed.text))[:400]
-        except Exception:  # noqa: BLE001 - matching must still work without it
-            logger.warning("corpus vocabulary unavailable", exc_info=True)
-            cv_corpus_terms = []
-
-    previous = previous_profile
 
     # Blank means "not stated", which shows every active opening. Only an explicit
     # number narrows the results, so an empty box must not collapse to zero.
@@ -616,75 +700,52 @@ async def search(
         # The slider's far-left stop, "Any", arrives as -1: nothing stated, every level.
         stated_years = None if wanted is None or wanted < 0 else min(wanted, 50)
 
-    # Paging re-submits the form, but a file input cannot be repopulated by the browser,
-    # so the CV-derived signals are carried forward from the existing session rather
-    # than silently reverting to a fields-only search on page two.
-    # Only the tokens the taxonomy knows can score against a job, because the other
-    # half of that comparison is `extract_skills` over the advert. A skill the model
-    # named that nothing in the corpus asks for would be a word in a list, not a match.
-    cv_skills: list[str] = []
-    if parsed:
-        cv_skills = sorted(
-            parsed.skills | ({s for s in reading.skills if s in ALL_SKILLS}
-                             if reading else set())
-        )
-
+    # What was typed and ticked. This is all the session keeps: paging and re-sorting
+    # re-run it, and the CV's reading is fetched from the profile each time instead.
     profile = {
-        "skills": (cv_skills if parsed else previous.get("skills", []))[
-            :MAX_SESSION_SKILLS
-        ],
         "fields": effective_fields,
-        # What the CV says it is, as opposed to what the searcher ticked. Kept apart
-        # from "fields" on purpose: a CV is a record of what someone has done, and the
-        # boxes are a statement of what they want to do next. The reading is offered
-        # back to them in the results header, never substituted for their choice.
-        "cv_fields": (
-            reading.fields if reading
-            else ([] if parsed else previous.get("cv_fields", []))
-        ),
-        "cv_summary": (
-            reading.summary if reading
-            else ("" if parsed else previous.get("cv_summary", ""))
-        ),
-        "seniority": (
-            (reading.seniority if reading and reading.seniority else parsed.seniority)
-            if parsed else previous.get("seniority")
-        ),
         # Only what the searcher typed filters the results. A blank box means "not
         # stated" and returns every active opening, even when the CV implies a figure
         # - silently narrowing on a number the searcher never entered would hide roles
         # they never asked to hide. The CV's estimate is surfaced as a hint instead.
         "years": stated_years,
-        # The model's figure wins where it has one: `detect_years` falls back to the
-        # span between the earliest and latest years printed anywhere on the page, so a
-        # CV listing a 2016 school-leaving date reads as nine years of experience.
-        "cv_years": (
-            (reading.years_experience
-             if reading and reading.years_experience is not None
-             else parsed.years_experience)
-            if parsed else previous.get("cv_years")
-        ),
-        "corpus_terms": (cv_corpus_terms or previous.get("corpus_terms", []))[
-            :MAX_SESSION_TERMS
-        ],
         "internships_only": bool(internships_only),
         "graduate_only": bool(graduate_only),
         "include_remote": bool(include_remote),
-        "titles": parsed.titles[:5] if parsed else previous.get("titles", []),
         "query": q or None,
         # An unrecognised value falls back to relevance rather than erroring: the sort
         # is a presentation choice, not something worth failing a search over.
         "sort": sort if sort in SORTS else DEFAULT_SORT,
         # Remembered so paging and re-sorting keep the choice, like every other control.
         "show_applied": bool(show_applied),
+        "use_cv": bool(use_cv),
     }
     request.session["profile"] = json.dumps(profile)
 
-    applied, saved_keys = _account_marks(_account(request))
+    account = _account(request)
+    applied, saved_keys, stored = _account_marks(account)
+    cv = (stored or {}).get("cv") if use_cv else None
+
+    # The CV's reading joins the search here and goes no further than this request.
+    search_profile = dict(profile)
+    if cv:
+        search_profile.update(
+            skills=cv.get("skills") or [],
+            corpus_terms=cv.get("terms") or [],
+            seniority=cv.get("seniority"),
+            # What the CV says it is, as opposed to what the searcher ticked. Kept apart
+            # from "fields" on purpose: the boxes are a statement of what they want to
+            # do next, and the CV only a record of what they have done. Its fields are
+            # offered in a band of their own below the chosen ones, never merged in.
+            cv_fields=cv.get("fields") or [],
+            cv_summary=cv.get("summary") or "",
+            cv_name=cv.get("name") or "",
+        )
+
     context = _base_context(request)
     context.update(
         _search_results(
-            profile,
+            search_profile,
             query=q,
             page=page,
             applied_keys=applied,
@@ -697,7 +758,7 @@ async def search(
     if request.headers.get("HX-Request"):
         return templates.TemplateResponse(request, "_results.html", context)
 
-    context.update(_index_context(request))
+    context.update(_finder_context(request, stored))
     return templates.TemplateResponse(request, "finder.html", context)
 
 
@@ -887,7 +948,7 @@ def _search_results(
         skills=set(profile.get("skills") or []),
         fields=profile.get("fields") or [],
         seniority=profile.get("seniority"),
-        # The CV body is deliberately not in the session; see MAX_SESSION_SKILLS. The
+        # The CV body is deliberately not kept; see `_read_cv`. The
         # lexical signal comes from the skills and corpus terms derived from it.
         text="",
         corpus_terms=set(profile.get("corpus_terms") or []),
@@ -896,6 +957,7 @@ def _search_results(
         # one-year search ranked Staff roles first whenever their advert stated no
         # minimum. See Candidate.level.
         years=profile.get("years"),
+        cv_fields=profile.get("cv_fields") or [],
     )
 
     _preload_advert_skills()
@@ -984,9 +1046,10 @@ def _search_results(
                     "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
                     "first_seen": first_seen.strftime("%d %b") if first_seen else "",
                     "experience": _experience_label(job),
-                    # 0 = a field the searcher ticked, 1 = one hop away. The template
-                    # rules off between the two so adjacent work is offered rather than
-                    # passed off as what they asked for.
+                    # Which band the job falls in: a field the searcher ticked, one
+                    # their CV points to, or one hop away. See ScoredJob.tier. The
+                    # template rules off between them so adjacent work is offered
+                    # rather than passed off as what they asked for.
                     "tier": entry.tier,
                     "fallback": entry.fallback,
                     "stretch": entry.seniority_fit == "stretch",
@@ -1037,17 +1100,16 @@ def _search_results(
         "applied_count": len(applied_keys or set()),
         "saved_count": len(saved_keys or set()),
         "skill_count": len(profile.get("skills") or []),
-        # What the model made of the CV, offered back rather than acted on. Shown only
-        # where it disagrees with the boxes, because agreeing with the searcher is not
-        # news and a banner that always fires is a banner nobody reads.
+        "cv_name": profile.get("cv_name") or "",
+        # What the CV reads as, said back to the searcher. Its fields only need saying
+        # where they add to the boxes, because agreeing with the searcher is not news
+        # and a banner that always fires is a banner nobody reads.
         "cv_summary": profile.get("cv_summary") or "",
         "cv_fields": [
             {"key": key, "label": FIELDS[key].label}
-            for key in (profile.get("cv_fields") or []) if key in FIELDS
+            for key in (profile.get("cv_fields") or [])
+            if key in FIELDS and key not in (profile.get("fields") or [])
         ],
-        "cv_fields_differ": bool(
-            set(profile.get("cv_fields") or []) - set(profile.get("fields") or [])
-        ),
         "candidate_years": profile.get("years"),
         "internships_only": bool(profile.get("internships_only")),
         "graduate_only": bool(profile.get("graduate_only")),
@@ -1283,12 +1345,29 @@ def logout(request: Request):
 
 PROFILE_TABS = ("saved", "applied")
 
+# What went wrong with a CV, in words for the person who uploaded it. Keyed so that the
+# no-JavaScript path can carry the reason across a redirect in the query string.
+CV_ERRORS = {
+    "too-big": "That file is larger than 5 MB. Please upload a smaller CV.",
+    "no-text": (
+        "We could not find any text in that file. A PDF or Word document saved from a "
+        "word processor works best; a scan or a photo of a CV does not."
+    ),
+    "no-file": "Choose a file to upload first.",
+    "save": (
+        "Your CV was read, but it could not be saved just now. Please try again in a "
+        "moment."
+    ),
+    "remove": "Your CV could not be removed just now. Please try again in a moment.",
+}
+
 
 @app.get("/profile", response_class=HTMLResponse)
-def profile(request: Request, tab: str = "saved"):
-    """The signed-in person's own page: who they are, what they saved, what they applied
-    to, and the way out. Saved and applied used to be two pages in the menu bar; they
-    are two halves of one record, so they live together here."""
+def profile(request: Request, tab: str = "saved", cv_error: str = ""):
+    """The signed-in person's own page: their CV and what they are looking for, what
+    they saved, what they applied to, and the way out. Saved and applied used to be two
+    pages in the menu bar; they are two halves of one record, so they live together
+    here, under the profile that ranks every search."""
     account = _account(request)
     context = _base_context(request)
     context["tab"] = tab if tab in PROFILE_TABS else "saved"
@@ -1299,18 +1378,20 @@ def profile(request: Request, tab: str = "saved"):
             status_code=401,
         )
 
-    def fetch(call):
+    def fetch(call, empty):
         try:
             return call(account), None
         except (supabase.SupabaseError, httpx.HTTPError) as exc:
-            logger.warning("could not load a profile list", exc_info=True)
-            return [], exc
+            logger.warning("could not load part of the profile", exc_info=True)
+            return empty, exc
 
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        saved_job = pool.submit(fetch, supabase.list_saved)
-        applied_job = pool.submit(fetch, supabase.list_applications)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        saved_job = pool.submit(fetch, supabase.list_saved, [])
+        applied_job = pool.submit(fetch, supabase.list_applications, [])
+        stored_job = pool.submit(fetch, supabase.get_profile, None)
         saved_rows, saved_error = saved_job.result()
         applied_rows, applied_error = applied_job.result()
+        stored, stored_error = stored_job.result()
 
     if saved_error or applied_error:
         context["error"] = f"Some of your lists could not be loaded: {saved_error or applied_error}"
@@ -1328,8 +1409,127 @@ def profile(request: Request, tab: str = "saved"):
         joined_on=_format_applied_at(account.joined),
         saved=saved_rows,
         applications=applied_rows,
+        me=_me(stored),
+        me_unavailable=stored_error is not None,
+        cv_error=CV_ERRORS.get(cv_error, ""),
     )
     return templates.TemplateResponse(request, "profile.html", context)
+
+
+def _cv_panel(request: Request, account: supabase.Account, cv: dict | None, *,
+              error: str = "", fresh: bool = False):
+    """The CV window's contents, for htmx to swap in after an upload or a removal."""
+    context = _base_context(request)
+    context.update(me=_me({"cv": cv}), cv_error=error, cv_fresh=fresh, oob=True)
+    return templates.TemplateResponse(request, "_cv_panel.html", context)
+
+
+def _cv_failure(request: Request, account: supabase.Account, code: str,
+                cv: dict | None = None):
+    """Say what went wrong, in place when htmx asked and across a redirect otherwise."""
+    if request.headers.get("HX-Request"):
+        return _cv_panel(request, account, cv, error=CV_ERRORS[code])
+    return RedirectResponse(f"/profile?cv_error={code}#cv", status_code=303)
+
+
+@app.post("/profile/cv", response_class=HTMLResponse)
+async def upload_cv(request: Request, resume: UploadFile | None = None):
+    """Read a CV and keep the reading on the profile. The document goes no further.
+
+    A new upload replaces whatever was there, so "replace my CV" is simply this again.
+    """
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to add your CV.")
+    current = _stored_profile(account) if request.headers.get("HX-Request") else None
+    current_cv = (current or {}).get("cv")
+
+    if resume is None or not resume.filename:
+        return _cv_failure(request, account, "no-file", current_cv)
+    data = await resume.read(MAX_UPLOAD_BYTES + 1)
+    if len(data) > MAX_UPLOAD_BYTES:
+        return _cv_failure(request, account, "too-big", current_cv)
+
+    # Parsing, the model reading and the vocabulary pass are all blocking work, and the
+    # model call can take seconds; off the event loop, so one upload stalls nobody else.
+    cv = await run_in_threadpool(_read_cv, data, resume.filename)
+    del data  # the document itself goes no further
+    if cv is None:
+        return _cv_failure(request, account, "no-text", current_cv)
+
+    try:
+        await run_in_threadpool(supabase.save_profile, account, cv=cv)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not save a CV reading", exc_info=True)
+        return _cv_failure(request, account, "save", current_cv)
+
+    if request.headers.get("HX-Request"):
+        return _cv_panel(request, account, cv, fresh=True)
+    return RedirectResponse("/profile#cv", status_code=303)
+
+
+@app.post("/profile/cv/remove", response_class=HTMLResponse)
+def remove_cv(request: Request):
+    """Forget the CV: the reading is deleted outright, not archived."""
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to manage your CV.")
+    try:
+        supabase.save_profile(account, cv=None)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not remove a CV reading", exc_info=True)
+        return _cv_failure(request, account, "remove", (_stored_profile(account) or {}).get("cv"))
+    if request.headers.get("HX-Request"):
+        return _cv_panel(request, account, None)
+    return RedirectResponse("/profile#cv", status_code=303)
+
+
+@app.post("/profile/details", response_class=HTMLResponse)
+def save_details(
+    request: Request,
+    chosen_fields: list[str] = Form(default=[]),
+    years: str | None = Form(default=None),
+    include_remote: str | None = Form(default=None),
+    internships_only: str | None = Form(default=None),
+    graduate_only: str | None = Form(default=None),
+):
+    """Save what the searcher is looking for, for the finder to offer back."""
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to save your details.")
+
+    stated: int | None = None
+    try:
+        # The same slider as the finder's: -1 is "Any", 16 is "15+".
+        value = int((years or "").strip())
+        stated = None if value < 0 else min(value, 50)
+    except ValueError:
+        stated = None
+
+    try:
+        supabase.save_profile(
+            account,
+            fields=[f for f in dict.fromkeys(chosen_fields) if f in FIELDS],
+            years=stated,
+            include_remote=bool(include_remote),
+            internships_only=bool(internships_only),
+            graduate_only=bool(graduate_only),
+        )
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not save profile details", exc_info=True)
+        if request.headers.get("HX-Request"):
+            return HTMLResponse(
+                '<span class="savednote savednote--bad" role="status">'
+                "Could not save just now. Please try again.</span>"
+            )
+        return RedirectResponse("/profile?details=failed#about", status_code=303)
+
+    if request.headers.get("HX-Request"):
+        return HTMLResponse(
+            '<span class="savednote" role="status"><svg aria-hidden="true">'
+            '<use href="#i-check"/></svg>Saved. The finder will offer these.</span>'
+        )
+    return RedirectResponse("/profile#about", status_code=303)
 
 
 @app.get("/applications")

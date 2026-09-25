@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_macros.html" import logo, titlebar %}
+{% from "_macros.html" import logo, titlebar, years_slider, field_tag %}
 {% set nav = 'finder' %}
 {% block railcount %}{{ "{:,}".format(dublin_count) }} open<span class="rail-long"> in Dublin</span>{% endblock %}
 
@@ -107,8 +107,8 @@
           <span class="step__bar" aria-hidden="true"><i></i></span>
         </li>
         <li class="step" data-i="1">
-          <button type="button" class="step__btn"><span class="step__n">2</span>Add your CV, if you like</button>
-          <p>It's read once to put the closest jobs first, then thrown away. Your CV is never stored.</p>
+          <button type="button" class="step__btn"><span class="step__n">2</span>Add your CV to your profile, once</button>
+          <p>Every search then puts the closest jobs first. The file is read and thrown away; we keep only what we read from it, and you can remove it any time.</p>
           <span class="step__bar" aria-hidden="true"><i></i></span>
         </li>
         <li class="step" data-i="2">
@@ -144,7 +144,7 @@
             <span class="demo__tag" style="--k:{{ loop.index0 }}">{{ t }}</span>
             {% endfor %}
           </div>
-          <p class="demo__bin">then it goes in the bin <svg width="15" height="15"><use href="#i-check"/></svg></p>
+          <p class="demo__bin">then the file goes in the bin <svg width="15" height="15"><use href="#i-check"/></svg></p>
         </div>
 
         <div class="demo__pane demo__pane--2">
@@ -178,88 +178,59 @@
           hx-post="/search"
           hx-target="#results"
           hx-swap="innerHTML"
-          hx-encoding="multipart/form-data"
           hx-indicator="#search-loading, #results"
           hx-disabled-elt="#find-btn">
 
       <div class="slip__head">
         <h2 id="roles-heading">What kind of work are you looking for?</h2>
         <span class="stamp stamp--filled">required</span>
+        {% if me and me.has_details %}
+        {# Saved details are offered, never applied: every visit still starts blank. #}
+        <button type="button" class="secondary fillme" id="fill-me"
+                data-fill='{{ {"fields": me.fields, "years": me.years, "include_remote": me.include_remote,
+                               "internships_only": me.internships_only, "graduate_only": me.graduate_only}|tojson }}'>
+          <svg width="15" height="15" aria-hidden="true"><use href="#i-person"/></svg>Use my profile
+        </button>
+        {% endif %}
       </div>
       <p class="muted" style="margin:0 0 26px;max-width:64ch">
         Pick one or more. We'll show you every job that matches, plus closely related ones
         you might not have thought to search for.
       </p>
 
+      {% set cv_fields = me.cv.fields if me and me.cv else [] %}
+      {% if cv_fields %}
+      <p class="cvlegend small"><span class="cvmark">cv</span> marks where your CV points. Those roles
+        come up in your results too, just below the ones you pick.</p>
+      {% endif %}
       <div id="field-chips" class="chipgrid" role="group" aria-labelledby="roles-heading">
         {% for group_label, group_fields in field_groups %}
         <div class="drawer" style="--g:var(--g-{{ group_fields[0].group if group_fields else 'engineering' }})">
           <div class="drawer__label">{{ group_label }}</div>
           <div class="dividers">
             {% for f in group_fields %}
-            <label class="divider">
-              <input type="checkbox" name="chosen_fields" value="{{ f.key }}"
-                     {% if profile and profile.fields and f.key in profile.fields %}checked{% endif %}>
-              {{ f.label }}
-            </label>
+            {{ field_tag(f, profile and profile.fields and f.key in profile.fields, cv_fields) }}
             {% endfor %}
           </div>
         </div>
         {% endfor %}
       </div>
 
-      <div class="slip__extras">
-        <label class="drop" for="resume">
-          <svg class="drop__icon" width="40" height="40" aria-hidden="true"><use href="#i-doc"/></svg>
-          <span class="drop__text">
-            <b id="cv-name">Drop your CV here</b>
-            <span>or <u>browse</u>. Optional, and it puts the closest jobs first.
-              Read once and thrown away, never saved. <a href="/privacy">What we keep</a></span>
-          </span>
-          <input type="file" id="resume" name="resume" accept=".pdf,.docx,.doc,.txt">
-        </label>
+      <div class="slip__extras{% if not accounts_enabled %} slip__extras--solo{% endif %}">
+        {% if accounts_enabled %}{% include "_cv_card.html" %}{% endif %}
 
         <div class="slip__inputs">
           <div>
-            {# Years of experience, as a slider from Any through 0 to 15 and on to 15+.
-               Built on the native range input, so arrow keys, touch and screen readers
-               all work without help. Any is sent as -1 (nothing stated, every level);
-               15+ as 16, which asks for every role stating 16 years or fewer. The level
-               names match `seniority_from_years`, the scale ranking itself uses. #}
             {% set stated = profile.years if profile and profile.years is not none else none %}
-            {% set start = -1 if stated is none else (16 if stated > 15 else stated) %}
-            <div class="yrs" data-yrs>
-              <div class="yrs__head">
-                <label for="years" id="years-label"><span class="fieldname">Years of experience <em>(optional)</em></span></label>
-                <output class="yrs__read" for="years" aria-hidden="true">
-                  <b class="yrs__num" data-yrs-num>Any</b>
-                  <span class="yrs__unit" data-yrs-unit></span>
-                  <span class="yrs__level" data-yrs-level>every level</span>
-                </output>
-              </div>
-              <div class="yrs__track" style="--p:{{ '%.4f' % ((start + 1) / 17) }}">
-                <span class="yrs__ticks" aria-hidden="true">{% for _ in range(18) %}<i></i>{% endfor %}</span>
-                <input type="range" id="years" name="years" min="-1" max="16" step="1" value="{{ start }}"
-                       aria-describedby="years-hint">
-              </div>
-              <ol class="yrs__bands" aria-hidden="true">
-                <li data-from="-1" data-to="-1"></li>
-                <li data-from="0" data-to="1">Junior</li>
-                <li data-from="2" data-to="4">Mid</li>
-                <li data-from="5" data-to="7">Senior</li>
-                <li data-from="8" data-to="11">Lead</li>
-                <li data-from="12" data-to="16">Principal</li>
-              </ol>
-              <p class="small muted yrs__hint" id="years-hint">
-                {% if profile and profile.cv_years and profile.years is none %}
-                  Your CV looks like about <strong>{{ profile.cv_years }} years</strong>. Slide to
-                  narrow things down, or leave it on Any to see everything.
-                {% else %}
-                  Shows jobs asking for that many years <strong>or fewer</strong>. At 2 or
-                  less, graduate jobs come in too.
-                {% endif %}
-              </p>
-            </div>
+            {% call years_slider(stated) %}
+              {% if me and me.cv and me.cv.years is not none and stated is none %}
+                Your CV looks like about <strong>{{ me.cv.years }} years</strong>. Slide to
+                narrow things down, or leave it on Any to see everything.
+              {% else %}
+                Shows jobs asking for that many years <strong>or fewer</strong>. At 2 or
+                less, graduate jobs come in too.
+              {% endif %}
+            {% endcall %}
           </div>
           <div>
             <label for="q"><span class="fieldname">Search job titles <em>(optional)</em></span></label>
@@ -534,86 +505,68 @@
   .slip__extras{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;
     margin:34px -40px 0;padding:28px 40px;background:#f7f8fa;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .slip__inputs{display:grid;gap:20px}
-  .drop{position:relative;display:flex;align-items:center;gap:16px;
-    border:1.5px dashed #b3bac5;border-radius:12px;background:#fff;padding:20px;cursor:pointer;
-    transition:border-color .2s var(--ease),background .2s var(--ease),transform .35s var(--spring)}
-  .drop:hover,.drop.is-over{border-color:var(--aqua);background:var(--aqua-wash)}
-  .drop.is-over{transform:scale(1.015)}
-  .drop.has-file{border-style:solid;border-color:var(--sorted);background:var(--sorted-wash)}
-  .drop__icon{flex:none;color:var(--ink-3);transition:transform .45s var(--spring)}
-  .drop:hover .drop__icon{transform:rotate(-6deg) translateY(-2px)}
-  .drop__text b{display:block;font-size:15px;font-weight:650;margin-bottom:3px}
-  .drop__text span{display:block;font-size:13.5px;color:var(--ink-2);line-height:1.45}
-  .drop__text u{color:var(--aqua-deep);text-decoration-thickness:1px}
-  .drop__text a{position:relative;z-index:2;color:var(--aqua-deep);font-weight:600}
-  .drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
-  .drop:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+  .slip__extras--solo{grid-template-columns:minmax(0,1fr)}
+  .slip__head .fillme{margin-left:auto;padding:8px 16px;min-height:0;font-size:14px}
+  .fillme svg{transform:none!important}
+  .cvlegend{display:flex;align-items:center;gap:8px;margin:-14px 0 22px;color:var(--ink-2)}
+  .slip:has(input[name=use_cv]:not(:checked)) .cvmark,
+  .slip:has(input[name=use_cv]:not(:checked)) .cvlegend{display:none}
+  .slip:has(input[name=use_cv]:not(:checked)) .divider--cv{border-style:solid;border-color:var(--line-strong)}
 
-  /* ---------------------------------------------------- years of experience */
-  .yrs{--thumb:28px}
-  .yrs__head{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
-  .yrs__head .fieldname{margin-bottom:0}
-  .yrs__read{display:inline-flex;align-items:baseline;gap:7px;white-space:nowrap}
-  .yrs__num{font-size:2rem;line-height:1;font-weight:750;letter-spacing:-.04em;color:var(--ink);
-    font-variant-numeric:tabular-nums;display:inline-block;min-width:1.2ch;text-align:right}
-  .yrs__unit{font-size:15px;font-weight:600;color:var(--ink-2)}
-  .yrs__level{font-size:12.5px;font-weight:650;color:var(--aqua-deep);background:var(--aqua-wash);
-    border:1px solid rgba(43,116,240,.22);border-radius:999px;padding:3px 10px;align-self:center}
-  .yrs.is-any .yrs__num{color:var(--ink-2)}
-  .yrs.is-any .yrs__level{color:var(--ink-2);background:#eef0f3;border-color:var(--line)}
+  /* ------------------------------------------------ the CV, from the profile */
+  /* The CV used to be dropped in here on every search. It now lives on the profile;
+     this card says which one is ranking the results, as a small sheet of paper that
+     floats and leans toward the pointer. */
+  .cvcard{--rx:0deg;--ry:0deg;position:relative;display:flex;align-items:center;gap:20px;
+    padding:18px 20px;border-radius:14px;background:#fff;border:1px solid var(--line-strong);
+    color:var(--ink);text-decoration:none;perspective:700px;
+    box-shadow:0 1px 2px rgba(20,24,33,.05);
+    transition:border-color .2s var(--ease),box-shadow .3s var(--ease),transform .4s var(--spring)}
+  .cvcard--on{background:linear-gradient(180deg,#fff,#f6fbf8);border-color:color-mix(in srgb,var(--sorted) 45%,var(--line-strong))}
+  .cvcard--add{border-style:dashed;border-color:#b3bac5}
+  .cvcard--add:hover{border-color:var(--aqua);background:var(--aqua-wash);transform:translateY(-2px);
+    box-shadow:0 14px 26px -16px rgba(43,116,240,.55)}
+  .cvcard__text{display:flex;flex-direction:column;min-width:0;flex:1}
+  .cvcard__eyebrow{font-size:12px;font-weight:650;letter-spacing:.02em;color:var(--sorted);margin-bottom:2px}
+  .cvcard--add .cvcard__eyebrow{color:var(--ink-3)}
+  .cvcard__text b{font-size:15.5px;font-weight:650;letter-spacing:-.015em;line-height:1.3}
+  .cvcard__name{font-family:var(--mono);font-size:14px!important;font-weight:600!important;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cvcard__meta{font-size:13.5px;color:var(--ink-2);line-height:1.45;margin-top:3px}
+  .cvcard__row{display:flex;align-items:center;justify-content:space-between;gap:6px 14px;flex-wrap:wrap;margin-top:8px}
+  .cvcard__row .switch{margin:0;padding:2px 0;font-size:13.5px}
+  .cvcard__link{font-size:13.5px;font-weight:600;color:var(--aqua-deep)}
+  .cvcard__go{display:inline-flex;align-items:center;gap:6px;margin-top:8px;font-size:14px;font-weight:650;color:var(--aqua-deep)}
+  .cvcard__go svg{transition:transform .35s var(--spring)}
+  .cvcard--add:hover .cvcard__go svg{transform:translateX(4px)}
+  .switch--sm .box{width:32px;height:19px}
+  .switch--sm .box::after{width:15px;height:15px}
+  .switch--sm:has(input:checked) .box::after{transform:translateX(13px)}
+  .cvcard:has(input[name=use_cv]:not(:checked)){background:#fff;border-color:var(--line-strong)}
+  .cvcard:has(input[name=use_cv]:not(:checked)) .minipaper{opacity:.45;filter:grayscale(1)}
+  .cvcard:has(input[name=use_cv]:not(:checked)) .cvcard__eyebrow{color:var(--ink-3)}
+
+  .minipaper{flex:none;display:block;width:64px;height:84px;transform-style:preserve-3d;
+    transition:opacity .3s var(--ease),filter .3s var(--ease)}
+  .minipaper__sheet{position:relative;display:flex;flex-direction:column;gap:5px;width:100%;height:100%;
+    padding:10px 9px;border-radius:4px;background:#fff;
+    box-shadow:0 0 0 1px rgba(20,24,33,.1),0 10px 18px -8px rgba(20,24,33,.4);
+    transform:rotateX(var(--rx)) rotateY(var(--ry)) rotate(-4deg);
+    transition:transform .5s var(--spring)}
+  .minipaper__sheet i{display:block;height:3px;border-radius:2px;background:#dfe3e9}
+  .minipaper__sheet i.short{width:60%}
+  .minipaper__sheet i.minipaper__head{height:6px;width:70%;background:var(--ink);margin-bottom:3px}
+  .minipaper__sheet i.hlbar{background:var(--sticker)}
+  .minipaper--ghost .minipaper__sheet{background:transparent;border:1.5px dashed #9aa2ae;box-shadow:none;
+    align-items:center;justify-content:center}
+  .minipaper__plus{font-size:26px;font-weight:300;color:var(--ink-3);line-height:1}
+  .cvcard--add:hover .minipaper__plus{color:var(--aqua-deep)}
   @media (prefers-reduced-motion:no-preference){
-    .yrs__num.is-pop{animation:yrs-pop .28s var(--spring)}
+    .minipaper{animation:bob 4.2s ease-in-out infinite}
+    .cvcard--add .minipaper{animation-duration:3.4s}
   }
-  @keyframes yrs-pop{from{transform:translateY(3px) scale(.9);opacity:.5}}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
 
-  .yrs__track{position:relative;height:36px}
-  .yrs__ticks{position:absolute;left:calc(var(--thumb) / 2);right:calc(var(--thumb) / 2);top:50%;
-    display:flex;justify-content:space-between;transform:translateY(8px);pointer-events:none}
-  .yrs__ticks i{width:2px;height:5px;border-radius:1px;background:#c4cad3}
-  .yrs__track input[type=range]{
-    -webkit-appearance:none;appearance:none;position:relative;width:100%;height:36px;margin:0;
-    background:transparent;cursor:pointer;touch-action:pan-y}
-  .yrs__track input[type=range]:focus{outline:none;box-shadow:none;border:0}
-  .yrs__track input[type=range]::-webkit-slider-runnable-track{
-    height:8px;border-radius:999px;
-    background:linear-gradient(90deg,var(--aqua) 0,#5c9bff calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)),
-      #dfe3e9 calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)));
-    box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
-  .yrs__track input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:#dfe3e9;
-    box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
-  .yrs__track input[type=range]::-moz-range-progress{height:8px;border-radius:999px;
-    background:linear-gradient(90deg,var(--aqua),#5c9bff)}
-  .yrs__track input[type=range]::-webkit-slider-thumb{
-    -webkit-appearance:none;appearance:none;width:var(--thumb);height:var(--thumb);margin-top:calc(4px - var(--thumb) / 2);
-    border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
-    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
-    transition:transform .2s var(--spring),box-shadow .2s var(--ease)}
-  .yrs__track input[type=range]::-moz-range-thumb{
-    width:var(--thumb);height:var(--thumb);border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
-    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
-    transition:transform .2s var(--spring)}
-  .yrs__track input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
-  .yrs__track input[type=range]:active::-webkit-slider-thumb{transform:scale(1.14);
-    box-shadow:0 1px 2px rgba(20,24,33,.2),0 8px 18px -4px rgba(43,116,240,.45),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua)}
-  .yrs__track input[type=range]:active::-moz-range-thumb{transform:scale(1.14)}
-  .yrs__track input[type=range]:focus-visible::-webkit-slider-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
-  .yrs__track input[type=range]:focus-visible::-moz-range-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
-  .yrs.is-any .yrs__track input[type=range]::-webkit-slider-thumb{
-    box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px #aab1bc}
-
-  /* The levels under the track: each band's edges fall halfway between two stops. */
-  .yrs__bands{list-style:none;margin:4px 0 0;padding:0 calc(var(--thumb) / 2);
-    display:grid;grid-template-columns:.5fr 2fr 3fr 3fr 4fr 4.5fr}
-  .yrs__bands li{position:relative;text-align:center;font-size:12px;font-weight:600;color:var(--ink-3);
-    padding-top:9px;transition:color .2s var(--ease)}
-  .yrs__bands li::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:2px;
-    background:#e3e6eb;transition:background .2s var(--ease)}
-  .yrs__bands li:first-child::before{display:none}
-  .yrs__bands li.is-on{color:var(--ink)}
-  .yrs__bands li.is-on::before{background:var(--aqua)}
-  .yrs__hint{margin:10px 0 0}
-  @media (pointer:coarse){ .yrs{--thumb:32px} }
-  @media (max-width:420px){ .yrs__bands li{font-size:11px} }
   .switches{display:flex;flex-wrap:wrap;gap:4px 0;padding:22px 0 6px}
   /* The window's footer: where the form ends, it says what is chosen and offers the
      search. It used to float pinned to the bottom of the screen and slide over the
@@ -726,76 +679,53 @@
     });
     sync();
 
-    // The CV drop zone says which file it is holding.
-    var cv = document.getElementById('resume'), cvName = document.getElementById('cv-name');
-    var drop = cv && cv.closest('.drop');
-    if (cv && drop) {
-      cv.addEventListener('change', function () {
-        var f = cv.files && cv.files[0];
-        cvName.textContent = f ? f.name : 'Drop your CV here';
-        drop.classList.toggle('has-file', !!f);
-      });
-      ['dragenter', 'dragover'].forEach(function (t) {
-        drop.addEventListener(t, function () { drop.classList.add('is-over'); });
-      });
-      ['dragleave', 'drop'].forEach(function (t) {
-        drop.addEventListener(t, function () { drop.classList.remove('is-over'); });
+    // "Use my profile": the saved details, ticked in one after another so it is plain
+    // what changed. Nothing runs until the searcher presses Find.
+    var fill = document.getElementById('fill-me');
+    if (fill) {
+      fill.addEventListener('click', function () {
+        var me = JSON.parse(fill.getAttribute('data-fill'));
+        var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var boxes = Array.prototype.slice.call(form.querySelectorAll('input[name="chosen_fields"]'));
+        var wanted = boxes.filter(function (b) { return me.fields.indexOf(b.value) !== -1; });
+        boxes.forEach(function (b) { if (me.fields.indexOf(b.value) === -1) b.checked = false; });
+        wanted.forEach(function (b, i) {
+          setTimeout(function () {
+            b.checked = true;
+            var tag = b.closest('.divider');
+            if (tag && !reduced) { tag.classList.remove('is-filled'); void tag.offsetWidth; tag.classList.add('is-filled'); }
+            sync();
+          }, reduced ? 0 : i * 90);
+        });
+        ['include_remote', 'internships_only', 'graduate_only'].forEach(function (name) {
+          var box = form.querySelector('input[name="' + name + '"]');
+          if (box) box.checked = !!me[name];
+        });
+        var range = form.querySelector('input[name="years"]');
+        if (range) {
+          range.value = me.years === null || me.years === undefined ? -1 : Math.min(me.years, 16);
+          range.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        if (wanted[0]) wanted[0].closest('.drawer').scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' });
+        fill.classList.add('is-done');
+        fill.lastChild.textContent = 'Profile used';
+        sync();
       });
     }
 
-    // "Search those instead" on the CV reading. It ticks the boxes rather than posting
-    // the fields straight through, so what runs and what the form shows cannot diverge.
-    document.body.addEventListener('click', function (event) {
-      var button = event.target.closest('[data-cv-fields]');
-      if (!button) return;
-      var wanted = button.getAttribute('data-cv-fields').split(',');
-      form.querySelectorAll('input[name="chosen_fields"]').forEach(function (box) {
-        box.checked = wanted.indexOf(box.value) !== -1;
+    // The little sheet on the CV card leans toward the pointer.
+    Array.prototype.forEach.call(document.querySelectorAll('[data-tilt]'), function (card) {
+      if (!window.matchMedia('(pointer: fine)').matches) return;
+      card.addEventListener('pointermove', function (e) {
+        var r = card.getBoundingClientRect();
+        card.style.setProperty('--ry', ((e.clientX - r.left) / r.width - .5) * 26 + 'deg');
+        card.style.setProperty('--rx', -((e.clientY - r.top) / r.height - .5) * 22 + 'deg');
       });
-      sync();
-      htmx.trigger(form, 'submit');
+      card.addEventListener('pointerleave', function () {
+        card.style.setProperty('--rx', '0deg'); card.style.setProperty('--ry', '0deg');
+      });
     });
 
-  })();
-
-  // Years of experience: the readout, the level and the lit band follow the slider.
-  (function () {
-    var box = document.querySelector('[data-yrs]');
-    if (!box) return;
-    var range = box.querySelector('input[type=range]'), track = box.querySelector('.yrs__track');
-    var num = box.querySelector('[data-yrs-num]'), unit = box.querySelector('[data-yrs-unit]');
-    var level = box.querySelector('[data-yrs-level]');
-    var bands = Array.prototype.slice.call(box.querySelectorAll('.yrs__bands li'));
-    // The same thresholds as seniority_from_years, which ranking uses.
-    function levelOf(v) {
-      if (v < 0) return 'every level';
-      if (v === 0) return 'just starting out';
-      if (v < 2) return 'junior';
-      if (v < 5) return 'mid-level';
-      if (v < 8) return 'senior';
-      if (v < 12) return 'lead';
-      return 'principal';
-    }
-    var last = null;
-    function paint() {
-      var v = parseInt(range.value, 10);
-      track.style.setProperty('--p', ((v + 1) / 17).toFixed(4));
-      box.classList.toggle('is-any', v < 0);
-      num.textContent = v < 0 ? 'Any' : (v > 15 ? '15+' : String(v));
-      unit.textContent = v < 0 ? '' : (v === 1 ? 'year' : 'years');
-      level.textContent = levelOf(v);
-      range.setAttribute('aria-valuetext', v < 0 ? 'Any, every level'
-        : (v > 15 ? '15 or more years' : v + (v === 1 ? ' year' : ' years')) + ', ' + levelOf(v));
-      bands.forEach(function (b) {
-        b.classList.toggle('is-on', v >= +b.getAttribute('data-from') && v <= +b.getAttribute('data-to'));
-      });
-      if (last !== null && last !== v) {
-        num.classList.remove('is-pop'); void num.offsetWidth; num.classList.add('is-pop');
-      }
-      last = v;
-    }
-    range.addEventListener('input', paint);
-    paint();
   })();
 
   // A seconds counter, so a long search reads as working rather than stuck.

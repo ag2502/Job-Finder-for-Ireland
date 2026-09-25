@@ -281,13 +281,13 @@ export JOBFINDER_LLM_FALLBACK_API_KEY=gsk_...
 Set nothing and the site behaves exactly as it did: `read_cv` returns `None` and the
 rules carry the whole job. That fallback is what makes the site independent of any free
 tier staying up — a spent daily allowance costs the quality of one CV reading, never a
-search. The call happens once per upload, not per search; paging and re-sorting are
-served from an in-process cache keyed on the CV's digest.
+search. The call happens once per upload, not per search: the CV goes up once, on the
+profile, and every search reuses the reading stored there.
 
-What the model reads is **offered, never applied**. Its fields appear in the results
-header as "Your CV reads as …" with a button to search them; the boxes you ticked still
-decide what runs, because a CV records what someone has done and the boxes state what
-they want to do next.
+What the model reads never replaces the boxes you ticked. The fields it names come up in
+a band of their own, "Where your CV points", below the chosen fields and above their
+neighbours, because a CV records what someone has done and the boxes state what they
+want to do next.
 
 Sentence-transformer embeddings were deliberately not used: torch is ~2GB, which does
 not fit the free tiers this targets, and job matching is dominated by exact technology
@@ -296,14 +296,18 @@ scores, so swapping in embeddings later changes nothing else.
 
 ## Privacy
 
-**The uploaded CV is never written to disk or to the database.** It is parsed in memory,
-the derived signals go into a signed session cookie, and the document is discarded
-before the response is sent.
+**The uploaded CV document is never written to disk or to the database.** A signed-in
+searcher adds it once on their profile. It is parsed in memory, the document is
+discarded before the response is sent, and what is kept is the reading of it: skill
+keywords, the fields it points to, a seniority guess, a rough number of years, a
+one-line summary and the file's name and size. That lives in the `profiles` table in
+Supabase (see `schema.sql`), behind row level security, and **Remove** on the profile
+deletes it outright.
 
-That is the stronger design, not a shortcut. Under GDPR, storing a CV makes you a
-controller with retention, access and erasure duties, and it becomes the most sensitive
-asset in the system. Keeping the few hundred bytes matching actually needs removes that
-liability while losing nothing a searcher would notice.
+That is the stronger design, not a shortcut. The document itself, with its address,
+phone number and full history, would be the most sensitive asset in the system. Keeping
+the few kilobytes matching actually needs removes most of that liability while losing
+nothing a searcher would notice.
 
 **Configuring a model endpoint changes this, and it is the one thing here that does.**
 With `JOBFINDER_LLM_API_KEY` set, up to 24,000 characters of the CV are sent to that

@@ -7,9 +7,9 @@ a free database tier gets exhausted. Over HTTPS there is nothing to keep warm, a
 request that fails, fails in a hundred milliseconds instead of hanging on a socket.
 
 **The job data does not live here.** Searches read the local snapshot exactly as before.
-Supabase holds two things only - who someone is, and which adverts they have applied to -
-so what crosses the network is a few hundred bytes per action rather than a dataset per
-page load.
+Supabase holds only what belongs to a person - who they are, the adverts they have saved
+or applied to, and their profile with the reading of their CV - so what crosses the
+network is a few hundred bytes per action rather than a dataset per page load.
 
 Every call is scoped by the signed-in user's own token, so PostgREST applies the row
 level security policy in `schema.sql` and the database itself enforces that one account
@@ -502,6 +502,56 @@ def remove_saved(account: Account, advert_key: str) -> None:
             f"{base}/rest/v1/saved_jobs",
             headers=_auth_headers(account.access_token),
             params={"advert_key": f"eq.{advert_key}"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+# ------------------------------------------------------------------ profiles
+#
+# One row per account, holding what the searcher told us and what was read from their
+# CV. Written with an upsert that names only the columns being changed: PostgREST turns
+# `resolution=merge-duplicates` into `on conflict do update set` for exactly the keys in
+# the payload, so saving the details never clears the CV and replacing the CV never
+# clears the details.
+
+
+def get_profile(account: Account) -> dict | None:
+    """This account's profile row, or None when it has never saved one."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/profiles",
+            headers=_auth_headers(account.access_token),
+            params={
+                "select": "fields,years,include_remote,internships_only,graduate_only,cv,updated_at",
+                "user_id": f"eq.{account.user_id}",
+                "limit": "1",
+            },
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    rows = response.json()
+    return rows[0] if rows else None
+
+
+def save_profile(account: Account, **columns) -> None:
+    """Write the given profile columns, leaving every other column as it was."""
+    base, _ = _require_config()
+    payload = {
+        "user_id": account.user_id,
+        **columns,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/profiles",
+            params={"on_conflict": "user_id"},
+            headers={
+                **_auth_headers(account.access_token),
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            json=payload,
         )
     if response.status_code >= 400:
         raise SupabaseError(_message_from(response))

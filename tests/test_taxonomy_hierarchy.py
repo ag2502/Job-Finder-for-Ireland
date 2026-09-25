@@ -14,7 +14,14 @@ from datetime import datetime
 import pytest
 
 from jobfinder.matching import llm_profile
-from jobfinder.matching.rank import Candidate, rank_jobs
+from jobfinder.matching.rank import (
+    TIER_CHOSEN,
+    TIER_CV,
+    TIER_FAR,
+    TIER_NEAR,
+    Candidate,
+    rank_jobs,
+)
 from jobfinder.normalize.taxonomy import (
     FAR,
     FIELDS,
@@ -126,7 +133,35 @@ def test_tiers_separate_the_chosen_the_near_and_the_far():
         entry.job_id: entry.tier
         for entry in rank_jobs(jobs, Candidate(fields=["machine-learning"]), limit=10)
     }
-    assert tiers == {1: 0, 2: 1, 3: 2}
+    assert tiers == {1: TIER_CHOSEN, 2: TIER_NEAR, 3: TIER_FAR}
+
+
+def test_fields_the_cv_points_to_come_after_the_chosen_and_before_neighbours():
+    jobs = [
+        FakeJob(1, "Machine Learning Engineer"),
+        FakeJob(2, "Data Scientist"),
+        FakeJob(3, "Financial Accountant"),
+    ]
+    ranked = rank_jobs(
+        jobs,
+        Candidate(fields=["machine-learning"], cv_fields=["accounting"]),
+        limit=10,
+        only_relevant=True,
+    )
+    assert [entry.job_id for entry in ranked] == [1, 3, 2]
+    tiers = {entry.job_id: entry.tier for entry in ranked}
+    assert tiers == {1: TIER_CHOSEN, 3: TIER_CV, 2: TIER_NEAR}
+    (accountant,) = [entry for entry in ranked if entry.job_id == 3]
+    assert "where your CV points" in accountant.explain()
+
+
+def test_a_cv_field_that_was_also_ticked_stays_a_chosen_one():
+    (entry,) = rank_jobs(
+        [FakeJob(1, "Machine Learning Engineer")],
+        Candidate(fields=["machine-learning"], cv_fields=["machine-learning"]),
+        limit=10,
+    )
+    assert entry.tier == TIER_CHOSEN
 
 
 def test_a_far_match_is_described_as_a_sideways_move():

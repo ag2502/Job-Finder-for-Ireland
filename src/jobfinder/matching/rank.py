@@ -49,6 +49,13 @@ WEIGHT_FIELD = 0.30
 WEIGHT_TEXT = 0.20
 WEIGHT_SENIORITY = 0.10
 
+# The bands a result falls in, compared before the score. See ScoredJob.tier.
+TIER_CHOSEN = 0
+TIER_CV = 1
+TIER_NEAR = 2
+TIER_FAR = 3
+TIER_SKILLS = 4
+
 BM25_K1 = 1.5
 BM25_B = 0.75
 
@@ -201,6 +208,10 @@ class Candidate:
     corpus_terms: set[str] = field(default_factory=set)
     # What the searcher typed in the years box. None means they stated nothing.
     years: int | None = None
+    # The fields their CV points to, as read from it. Offered alongside the chosen
+    # fields in a band of their own, never merged into them: the boxes say what someone
+    # wants next, the CV only what they have done.
+    cv_fields: list[str] = field(default_factory=list)
 
     @cached_property
     def expanded_fields(self) -> list[str]:
@@ -260,8 +271,9 @@ class ScoredJob:
     # interested in. Ranking alone is not enough: sorting an Art Director role to the
     # bottom still leaves it in a list the searcher has to read past.
     relevant: bool = True
-    # 0 = in a field the searcher ticked, 1 = a near neighbour, 2 = a far one (a real
-    # pivot, not the same job), 3 = kept on skill overlap alone. Compared *before* the
+    # TIER_CHOSEN = in a field the searcher ticked, TIER_CV = in a field their CV points
+    # to, TIER_NEAR = a near neighbour, TIER_FAR = a far one (a real pivot, not the same
+    # job), TIER_SKILLS = kept on skill overlap alone. Compared *before* the
     # score, so a related role can never outrank a chosen one on text-score noise. A
     # 0.4 gap in the field signal is worth 12 points, which the 20-point text term
     # overwhelmed: picking "Backend" put ".Net Developer" and "Front End Developer"
@@ -269,7 +281,7 @@ class ScoredJob:
     # Software Engineering is the largest bucket in the corpus and neighbours half the
     # taxonomy, so without the split a Machine Learning search filled with graduate
     # developer roles before it reached a single Data Science one.
-    tier: int = 0
+    tier: int = TIER_CHOSEN
     # True when this job survived only because the relevance filter emptied the list.
     fallback: bool = False
 
@@ -448,25 +460,31 @@ def score_job(
     related = candidate.related_fields
 
     direct = [f for f in job_fields if f in chosen]
+    from_cv = [f for f in job_fields if f in candidate.cv_fields and f not in chosen]
     # Closest neighbour first, so a job that classifies as both Data Science and
     # Software Engineering is judged - and explained - as the Data Science role.
     nearby = sorted((f for f in job_fields if f in related), key=lambda f: -related[f])
-    result.field_matches = direct + nearby
+    result.field_matches = direct + from_cv + nearby
 
     closeness = related[nearby[0]] if nearby else 0.0
 
     if direct:
         field_score = 1.0
-        result.tier = 0
+        result.tier = TIER_CHOSEN
+    elif from_cv:
+        # Below a chosen field, above any neighbour of one: the CV is evidence about
+        # this person, where a neighbouring field is only a guess about the taxonomy.
+        field_score = 0.8
+        result.tier = TIER_CV
     elif nearby:
         field_score = 0.6 * closeness
-        result.tier = 1 if closeness >= NEAR else 2
+        result.tier = TIER_NEAR if closeness >= NEAR else TIER_FAR
     elif not chosen:
         field_score = 0.5
-        result.tier = 0
+        result.tier = TIER_CHOSEN
     else:
         field_score = 0.0
-        result.tier = 3
+        result.tier = TIER_SKILLS
 
     # 3. Text
     raw_text = index.score(job_id, candidate.query_tokens)
@@ -498,7 +516,7 @@ def score_job(
     if not chosen and not candidate.skills:
         # Nothing to judge relevance against, so everything qualifies.
         result.relevant = True
-    elif direct or nearby:
+    elif direct or from_cv or nearby:
         result.relevant = True
     elif len(matches) >= MIN_SKILL_OVERLAP:
         # The title did not classify - plenty do not - but the advert demands enough of
@@ -529,6 +547,8 @@ def score_job(
         result.reasons.append(
             f"in your chosen field: {FIELDS[direct[0]].label}"
         )
+    elif from_cv:
+        result.reasons.append(f"where your CV points: {FIELDS[from_cv[0]].label}")
     elif nearby and closeness >= NEAR:
         result.reasons.append(f"related field: {FIELDS[nearby[0]].label}")
     elif nearby:

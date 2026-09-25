@@ -459,6 +459,95 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .divider:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
 .divider:active{transform:scale(.96)}
 
+/* ---------------------------------------------------- years of experience --- */
+/* The slider in _macros.html:years_slider, shared by the finder and the profile. */
+.yrs{--thumb:28px}
+.yrs__head{display:flex;align-items:flex-end;justify-content:space-between;gap:6px 16px;flex-wrap:wrap;margin-bottom:6px}
+.yrs__head .fieldname{margin-bottom:0}
+.yrs__read{display:inline-flex;align-items:baseline;gap:7px;white-space:nowrap}
+.yrs__num{font-size:2rem;line-height:1;font-weight:750;letter-spacing:-.04em;color:var(--ink);
+  font-variant-numeric:tabular-nums;display:inline-block;min-width:1.2ch;text-align:right}
+.yrs__unit{font-size:15px;font-weight:600;color:var(--ink-2)}
+.yrs__level{font-size:12.5px;font-weight:650;color:var(--aqua-deep);background:var(--aqua-wash);
+  border:1px solid rgba(43,116,240,.22);border-radius:999px;padding:3px 10px;align-self:center}
+.yrs.is-any .yrs__num{color:var(--ink-2)}
+.yrs.is-any .yrs__level{color:var(--ink-2);background:#eef0f3;border-color:var(--line)}
+@media (prefers-reduced-motion:no-preference){
+  .yrs__num.is-pop{animation:yrs-pop .28s var(--spring)}
+}
+@keyframes yrs-pop{from{transform:translateY(3px) scale(.9);opacity:.5}}
+
+.yrs__track{position:relative;height:36px}
+.yrs__ticks{position:absolute;left:calc(var(--thumb) / 2);right:calc(var(--thumb) / 2);top:50%;
+  display:flex;justify-content:space-between;transform:translateY(8px);pointer-events:none}
+.yrs__ticks i{width:2px;height:5px;border-radius:1px;background:#c4cad3}
+.yrs__track input[type=range]{
+  -webkit-appearance:none;appearance:none;position:relative;width:100%;height:36px;margin:0;
+  background:transparent;cursor:pointer;touch-action:pan-y}
+.yrs__track input[type=range]:focus{outline:none;box-shadow:none;border:0}
+.yrs__track input[type=range]::-webkit-slider-runnable-track{
+  height:8px;border-radius:999px;
+  background:linear-gradient(90deg,var(--aqua) 0,#5c9bff calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)),
+    #dfe3e9 calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)));
+  box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
+.yrs__track input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:#dfe3e9;
+  box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
+.yrs__track input[type=range]::-moz-range-progress{height:8px;border-radius:999px;
+  background:linear-gradient(90deg,var(--aqua),#5c9bff)}
+.yrs__track input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;appearance:none;width:var(--thumb);height:var(--thumb);margin-top:calc(4px - var(--thumb) / 2);
+  border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+  transition:transform .2s var(--spring),box-shadow .2s var(--ease)}
+.yrs__track input[type=range]::-moz-range-thumb{
+  width:var(--thumb);height:var(--thumb);border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+  transition:transform .2s var(--spring)}
+.yrs__track input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
+.yrs__track input[type=range]:active::-webkit-slider-thumb{transform:scale(1.14);
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 8px 18px -4px rgba(43,116,240,.45),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua)}
+.yrs__track input[type=range]:active::-moz-range-thumb{transform:scale(1.14)}
+.yrs__track input[type=range]:focus-visible::-webkit-slider-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
+.yrs__track input[type=range]:focus-visible::-moz-range-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
+.yrs.is-any .yrs__track input[type=range]::-webkit-slider-thumb{
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px #aab1bc}
+
+/* The levels under the track: each band's edges fall halfway between two stops. */
+.yrs__bands{list-style:none;margin:4px 0 0;padding:0 calc(var(--thumb) / 2);
+  display:grid;grid-template-columns:.5fr 2fr 3fr 3fr 4fr 4.5fr}
+.yrs__bands li{position:relative;text-align:center;font-size:12px;font-weight:600;color:var(--ink-3);
+  padding-top:9px;transition:color .2s var(--ease)}
+.yrs__bands li::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:2px;
+  background:#e3e6eb;transition:background .2s var(--ease)}
+.yrs__bands li:first-child::before{display:none}
+.yrs__bands li.is-on{color:var(--ink)}
+.yrs__bands li.is-on::before{background:var(--aqua)}
+.yrs__hint{margin:10px 0 0}
+@media (pointer:coarse){ .yrs{--thumb:32px} }
+@media (max-width:420px){ .yrs__bands li{font-size:11px} }
+
+/* A tag ticked from script, by "Use my profile", pops so the change is visible. */
+@media (prefers-reduced-motion:no-preference){
+  .divider.is-filled{animation:pick-in .45s var(--spring)}
+}
+@keyframes pick-in{0%{transform:scale(1)}40%{transform:scale(1.1)}100%{transform:none}}
+
+/* A field the searcher's CV points to carries a small mark. */
+.cvmark{font-family:var(--mono);font-size:10.5px;font-weight:600;letter-spacing:.02em;line-height:1;
+  padding:3px 5px 3px;margin-left:-2px;border-radius:5px;color:var(--aqua-deep);background:var(--aqua-wash);
+  box-shadow:inset 0 0 0 1px rgba(43,116,240,.28)}
+.divider--cv{border-style:dashed;border-color:color-mix(in srgb,var(--aqua) 55%,var(--line-strong))}
+.divider--cv:has(input:checked){border-style:solid}
+
+/* "Saved", said quietly beside the button that did it. */
+.savednote{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:600;color:var(--sorted)}
+.savednote svg{width:15px;height:15px}
+.savednote--bad{color:var(--tag-red-deep)}
+@media (prefers-reduced-motion:no-preference){
+  .savednote{animation:rise-in .4s var(--spring)}
+}
+@keyframes rise-in{from{opacity:0;transform:translateY(6px)}}
+
 /* macOS switches */
 .switch{display:inline-flex;align-items:center;gap:11px;font-size:14.5px;font-weight:500;
   color:var(--ink);cursor:pointer;user-select:none;padding:6px 0;margin-right:26px}
@@ -1069,6 +1158,44 @@ document.addEventListener('click', function (event) {
     return items;
   };
 })();
+// Years of experience: the readout, the level and the lit band follow the slider.
+// Anything that sets the value from script dispatches 'input' so this repaints.
+Array.prototype.forEach.call(document.querySelectorAll('[data-yrs]'), function (box) {
+  var range = box.querySelector('input[type=range]'), track = box.querySelector('.yrs__track');
+  var num = box.querySelector('[data-yrs-num]'), unit = box.querySelector('[data-yrs-unit]');
+  var level = box.querySelector('[data-yrs-level]');
+  var bands = Array.prototype.slice.call(box.querySelectorAll('.yrs__bands li'));
+  // The same thresholds as seniority_from_years, which ranking uses.
+  function levelOf(v) {
+    if (v < 0) return 'every level';
+    if (v === 0) return 'just starting out';
+    if (v < 2) return 'junior';
+    if (v < 5) return 'mid-level';
+    if (v < 8) return 'senior';
+    if (v < 12) return 'lead';
+    return 'principal';
+  }
+  var last = null;
+  function paint() {
+    var v = parseInt(range.value, 10);
+    track.style.setProperty('--p', ((v + 1) / 17).toFixed(4));
+    box.classList.toggle('is-any', v < 0);
+    num.textContent = v < 0 ? 'Any' : (v > 15 ? '15+' : String(v));
+    unit.textContent = v < 0 ? '' : (v === 1 ? 'year' : 'years');
+    level.textContent = levelOf(v);
+    range.setAttribute('aria-valuetext', v < 0 ? 'Any, every level'
+      : (v > 15 ? '15 or more years' : v + (v === 1 ? ' year' : ' years')) + ', ' + levelOf(v));
+    bands.forEach(function (b) {
+      b.classList.toggle('is-on', v >= +b.getAttribute('data-from') && v <= +b.getAttribute('data-to'));
+    });
+    if (last !== null && last !== v) {
+      num.classList.remove('is-pop'); void num.offsetWidth; num.classList.add('is-pop');
+    }
+    last = v;
+  }
+  range.addEventListener('input', paint);
+  paint();
+});
 </script>
 {% block scripts %}{% endblock %}
 </body>
