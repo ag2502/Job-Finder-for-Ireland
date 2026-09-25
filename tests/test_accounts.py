@@ -424,6 +424,40 @@ def test_marking_names_the_constraint_that_counts_as_a_duplicate(
     assert "merge-duplicates" in request.headers["Prefer"]
 
 
+def test_the_cv_is_read_and_written_as_its_owner_only(monkeypatch: pytest.MonkeyPatch):
+    """The CV reading lives in the account and nowhere else. Every call carries the
+    person's own token, so row level security decides what exists, and names their own
+    row; the service key, which would bypass that, is never used."""
+    seen = _capture(monkeypatch)
+    supabase.get_profile(_account())
+    supabase.save_profile(_account(), cv={"skills": ["python"]})
+
+    read, write = seen[-2], seen[-1]
+    for request in (read, write):
+        assert request.headers["authorization"] == "Bearer access-token"
+        assert request.url.path == "/rest/v1/profiles"
+    assert read.url.params["user_id"] == "eq.user-1"
+    assert json.loads(write.content)["user_id"] == "user-1"
+    assert write.url.params["on_conflict"] == "user_id"
+    assert "merge-duplicates" in write.headers["Prefer"]
+
+
+def test_the_database_keeps_each_profile_to_its_owner():
+    """What actually stops one account reading another's CV: the table's own policies,
+    enforced by Postgres whatever the application code does."""
+    from pathlib import Path
+
+    schema = (Path(__file__).parent.parent / "schema.sql").read_text()
+    table = schema[schema.index("create table if not exists public.profiles"):]
+    assert "alter table public.profiles enable row level security;" in table
+    for action in ("select", "insert", "update", "delete"):
+        policy = re.search(
+            rf"on public\.profiles for {action}\s+(.*?);", table, re.S
+        )
+        assert policy, f"no {action} policy on profiles"
+        assert "auth.uid() = user_id" in policy.group(1)
+
+
 def test_a_publishable_key_is_not_sent_as_a_bearer_token(
     monkeypatch: pytest.MonkeyPatch,
 ):
