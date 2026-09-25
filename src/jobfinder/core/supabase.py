@@ -720,3 +720,21 @@ def purge_stale_drafts(account: Account, older_than: datetime) -> None:
             )
     except httpx.HTTPError:
         logger.info("could not clear old tailoring drafts")
+
+
+def table_status(tables: tuple[str, ...]) -> dict[str, str]:
+    """Whether each table exists, asked as nobody: row level security returns no rows,
+    so this reads no one's data, but a missing table answers 404. For setup checks."""
+    base, _ = _require_config()
+    out = {}
+    with _client() as client:
+        for table in tables:
+            try:
+                response = client.get(f"{base}/rest/v1/{table}", headers=_auth_headers(),
+                                      params={"select": "*", "limit": "0"})
+                out[table] = "ok" if response.status_code < 400 else (
+                    "missing: run schema.sql" if response.status_code == 404
+                    else f"HTTP {response.status_code}: {_message_from(response)[:120]}")
+            except httpx.HTTPError as exc:
+                out[table] = f"unreachable: {type(exc).__name__}"
+    return out

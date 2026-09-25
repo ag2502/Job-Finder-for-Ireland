@@ -1016,7 +1016,13 @@ def _search_results(
 
         # Rank everything that matched rather than a fixed slice, so the reported
         # total is the real number of open roles and later pages are reachable.
-        scored = rank_jobs(rows, candidate, limit=len(rows), only_relevant=True)
+        # With an early-career switch on, nothing is filtered out by field. There are only
+        # a dozen or so graduate jobs open in Dublin at a time, and a graduate programme
+        # usually takes any discipline: hiding the ones outside the ticked fields hid most
+        # of them. They are ranked as usual - the ticked fields first - and the rest follow
+        # under their own heading, rather than disappearing.
+        early = bool(profile.get("internships_only") or profile.get("graduate_only"))
+        scored = rank_jobs(rows, candidate, limit=len(rows), only_relevant=not early)
         by_id = {row.id: row for row in rows}
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
@@ -1114,6 +1120,9 @@ def _search_results(
             if key in FIELDS and key not in (profile.get("fields") or [])
         ],
         "candidate_years": profile.get("years"),
+        # How many sit in the ticked fields, for an early-career search that lists the
+        # rest below them.
+        "in_fields": sum(1 for i in items if i["tier"] < rank.TIER_SKILLS),
         "internships_only": bool(profile.get("internships_only")),
         "graduate_only": bool(profile.get("graduate_only")),
     }
@@ -2181,3 +2190,21 @@ def tailor_review(request: Request, tailored_id: str):
     except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
         document = rendered = None
     return _workspace(request, row, document, rendered, read_only=row["status"] == "saved")
+
+
+@app.get("/healthz/accounts", include_in_schema=False)
+def healthz_accounts():
+    """Is the accounts side set up? Which tables exist, and whether tailoring has a model.
+
+    Names only, never keys. Added because "could not be saved" on the profile could mean
+    a missing table, a paused project or a bad key, and only this can tell them apart
+    from outside.
+    """
+    info: dict = {"supabase_configured": supabase.configured()}
+    if supabase.configured():
+        info["tables"] = supabase.table_status(
+            ("applications", "saved_jobs", "profiles", "tailored_cvs")
+        )
+    info["tailoring_models"] = [m.name for m in tailor_llm.models()]
+    info["tailoring_on"] = _tailoring_on()
+    return info

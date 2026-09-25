@@ -758,3 +758,15 @@ def test_precomputed_skills_are_what_ranking_would_have_found():
         rank._PRECOMPUTED_SKILLS.clear()
         rank._ADVERTS.pop(text, None)
     assert rank._advert(text).skills == frozenset(extract_skills(text))
+
+
+def test_an_early_career_search_hides_no_graduate_job(client):
+    """Only a dozen or so graduate jobs are open at a time, and a programme usually takes
+    any discipline, so ticking a field orders them rather than hiding most of them."""
+    totals = {
+        field: _total(client.post("/search", data={"chosen_fields": [field], "graduate_only": "1"}))
+        for field in ("data-science", "pharma", "accounting")
+    }
+    assert len(set(totals.values())) == 1, totals
+    page = client.post("/search", data={"chosen_fields": ["pharma"], "graduate_only": "1"}).text
+    assert "in or near the fields you picked" in page

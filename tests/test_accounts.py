@@ -1488,3 +1488,12 @@ def test_tailoring_needs_an_account(client: TestClient, tailoring):
 def test_someone_elses_draft_is_not_found(client: TestClient, fake, tailoring):
     _signed_in(client)
     assert client.post("/tailor/not-mine/revise", data={"suggestion": "x"}).status_code == 404
+
+
+def test_the_setup_check_names_a_missing_table(client: TestClient, monkeypatch):
+    monkeypatch.setattr(supabase, "table_status", lambda tables: {
+        t: ("missing: run schema.sql" if t == "profiles" else "ok") for t in tables})
+    info = client.get("/healthz/accounts").json()
+    assert info["tables"]["profiles"] == "missing: run schema.sql"
+    assert info["tailoring_on"] is False and info["tailoring_models"] == []
+    assert "key" not in str(info).lower()

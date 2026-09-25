@@ -2,7 +2,7 @@
 {% set nav = 'profile' %}
 {% block title %}Your profile | Sorted Place{% endblock %}
 {% from "_macros.html" import titlebar, avatar, years_slider, field_tag, cv_step %}
-{% block railcount %}{% if account %}{{ saved|length }} saved &middot; {{ applications|length }} applied{% endif %}{% endblock %}
+{% block railcount %}{% if account %}<span data-rail="panel-saved">{{ saved|length }}</span> saved &middot; <span data-rail="panel-applied">{{ applications|length }}</span> applied{% endif %}{% endblock %}
 {% block content %}
 
 {% if not account %}
@@ -31,7 +31,7 @@
       </p>
       <div class="me__steps">
         {{ cv_step(me.cv) }}
-        <a id="step-about" class="mestep{% if me.has_details %} is-done{% endif %}" href="#about">
+        <a id="step-about" class="mestep{% if me.has_details %} is-done{% endif %}" href="/profile?edit=about#about">
           <span class="mestep__tick" aria-hidden="true"><svg width="12" height="12"><use href="#i-check"/></svg></span>
           {{- "Details saved" if me.has_details else "Say what you are after" -}}
         </a>
@@ -71,82 +71,8 @@
 </section>
 {% endif %}
 
-<div class="me__grid">
-  {# What they are looking for, saved for the finder to offer back. #}
   {% set cv_fields = me.cv.fields if me.cv else [] %}
-  <section class="win aboutwin opens" id="about" aria-labelledby="about-title" data-delay="80">
-    {{ titlebar("about-you") }}
-    <form class="about" method="post" action="/profile/details"
-          hx-post="/profile/details" hx-target="#about-status" hx-swap="innerHTML" data-about>
-      <h2 id="about-title">What you are looking for</h2>
-      <p class="muted about__lede">Saved here, and offered on the finder with one click. Nothing
-        is filtered by it until you use it there.</p>
-
-      <div class="about__block">
-        <div class="about__row">
-          <span class="fieldname" id="kinds-label">Kinds of work</span>
-          <span class="about__count" data-about-count>{{ me.fields|length }} picked</span>
-        </div>
-        {% if cv_fields %}
-        <button type="button" class="cvpickall" data-cv-pick='{{ cv_fields|tojson }}'>
-          <span class="cvmark">cv</span>Tick the {{ cv_fields|length }} your CV points to
-        </button>
-        {% endif %}
-        <div class="fgroups" role="group" aria-labelledby="kinds-label">
-          {% for group_label, group_fields in field_groups %}
-          {% set ticked = group_fields|selectattr("key", "in", me.fields)|list %}
-          {% set from_cv = group_fields|selectattr("key", "in", cv_fields)|list %}
-          <details class="fgroup" style="--g:var(--g-{{ group_fields[0].group if group_fields else 'engineering' }})"
-                   {% if ticked or from_cv %}open{% endif %}>
-            <summary>
-              <span class="fgroup__dot" aria-hidden="true"></span>
-              <span class="fgroup__name">{{ group_label }}</span>
-              <span class="fgroup__n" data-group-count {% if not ticked %}hidden{% endif %}>{{ ticked|length }}</span>
-              <svg class="fgroup__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </summary>
-            <div class="dividers">
-              {% for f in group_fields %}{{ field_tag(f, f.key in me.fields, cv_fields) }}{% endfor %}
-            </div>
-          </details>
-          {% endfor %}
-        </div>
-      </div>
-
-      <div class="about__block">
-        {% call years_slider(me.years) %}
-          {% if me.cv and me.cv.years is not none %}
-            Your CV looks like about <strong>{{ me.cv.years }} years</strong>.
-          {% endif %}
-          The finder shows jobs asking for this many years or fewer.
-        {% endcall %}
-      </div>
-
-      <div class="about__block about__switches">
-        <label class="switch">
-          <input type="checkbox" name="include_remote" value="1" {% if me.include_remote %}checked{% endif %}>
-          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-          Include remote jobs
-        </label>
-        <label class="switch">
-          <input type="checkbox" name="internships_only" value="1" {% if me.internships_only %}checked{% endif %}>
-          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-          Internships only
-        </label>
-        <label class="switch">
-          <input type="checkbox" name="graduate_only" value="1" {% if me.graduate_only %}checked{% endif %}>
-          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-          Graduate programmes only
-        </label>
-      </div>
-
-      <div class="about__foot">
-        <span id="about-status" class="about__status" aria-live="polite"></span>
-        <button type="submit" data-about-save>Save</button>
-      </div>
-    </form>
-  </section>
-
-  <section class="win profilewin opens" aria-label="Your jobs" data-delay="160">
+  <section class="win profilewin opens" aria-label="Your jobs" data-delay="80">
     {{ titlebar("profile: " ~ account.email) }}
     <div class="tabs" role="tablist" aria-label="Your jobs">
       <a role="tab" id="tab-saved" href="/profile?tab=saved" aria-controls="panel-saved"
@@ -236,7 +162,98 @@
       </div>
     </div>
   </section>
-</div>
+
+  <section class="win aboutwin opens" id="about" aria-labelledby="about-title">
+    {{ titlebar("search-preferences") }}
+    {# Set once and rarely touched, so it stays folded: a line saying what is saved, and
+       the form behind it. #}
+    <details class="aboutfold"{% if request.query_params.get("edit") == "about" %} open{% endif %}>
+      <summary class="aboutfold__head">
+        <span class="aboutfold__text">
+          <b id="about-title">Search preferences</b>
+          <span class="muted small">
+            {% if me.has_details %}
+              {{ me.fields|length }} kind{{ "" if me.fields|length == 1 else "s" }} of work
+              {%- if me.years is not none %} &middot; {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }}{% endif %}
+              {%- if me.include_remote %} &middot; remote{% endif %}
+              {%- if me.internships_only %} &middot; internships{% endif %}
+              {%- if me.graduate_only %} &middot; graduate programmes{% endif %}.
+              The finder's <b>Use my profile</b> button fills them in.
+            {% else %}
+              Optional. Save what you usually search for, and the finder fills it in with one click.
+            {% endif %}
+          </span>
+        </span>
+        <span class="aboutfold__edit">Edit <svg viewBox="0 0 10 10" width="11" height="11" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </summary>
+    <form class="about" method="post" action="/profile/details"
+          hx-post="/profile/details" hx-target="#about-status" hx-swap="innerHTML" data-about>
+
+      <div class="about__block">
+        <div class="about__row">
+          <span class="fieldname" id="kinds-label">Kinds of work</span>
+          <span class="about__count" data-about-count>{{ me.fields|length }} picked</span>
+        </div>
+        {% if cv_fields %}
+        <button type="button" class="cvpickall" data-cv-pick='{{ cv_fields|tojson }}'>
+          <span class="cvmark">cv</span>Tick the {{ cv_fields|length }} your CV points to
+        </button>
+        {% endif %}
+        <div class="fgroups" role="group" aria-labelledby="kinds-label">
+          {% for group_label, group_fields in field_groups %}
+          {% set ticked = group_fields|selectattr("key", "in", me.fields)|list %}
+          {% set from_cv = group_fields|selectattr("key", "in", cv_fields)|list %}
+          <details class="fgroup" style="--g:var(--g-{{ group_fields[0].group if group_fields else 'engineering' }})"
+                   {% if ticked or from_cv %}open{% endif %}>
+            <summary>
+              <span class="fgroup__dot" aria-hidden="true"></span>
+              <span class="fgroup__name">{{ group_label }}</span>
+              <span class="fgroup__n" data-group-count {% if not ticked %}hidden{% endif %}>{{ ticked|length }}</span>
+              <svg class="fgroup__chev" viewBox="0 0 10 10" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </summary>
+            <div class="dividers">
+              {% for f in group_fields %}{{ field_tag(f, f.key in me.fields, cv_fields) }}{% endfor %}
+            </div>
+          </details>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="about__block">
+        {% call years_slider(me.years) %}
+          {% if me.cv and me.cv.years is not none %}
+            Your CV looks like about <strong>{{ me.cv.years }} years</strong>.
+          {% endif %}
+          The finder shows jobs asking for this many years or fewer.
+        {% endcall %}
+      </div>
+
+      <div class="about__block about__switches">
+        <label class="switch">
+          <input type="checkbox" name="include_remote" value="1" {% if me.include_remote %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Include remote jobs
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="internships_only" value="1" {% if me.internships_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Internships only
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="graduate_only" value="1" {% if me.graduate_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Graduate programmes only
+        </label>
+      </div>
+
+      <div class="about__foot">
+        <span id="about-status" class="about__status" aria-live="polite"></span>
+        <button type="submit" data-about-save>Save</button>
+      </div>
+    </form>
+    </details>
+  </section>
+
 
 {# Drag a file anywhere over the page and it can be dropped anywhere, not only on the
    drop zone. #}
@@ -499,12 +516,21 @@
   .tlist__yes{color:var(--tag-red-deep)}
   .tlist__row.htmx-swapping{opacity:0;transition:opacity .22s var(--ease)}
   @media (max-width:860px){ .tlist__row{padding-left:16px} .tailoredwin__head{padding:18px 18px 4px} .tlist__company{padding:12px 16px 4px} }
-  .me__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:28px;align-items:start}
   .aboutwin,.profilewin{box-shadow:var(--shadow-lift)}
+  .profilewin{margin-bottom:28px}
   .aboutwin{scroll-margin-top:70px}
-  .about{padding:26px 28px 0}
-  .about h2{margin-bottom:6px}
-  .about__lede{margin:0 0 22px;font-size:14.5px}
+  .aboutfold__head{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;
+    padding:18px 26px;cursor:pointer}
+  .aboutfold__head::-webkit-details-marker{display:none}
+  .aboutfold__head:hover .aboutfold__edit{color:var(--ink)}
+  .aboutfold__text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .aboutfold__text > b{font-size:1.05rem}
+  .aboutfold__edit{display:inline-flex;align-items:center;gap:6px;flex:none;font-size:14px;font-weight:600;color:var(--aqua-deep)}
+  .aboutfold__edit svg{transition:transform .25s var(--ease)}
+  .aboutfold[open] .aboutfold__edit svg{transform:rotate(180deg)}
+  .about{padding:0 26px;border-top:1px solid var(--line)}
+  .about .fgroups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 18px;border:0;border-radius:0}
+  .about .fgroup{border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
   .about__block{padding:20px 0;border-top:1px solid var(--line)}
   .about__row{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
   .about__row .fieldname{margin:0}
@@ -532,7 +558,7 @@
   }
   .about__switches{display:flex;flex-direction:column;gap:2px}
   .about__foot{display:flex;align-items:center;justify-content:flex-end;gap:14px;
-    margin:0 -28px;padding:16px 28px 18px;background:var(--win-bar);border-top:1px solid var(--line)}
+    margin:0 -26px;padding:16px 26px 18px;background:var(--win-bar);border-top:1px solid var(--line)}
   .about__status{margin-right:auto}
   .about__foot button{padding:10px 26px}
 
@@ -565,8 +591,8 @@
   .pempty h3{font-size:1.2rem;margin-bottom:6px}
   .pempty p{margin:0 auto 20px;max-width:46ch}
 
-  @media (max-width:1080px){
-    .me__grid{grid-template-columns:minmax(0,1fr)}
+  @media (max-width:900px){
+    .about .fgroups{grid-template-columns:minmax(0,1fr)}
   }
   @media (max-width:900px){
     .cvpanel{grid-template-columns:minmax(0,1fr);min-height:0}
@@ -581,7 +607,8 @@
     .me{padding:34px 0 22px}
     .me__id{gap:16px;align-items:flex-start}
     .me__id .avatar{--av:60px}
-    .about{padding:20px 18px 0}
+    .about{padding:0 18px}
+    .aboutfold__head{padding:16px 18px}
     .about__foot{margin:0 -18px;padding:14px 18px 16px}
     .tabs{margin:14px 14px 0;width:auto}
     .tabs a{flex:1;justify-content:center;padding:10px 8px}
@@ -634,6 +661,9 @@
     new MutationObserver(function () {
       var left = list.querySelectorAll('.record').length;
       n.textContent = left;
+      // The menu bar's count follows too, so the two never disagree after an Undo.
+      var rail = document.querySelector('[data-rail="' + n.getAttribute('data-count-of') + '"]');
+      if (rail) rail.textContent = left;
       panel.querySelector('.pempty').hidden = left > 0;
     }).observe(list, { childList: true });
   });
