@@ -89,7 +89,11 @@ def test_logo_domain_prefers_overrides_and_strips_www():
 def test_privacy_page_renders(client):
     response = client.get("/privacy")
     assert response.status_code == 200
-    assert "never stored" in response.text.lower()
+    text = response.text.lower()
+    # The CV file is kept now, for tailoring; the page must say so, and say what else sees it.
+    assert "never stored" not in text
+    assert "only you can read it" in text
+    assert "gemini" in text and "languagetool" in text
 
 
 def test_old_results_url_still_redirects_home(client):

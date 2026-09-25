@@ -1,0 +1,30 @@
+{# Accepted. Keep it, download it, and go on to the posting. #}
+<div class="tdone" data-tailor-step="done" data-tailor-id="{{ row.id }}" data-tailor-status="{{ 'saved' if saved else 'accepted' }}">
+  <div class="tdone__mark" aria-hidden="true"><svg width="34" height="34"><use href="#i-check"/></svg></div>
+  <p class="toffer__eyebrow">Ready</p>
+  <h2 id="tailor-title">Your CV for {{ row.job_title }}{% if row.company %} at {{ row.company }}{% endif %}</h2>
+  <p class="toffer__lede">ATS score <b>{{ row.ats_after }}</b>{% if row.ats_before is not none and row.ats_after > row.ats_before %}, up from {{ row.ats_before }}{% endif %}.
+    Your layout is exactly as it was; only the wording moved toward this job.</p>
+  {% if error %}<p class="error" role="alert">{{ error }}</p>{% endif %}
+
+  <div class="tdone__actions">
+    {% if saved %}
+    <span class="tdone__saved"><svg width="16" height="16" aria-hidden="true"><use href="#i-check"/></svg>
+      Saved to your profile, under <a href="/profile#tailored" target="_blank" rel="noopener">Tailored CVs</a></span>
+    {% else %}
+    <button type="button" class="secondary" hx-post="/tailor/{{ row.id }}/save" hx-target="#tailor-body" hx-swap="innerHTML">
+      <svg width="16" height="16" aria-hidden="true"><use href="#i-save"/></svg>Save to my profile</button>
+    {% endif %}
+    <a class="btn btn--ghost" href="/tailor/{{ row.id }}/download" download>
+      <svg width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg>Download</a>
+  </div>
+
+  <div class="tdone__next">
+    <button type="button" data-tailor-go>Continue to the application
+      <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+    <p class="small muted">Opens {{ row.company or "the employer" }}'s posting in a new tab, and marks the job as applied.</p>
+  </div>
+  {% if not saved %}
+  <button type="button" class="linkish small" hx-get="/tailor/{{ row.id }}/review" hx-target="#tailor-body" hx-swap="innerHTML">Back to the review</button>
+  {% endif %}
+</div>

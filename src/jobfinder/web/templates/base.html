@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://www.google.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..900&family=Geist+Mono:wght@400..600&family=Gochi+Hand&display=swap">
 <script src="/static/htmx-1.9.12.min.js" defer></script>
+{% if account and tailor_on() %}<link rel="stylesheet" href="/static/tailor-1.css">{% endif %}
 {# Chrome and Edge fetch a page the moment the pointer rests on its link, so clicking the
    logo or a menu item lands on a page that is already here. Links that act are left out. #}
 <script type="speculationrules">
@@ -900,12 +901,45 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 
 <main>{% block wide %}{% endblock %}<div class="wrap">{% block content %}{% endblock %}</div></main>
 
+{% if account and tailor_on() %}
+{# The tailoring window: opened by Apply, and filled by htmx one step at a time. #}
+<div class="tailor" id="tailor" hidden>
+  <div class="tailor__scrim" data-tailor-close></div>
+  <section class="tailor__win" role="dialog" aria-modal="true" aria-labelledby="tailor-title">
+    <div class="win__bar tailor__bar">
+      <span class="lights">
+        <button type="button" class="tailor__close" data-tailor-close aria-label="Close"><i></i></button><i></i><i></i>
+      </span>
+      <span class="win__title" id="tailor-bar">tailor-my-cv</span>
+    </div>
+    <div class="tailor__body" id="tailor-body"></div>
+    <div class="tailor__working" role="status" aria-live="polite">
+      <div class="scanpaper" aria-hidden="true"><i></i><i></i><i class="short"></i><i></i><i></i><i class="short"></i><i></i><i></i><span class="scanpaper__beam"></span></div>
+      <div>
+        <b data-working-title>Tailoring your CV</b>
+        <ol class="readsteps" data-working-steps>
+          <li>Reading the job advert</li>
+          <li>Matching it to your experience</li>
+          <li>Rewriting, keeping your layout</li>
+          <li>Proofreading every change</li>
+          <li>Scoring it like an ATS would</li>
+        </ol>
+        <p class="tailor__elapsed"><span data-working-clock>0s</span> &middot; usually under a minute</p>
+      </div>
+    </div>
+  </section>
+</div>
+<script src="/static/tailor-1.js" defer></script>
+{% endif %}
+
 <footer class="foot">
   <div class="wrap">
     <a href="/" class="brand"><svg aria-hidden="true"><use href="#i-mark"/></svg><span><b>sorted</b><span>.place</span></span></a>
     <nav aria-label="More">
       <a href="/companies">Companies</a>
       <a href="/privacy">Your CV &amp; privacy</a>
+      {# The AGPL asks a network service to offer its source to the people using it. #}
+      <a href="https://github.com/ag2502/Job-Finder-for-Ireland" rel="noopener">Source code</a>
     </nav>
     <p>We gather jobs from companies' own careers pages. You apply on their site, never on ours.</p>
   </div>

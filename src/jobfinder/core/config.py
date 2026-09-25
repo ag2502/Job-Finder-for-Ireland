@@ -160,6 +160,35 @@ class Settings(BaseSettings):
     # seconds. Exceeding it costs the model reading, not the search.
     llm_timeout_seconds: float = 20.0
 
+    # Tailoring a CV to one job: rewriting it against the advert, keeping its layout.
+    # See `tailor/`. Free models only, tried in order, each on the next when the one
+    # before it is rate-limited or down:
+    #
+    #   1. Google Gemini, the strongest writer of the free tiers. Its free quota is small
+    #      for the newest Flash, so a Flash-Lite model is the second rung, on the same
+    #      key. A key made from an EEA, Swiss or UK account gets Google's paid-service
+    #      data terms on the free tier too: nothing is used for training or read by
+    #      reviewers, which matters when the text is somebody's CV.
+    #   2. Groq, very fast and genuinely free, but capped at 8K tokens a minute, which
+    #      one tailoring nearly fills - a backstop, not the main road.
+    #
+    # With neither key set the feature is simply not offered, and Apply goes straight to
+    # the employer as it always has.
+    gemini_api_key: str = ""
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta/openai"
+    tailor_models: str = "gemini-3.8-flash,gemini-3.5-flash-lite"
+    groq_api_key: str = ""
+    groq_base_url: str = "https://api.groq.com/openai/v1"
+    tailor_groq_model: str = "openai/gpt-oss-120b"
+    # The whole tailoring, model calls included, has to finish inside the function's
+    # 60 seconds, so no single call is allowed most of it.
+    tailor_timeout_seconds: float = 35.0
+
+    # Proofreading the rewritten sentences. The public LanguageTool server is free,
+    # needs no key and is hosted in the EU; only the changed sentences are sent, never
+    # the contact details. Empty turns the pass off.
+    languagetool_url: str = "https://api.languagetool.org/v2/check"
+
     log_level: str = "INFO"
 
     # Signs the session cookie holding a searcher's derived profile. Override in

@@ -1,0 +1,42 @@
+{# The CVs written for particular jobs, kept apart from the one searching uses and
+   grouped by employer, newest first. #}
+{% from "_macros.html" import logo %}
+{% if tailored %}
+<div class="tlist">
+  {% for company, rows in tailored|groupby("company") %}
+  <div class="tlist__group">
+    <div class="tlist__company">{{ logo(company or "?", "") }}<b>{{ company or "Other" }}</b>
+      <span class="tabs__n">{{ rows|length }}</span></div>
+    {% for t in rows|sort(attribute="created_at", reverse=true) %}
+    <article class="record tlist__row" id="tailored-{{ t.id }}">
+      <div class="record__main">
+        <h3 class="record__title"><a href="/tailor/{{ t.id }}">{{ t.job_title }}</a></h3>
+        <p class="record__meta">{{ t.file_name or "Tailored CV" }} &middot; saved {{ t.saved_on }}
+          {% if t.job_url %}&middot; <a href="{{ t.job_url }}" target="_blank" rel="noopener">the job</a>{% endif %}</p>
+      </div>
+      <div class="record__side">
+        <div class="record__actions">
+          <span class="atsbadge" title="ATS score{% if t.ats_before is not none %}, was {{ t.ats_before }}{% endif %}">ATS {{ t.ats_after }}</span>
+          <a class="savebtn" href="/tailor/{{ t.id }}/download" download>Download</a>
+          <form class="cvremove" hx-post="/tailor/{{ t.id }}/delete" hx-target="#tailored-{{ t.id }}" hx-swap="outerHTML swap:220ms">
+            <button type="submit" class="linkish small cvremove__ask" data-cv-ask>Delete</button>
+            <span class="cvremove__confirm" hidden>
+              <button type="submit" class="linkish small tlist__yes">Delete it</button>
+              <button type="button" class="linkish small" data-cv-keep>Keep</button>
+            </span>
+          </form>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="pempty">
+  <svg width="34" height="34" aria-hidden="true"><use href="#i-doc"/></svg>
+  <h3>No tailored CVs yet.</h3>
+  <p class="muted">Press <strong>Apply</strong> on any job and choose to tailor your CV first. Every
+    version you keep lands here, named for its job, apart from the CV your searches use.</p>
+</div>
+{% endif %}

@@ -58,6 +58,19 @@
   {% include "_cv_panel.html" %}
 </section>
 
+{# CVs written for particular jobs: their own window, never mixed with the original. #}
+{% if tailored or tailor_on() %}
+<section class="win tailoredwin opens" id="tailored" aria-labelledby="tailored-title">
+  {{ titlebar("tailored-cvs") }}
+  <div class="tailoredwin__head">
+    <h2 id="tailored-title">Tailored CVs <span class="tabs__n">{{ tailored|length }}</span></h2>
+    <p class="muted small">Versions of your CV written for particular jobs. Your searches never use
+      these; they always rank against the CV above.</p>
+  </div>
+  {% include "_tailored_list.html" %}
+</section>
+{% endif %}
+
 <div class="me__grid">
   {# What they are looking for, saved for the finder to offer back. #}
   {% set cv_fields = me.cv.fields if me.cv else [] %}
@@ -231,7 +244,7 @@
   <div class="dropveil__card">
     <span class="dropveil__sheet"><i></i><i></i><i class="short"></i><i></i></span>
     <b>Drop it to add your CV</b>
-    <span>It is read once, then the file is thrown away.</span>
+    <span>It is kept privately in your account, and you can remove it any time.</span>
   </div>
 </div>
 {% endif %}
@@ -473,6 +486,19 @@
   }
 
   /* ------------------------------------------------------- about you */
+  .tailoredwin{box-shadow:var(--shadow-lift);margin-bottom:28px;scroll-margin-top:70px}
+  .tailoredwin__head{padding:22px 26px 6px}
+  .tailoredwin__head h2{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .tailoredwin__head p{margin:0}
+  .tlist{padding:8px 0 4px}
+  .tlist__company{display:flex;align-items:center;gap:10px;padding:14px 26px 6px;font-size:14.5px}
+  .tlist__company .logo{--size:26px}
+  .tlist__row{padding-left:62px}
+  .tlist__row .record__actions{gap:10px}
+  .atsbadge{font-size:12px;font-weight:700;padding:3px 9px;border-radius:20px;color:var(--sorted);background:var(--sorted-wash)}
+  .tlist__yes{color:var(--tag-red-deep)}
+  .tlist__row.htmx-swapping{opacity:0;transition:opacity .22s var(--ease)}
+  @media (max-width:860px){ .tlist__row{padding-left:16px} .tailoredwin__head{padding:18px 18px 4px} .tlist__company{padding:12px 16px 4px} }
   .me__grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:28px;align-items:start}
   .aboutwin,.profilewin{box-shadow:var(--shadow-lift)}
   .aboutwin{scroll-margin-top:70px}

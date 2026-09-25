@@ -170,3 +170,118 @@ create policy "update own profile"
 create policy "delete own profile"
     on public.profiles for delete
     using (auth.uid() = user_id);
+
+
+-- ------------------------------------------------------------------ CV files
+--
+-- The CV document itself, and every CV tailored from it, as files in a private bucket.
+-- Kept since 2026-09-25 at the owner's request: tailoring a CV to a job keeps its
+-- layout, and that needs the original document, not only the reading of it.
+--
+-- Each account's files live under a folder named for its user id - `<uid>/original/`
+-- for the CV they uploaded, `<uid>/tailored/` for the versions made for particular
+-- jobs - and the policies below let an account touch its own folder and nothing else.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+    'cvs', 'cvs', false, 5242880,
+    array[
+        'application/pdf',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/msword',
+        'text/plain'
+    ]
+)
+on conflict (id) do nothing;
+
+drop policy if exists "read own cv files"   on storage.objects;
+drop policy if exists "insert own cv files" on storage.objects;
+drop policy if exists "update own cv files" on storage.objects;
+drop policy if exists "delete own cv files" on storage.objects;
+
+create policy "read own cv files"
+    on storage.objects for select to authenticated
+    using (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "insert own cv files"
+    on storage.objects for insert to authenticated
+    with check (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "update own cv files"
+    on storage.objects for update to authenticated
+    using (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text)
+    with check (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+create policy "delete own cv files"
+    on storage.objects for delete to authenticated
+    using (bucket_id = 'cvs' and (storage.foldername(name))[1] = auth.uid()::text);
+
+
+-- -------------------------------------------------------------- tailored CVs
+--
+-- A CV rewritten for one job. Kept apart from `profiles.cv` on purpose: searching
+-- ranks against the CV the person uploaded and never against a version bent toward
+-- one advert.
+--
+-- A row starts as a `draft` while the person reviews it and suggests changes, and
+-- becomes `saved` when they keep it, at which point the finished file is written to
+-- storage. Drafts that are cancelled are deleted; ones simply abandoned are cleared
+-- after a week.
+
+create table if not exists public.tailored_cvs (
+    id           uuid primary key default gen_random_uuid(),
+    user_id      uuid not null references auth.users (id) on delete cascade,
+    status       text not null default 'draft' check (status in ('draft', 'saved')),
+
+    -- The job it was made for, stored rather than looked up, for the same reason
+    -- applications store theirs: the advert leaves the snapshot when it closes.
+    advert_key   text not null default '',
+    job_title    text not null,
+    company      text not null,
+    job_url      text not null default '',
+    job_text     text not null,
+
+    -- The CV it was made from, and what was changed in it: the paragraph edits are the
+    -- tailoring, and the file is rebuilt from the source with them applied.
+    source_path  text not null,
+    source_name  text not null,
+    edits        jsonb not null default '{}'::jsonb,
+    report       jsonb not null default '{}'::jsonb,
+    ats_before   smallint,
+    ats_after    smallint,
+    rounds       smallint not null default 0,
+
+    -- Set once saved: the finished file in the bucket, and what to call it.
+    file_path    text,
+    file_name    text,
+
+    created_at   timestamptz not null default now(),
+    updated_at   timestamptz not null default now()
+);
+
+create index if not exists tailored_cvs_user_created_idx
+    on public.tailored_cvs (user_id, created_at desc);
+
+alter table public.tailored_cvs enable row level security;
+
+drop policy if exists "read own tailored cvs"   on public.tailored_cvs;
+drop policy if exists "insert own tailored cvs" on public.tailored_cvs;
+drop policy if exists "update own tailored cvs" on public.tailored_cvs;
+drop policy if exists "delete own tailored cvs" on public.tailored_cvs;
+
+create policy "read own tailored cvs"
+    on public.tailored_cvs for select
+    using (auth.uid() = user_id);
+
+create policy "insert own tailored cvs"
+    on public.tailored_cvs for insert
+    with check (auth.uid() = user_id);
+
+create policy "update own tailored cvs"
+    on public.tailored_cvs for update
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id);
+
+create policy "delete own tailored cvs"
+    on public.tailored_cvs for delete
+    using (auth.uid() = user_id);

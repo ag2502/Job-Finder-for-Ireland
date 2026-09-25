@@ -1,0 +1,150 @@
+{# The tailored CV under review: the document on one side, the report on the other, and
+   the searcher's own suggestions going back in until they accept or cancel. Also the
+   body of the saved CV's own page, where it is shown read-only. #}
+{% set before = report.ats_before or 0 %}
+{% set after = report.ats_after or 0 %}
+{% set delta = after - before %}
+<div class="tws{% if fresh %} is-fresh{% endif %}{% if read_only %} tws--read{% endif %}"
+     data-tailor-step="review" data-tailor-id="{{ row.id }}" data-tailor-status="{{ row.status }}">
+
+  <header class="tws__head">
+    <div class="tws__title">
+      <p class="toffer__eyebrow">{% if read_only %}Tailored CV{% else %}Your tailored CV{% endif %}</p>
+      <h2 id="tailor-title">{{ row.job_title }}{% if row.company %} <span>at {{ row.company }}</span>{% endif %}</h2>
+      <p class="tws__meta typed">from {{ row.source_name }}{% if report.language %} &middot; {{ report.language }} spelling{% endif %}{% if row.rounds %} &middot; {{ row.rounds }} round{{ "" if row.rounds == 1 else "s" }} of your suggestions{% endif %}</p>
+    </div>
+    <div class="score" style="--s:{{ after }};--b:{{ before }}" aria-label="ATS score {{ after }} out of 100, up from {{ before }}">
+      <svg viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="score__track" cx="60" cy="60" r="52"/>
+        <circle class="score__before" cx="60" cy="60" r="52"/>
+        <circle class="score__now" cx="60" cy="60" r="52"/>
+      </svg>
+      <div class="score__num"><b data-count-to="{{ after }}">{{ after }}</b><span>ATS score</span></div>
+      <span class="score__delta{% if delta <= 0 %} is-flat{% endif %}">{% if delta > 0 %}+{{ delta }} from {{ before }}{% elif delta == 0 %}was {{ before }}{% else %}{{ delta }} from {{ before }}{% endif %}</span>
+    </div>
+  </header>
+
+  {% if error %}<p class="error tws__error" role="alert">{{ error }}</p>{% endif %}
+
+  <div class="tws__grid">
+    {# ---------------------------------------------------------- the document #}
+    <section class="tws__doc" aria-label="The tailored CV">
+      <div class="tws__tabs" role="tablist">
+        <button type="button" role="tab" aria-selected="true" data-tws-tab="cv">The CV</button>
+        <button type="button" role="tab" aria-selected="false" data-tws-tab="changes">
+          What changed <span class="tabs__n">{{ changes|length }}</span></button>
+      </div>
+      <div class="tws__pane" data-tws-pane="cv">
+        {% if previews %}
+        <p class="small muted tws__legend"><span class="tws__swatch"></span> Highlighted: the lines we changed. The download has no highlighting.</p>
+        {% for page in previews %}<img class="tws__page" src="{{ page }}" alt="Page {{ loop.index }} of the tailored CV" loading="lazy">{% endfor %}
+        {% elif paper %}
+        <div class="tws__paper">
+          {% for p in paper %}{% if p.text|trim %}
+          <p class="tp tp--{{ p.kind }}{% if p.changed %} is-changed{% endif %}">{{ p.text|replace("**", "") }}</p>
+          {% endif %}{% endfor %}
+        </div>
+        {% else %}
+        <p class="muted small">The CV preview is not available right now; the report below still stands, and the download is complete.</p>
+        {% endif %}
+      </div>
+      <div class="tws__pane" data-tws-pane="changes" hidden>
+        {% for c in changes %}
+        <article class="tchange{% if c.removed %} tchange--removed{% endif %}" style="--k:{{ loop.index0 }}">
+          <span class="tchange__kind">{{ "Removed" if c.removed else ("Bullet" if c.kind == "bullet" else "Paragraph") }}</span>
+          <p class="tchange__diff">{% if c.removed %}<del>{{ c.before }}</del>{% else %}{{ c.diff }}{% endif %}</p>
+          {% if c.reason %}<p class="tchange__why">{{ c.reason }}</p>{% endif %}
+        </article>
+        {% else %}
+        <p class="muted">Nothing needed changing: your CV already fits this advert well.</p>
+        {% endfor %}
+        {% if report.dropped %}
+        <details class="tws__kept">
+          <summary>{{ report.dropped|length }} suggested change{{ "" if report.dropped|length == 1 else "s" }} we did not make</summary>
+          <ul>{% for d in report.dropped %}<li>{{ d.why|capitalize }}.</li>{% endfor %}</ul>
+        </details>
+        {% endif %}
+      </div>
+    </section>
+
+    {# ------------------------------------------------------------ the report #}
+    <section class="tws__report" aria-label="Report">
+      {% if report.thread and report.thread[-1].reply and not read_only %}
+      <div class="tws__reply"><b>Done.</b> {{ report.thread[-1].reply }}</div>
+      {% endif %}
+
+      <h3>Why it fits</h3>
+      {% if report.fit_summary %}<p class="tws__summary">{{ report.fit_summary }}</p>{% endif %}
+      {% if report.strengths %}
+      <ul class="tws__strengths">{% for s in report.strengths %}<li><svg width="14" height="14" aria-hidden="true"><use href="#i-check"/></svg>{{ s }}</li>{% endfor %}</ul>
+      {% endif %}
+
+      <h3>Keywords from the advert</h3>
+      <p class="small muted tws__hint">What an ATS keyword filter looks for.{% if not read_only and report.missing %} Missing ones you do have? Tap them and tell us where you used them.{% endif %}</p>
+      <div class="kw">
+        {% for k in report.matched %}<span class="kw__chip kw__chip--in{% if k in (report.newly_matched or []) %} is-new{% endif %}">{{ k }}{% if k in (report.newly_matched or []) %}<em>new</em>{% endif %}</span>{% endfor %}
+        {% for k in report.missing %}{% if read_only %}<span class="kw__chip kw__chip--out">{{ k }}</span>{% else %}<button type="button" class="kw__chip kw__chip--out" data-add-fact="{{ k }}" title="Tell us about your {{ k }} experience">{{ k }}<em>+</em></button>{% endif %}{% endfor %}
+      </div>
+
+      <h3>ATS checks</h3>
+      <ul class="checks">
+        {% for c in report.checks %}
+        <li class="check check--{{ c.status }}">
+          <div class="check__head"><span>{{ c.label }}</span><b>{{ c.points }}<small>/{{ c.max }}</small></b></div>
+          <span class="check__bar" aria-hidden="true"><i style="--w:{{ (c.points / c.max * 100)|round(1) if c.max else 0 }}%"></i></span>
+          <p>{{ c.detail }}</p>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if report.gaps %}
+      <h3>Gaps we left alone</h3>
+      <p class="small muted tws__hint">The advert asks for these and your CV does not show them, so nothing was invented.{% if not read_only %} If you have them, say so below.{% endif %}</p>
+      <ul class="tws__gaps">{% for g in report.gaps %}<li>{% if read_only %}{{ g }}{% else %}<button type="button" class="linky" data-add-fact="{{ g }}">{{ g }}</button>{% endif %}</li>{% endfor %}</ul>
+      {% endif %}
+
+      {% if report.proofread %}
+      <p class="small muted tws__proof"><svg width="13" height="13" aria-hidden="true"><use href="#i-check"/></svg> Proofread: {{ report.proofread|length }} correction{{ "" if report.proofread|length == 1 else "s" }} made.</p>
+      {% else %}
+      <p class="small muted tws__proof"><svg width="13" height="13" aria-hidden="true"><use href="#i-check"/></svg> Proofread: no corrections needed.</p>
+      {% endif %}
+
+      {% if report.thread %}
+      <details class="tws__thread">
+        <summary>Your suggestions so far ({{ report.thread|length }})</summary>
+        {% for t in report.thread %}
+        <div class="bubble bubble--me">{{ t.request }}</div>
+        {% if t.reply %}<div class="bubble">{{ t.reply }}</div>{% endif %}
+        {% endfor %}
+      </details>
+      {% endif %}
+
+      {% if not read_only %}
+      <form class="tws__suggest" hx-post="/tailor/{{ row.id }}/revise" hx-target="#tailor-body"
+            hx-swap="innerHTML" hx-indicator="#tailor" data-working="Applying your suggestion">
+        <label for="tws-suggestion"><b>Anything to change?</b>
+          <span class="small muted">Optional. Tell us in your own words, as often as you like.
+            {% if rounds_left < 8 %}{{ rounds_left }} round{{ "" if rounds_left == 1 else "s" }} left.{% endif %}</span></label>
+        <textarea id="tws-suggestion" name="suggestion" rows="3" maxlength="1500"
+                  placeholder="For example: I used Kubernetes to deploy the voice agents at AI NXT. Or: keep the original first bullet."></textarea>
+        <button type="submit" class="secondary" {% if not rounds_left %}disabled{% endif %}>Apply my suggestion</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+
+  <footer class="tws__foot">
+    {% if read_only %}
+      <a class="btn btn--ghost" href="/profile#tailored">Back to your profile</a>
+      <span class="tws__spacer"></span>
+      <a class="btn btn--ghost" href="/tailor/{{ row.id }}/download" download>Download {{ kind|upper }}</a>
+      {% if row.job_url %}<a class="btn" href="{{ row.job_url }}" target="_blank" rel="noopener">Open the job <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>{% endif %}
+    {% else %}
+      <button type="button" class="linkish tws__cancel" data-tailor-cancel>Cancel and discard</button>
+      <span class="tws__spacer"></span>
+      <a class="btn btn--ghost" href="/tailor/{{ row.id }}/download" download>Download draft</a>
+      <button type="button" hx-post="/tailor/{{ row.id }}/accept" hx-target="#tailor-body" hx-swap="innerHTML">
+        Accept this CV <svg width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg></button>
+    {% endif %}
+  </footer>
+</div>

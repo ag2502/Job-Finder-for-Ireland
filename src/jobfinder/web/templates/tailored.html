@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% set nav = 'profile' %}
+{% block title %}CV for {{ row.job_title }} | Sorted Place{% endblock %}
+{% from "_macros.html" import titlebar %}
+{% block content %}
+<section class="pagehead tpage__head">
+  <a class="tpage__back" href="/profile#tailored"><svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>Your tailored CVs</a>
+</section>
+<div class="win tpage opens">
+  {{ titlebar("tailored-cv: " ~ (row.file_name or row.job_title)) }}
+  {{ workspace }}
+</div>
+{% endblock %}

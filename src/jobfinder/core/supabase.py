@@ -555,3 +555,168 @@ def save_profile(account: Account, **columns) -> None:
         )
     if response.status_code >= 400:
         raise SupabaseError(_message_from(response))
+
+
+# ------------------------------------------------------------------ CV files
+#
+# The CV document and the versions tailored from it, in the private `cvs` bucket.
+# Paths always begin with the account's own user id, which is what the storage policies
+# in `schema.sql` check; a path built any other way is refused by the database.
+
+CV_BUCKET = "cvs"
+
+
+def cv_path(account: Account, folder: str, name: str) -> str:
+    """Where a file of this account's goes: `<user id>/<folder>/<name>`."""
+    return f"{account.user_id}/{folder}/{name}"
+
+
+def upload_file(account: Account, path: str, data: bytes, content_type: str) -> None:
+    if not path.startswith(f"{account.user_id}/"):
+        raise SupabaseError("A file can only be stored in its owner's own folder.")
+    base, _ = _require_config()
+    headers = {**_auth_headers(account.access_token), "Content-Type": content_type,
+               "x-upsert": "true"}
+    with _client() as client:
+        response = client.post(
+            f"{base}/storage/v1/object/{CV_BUCKET}/{path}", headers=headers, content=data
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def download_file(account: Account, path: str) -> bytes:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/storage/v1/object/authenticated/{CV_BUCKET}/{path}",
+            headers=_auth_headers(account.access_token),
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return response.content
+
+
+def delete_files(account: Account, paths: list[str]) -> None:
+    """Remove files outright. Missing ones are not an error: the goal is that they are gone."""
+    paths = [p for p in paths if p]
+    if not paths:
+        return
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.request(
+            "DELETE",
+            f"{base}/storage/v1/object/{CV_BUCKET}",
+            headers=_auth_headers(account.access_token),
+            json={"prefixes": paths},
+        )
+    if response.status_code >= 400 and response.status_code != 404:
+        raise SupabaseError(_message_from(response))
+
+
+# -------------------------------------------------------------- tailored CVs
+
+TAILORED_LIST_COLUMNS = (
+    "id,status,advert_key,job_title,company,job_url,source_name,ats_before,ats_after,"
+    "rounds,file_name,created_at,updated_at"
+)
+
+
+def create_tailored(account: Account, **columns) -> dict:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/tailored_cvs",
+            headers={**_auth_headers(account.access_token), "Prefer": "return=representation"},
+            json={"user_id": account.user_id, **columns},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return response.json()[0]
+
+
+def get_tailored(account: Account, tailored_id: str) -> dict | None:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/tailored_cvs",
+            headers=_auth_headers(account.access_token),
+            params={"select": "*", "id": f"eq.{tailored_id}", "limit": "1"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    rows = response.json()
+    return rows[0] if rows else None
+
+
+def update_tailored(account: Account, tailored_id: str, **columns) -> None:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.patch(
+            f"{base}/rest/v1/tailored_cvs",
+            headers={**_auth_headers(account.access_token), "Prefer": "return=minimal"},
+            params={"id": f"eq.{tailored_id}"},
+            json={**columns, "updated_at": datetime.now(timezone.utc).isoformat()},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def delete_tailored(account: Account, tailored_id: str) -> None:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.delete(
+            f"{base}/rest/v1/tailored_cvs",
+            headers=_auth_headers(account.access_token),
+            params={"id": f"eq.{tailored_id}"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def list_tailored(account: Account, *, status: str = "saved") -> list[dict]:
+    """This account's tailored CVs of one status, newest first."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/tailored_cvs",
+            headers=_auth_headers(account.access_token),
+            params={
+                "select": TAILORED_LIST_COLUMNS,
+                "status": f"eq.{status}",
+                "order": "created_at.desc",
+                "limit": str(MAX_APPLICATIONS),
+            },
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return response.json()
+
+
+def count_tailored_since(account: Account, since: datetime) -> int:
+    """How many tailorings this account has started since `since`, drafts included."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/tailored_cvs",
+            headers={**_auth_headers(account.access_token), "Prefer": "count=exact"},
+            params={"select": "id", "created_at": f"gte.{since.isoformat()}", "limit": "1"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    total = response.headers.get("content-range", "*/0").rsplit("/", 1)[-1]
+    return int(total) if total.isdigit() else len(response.json())
+
+
+def purge_stale_drafts(account: Account, older_than: datetime) -> None:
+    """Drafts nobody came back to. Failing here must never fail the request."""
+    base, _ = _require_config()
+    try:
+        with _client() as client:
+            client.delete(
+                f"{base}/rest/v1/tailored_cvs",
+                headers=_auth_headers(account.access_token),
+                params={"status": "eq.draft", "updated_at": f"lt.{older_than.isoformat()}"},
+            )
+    except httpx.HTTPError:
+        logger.info("could not clear old tailoring drafts")

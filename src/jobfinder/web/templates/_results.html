@@ -161,7 +161,7 @@
                     company = item.company, url = item.job.url %}{% include "_applied_tag.html" %}{% endwith %}
           {% elif account or not accounts_enabled %}
             {% with advert_key = item.advert_key, title = item.job.title,
-                    company = item.company, url = item.job.url %}{% include "_apply_button.html" %}{% endwith %}
+                    company = item.company, url = item.job.url, job_id = item.job.id %}{% include "_apply_button.html" %}{% endwith %}
           {% else %}
           {# Applying is what an account is FOR: it is the moment worth remembering, and
              remembering it is what keeps this job out of tomorrow's results. So the

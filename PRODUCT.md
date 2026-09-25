@@ -64,6 +64,10 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   CV (switchable per search), lists the fields the CV points to in their own band below
   the chosen ones, and offers the saved details with one "Use my profile" button rather
   than filling the form in: every visit to the finder still starts blank.
+- CV tailoring (2026-09-25): Apply offers to rewrite the CV for that advert in a copy of
+  the person's own file (layout kept, facts locked), with a deterministic ATS score, a
+  report, and a suggestion loop; kept versions live under Tailored CVs, apart from the CV
+  searches rank on. Free models only (Gemini, Groq), and the project is AGPL for PyMuPDF.
 - Ranking against a vocabulary learned from the job corpus, not a hardcoded skill list.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
@@ -87,7 +91,10 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   2026-09-25 at the owner's request: the *reading* of it (skills, fields, seniority,
   years, a one-line summary, file name and size) is now kept on the searcher's profile
   in Supabase so they upload once, and Remove deletes it. The document itself staying
-  unstored is still not negotiable.
+  unstored held until CV tailoring (same day), when the owner asked for tailored CVs that
+  keep each person's layout: the file is now kept in a private per-account bucket, and
+  Remove deletes it. What is still not negotiable: nothing is shared with employers,
+  every stored item is deletable by its owner, and search never ranks on a tailored CV.
 
 ## Brand Commitments
 

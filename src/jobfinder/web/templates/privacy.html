@@ -6,11 +6,11 @@
 {% block content %}
 
 <section class="pagehead">
-  <h1>Your CV file is <span class="hl">never stored.</span></h1>
+  <h1>Your CV is <span class="hl">yours alone.</span></h1>
   <p class="lede">
-    When you add your CV to your profile, we read it once and throw the file away before
-    the page has even finished loading. The document is never written to a disk or a
-    database. What we keep is the short reading of it that ranks your searches.
+    When you add your CV to your profile it is kept privately in your account: only you can
+    read it, and removing it deletes it outright. We keep the file so that a CV written for
+    a particular job can keep your own layout.
   </p>
 </section>
 
@@ -18,22 +18,33 @@
   {{ titlebar("what-we-keep.txt") }}
   <div class="win__body prose">
   <h2>What is kept from your CV</h2>
-  <p class="muted">Only what matching needs, saved with your account so you add your CV
-    once rather than on every search:</p>
+  <p class="muted">Saved with your account, in the EU, where only you can read it:</p>
   <ul class="muted">
-    <li>Skill keywords found in it, such as <em>python</em>, <em>kubernetes</em> and so on</li>
-    <li>The kinds of work it points to, a seniority guess and a rough number of years</li>
-    <li>A one line summary of what you do, when one could be written</li>
-    <li>The file's name and size, and the date you added it, so you can tell which CV it is</li>
+    <li>The file you uploaded, in a private folder of your own</li>
+    <li>What we read from it to rank your searches: skill keywords such as <em>python</em>,
+      the kinds of work it points to, a seniority guess, a rough number of years and a one
+      line summary</li>
+    <li>Any CV you choose to save after tailoring it for a job, with its report</li>
   </ul>
   <p class="muted">
-    The text of your CV is not among them: no address, phone number or email address from
-    it, and no employment history beyond those keywords. Your profile shows everything
-    that was kept, exactly as it is stored.
+    <strong>Remove</strong> on your profile deletes your CV file and everything read from it
+    outright; <strong>Replace</strong> swaps them for a newer CV. Each tailored CV has its own
+    <strong>Delete</strong>. Nothing is archived.
+  </p>
+
+  <h2>When you tailor a CV for a job</h2>
+  <p class="muted">
+    Tailoring is optional, and offered only when you press Apply. To rewrite your CV for the
+    advert, the text of your CV and the advert is sent to a language model. We use free
+    services: Google's Gemini, and Groq when Gemini is busy. Google applies its paid-service
+    terms to people in the EU and UK even on its free tier, so what we send is not used to
+    train its models. The sentences that were changed, and only those, are then checked for
+    grammar by LanguageTool, whose public service runs in the EU. Your contact details are
+    never changed and never sent to the grammar check.
   </p>
   <p class="muted">
-    <strong>Remove</strong> on your profile deletes all of it outright, and
-    <strong>Replace</strong> swaps it for the reading of a newer CV.
+    A tailored CV is a draft until you keep it. Cancel, or simply close the window, and the
+    draft is deleted; one left unfinished is deleted after a week.
   </p>
 
   {% if accounts_enabled %}
@@ -50,7 +61,8 @@
       in the EU. If you sign in with Google, also the name and profile picture Google
       shares; your Google password never reaches this site. If you use an email and
       password instead, only a hash of the password is kept.</li>
-    <li>The reading of your CV described above, if you add one.</li>
+    <li>Your CV and the reading of it described above, if you add one, and any tailored
+      CVs you keep.</li>
     <li>What you told us you are looking for: the kinds of work, years of experience and
       the remote, internship and graduate choices, if you save them.</li>
     <li>For each job you mark as applied or save: its title, employer, link and the date.</li>
@@ -70,11 +82,10 @@
   <hr class="rule">
   <h2>Why it is built this way</h2>
   <p class="muted">
-    A CV is personal data. Under GDPR, storing one makes the operator a data controller
-    with retention, access and erasure duties, and it becomes the most sensitive thing in
-    the system, and the part worth attacking. Keeping the few kilobytes that matching
-    actually uses and discarding the document removes most of that risk, and costs you
-    nothing in results quality.
+    A CV is personal data, and we treat it as the most sensitive thing on the site. It is
+    kept only because you asked for something that needs it, in a private place only your
+    account can open, never shared with employers or anyone else, and gone the moment you
+    remove it.
   </p>
 
   <hr class="rule">

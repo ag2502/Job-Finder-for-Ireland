@@ -38,6 +38,8 @@ class FakeSupabase:
         self.rows: list[dict] = []
         self.saved_rows: list[dict] = []
         self.profile: dict | None = None
+        self.files: dict[str, bytes] = {}
+        self.tailored: dict[str, dict] = {}
         self.fail_with: Exception | None = None
         self.profile_fails_with: Exception | None = None
 
@@ -54,6 +56,17 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "remove_saved", self._remove_saved)
         monkeypatch.setattr(supabase, "get_profile", self._get_profile)
         monkeypatch.setattr(supabase, "save_profile", self._save_profile)
+        monkeypatch.setattr(supabase, "upload_file", self._upload)
+        monkeypatch.setattr(supabase, "download_file", self._download)
+        monkeypatch.setattr(supabase, "delete_files", self._delete_files)
+        monkeypatch.setattr(supabase, "create_tailored", self._create_tailored)
+        monkeypatch.setattr(supabase, "get_tailored", lambda a, i: dict(self.tailored[i]) if i in self.tailored else None)
+        monkeypatch.setattr(supabase, "update_tailored", self._update_tailored)
+        monkeypatch.setattr(supabase, "delete_tailored", lambda a, i: self.tailored.pop(i, None))
+        monkeypatch.setattr(supabase, "list_tailored", lambda a, status="saved": [
+            dict(r) for r in self.tailored.values() if r["status"] == status])
+        monkeypatch.setattr(supabase, "count_tailored_since", lambda a, since: len(self.tailored))
+        monkeypatch.setattr(supabase, "purge_stale_drafts", lambda a, older_than: None)
         monkeypatch.setattr(supabase, "providers", lambda: {"google": True})
         monkeypatch.setattr(supabase.settings, "supabase_url", "https://proj.supabase.co")
         return self
@@ -109,6 +122,30 @@ class FakeSupabase:
         self.saved_rows = [
             r for r in self.saved_rows if r["advert_key"] != advert_key
         ]
+
+    def _upload(self, account, path, data, content_type):
+        assert path.startswith(f"{account.user_id}/"), "files live in the owner's folder"
+        self.files[path] = data
+
+    def _download(self, account, path):
+        if path not in self.files:
+            raise supabase.SupabaseError("Object not found")
+        return self.files[path]
+
+    def _delete_files(self, account, paths):
+        for path in paths:
+            self.files.pop(path, None)
+
+    def _create_tailored(self, account, **columns):
+        row_id = f"t{len(self.tailored) + 1}"
+        row = {"id": row_id, "status": "draft", "rounds": 0, "file_path": None,
+               "file_name": None, "created_at": datetime.now(timezone.utc).isoformat(),
+               "updated_at": datetime.now(timezone.utc).isoformat(), **columns}
+        self.tailored[row_id] = row
+        return dict(row)
+
+    def _update_tailored(self, account, row_id, **columns):
+        self.tailored[row_id].update(columns)
 
     def _get_profile(self, account):
         if self.profile_fails_with:
@@ -994,11 +1031,14 @@ def _with_cv(client: TestClient) -> TestClient:
     return client
 
 
-def test_a_cv_is_read_into_the_profile_and_the_document_is_not_kept(
+def test_a_cv_is_read_into_the_profile_and_its_file_kept_privately(
     client: TestClient, fake
 ):
     _with_cv(client)
     cv = fake.profile["cv"]
+    # The file itself goes to the account's own folder, for tailoring to keep its layout.
+    assert cv["file"].startswith("user-1/original/") and cv["file"].endswith(".txt")
+    assert fake.files[cv["file"]] == CV_BYTES
     assert cv["name"] == "jane-doe-cv.txt"
     assert "python" in cv["skills"]
     assert cv["seniority"] == "senior"
@@ -1050,6 +1090,7 @@ def test_a_new_upload_replaces_the_old_one(client: TestClient, fake):
     )
     assert fake.profile["cv"]["name"] == "newer.txt"
     assert "kubernetes" not in fake.profile["cv"]["skills"]
+    assert list(fake.files) == [fake.profile["cv"]["file"]], "the old file is deleted"
 
 
 def test_removing_the_cv_deletes_the_reading(client: TestClient, fake):
@@ -1058,6 +1099,7 @@ def test_removing_the_cv_deletes_the_reading(client: TestClient, fake):
     response = client.post("/profile/cv/remove", headers={"HX-Request": "true"})
     assert response.status_code == 200
     assert fake.profile["cv"] is None
+    assert fake.files == {}, "removing the CV deletes its file too"
     assert fake.profile["years"] == 3, "removing the CV must leave the details alone"
     assert "Drop your CV here" in response.text
 
@@ -1282,3 +1324,167 @@ def test_the_profile_still_loads_when_the_profile_row_cannot(client: TestClient,
     page = client.get("/profile")
     assert page.status_code == 200
     assert "could not be loaded just now" in page.text
+
+
+# ------------------------------------------------------------------ tailoring
+#
+# The model is stubbed; the CV is the synthetic Word fixture, uploaded as a person would.
+
+from pathlib import Path  # noqa: E402
+
+from jobfinder.tailor import llm as tailor_llm  # noqa: E402
+from jobfinder.tailor import proofread as tailor_proofread  # noqa: E402
+
+FIXTURE_DOCX = (Path(__file__).parent / "fixtures" / "cv.docx").read_bytes()
+ADVERT = ("Senior Data Scientist, Payments. You will build machine learning models, run "
+          "A/B testing programmes and work in Python, SQL and Spark with product teams. " * 5)
+
+
+@pytest.fixture
+def tailoring(monkeypatch: pytest.MonkeyPatch, fake):
+    monkeypatch.setattr(tailor_llm, "available", lambda: True)
+    monkeypatch.setattr(tailor_proofread.settings, "languagetool_url", "")
+    calls = []
+
+    def answer(system, user, schema, **kwargs):
+        calls.append(user)
+        edit = {"id": "p7", "reason": "Mirrors the advert.",
+                "text": "Built and deployed churn prediction models in Python with "
+                        "scikit-learn and XGBoost, cutting monthly churn by 12% across "
+                        "40,000 customers."}
+        reply = {"reply": "Moved Python forward."} if "revised_cv" in kwargs.get("name", "") else {}
+        return ({"keywords": ["machine learning", "A/B testing", "Python", "Spark"],
+                 "edits": [edit], "fit_summary": "Your CV now leads with modelling.",
+                 "strengths": ["Churn models in production"], "gaps": ["Spark"], **reply},
+                "stub-model")
+
+    monkeypatch.setattr(tailor_llm, "ask", answer)
+    return calls
+
+
+def _with_docx_cv(client: TestClient) -> None:
+    _signed_in(client)
+    client.post("/profile/cv", files={"resume": ("aoife-cv.docx", FIXTURE_DOCX,
+                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
+                headers={"HX-Request": "true"})
+
+
+def _start(client: TestClient, **extra) -> str:
+    response = client.post("/tailor/start", data={
+        "title": "Senior Data Scientist, Payments", "company": "Stripe",
+        "url": "https://stripe.example/jobs/1", "advert_key": "a" * 32,
+        "job_text": ADVERT, **extra})
+    assert response.status_code == 200
+    return response.text
+
+
+def test_apply_asks_about_tailoring_only_when_it_is_on(client: TestClient, fake, monkeypatch):
+    _signed_in(client)
+    plain_page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
+    assert "data-tailor=" not in plain_page and "data-open-external" in plain_page
+    monkeypatch.setattr(tailor_llm, "available", lambda: True)
+    page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
+    assert "data-tailor=" in page and 'id="tailor"' in page
+    assert "/static/tailor-1.js" in page
+
+
+def test_the_offer_says_what_is_needed_first(client: TestClient, fake, tailoring):
+    _signed_in(client)
+    offer = client.get("/tailor/offer", params={"title": "Analyst", "url": "https://x"}).text
+    assert "Add your CV first" in offer and "take me to the job" in offer
+    _with_docx_cv(client)
+    offer = client.get("/tailor/offer", params={"title": "Analyst", "url": "https://x"}).text
+    assert "Yes, tailor my CV" in offer and "aoife-cv.docx" in offer
+    assert 'name="job_text"' in offer, "an advert not in the snapshot has to be pasted"
+
+
+def test_tailor_review_revise_accept_save(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    review = _start(client)
+    assert "ATS score" in review and "Why it fits" in review
+    assert "Built and deployed" in review and "<ins>" in review
+    assert "Spark" in review, "a gap is named, not invented"
+    (row_id,) = fake.tailored
+    row = fake.tailored[row_id]
+    assert row["status"] == "draft" and row["edits"] == {"p7": row["edits"]["p7"]}
+    assert row["ats_after"] >= row["ats_before"]
+
+    revised = client.post(f"/tailor/{row_id}/revise", data={"suggestion": "Put Python first."})
+    assert "Moved Python forward." in revised.text
+    assert fake.tailored[row_id]["rounds"] == 1
+    assert "Put Python first." in tailoring[-1]
+
+    accepted = client.post(f"/tailor/{row_id}/accept").text
+    assert "Save to my profile" in accepted and "Continue to the application" in accepted
+
+    saved = client.post(f"/tailor/{row_id}/save").text
+    assert "Saved to your profile" in saved
+    row = fake.tailored[row_id]
+    assert row["status"] == "saved"
+    assert row["file_path"] == f"user-1/tailored/{row_id}.docx"
+    assert row["file_name"] == "CV for Senior Data Scientist, Payments at Stripe.docx"
+    assert row["file_path"] in fake.files
+
+    profile = client.get("/profile").text
+    assert 'id="tailored"' in profile and "Senior Data Scientist, Payments" in profile
+    assert "ATS " in profile
+
+    download = client.get(f"/tailor/{row_id}/download")
+    assert download.status_code == 200
+    assert download.content == fake.files[row["file_path"]]
+    assert "attachment" in download.headers["content-disposition"]
+
+
+def test_searching_still_uses_the_original_cv(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    before = dict(fake.profile["cv"])
+    row_id = (_start(client), next(iter(fake.tailored)))[1]
+    client.post(f"/tailor/{row_id}/save")
+    assert fake.profile["cv"] == before, "tailoring never touches the CV searches rank on"
+
+
+def test_cancel_discards_a_draft_but_never_a_saved_cv(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    _start(client)
+    (draft,) = fake.tailored
+    client.post(f"/tailor/{draft}/cancel")
+    assert draft not in fake.tailored
+    _start(client)
+    saved = next(iter(fake.tailored))
+    client.post(f"/tailor/{saved}/save")
+    client.post(f"/tailor/{saved}/cancel")
+    assert saved in fake.tailored
+
+
+def test_deleting_a_saved_cv_removes_its_file(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    _start(client)
+    row_id = next(iter(fake.tailored))
+    client.post(f"/tailor/{row_id}/save")
+    path = fake.tailored[row_id]["file_path"]
+    client.post(f"/tailor/{row_id}/delete", headers={"HX-Request": "true"})
+    assert row_id not in fake.tailored and path not in fake.files
+
+
+def test_the_daily_limit_is_kept(client: TestClient, fake, tailoring, monkeypatch):
+    from jobfinder.web import app as web_app
+
+    _with_docx_cv(client)
+    monkeypatch.setattr(supabase, "count_tailored_since", lambda a, since: web_app.TAILOR_DAILY_LIMIT)
+    assert "daily limit" in _start(client)
+    assert fake.tailored == {}
+
+
+def test_an_advert_too_short_to_tailor_against_is_asked_for(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    assert "Paste its" in _start(client, job_text="Great role.", url="https://nowhere")
+
+
+def test_tailoring_needs_an_account(client: TestClient, tailoring):
+    response = client.post("/tailor/start", data={"title": "x"}, headers={"HX-Request": "true"})
+    assert response.status_code == 401
+
+
+def test_someone_elses_draft_is_not_found(client: TestClient, fake, tailoring):
+    _signed_in(client)
+    assert client.post("/tailor/not-mine/revise", data={"suggestion": "x"}).status_code == 404

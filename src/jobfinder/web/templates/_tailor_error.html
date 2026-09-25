@@ -1,0 +1,17 @@
+{# Tailoring could not go ahead. The way on to the job is always still here. #}
+<div class="toffer" data-tailor-step="error">
+  <p class="toffer__eyebrow">Not this time</p>
+  <h2 id="tailor-title">{{ job.title or "Tailoring your CV" }}</h2>
+  <p class="error" role="alert">{{ message }}</p>
+  <div class="toffer__row">
+    {% if job.title %}
+    <button type="button" class="secondary" hx-get="/tailor/offer" hx-target="#tailor-body"
+            hx-vals='{{ {"title": job.title, "company": job.company, "url": job.url, "advert_key": job.advert_key, "job_id": job.job_id}|tojson }}'>
+      Try again</button>
+    {% endif %}
+    {% if job.url %}
+    <button type="button" data-tailor-go>Go to the job
+      <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+    {% endif %}
+  </div>
+</div>

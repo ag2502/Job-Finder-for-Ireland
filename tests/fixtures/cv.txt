@@ -1,0 +1,13 @@
+Aoife Byrne
+aoife.byrne@example.com | +353 87 555 0142
+
+PROFILE
+Data scientist with five years of experience turning messy product and payments data into models and analysis that teams act on.
+
+EXPERIENCE
+Data Scientist, Fintech Co (Mar 2021 - Present)
+- Built churn prediction models in Python with scikit-learn and XGBoost, cutting monthly churn by 12% across 40,000 customers.
+- Designed and analysed A/B tests for onboarding changes, and presented the findings to product leadership every quarter.
+
+SKILLS
+Python, SQL, R, scikit-learn, pandas, dbt, Snowflake, Airflow, Looker

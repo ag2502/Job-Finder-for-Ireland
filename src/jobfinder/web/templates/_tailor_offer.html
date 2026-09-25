@@ -1,0 +1,57 @@
+{# The question Apply asks first. Either way the posting opens; this only decides
+   whether a CV written for it comes first. #}
+{% from "_macros.html" import logo %}
+<div class="toffer" data-tailor-step="offer">
+  <p class="toffer__eyebrow">Before you apply</p>
+  <h2 id="tailor-title">{{ job.title }}{% if job.company %} <span>at {{ job.company }}</span>{% endif %}</h2>
+  <p class="toffer__lede">Want a version of your CV written for this job? We match it to the
+    advert, keep your layout exactly as it is, and score it the way applicant tracking systems
+    read CVs. You see every change before anything is kept.</p>
+
+  <div class="toffer__choices">
+    {% if not has_cv %}
+    <a class="tchoice tchoice--main" href="/profile#cv" target="_blank" rel="noopener">
+      <span class="tchoice__icon" aria-hidden="true"><svg width="26" height="26"><use href="#i-doc"/></svg></span>
+      <span class="tchoice__text"><b>Add your CV first</b>
+        <span>Tailoring starts from the CV on your profile. Add it once, then come back to this job.</span></span>
+    </a>
+    {% elif not has_file %}
+    <a class="tchoice tchoice--main" href="/profile#cv" target="_blank" rel="noopener">
+      <span class="tchoice__icon" aria-hidden="true"><svg width="26" height="26"><use href="#i-doc"/></svg></span>
+      <span class="tchoice__text"><b>Upload your CV once more</b>
+        <span>{{ cv_name }} was added before tailoring existed, so we only kept what we read from it.
+          Upload it again on your profile and tailoring can keep its layout.</span></span>
+    </a>
+    {% else %}
+    <form class="tchoice tchoice--main tchoice--form" hx-post="/tailor/start" hx-target="#tailor-body"
+          hx-swap="innerHTML" hx-indicator="#tailor" data-working="Tailoring your CV">
+      <input type="hidden" name="title" value="{{ job.title }}">
+      <input type="hidden" name="company" value="{{ job.company }}">
+      <input type="hidden" name="url" value="{{ job.url }}">
+      <input type="hidden" name="advert_key" value="{{ job.advert_key }}">
+      <input type="hidden" name="job_id" value="{{ job.job_id }}">
+      <span class="tchoice__icon" aria-hidden="true"><svg width="26" height="26"><use href="#i-doc"/></svg></span>
+      <span class="tchoice__text">
+        <b>Yes, tailor my CV</b>
+        <span>From <span class="typed">{{ cv_name }}</span>, with an ATS score and a report on why it
+          fits. Usually ready in under a minute.</span>
+        {% if needs_text %}
+        <label class="toffer__paste">
+          <span class="fieldname">This advert's full text is not in our copy. Paste the job description:</span>
+          <textarea name="job_text" rows="5" required minlength="300"
+                    placeholder="Paste the whole advert: responsibilities, requirements, nice to haves"></textarea>
+        </label>
+        {% endif %}
+        <button type="submit" class="toffer__go">Tailor my CV
+          <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+      </span>
+    </form>
+    {% endif %}
+
+    <button type="button" class="tchoice tchoice--plain" data-tailor-go>
+      <span class="tchoice__icon" aria-hidden="true"><svg width="22" height="22"><use href="#i-arrow"/></svg></span>
+      <span class="tchoice__text"><b>No thanks, take me to the job</b>
+        <span>Opens {{ job.company or "the employer" }}'s own posting in a new tab.</span></span>
+    </button>
+  </div>
+</div>
