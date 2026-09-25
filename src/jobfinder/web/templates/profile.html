@@ -130,23 +130,6 @@
     </div>
   </section>
 
-  <aside class="lastsearch card">
-    <h2>Your search</h2>
-    {% if search_fields %}
-      <ul class="lastsearch__fields">
-        {% for f in search_fields %}<li>{{ f }}</li>{% endfor %}
-      </ul>
-      <p class="muted small" style="margin:12px 0 0">
-        {% if search_years is none %}Any experience level{% elif search_years > 15 %}15+ years of experience{% else %}{{ search_years }} year{{ "" if search_years == 1 else "s" }} of experience{% endif %}
-      </p>
-      <a class="btn btn--ghost" href="/#find">Change search</a>
-    {% else %}
-      <p class="muted small" style="margin:0">Pick the work you want and every matching job
-        in Dublin lines up, best fit first.</p>
-      <a class="btn" href="/#find">Find my jobs <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></a>
-    {% endif %}
-    <p class="accession" style="margin:18px 0 0">Your CV is never stored. <a href="/privacy">What we keep</a></p>
-  </aside>
 </div>
 {% endif %}
 
@@ -165,7 +148,7 @@
   .me__out button{padding:9px 18px;font-size:14.5px}
   .me__out svg{transform:none!important}
 
-  .me__grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+  .me__grid{display:grid;grid-template-columns:minmax(0,1fr)}
   .profilewin{box-shadow:var(--shadow-lift)}
 
   /* tabs: a segmented control, as in a Finder toolbar */
@@ -197,17 +180,6 @@
   .pempty h3{font-size:1.2rem;margin-bottom:6px}
   .pempty p{margin:0 auto 20px;max-width:46ch}
 
-  .lastsearch{margin:0;position:sticky;top:72px}
-  .lastsearch h2{font-size:1.25rem;margin-bottom:14px}
-  .lastsearch__fields{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:7px}
-  .lastsearch__fields li{font-size:13.5px;font-weight:600;padding:5px 12px;border-radius:999px;
-    background:var(--aqua-wash);color:var(--aqua-deep);border:1px solid rgba(43,116,240,.2)}
-  .lastsearch .btn{margin-top:18px;width:100%;padding:10px 18px;font-size:14.5px}
-
-  @media (max-width:980px){
-    .me__grid{grid-template-columns:minmax(0,1fr)}
-    .lastsearch{position:static}
-  }
   @media (max-width:860px){
     .me{padding:34px 0 22px}
     .me__id{gap:16px}

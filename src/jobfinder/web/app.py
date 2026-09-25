@@ -1324,13 +1324,10 @@ def profile(request: Request, tab: str = "saved"):
     for row in applied_rows:
         row["applied_on"] = _format_applied_at(row.get("applied_at"))
 
-    search = _profile(request) or {}
     context.update(
         joined_on=_format_applied_at(account.joined),
         saved=saved_rows,
         applications=applied_rows,
-        search_fields=[FIELDS[k].label for k in search.get("fields") or [] if k in FIELDS],
-        search_years=search.get("years"),
     )
     return templates.TemplateResponse(request, "profile.html", context)
 
