@@ -1846,6 +1846,8 @@ TAILOR_DAILY_LIMIT = 10
 TAILOR_MAX_ROUNDS = 8
 TAILOR_MIN_JOB_CHARS = 300
 TAILOR_DRAFT_DAYS = 7
+# Rounds run on their own after each change, while the score is under the target.
+TAILOR_MAX_BOOSTS = 2
 
 
 def _tailoring_on() -> bool:
@@ -1919,6 +1921,7 @@ def _workspace(request: Request, row: dict, document=None, rendered: bytes | Non
         "paper": paper, "error": error, "fresh": fresh, "read_only": read_only,
         "rounds_left": max(0, TAILOR_MAX_ROUNDS - int(row.get("rounds") or 0)),
         "kind": tailor_document.kind_of(row.get("source_name") or "") or "pdf",
+        "target": tailor_rewrite.TARGET_SCORE,
     }
     return templates.TemplateResponse(request, "_tailor_workspace.html", context)
 
@@ -2058,8 +2061,9 @@ def tailor_revise(request: Request, tailored_id: str, suggestion: str = Form("")
         return _workspace(request, row, document, document.render(row.get("edits") or {}).data,
                           error=str(exc))
     thread.append({"request": suggestion.strip()[:1500], "reply": result.report.get("reply", "")})
+    # A change of theirs is a new starting point, so the rounds toward the target begin again.
     new_report = result.report | {"reasons": result.reasons, "changes": result.changes,
-                                  "thread": thread}
+                                  "thread": thread, "boosts": 0, "boost_done": False}
     columns = {"edits": result.edits, "report": new_report, "rounds": len(thread),
                "ats_after": new_report["ats_after"]}
     try:
@@ -2069,6 +2073,61 @@ def tailor_revise(request: Request, tailored_id: str, suggestion: str = Form("")
         return _workspace(request, row, document, document.render(row.get("edits") or {}).data,
                           error="That change could not be kept just now. Please try again.")
     return _workspace(request, row | columns, document, result.data, fresh=True)
+
+
+@app.post("/tailor/{tailored_id}/boost", response_class=HTMLResponse)
+def tailor_boost(request: Request, tailored_id: str):
+    """One round aimed at the target score, run by the review itself while it is under.
+
+    Kept only if the score rose. When a round cannot raise it - what is missing is
+    something only the candidate can confirm - the rounds stop and the review says what
+    stands between the CV and the target.
+    """
+    account = _tailor_account(request)
+    row = _draft(account, tailored_id)
+    if row["status"] != "draft":
+        return _workspace(request, row, read_only=True)
+    report = dict(row.get("report") or {})
+    try:
+        document = _source_document(account, row["source_path"], row["source_name"])
+    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
+        logger.warning("could not reopen the source CV", exc_info=True)
+        return _workspace(request, row | {"report": report | {"boost_done": True}})
+    edits = row.get("edits") or {}
+    boosts = int(report.get("boosts") or 0)
+    if report.get("ats_after", 0) >= tailor_rewrite.TARGET_SCORE or boosts >= TAILOR_MAX_BOOSTS:
+        report["boost_done"] = True
+        return _workspace(request, row | {"report": report}, document, document.render(edits).data)
+
+    error = ""
+    try:
+        result = tailor_rewrite.boost(
+            document, tailor_rewrite.Job(row["job_title"], row["company"], row["job_text"]),
+            edits, report.get("reasons") or {}, report, deadline=tailor_rewrite.deadline(),
+        )
+    except tailor_rewrite.TailorError as exc:
+        result, error = None, str(exc)
+    boosts += 1
+    if result is None or result.report["ats_after"] <= report.get("ats_after", 0):
+        report |= {"boosts": boosts, "boost_done": True}
+        columns = {"report": report}
+        rendered = document.render(edits).data
+    else:
+        report = result.report | {
+            "reasons": result.reasons, "changes": result.changes,
+            "thread": report.get("thread") or [], "boosts": boosts,
+            "boost_done": result.report["ats_after"] >= tailor_rewrite.TARGET_SCORE
+            or boosts >= TAILOR_MAX_BOOSTS,
+            "boosted_from": report.get("ats_after"),
+        }
+        columns = {"edits": result.edits, "report": report, "ats_after": report["ats_after"]}
+        rendered = result.data
+    try:
+        supabase.update_tailored(account, tailored_id, **columns)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not save a boost round", exc_info=True)
+    return _workspace(request, row | columns, document, rendered, error=error,
+                      fresh="edits" in columns)
 
 
 @app.post("/tailor/{tailored_id}/accept", response_class=HTMLResponse)

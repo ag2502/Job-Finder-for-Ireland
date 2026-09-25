@@ -40,13 +40,45 @@ def _norm(text: str) -> str:
     return re.sub(r"\s+", " ", text.lower().replace("&", " and "))
 
 
+_WORD = re.compile(r"[a-z0-9][a-z0-9+#.]*[a-z0-9+#]|[a-z0-9]")
+
+
+def _stem(word: str) -> str:
+    """A light stem, enough that "tests" finds "testing", "optimise" finds "optimized"
+    and "modelling" finds "modeling" - the forgiveness real ATS keyword matching has.
+    Short words and technical names ("c++", "node.js") are left alone."""
+    w = word.lower().replace("iz", "is")
+    if len(w) <= 3 or not w.isalpha():
+        return w
+    for suffix, repl in (("isation", "is"), ("ysis", "ys"), ("ies", "y"), ("ing", ""),
+                         ("ed", ""), ("es", ""), ("s", ""), ("e", "")):
+        if w.endswith(suffix) and len(w) - len(suffix) >= 3 and not (suffix == "s" and w.endswith("ss")):
+            w = w[: len(w) - len(suffix)] + repl
+            break
+    if len(w) > 3 and w[-1] == w[-2] and w[-1] not in "aeiou":
+        w = w[:-1]  # modell -> model
+    return w
+
+
+def _stems(text: str) -> list[str]:
+    return [_stem(w) for w in _WORD.findall(text)]
+
+
 def _has(term: str, haystack: str) -> bool:
-    """Whole-word, case-blind, forgiving of a plural 's' and of '&' against 'and'."""
+    """Whole-word and case-blind; forgiving of plurals, verb endings, British against
+    American spelling, and '&' against 'and'."""
     term = _norm(term).strip()
     if not term:
         return False
     pattern = r"(?<![\w+#])" + re.escape(term).replace(r"\ ", r"[\s/-]+") + r"(?:s|es)?(?![\w+#])"
-    return re.search(pattern, haystack) is not None
+    if re.search(pattern, haystack) is not None:
+        return True
+    wanted = _stems(term)
+    if not wanted:
+        return False
+    hay = _stems(haystack)
+    n = len(wanted)
+    return any(hay[i:i + n] == wanted for i in range(len(hay) - n + 1))
 
 
 def job_keywords(job_text: str, model_keywords: list[str] | None = None) -> list[str]:

@@ -27,6 +27,11 @@ from jobfinder.tailor.document import CvDocument, bold_phrases, mark, plain, tex
 
 MAX_JOB_CHARS = 7000
 
+# The ATS score a tailoring aims for. Reached by truthful means only: the advert's own
+# words for experience the CV shows, its job title in the profile when the experience
+# fits it. What the CV cannot support stays a gap, for the candidate to confirm.
+TARGET_SCORE = 85
+
 _RULES = """\
 You are an expert CV writer. You tailor a candidate's CV to one job advert so that it
 passes applicant tracking systems (ATS) and reads well to a recruiter, while staying
@@ -36,7 +41,13 @@ You receive the CV as numbered paragraphs, in order. Paragraphs marked LOCKED mu
 changed. Any other paragraph may be rewritten. You cannot add, remove, merge, split or
 reorder paragraphs: the CV's structure and layout stay exactly as they are.
 
+Goal: an ATS match score of {target} or more, reached truthfully. The score counts how
+many of the advert's requirements appear in the CV in the advert's own words, and
+whether the CV uses the advert's job title.
+
 How to tailor:
+- When the candidate's experience fits the role, use the advert's job title (without
+  its seniority or team) in the profile or summary, as a description of what they do.
 - Mirror the advert's own words for skills, tools and duties wherever the CV already
   shows that experience, so an ATS keyword match finds them. Prefer the advert's exact
   phrasing ("stakeholder management", "A/B testing") over a synonym.
@@ -322,7 +333,7 @@ def tailor(document: CvDocument, job: Job, *, deadline: float | None = None) -> 
         f"CV PARAGRAPHS:\n{_paragraph_lines(document, {}, False)}"
     )
     try:
-        answer, model = llm.ask(_FIRST.format(variant=language), user, FIRST_SCHEMA,
+        answer, model = llm.ask(_FIRST.format(variant=language, target=TARGET_SCORE), user, FIRST_SCHEMA,
                                 name="tailored_cv", deadline=deadline)
     except llm.ModelsUnavailable as exc:
         raise TailorError(
@@ -351,7 +362,7 @@ def revise(document: CvDocument, job: Job, current: dict[str, str], reasons: dic
         + f"THE CANDIDATE'S REQUEST NOW:\n{request}"
     )
     try:
-        answer, model = llm.ask(_REVISE.format(variant=language), user, REVISE_SCHEMA,
+        answer, model = llm.ask(_REVISE.format(variant=language, target=TARGET_SCORE), user, REVISE_SCHEMA,
                                 name="revised_cv", deadline=deadline)
     except llm.ModelsUnavailable as exc:
         raise TailorError(
@@ -364,6 +375,67 @@ def revise(document: CvDocument, job: Job, current: dict[str, str], reasons: dic
     # A paragraph returned to its original wording is no longer an edit.
     merged = {pid: text for pid, text in merged.items() if plain(text) != document.by_id[pid].text}
     return _finish(document, job, merged, merged_reasons, answer, keywords, dropped, model, language)
+
+
+def boost_request(report: dict) -> str | None:
+    """What to ask for in a round aimed at the target score, from what is costing points.
+
+    None when nothing more can be done by wording alone: the remaining points are in
+    things only the candidate can supply, or in the file itself.
+    """
+    missing = report.get("missing") or []
+    title = next((c for c in report.get("checks") or [] if c["label"] == "Job title"), None)
+    asks = []
+    if missing:
+        asks.append(
+            "These requirements from the advert are not yet in the CV in the advert's own "
+            "words: " + "; ".join(missing[:15]) + ". For each one the CV's existing "
+            "experience genuinely shows - the same skill in other words, a tool named in "
+            "one role but not in the skills line, a duty implied by a bullet - work the "
+            "advert's exact phrase into the paragraph where that experience is. Skip any "
+            "the CV does not support; they stay gaps."
+        )
+    if title and title["points"] < title["max"]:
+        asks.append(
+            "The CV does not yet use the advert's job title. " + title["detail"] + " If the "
+            "candidate's experience fits that role, describe them with it in the profile."
+        )
+    if not asks:
+        return None
+    return (
+        f"Raise the ATS match score from {report.get('ats_after')} to {TARGET_SCORE} or more, "
+        "truthfully. " + " ".join(asks) + " Keep every earlier change that still helps."
+    )
+
+
+def boost(document: CvDocument, job: Job, current: dict[str, str], reasons: dict[str, str],
+          report: dict, *, deadline: float | None = None) -> Result | None:
+    """One more round aimed at the target score, or None when there is nothing left that
+    wording can fix. The caller keeps it only if the score rose."""
+    request = boost_request(report)
+    if request is None:
+        return None
+    language = proofread.variant(document.text())
+    user = (
+        f"JOB: {job.title} at {job.company}\n\nADVERT:\n{job_excerpt(job.text)}\n\n"
+        f"{_format_line(document)}\n\n"
+        f"CURRENT CV PARAGRAPHS (edited ones show their original wording too):\n"
+        f"{_paragraph_lines(document, current, True)}\n\n"
+        f"WHAT TO DO NOW:\n{request}"
+    )
+    try:
+        answer, model = llm.ask(_REVISE.format(variant=language, target=TARGET_SCORE), user,
+                                REVISE_SCHEMA, name="boosted_cv", deadline=deadline)
+    except llm.ModelsUnavailable as exc:
+        raise TailorError(
+            "The free writing service is busy right now. Please try again in a minute."
+        ) from exc
+    # A boost never brings its own facts: only figures the CV already states.
+    changed, new_reasons, dropped = _validate(document, answer, _numbers(document.text()))
+    merged = {**current, **changed}
+    merged = {pid: text for pid, text in merged.items() if plain(text) != document.by_id[pid].text}
+    return _finish(document, job, merged, {**reasons, **new_reasons}, answer,
+                   report.get("keywords") or [], dropped, model, language)
 
 
 def rebuild(document: CvDocument, edits: dict[str, str]) -> bytes:

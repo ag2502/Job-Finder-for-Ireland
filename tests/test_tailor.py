@@ -230,3 +230,38 @@ def test_keywords_match_whole_words_only():
 def test_the_advert_is_cut_to_its_requirements_when_long():
     text = "About us. " * 900 + "Requirements: Python and SQL."
     assert "Requirements: Python" in rewrite.job_excerpt(text)
+
+
+# ------------------------------------------------------------ the 85 target
+
+
+def test_the_first_pass_is_told_to_aim_for_85(monkeypatch):
+    seen = []
+    monkeypatch.setattr(llm, "ask", lambda system, *a, **k: (seen.append(system) or _answer([]), "stub"))
+    rewrite.tailor(_load("cv.pdf"), JOB)
+    assert "85 or more" in seen[0]
+
+
+def test_a_boost_asks_for_exactly_what_is_costing_points():
+    report = {"ats_after": 70, "missing": ["Spark", "causal inference"],
+              "checks": [{"label": "Job title", "points": 0, "max": 10,
+                          "detail": '"payments analyst" does not appear anywhere in the CV.'}]}
+    ask = rewrite.boost_request(report)
+    assert "Spark; causal inference" in ask and "payments analyst" in ask and "85" in ask
+    assert rewrite.boost_request({"ats_after": 80, "missing": [], "checks": []}) is None
+
+
+def test_a_boost_never_brings_figures_of_its_own(monkeypatch):
+    doc = _load("cv.pdf")
+    bullet = _by_text(doc, "Wrote SQL and dbt")
+    monkeypatch.setattr(llm, "ask", lambda *a, **k: (_answer(
+        [{"id": bullet.id, "text": bullet.text + " across 30 teams", "reason": "x"}], reply=""), "stub"))
+    result = rewrite.boost(doc, JOB, {}, {}, {"ats_after": 60, "missing": ["Spark"], "checks": []})
+    assert bullet.id not in result.edits
+
+
+def test_keyword_matching_forgives_word_forms_not_meaning():
+    assert ats._has("A/B testing", "ran a/b tests every week")
+    assert ats._has("optimisation", "optimized the models")
+    assert ats._has("data modelling", "data modeling in dbt")
+    assert not ats._has("stakeholder management", "managed a few stakeholders")

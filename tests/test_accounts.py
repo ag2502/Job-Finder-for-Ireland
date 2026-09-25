@@ -1497,3 +1497,37 @@ def test_the_setup_check_names_a_missing_table(client: TestClient, monkeypatch):
     assert info["tables"]["profiles"] == "missing: run schema.sql"
     assert info["tailoring_on"] is False and info["tailoring_models"] == []
     assert "key" not in str(info).lower()
+
+
+def test_a_review_under_85_raises_itself_and_keeps_only_gains(client: TestClient, fake, tailoring, monkeypatch):
+    _with_docx_cv(client)
+    review = _start(client)
+    (row_id,) = fake.tailored
+    before = fake.tailored[row_id]["ats_after"]
+    assert before < 85
+    assert f'hx-post="/tailor/{row_id}/boost"' in review, "under the target, the review raises itself"
+
+    # A round that adds the advert's title and keywords the CV supports: kept.
+    def better(system, user, schema, **kwargs):
+        assert "Raise the ATS match score" in user
+        return ({"reply": "", "edits": [{"id": "p3", "reason": "title and terms",
+                 "text": "Senior data scientist with five years of experience in machine learning, "
+                         "A/B testing and Python, turning messy product and payments data into "
+                         "models and analysis that teams act on."}],
+                 "fit_summary": "Closer.", "strengths": [], "gaps": ["Spark"]}, "stub")
+    monkeypatch.setattr(tailor_llm, "ask", better)
+    boosted = client.post(f"/tailor/{row_id}/boost").text
+    after = fake.tailored[row_id]["ats_after"]
+    assert after > before
+    assert fake.tailored[row_id]["report"]["boosts"] == 1
+
+    # A round that cannot raise it further is thrown away, and the review says why.
+    monkeypatch.setattr(tailor_llm, "ask", lambda *a, **k: (
+        {"reply": "", "edits": [], "fit_summary": "", "strengths": [], "gaps": []}, "stub"))
+    if after < 85:
+        final = client.post(f"/tailor/{row_id}/boost").text
+        assert fake.tailored[row_id]["ats_after"] == after
+        assert "What stands between this CV and 85" in final
+        assert f'hx-post="/tailor/{row_id}/boost"' not in final
+    else:
+        assert "Above 85" in boosted

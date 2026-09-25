@@ -220,3 +220,12 @@ button.kw__chip--out.is-picked{background:var(--aqua-wash);color:var(--aqua-deep
   .tws__spacer{display:none}
 }
 .tpage .tws__foot{position:static}
+
+/* The target score: met, or what stands between the CV and it. */
+.tws__target{margin:16px 32px 0;padding:14px 16px;border-radius:12px;background:#fff8e1;
+  border:1px solid rgba(232,180,0,.45);font-size:14px;color:#5c4400}
+.tws__target b{display:block;margin-bottom:4px;color:#3d2e00}
+.tws__target p{margin:0 0 10px;max-width:none}
+.tws__target--hit{display:flex;align-items:center;gap:8px;background:var(--sorted-wash);
+  border-color:rgba(28,154,74,.35);color:#135c2f;font-weight:600}
+@media (max-width:900px){ .tws__target{margin:14px 18px 0} }

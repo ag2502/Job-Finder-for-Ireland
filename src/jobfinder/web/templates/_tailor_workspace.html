@@ -26,6 +26,27 @@
 
   {% if error %}<p class="error tws__error" role="alert">{{ error }}</p>{% endif %}
 
+  {# Under the target: the review runs another round itself, then says what is left. #}
+  {% if not read_only and row.status == "draft" and after < target and not report.boost_done %}
+  <div hx-post="/tailor/{{ row.id }}/boost" hx-trigger="load delay:500ms" hx-target="#tailor-body"
+       hx-swap="innerHTML" hx-indicator="#tailor" data-working="Raising your ATS score toward {{ target }}"></div>
+  {% endif %}
+  {% if after >= target %}
+  <p class="tws__target tws__target--hit"><svg width="15" height="15" aria-hidden="true"><use href="#i-check"/></svg>
+    Above {{ target }}{% if report.boosted_from %}, raised from {{ report.boosted_from }} in a further round{% endif %}. This is a strong match for an ATS keyword filter.</p>
+  {% elif not read_only and report.boost_done %}
+  <div class="tws__target">
+    <b>What stands between this CV and {{ target }}</b>
+    <p>{% if report.missing %}The advert asks for things your CV does not show, and we will not
+      invent them. If you have any of these, tap it and say where you used it; the next round
+      works it in.{% else %}The remaining points are in things wording cannot change, such as
+      figures in your bullets or the sections your CV has.{% endif %}</p>
+    {% if report.missing %}
+    <div class="kw">{% for k in report.missing %}<button type="button" class="kw__chip kw__chip--out" data-add-fact="{{ k }}">{{ k }}<em>+</em></button>{% endfor %}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <div class="tws__grid">
     {# ---------------------------------------------------------- the document #}
     <section class="tws__doc" aria-label="The tailored CV">
