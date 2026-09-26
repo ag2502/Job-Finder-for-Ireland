@@ -81,6 +81,16 @@ jobs:
       - name: Restore the crawler state
         run: bash scripts/state_db.sh pull
 
+      - name: Load the curated companies
+        env:
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
+        # Seeding adds any source in data/seed_companies.csv that the state lacks and
+        # never touches one it has, so it takes about a second and is safe every run.
+        # Leaving it to the weekly registry run meant a board added to the file waited
+        # up to a week, and when the state was reset on 2026-09-25, 143 curated sources
+        # (Microsoft, Salesforce, SAP, AIB, ESB among them) stayed missing for days.
+        run: jobfinder seed
+
       - name: Crawl
         env:
           JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
