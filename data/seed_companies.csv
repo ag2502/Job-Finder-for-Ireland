@@ -65,7 +65,6 @@ AMCS Group,jsonld,https://www.amcsgroup.com/careers/,2,false,recovered,Registere
 BAM Ireland,phenom,www.bamcareers.com,2,false,curated,Phenom site read for Ireland (facet value IRL) instead of sampled as JSON-LD,https://www.bamcareers.com/ie/en
 FreeNow,greenhouse,freenow,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://free-now.com
 Smyths Toys,successfactors,careers.smythstoys.com,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.smythstoys.com
-Bank of Ireland,jsonld,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers
 Sherry FitzGerald,bamboohr,sherryfitz,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://sherryfitz.ie/careers
 Equal1,ashby,equal1,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.equal1.com/
 Integrity360,bamboohr,integrity360,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.integrity360.com/careers
@@ -132,7 +131,6 @@ AXA Ireland,icims,careers.axa.com,3,false,curated,AXA group board filtered to Ir
 Lightyear,jsonld,https://careers.lightyear.com,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.lightyear.com
 Marqeta,ashby,marqeta-inc,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.marqeta.com/careers/e0948ad4-4957-47d1-a903-4f7eae10a8ce
 McAfee,icims,careers-mcafee,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.mcafee.com/home
-Meta,jsonld,https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect
 Mixpanel,greenhouse,mixpanel,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://mixpanel.com/jobs/
 Modulr,greenhouse,modulrfinance,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.modulrfinance.com/careers
 N26,greenhouse,n26,3,false,curated,careers site fronts this board; read whole for Ireland instead of sampled as JSON-LD,https://n26.com/en-eu/careers

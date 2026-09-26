@@ -28,6 +28,11 @@ EXCLUDED_DOMAINS = frozenset(
         "monster.co.uk",
         "recruitireland.com",
         "totaljobs.com",
+        # Meta's robots.txt: "Collection of data on Facebook through automated means is
+        # prohibited unless you have express written permission". Its careers site is
+        # covered by that notice, so Meta's roles reach the site only through Adzuna.
+        "metacareers.com",
+        "facebook.com",
     }
 )
 

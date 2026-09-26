@@ -182,13 +182,16 @@ which is how an unreachable site should be treated anyway. Detection is layered
 accordingly: a body-size cap, a per-request timeout, a read-loop deadline, a per-company
 budget, and a whole-sweep deadline, each covering a failure the others do not.
 
-### On LinkedIn and Indeed
+### On LinkedIn, Indeed and Meta
 
 Absent deliberately, not as an oversight. Neither offers a public jobs API for this
 purpose: Indeed retired its Publisher API to new applicants and grants access only
 through employer and partner programmes, and LinkedIn's jobs data is available only to
 formal partners while its terms prohibit scraping, which it also blocks technically and
 enforces litigiously.
+
+Meta is excluded on the same grounds: the robots.txt of its careers site states that
+automated collection is prohibited without Facebook's written permission.
 
 Losing them costs less than it appears to. Both are overwhelmingly *syndication* layers —
 the Dublin roles they carry are largely the same postings this project already reads from

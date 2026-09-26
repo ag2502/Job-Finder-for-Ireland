@@ -21,6 +21,8 @@ from jobfinder.sources.policy import is_excluded
         ("https://ie.indeed.com/cmp/acme", True),
         ("irishjobs.ie/jobs", True),
         ("https://www.jobs.ie/", True),
+        ("https://www.metacareers.com/jobs/12345/", True),
+        ("https://www.facebook.com/careers", True),
         ("https://boards-api.greenhouse.io/v1/boards/linkedin", False),
         ("https://notjobs.ie/", False),
         ("https://www.irishtimes.com/", False),
