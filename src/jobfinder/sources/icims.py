@@ -24,6 +24,7 @@ several countries too, and `full_location` then names every office.
 
 from __future__ import annotations
 
+import html
 import re
 from datetime import datetime
 
@@ -93,6 +94,8 @@ class ICIMSAdapter(BaseAdapter):
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
         target, country = split_slug(slug)
+        if is_classic(target):
+            return self._fetch_classic(portal_of(target), client)
         host = resolve_host(target, client)
         where = {"country": country} if country else {}
 
@@ -145,6 +148,106 @@ class ICIMSAdapter(BaseAdapter):
                 "refusing to report an incomplete board"
             )
         return list(jobs.values())
+
+
+    def _fetch_classic(self, portal: str, client: httpx.Client) -> list[RawJob]:
+        """Read a portal that serves its own list instead of bouncing to a branded site.
+
+        Sisk and Cook Medical run these: /jobs/search?in_iframe=1&pr=N, twenty rows a
+        page, the paginator naming the last page. Each row carries the id, title,
+        location ("IE-Dublin"), category and the opening lines of the advert. These
+        portals serve one employer's roles in every country, so all are kept and the
+        pipeline decides which are Dublin.
+        """
+        jobs: dict[str, RawJob] = {}
+        last: int | None = None
+        for page in range(MAX_PAGES):
+            response = client.get(
+                f"https://{portal}/jobs/search", params={"ss": 1, "in_iframe": 1, "pr": page}
+            )
+            response.raise_for_status()
+            rows = parse_classic_page(response.text)
+            if last is None:
+                pages = [int(n) for n in CLASSIC_PAGE.findall(response.text)]
+                last = max(pages) if pages else 0
+            for job in rows:
+                if job.source_job_id in jobs:
+                    continue
+                if not job.location_raw:
+                    # Some portals leave the location off the list; the role's page has it.
+                    job.location_raw = self._classic_location(job.url, client)
+                jobs[job.source_job_id] = job
+            if not rows or page >= last:
+                break
+            self.polite_pause()
+        if not jobs:
+            raise ValueError(f"no vacancies listed on iCIMS portal {portal}")
+        return list(jobs.values())
+
+
+    def _classic_location(self, url: str, client: httpx.Client) -> str | None:
+        try:
+            response = client.get(url, params={"in_iframe": 1})
+            response.raise_for_status()
+        except httpx.HTTPError:
+            return None
+        finally:
+            self.polite_pause()
+        match = CLASSIC_LOCATIONS.search(response.text)
+        return _classic_place(html.unescape(match.group(1)).strip()) if match else None
+
+
+CLASSIC_LOCATIONS = re.compile(r"Job Locations\s*</[^>]+>\s*(?:<[^>]+>\s*)*([^<]+)")
+CLASSIC_ANCHOR = re.compile(
+    r'<a href="(https://[^"]+/jobs/(\d+)/[^"]+)"[^>]*class="iCIMS_Anchor"[^>]*>.*?<h3[^>]*>(.*?)</h3>', re.S
+)
+CLASSIC_PAGE = re.compile(r'href="[^"]*/jobs/search\?pr=(\d+)')
+
+
+def portal_of(target: str) -> str:
+    target = target.removeprefix("classic:")
+    return target if target.endswith(".icims.com") else f"{target}.icims.com"
+
+
+def is_classic(target: str) -> bool:
+    """A bare portal name whose slug says it serves its own list: `classic:portal`."""
+    return target.startswith("classic:")
+
+
+def _classic_field(row: str, label: str) -> str | None:
+    match = re.search(rf'field-label">{label}</span>\s*<span[^>]*>(.*?)</span>', row, re.S)
+    if not match:
+        match = re.search(rf"{label}\s*<span[^>]*>(.*?)</span>", row, re.S)
+    return html.unescape(re.sub(r"<[^>]+>|\s+", " ", match.group(1))).strip() if match else None
+
+
+def _classic_place(value: str | None) -> str | None:
+    """"IE-Dublin" -> "Dublin, IE"; the country code leads on these portals."""
+    if not value:
+        return None
+    places = []
+    for part in re.split(r"\s*\|\s*", value):
+        code, _, rest = part.partition("-")
+        places.append(f"{rest.strip()}, {code.strip()}" if rest and len(code.strip()) == 2 else part.strip())
+    return " | ".join(places)
+
+
+def parse_classic_page(page: str) -> list[RawJob]:
+    jobs = []
+    for chunk in page.split('<div class="row">'):
+        anchor = CLASSIC_ANCHOR.search(chunk)
+        if not anchor:
+            continue
+        description = re.search(r'<div class="col-xs-12 description">(.*?)</div>', chunk, re.S)
+        jobs.append(RawJob(
+            source_job_id=anchor.group(2),
+            title=html.unescape(re.sub(r"<[^>]+>|\s+", " ", anchor.group(3))).strip(),
+            url=anchor.group(1).replace("?in_iframe=1", "").replace("&amp;", "&"),
+            location_raw=_classic_place(_classic_field(chunk, "Location")),
+            description=html.unescape(re.sub(r"<[^>]+>", " ", description.group(1))).strip() if description else None,
+            department=_classic_field(chunk, "Category"),
+        ))
+    return jobs
 
 
 register(ICIMSAdapter())

@@ -1037,3 +1037,52 @@ def test_cornerstone_reads_the_regional_api_named_by_the_page():
     assert job.url == "https://acme.csod.com/ux/ats/careersite/5/home/requisition/0?c=acme"
     assert job.location_raw == "Mary St, Dublin City, IE"
     assert (job.posted_at.day, job.posted_at.month) == (3, 9)  # en-GB dates are day first
+
+
+def _icims_classic_page(ids: list[int], last: int, location: str | None = "IE-Dublin-Dublin") -> str:
+    rows = "".join(
+        '<li class="iCIMS_JobCardItem"><div class="row">'
+        + (f'<div class="col-xs-6 header left"><span class="sr-only field-label">Location</span><span > {location}</span></div>' if location else "")
+        + f'<div class="col-xs-12 title"><a href="https://careers-acme.icims.com/jobs/{i}/site-engineer/job?in_iframe=1" class="iCIMS_Anchor" title="{i} - Site Engineer">'
+        f'<span class="sr-only field-label">Title</span><h3 > Site Engineer {i}</h3></a></div>'
+        f'<div class="col-xs-12 description"> Build &amp; things</div></div></li>'
+        for i in ids
+    )
+    pager = "".join(f'<a href="https://careers-acme.icims.com/jobs/search?pr={n}&amp;in_iframe=1">{n + 1}</a>' for n in range(last + 1))
+    return f"<ul>{rows}</ul><div class='iCIMS_Paging'>{pager}</div>"
+
+
+@respx.mock
+def test_icims_classic_portal_is_read_page_by_page():
+    """Sisk's portal lists its own roles rather than bouncing to a branded site."""
+    from jobfinder.sources.icims import ICIMSAdapter
+
+    pages = {"0": _icims_classic_page([1, 2], last=1), "1": _icims_classic_page([3], last=1)}
+    respx.get("https://careers-acme.icims.com/jobs/search").mock(
+        side_effect=lambda r: httpx.Response(200, text=pages[r.url.params["pr"]])
+    )
+
+    result = ICIMSAdapter().fetch("classic:careers-acme")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.source_job_id for j in result.jobs] == ["1", "2", "3"]
+    job = result.jobs[0]
+    assert job.location_raw == "Dublin-Dublin, IE"
+    assert job.url == "https://careers-acme.icims.com/jobs/1/site-engineer/job"
+    assert job.description == "Build & things"
+
+
+@respx.mock
+def test_icims_classic_portal_reads_a_missing_location_from_the_role():
+    from jobfinder.sources.icims import ICIMSAdapter
+
+    respx.get("https://careers-acme.icims.com/jobs/search").mock(
+        return_value=httpx.Response(200, text=_icims_classic_page([7], last=0, location=None))
+    )
+    respx.get(url__startswith="https://careers-acme.icims.com/jobs/7/").mock(
+        return_value=httpx.Response(200, text="<dt>Job Locations</dt><dd><span>IE-Limerick</span></dd>")
+    )
+
+    result = ICIMSAdapter().fetch("classic:careers-acme")
+
+    assert result.jobs[0].location_raw == "Limerick, IE"
