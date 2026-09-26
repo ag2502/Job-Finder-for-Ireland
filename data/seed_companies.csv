@@ -221,3 +221,20 @@ ServiceNow,smartrecruiters,ServiceNow,1,false,curated,SmartRecruiters board owne
 Thermo Fisher Scientific,workday,thermofisher:wd5:ThermoFisherCareers,2,false,curated,Workday board read for Ireland,https://jobs.thermofisher.com
 Morgan Stanley,eightfold,morganstanley,2,false,curated,Eightfold board read for Ireland,https://morganstanley.eightfold.ai/careers
 HP,workday,hp:wd5:ExternalCareerSite,2,false,curated,Workday board read for Ireland,https://jobs.hp.com
+HubSpot,greenhouse,hubspotjobs,1,false,curated,Greenhouse board owned by HubSpot,https://www.hubspot.com/careers
+Irish Distillers,workday,pernodricard:wd3:pernod-ricard,2,false,curated,Pernod Ricard's Workday board; its Irish roles are Irish Distillers',https://www.irishdistillers.ie
+Ericsson,eightfold,ericsson,2,false,curated,Eightfold board read for Ireland (Athlone),https://jobs.ericsson.com/careers
+Eli Lilly,eightfold,lilly,2,false,curated,Eightfold board read for Ireland,https://careers.lilly.com
+VHI,candidatemanager,YGTGTU|YCXAZF,2,false,curated,CandidateManager board linked from vhi.ie/careers,https://www1.vhi.ie/about/careers
+Arthur Cox,pinpoint,arthurcox,2,false,curated,Pinpoint board,https://www.arthurcox.com/careers/
+Mason Hayes & Curran,hirehive,mason-hayes-and-curran,2,false,curated,HireHive board,https://www.mhc.ie/careers
+Cubic Telecom,ashby,cubic3,2,false,curated,Ashby board linked from cubictelecom.com/careers,https://www.cubictelecom.com/careers
+John Sisk & Son,icims,classic:careers-johnsiskandson,2,false,curated,Classic iCIMS portal (Sisk group; Irish and UK roles),https://sisk.com/careers
+Cook Medical,icims,classic:emea-cookmedical,2,false,curated,Classic iCIMS portal for EMEA (Limerick),https://www.cookmedical.com/careers/
+Allianz Ireland,phenom,careers.allianz.com/ie/en,2,false,curated,"Allianz group Phenom site, Ireland section",https://careers.allianz.com/ie/en
+Applegreen,rezoomo,applegreen-stores,2,false,curated,Rezoomo company page (Irish forecourts),https://www.rezoomo.com/company/applegreen-stores/jobs/
+Almac Group,rezoomo,almac-group,3,false,curated,Rezoomo company page,https://www.rezoomo.com/company/almac-group/jobs/
+Enterprise Ireland,rezoomo,enterprise-ireland,2,false,curated,Rezoomo company page,https://www.rezoomo.com/company/enterprise-ireland/jobs/
+Supermac's,rezoomo,supermacs,3,false,curated,Rezoomo company page,https://www.rezoomo.com/company/supermacs/jobs/
+Bord na Mona,rezoomo,bord-na-mona,2,false,curated,Rezoomo company page,https://www.rezoomo.com/company/bord-na-mona/jobs/
+Dogpatch Labs,rezoomo,dogpatch-labs,4,false,curated,Rezoomo company page,https://www.rezoomo.com/company/dogpatch-labs/jobs/
