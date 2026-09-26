@@ -282,3 +282,8 @@ BDO Ireland,pinpoint,bdoireland,3,false,curated,Pinpoint board; found by the det
 Mazars Ireland,recruitee,forvismazars,3,false,curated,Forvis Mazars Ireland's Recruitee board; found by the detection sweep and checked,
 IDA Ireland,candidatemanager,YGTEVY|BGTEVCX,2,false,curated,CandidateManager board; found by the detection sweep and checked,
 Sigmar Recruitment,candidatemanager,YGTGTCX|YBEVW,2,false,curated,CandidateManager board for its public-sector recruitment; found by the detection sweep and checked,
+Daon,bamboohr,daoninc,3,false,curated,BambooHR board linked from daon.com/careers,
+Teamwork,personio,teamwork,2,false,curated,Personio board,
+Newsweaver,greenhouse,poppulo,4,false,curated,Now Poppulo; Greenhouse board owned by Poppulo,
+TransferMate,teamtailor,clunetech-transfermate,3,false,curated,"Teamtailor site of its parent Clunetech, TransferMate division",
+Emydex,wordpress,www.emydex.com|careers,4,false,curated,WordPress careers post type,
