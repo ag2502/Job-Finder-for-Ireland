@@ -689,6 +689,15 @@ def _board_matches(
         return False
 
     declared = _declared_owner(adapter, payload)
+    if adapter == "greenhouse":
+        # The jobs list names no owner, but the board's own record does, and a probe
+        # under a company's name finds whoever registered that slug: "linkedin" belongs
+        # to "LI Test Company". A long slug alone was enough to accept it.
+        try:
+            board = fetch_capped(client, f"https://boards-api.greenhouse.io/v1/boards/{slug}")
+            declared = (board.json() or {}).get("name") if board.status_code == 200 else None
+        except (httpx.HTTPError, ValueError):
+            declared = None
     if declared and expected_name:
         return _same_company(declared, expected_name)
 

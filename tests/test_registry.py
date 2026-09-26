@@ -856,21 +856,22 @@ def test_a_retired_source_is_switched_off_and_the_rest_are_left_alone(session, t
 
 
 @respx.mock
-def test_a_greenhouse_board_under_someone_elses_name_is_rejected():
+def test_a_probed_greenhouse_board_under_someone_elses_name_is_rejected():
     """Regression: the "linkedin" Greenhouse board belongs to "LI Test Company"."""
-    from jobfinder.registry.bulk_detect import board_belongs_to
+    from jobfinder.registry.detect import _board_matches
 
+    jobs = {"jobs": [{"id": 1, "title": "Engineer"}]}
+    respx.get("https://boards-api.greenhouse.io/v1/boards/linkedin/jobs").mock(return_value=httpx.Response(200, json=jobs))
     respx.get("https://boards-api.greenhouse.io/v1/boards/linkedin").mock(
         return_value=httpx.Response(200, json={"name": "LI Test Company"})
     )
+    respx.get("https://boards-api.greenhouse.io/v1/boards/stripe/jobs").mock(return_value=httpx.Response(200, json=jobs))
     respx.get("https://boards-api.greenhouse.io/v1/boards/stripe").mock(
         return_value=httpx.Response(200, json={"name": "Stripe"})
     )
-    linkedin = Company(name="LinkedIn", normalized_name="linkedin", website="https://linkedin.com",
-                       coverage_state=CoverageState.UNRESOLVED)
-    stripe = Company(name="Stripe", normalized_name="stripe", website="https://stripe.com",
-                     coverage_state=CoverageState.UNRESOLVED)
 
     with build_client() as client:
-        assert not board_belongs_to("greenhouse", "linkedin", linkedin, client)
-        assert board_belongs_to("greenhouse", "stripe", stripe, client)
+        assert not _board_matches("greenhouse", "https://boards-api.greenhouse.io/v1/boards/linkedin/jobs",
+                                  client, "linkedin", "LinkedIn")
+        assert _board_matches("greenhouse", "https://boards-api.greenhouse.io/v1/boards/stripe/jobs",
+                              client, "stripe", "Stripe")
