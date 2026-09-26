@@ -12,3 +12,7 @@ greenhouse,linkedin,Board belongs to LI Test Company; LinkedIn is also excluded 
 cornerstone,box,No Cornerstone site under this name (DNS fails)
 cornerstone,tetratech,Tetra Tech's Australian careers site; not RPS Ireland
 breezy,fathom,An unrelated US company named Fathom
+revolut,Ireland,Revolut answers GitHub's runners with 403 (blocks cloud addresses); readable only from home networks
+careers_html,https://maplesgroupcareers.ttcportals.com/search/jobs,Maples' portal answers GitHub's runners with 403 (blocks cloud addresses)
+jsonld,https://www.excelrecruitment.com/jobs/,No JobPosting markup any more; fails every run
+jsonld,https://www.tyndall.ie/careers/,No JobPosting markup any more; fails every run
