@@ -159,3 +159,48 @@ def test_ibm_pages_the_country_filter_and_reads_the_office():
     assert job.department == "Software Engineering"
     remote = next(j for j in result.jobs if j.source_job_id == "999")
     assert remote.location_raw == "Dublin, IE (Remote)"
+
+
+def revolut_page(key: str, value) -> str:
+    return (
+        '<script id="__NEXT_DATA__" type="application/json">'
+        + json.dumps({"props": {"pageProps": {key: value}}})
+        + "</script>"
+    )
+
+
+@respx.mock
+def test_revolut_keeps_irish_positions_and_leads_with_the_irish_office():
+    from jobfinder.sources.bespoke import revolut
+
+    positions = [
+        {"id": "a1", "text": "Backend Engineer", "team": "Engineering", "locations": [
+            {"name": "London", "type": "office", "country": "United Kingdom"},
+            {"name": "Dublin", "type": "office", "country": "Ireland"},
+            {"name": "Ireland - Remote", "type": "remote", "country": "Ireland"},
+        ]},
+        {"id": "b2", "text": "Analyst", "locations": [{"name": "Ireland - Remote", "type": "remote", "country": "Ireland"}]},
+        {"id": "c3", "text": "Lawyer", "locations": [{"name": "Vilnius", "type": "office", "country": "Lithuania"}]},
+    ]
+    respx.get(revolut.CAREERS_URL).mock(return_value=httpx.Response(200, text=revolut_page("positions", positions)))
+    respx.get(url__startswith="https://www.revolut.com/careers/position/").mock(
+        return_value=httpx.Response(200, text=revolut_page("position", {"description": "<p>About Revolut</p>"}))
+    )
+
+    result = revolut.RevolutAdapter().fetch("Ireland")
+
+    assert result.status is CrawlStatus.OK
+    engineer, analyst = result.jobs
+    assert engineer.location_raw == "Dublin, Ireland"
+    assert engineer.extra_locations == ["Remote, Ireland", "London, United Kingdom"]
+    assert resolve_location(engineer).is_dublin
+    assert engineer.description == "<p>About Revolut</p>"
+    assert resolve_location(analyst).is_remote
+
+
+@respx.mock
+def test_revolut_page_without_positions_fails():
+    from jobfinder.sources.bespoke import revolut
+
+    respx.get(revolut.CAREERS_URL).mock(return_value=httpx.Response(200, text=revolut_page("positions", [])))
+    assert revolut.RevolutAdapter().fetch("Ireland").status is CrawlStatus.FAILED

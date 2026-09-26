@@ -196,3 +196,4 @@ IQVIA,workday,iqvia:wd1:IQVIA,2,false,curated,Found through the tenant's robots.
 Regeneron Ireland,workday,regeneron:wd1:Careers,2,false,curated,Found through the tenant's robots.txt site list,https://regeneron.wd1.myworkdayjobs.com/Careers
 GSK Ireland,workday,gsk:wd5:GSKCareers,2,false,curated,Found through the tenant's robots.txt site list,https://gsk.wd5.myworkdayjobs.com/GSKCareers
 Expedia,workday,expedia:wd108:search,2,false,curated,Found through the tenant's robots.txt site list,https://expedia.wd108.myworkdayjobs.com/search
+Revolut,revolut,Ireland,1,false,bespoke,Positions embedded in the careers page; Irish ones read with their adverts,https://www.revolut.com/careers/?city=Dublin
