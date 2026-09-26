@@ -14,6 +14,12 @@ host, so it is resolved on first fetch.
 Pagination must reach the end. `totalCount` is the board's own statement of size, and
 stopping well short of it would hand the reconciler a partial list as if it were the
 whole board, closing every role on the pages not read.
+
+Every read is narrowed with `country=Ireland` (or the country named after a `|` in the
+slug; `*` reads the whole board). The API pages ten at a time, so a global board such
+as Aon's or AXA's, with well over a thousand roles, ran past the page ceiling and
+failed; filtered, AXA is 17 roles and two pages. `country` matches a role listed in
+several countries too, and `full_location` then names every office.
 """
 
 from __future__ import annotations
@@ -35,6 +41,14 @@ MAX_PAGES = 100
 COMPLETENESS = 0.9
 
 BOUNCE = re.compile(r"window\.top\.location\.href\s*=\s*'([^']+)'")
+DEFAULT_COUNTRY = "Ireland"
+
+
+def split_slug(slug: str) -> tuple[str, str | None]:
+    """``(host or portal, country)``; the country is None for a whole-board read."""
+    target, _, country = slug.partition("|")
+    country = country or DEFAULT_COUNTRY
+    return target, None if country == "*" else country
 
 
 def _parse_date(value: str | None) -> datetime | None:
@@ -78,13 +92,15 @@ class ICIMSAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        host = resolve_host(slug, client)
+        target, country = split_slug(slug)
+        host = resolve_host(target, client)
+        where = {"country": country} if country else {}
 
         jobs: dict[str, RawJob] = {}
         total: int | None = None
 
         for page in range(1, MAX_PAGES + 1):
-            response = client.get(f"https://{host}/api/jobs", params={"page": page})
+            response = client.get(f"https://{host}/api/jobs", params={**where, "page": page})
             response.raise_for_status()
             payload = response.json()
             if not isinstance(payload, dict) or not isinstance(payload.get("jobs"), list):

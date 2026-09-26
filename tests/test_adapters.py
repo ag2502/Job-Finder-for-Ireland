@@ -613,6 +613,22 @@ def test_oracle_slug_is_read_from_a_candidate_experience_url():
     assert slug_from_url(url) == "enterpriseplatform.dell.com|careers"
 
 
+@respx.mock
+def test_icims_reads_one_country_not_the_global_board():
+    """AXA's board has 1,523 roles at ten a page, past the ceiling; Ireland has 17."""
+    from jobfinder.sources.icims import ICIMSAdapter
+
+    route = respx.get("https://careers.acme.ie/api/jobs").mock(
+        return_value=httpx.Response(200, json=_icims_page([1], total=1))
+    )
+
+    ICIMSAdapter().fetch("careers.acme.ie")
+    assert route.calls.last.request.url.params["country"] == "Ireland"
+
+    ICIMSAdapter().fetch("careers.acme.ie|*")
+    assert "country" not in route.calls.last.request.url.params
+
+
 def _rmk_page(ids: list[int], total: int) -> str:
     rows = "".join(
         f'<tr class="data-row"><td class="colTitle">'
