@@ -45,6 +45,7 @@ def load_adapters() -> None:
         phenom,
         pinpoint,
         recruitee,
+        rezoomo,
         smartrecruiters,
         successfactors,
         teamtailor,

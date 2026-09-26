@@ -1086,3 +1086,40 @@ def test_icims_classic_portal_reads_a_missing_location_from_the_role():
     result = ICIMSAdapter().fetch("classic:careers-acme")
 
     assert result.jobs[0].location_raw == "Limerick, IE"
+
+
+# ---------------------------------------------------------------------------
+# Rezoomo
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_rezoomo_reads_the_company_pages_job_list():
+    from jobfinder.sources.rezoomo import API_URL, RezoomoAdapter
+
+    respx.post(API_URL).mock(return_value=httpx.Response(200, json={"success": True, "data": {
+        "company": {"name": "Acme Stores"},
+        "companyJobs": [
+            {"id": 104521, "name": "Supervisor", "location": "Lusk, County Dublin, Ireland",
+             "postDate": "September, 25 2026 15:51:49", "description": "<p>Lead the shift</p>",
+             "salary": "€14.50 per hour", "isPublished": True, "scope": ["public"]},
+            {"id": 104522, "name": "Internal Role", "location": "Cork", "isPublished": True, "scope": ["internal"]},
+        ],
+    }}))
+
+    result = RezoomoAdapter().fetch("acme-stores")
+
+    assert result.status is CrawlStatus.OK
+    [job] = result.jobs
+    assert job.url == "https://www.rezoomo.com/job/104521/"
+    assert job.location_raw == "Lusk, County Dublin, Ireland"
+    assert job.description.startswith("<p>Salary: €14.50 per hour</p>")
+    assert (job.posted_at.year, job.posted_at.month, job.posted_at.day) == (2026, 9, 25)
+
+
+@respx.mock
+def test_rezoomo_unknown_company_fails_rather_than_emptying_the_board():
+    from jobfinder.sources.rezoomo import API_URL, RezoomoAdapter
+
+    respx.post(API_URL).mock(return_value=httpx.Response(200, json={"success": False, "data": {}}))
+    assert RezoomoAdapter().fetch("nobody").status is CrawlStatus.FAILED
