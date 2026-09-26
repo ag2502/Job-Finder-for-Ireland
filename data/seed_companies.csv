@@ -216,3 +216,8 @@ Roblox,greenhouse,roblox,3,false,curated,Board owner named Roblox by Greenhouse,
 ICON plc,workday,icon:wd3:broadbean_external,1,true,curated,Found through the tenant's robots.txt site list; clinical research roles in Dublin,https://careers.iconplc.com/
 Mallinckrodt,workday,mallinckrodt:wd5:MallinckrodtCareers,3,false,curated,Found through the tenant's robots.txt site list,https://mallinckrodt.wd5.myworkdayjobs.com/MallinckrodtCareers
 Worldpay,workday,worldpay:wd5:Worldpay_External_Careers_Site,3,false,curated,Found through the tenant's robots.txt site list,https://worldpay.wd5.myworkdayjobs.com/Worldpay_External_Careers_Site
+Oracle,oracle_recruiting,eeho.fa.us2.oraclecloud.com|CX_45001,1,false,curated,Oracle's own Candidate Experience site; read for Ireland,https://careers.oracle.com/en/sites/jobsearch
+ServiceNow,smartrecruiters,ServiceNow,1,false,curated,SmartRecruiters board owned by ServiceNow; read for Ireland,https://careers.servicenow.com
+Thermo Fisher Scientific,workday,thermofisher:wd5:ThermoFisherCareers,2,false,curated,Workday board read for Ireland,https://jobs.thermofisher.com
+Morgan Stanley,eightfold,morganstanley,2,false,curated,Eightfold board read for Ireland,https://morganstanley.eightfold.ai/careers
+HP,workday,hp:wd5:ExternalCareerSite,2,false,curated,Workday board read for Ireland,https://jobs.hp.com
