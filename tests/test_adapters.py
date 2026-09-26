@@ -929,3 +929,69 @@ def test_phenom_response_without_facets_fails_rather_than_emptying_the_board():
     )
 
     assert PhenomAdapter().fetch("careers.acme.com").status is CrawlStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# CoreHR
+# ---------------------------------------------------------------------------
+
+
+def _corehr_page(refs: list[str], total: int, next_start: int | None) -> str:
+    rows = "".join(
+        f'<tr><td class="erq_searchv4_result_row"><table><tr><td class="erq_searchv4_heading4">'
+        f'<a class="erq_searchv4_big_anchor" href="javascript:viewTheJobSpec(\'{ref}\')">Lecturer {ref} (Ref: X/1)</a></td>'
+        f'<td><a href="javascript:applyForJob(\'{ref}\', \'N\')">Apply</a></td></tr>'
+        f'<tr><td>Job Ref :</td><td>{ref}</td><td>Close Date :</td><td>30-Sep-2026</td></tr>'
+        f'<tr><td>Salary :</td><td>&euro;52,519 - &euro;67,129</td><td>Dept :</td><td>School of Law</td></tr>'
+        f'<script>var links = 1;</script></table></td></tr>'
+        for ref in refs
+    )
+    forward = (
+        '<form name="searchv4navigateresultsforward" action="x" method="post">'
+        f'<input name="p_start_from" type="hidden" value="{next_start}"></form>'
+        if next_start is not None else ""
+    )
+    return f"<td>Your search returned {total} results</td><table>{rows}</table>{forward}"
+
+
+@respx.mock
+def test_corehr_follows_the_tenants_own_page_size():
+    """Maynooth shows eight a page; assuming ten skipped two roles on every page."""
+    from urllib.parse import parse_qs
+
+    from jobfinder.sources.corehr import CoreHRAdapter
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        form = {k: v[0] for k, v in parse_qs(request.content.decode(), keep_blank_values=True).items()}
+        assert form["p_competition_type"] == "ALLOPTIONS" and "p_keywords" in form
+        start = form.get("p_start_from")
+        if start is None:
+            return httpx.Response(200, text=_corehr_page(["001", "002"], total=3, next_start=2))
+        assert start == "2"
+        return httpx.Response(200, text=_corehr_page(["003"], total=3, next_start=None))
+
+    respx.post("https://my.corehr.com/pls/acmerecruit/erq_search_version_4.start_search_with_params").mock(
+        side_effect=serve
+    )
+
+    result = CoreHRAdapter().fetch("acmerecruit|1|Dublin, Ireland")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.source_job_id for j in result.jobs] == ["001", "002", "003"]
+    job = result.jobs[0]
+    assert job.title == "Lecturer 001 (Ref: X/1)"
+    assert job.location_raw == "Dublin, Ireland"
+    assert job.department == "School of Law"
+    assert "Salary: €52,519 - €67,129" in job.description
+    assert "var links" not in job.description
+    assert job.url.startswith("https://my.corehr.com/pls/acmerecruit/erq_search_package.search_form")
+
+
+@respx.mock
+def test_corehr_tenant_without_a_results_page_fails():
+    from jobfinder.sources.corehr import CoreHRAdapter
+
+    respx.post(url__startswith="https://my.corehr.com/pls/gone/").mock(
+        return_value=httpx.Response(200, text="<html>CoreError Page</html>")
+    )
+    assert CoreHRAdapter().fetch("gone|1|Dublin").status is CrawlStatus.FAILED
