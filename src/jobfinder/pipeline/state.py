@@ -196,6 +196,14 @@ def _upsert_jobs(
     for raw in jobs:
         if not raw.source_job_id or not raw.title:
             continue
+        if raw.source_job_id in seen:
+            # Two postings under one id would break the unique constraint and, with it,
+            # the whole run's transaction: every other source's work would be lost to
+            # one adapter's bad identifier. Keep the first and say so.
+            logger.warning(
+                "source %s returned id %r twice; keeping the first", source.slug, raw.source_job_id
+            )
+            continue
         seen.add(raw.source_job_id)
 
         # Aggregator sources carry many employers under one source, so the company is a

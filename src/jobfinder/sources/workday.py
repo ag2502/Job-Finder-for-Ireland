@@ -55,6 +55,7 @@ IRELAND_COUNTRY_ID = "04a05835925f45b3a59406a2a6b72c8a"
 
 _IRISH_WORDS = re.compile(r"\b(ireland|irl|eire|éire)\b", re.IGNORECASE)
 _MULTI_LOCATION = re.compile(r"^\s*\d+\s+locations?\s*$", re.IGNORECASE)
+_HAS_DIGIT = re.compile(r"\d")
 _RELATIVE_DAYS = re.compile(r"(\d+)\+?\s*days?\s*ago", re.IGNORECASE)
 
 
@@ -285,7 +286,11 @@ class WorkdayAdapter(BaseAdapter):
         client: httpx.Client,
     ) -> RawJob:
         path = item["externalPath"]
-        req_id = next(iter(item.get("bulletFields") or []), None) or path
+        # The first bullet is the requisition id on most tenants, and existing rows are
+        # keyed on it. Some tenants put a tag there instead - Intel's "Spotlight Job" -
+        # which is shared by many roles, so a bullet without a digit is not trusted.
+        first_bullet = next(iter(item.get("bulletFields") or []), None)
+        req_id = first_bullet if first_bullet and _HAS_DIGIT.search(first_bullet) else None
         public_url = f"https://{tenant}.{wdhost}.myworkdayjobs.com/{site}{path}"
 
         location = self._list_location(item)
@@ -303,6 +308,7 @@ class WorkdayAdapter(BaseAdapter):
             location = info.get("location") or location
             extra = [loc for loc in info.get("additionalLocations") or [] if loc]
             public_url = info.get("externalUrl") or public_url
+            req_id = req_id or info.get("jobReqId")
             if info.get("startDate"):
                 try:
                     posted_at = datetime.fromisoformat(info["startDate"]).replace(
@@ -316,7 +322,7 @@ class WorkdayAdapter(BaseAdapter):
         self.polite_pause()
 
         return RawJob(
-            source_job_id=str(req_id),
+            source_job_id=str(req_id or path),
             title=item.get("title") or "",
             url=public_url,
             location_raw=location,

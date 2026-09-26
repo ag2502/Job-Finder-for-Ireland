@@ -283,3 +283,16 @@ def test_a_refresh_without_the_advert_keeps_the_one_already_stored(session, sour
     session.flush()
 
     assert "Build payment systems" in (_by_id(session, "1").description or "")
+
+
+def test_an_id_repeated_within_one_fetch_does_not_abort_the_run(session, source, company, run):
+    """Regression: two Intel postings both carried the id "Spotlight Job".
+
+    The second insert broke the unique constraint, which failed the flush and with it
+    every other source's work in the run.
+    """
+    stats = _reconcile(session, source, company, run, ok_result("1", "1", "2"))
+    session.flush()
+
+    assert stats.created == 2
+    assert sorted(j.source_job_id for j in _jobs(session)) == ["1", "2"]

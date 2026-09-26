@@ -206,3 +206,28 @@ def test_a_query_cut_off_by_the_page_ceiling_is_partial(monkeypatch):
 
     assert result.status is CrawlStatus.PARTIAL
     assert len(result.jobs) == 40
+
+
+@respx.mock
+def test_a_tag_in_the_first_bullet_is_not_used_as_the_id():
+    """Intel's first bullet is sometimes "Spotlight Job", shared by many roles."""
+    first = {**posting(1, "Dublin"), "bulletFields": ["Spotlight Job"]}
+    second = {**posting(2, "Dublin"), "bulletFields": ["Spotlight Job"]}
+    tenant = Tenant(
+        [first, second, posting(3, "Dublin")],
+        facets=[{"facetParameter": "locations", "values": [
+            {"descriptor": "Dublin, Ireland", "id": DUBLIN_ID},
+        ]}],
+        by_facet=lambda p, applied: True,
+        by_text=lambda p, text: False,
+        details={
+            first["externalPath"]: {"location": "Dublin, Ireland", "jobReqId": "JR0001"},
+            second["externalPath"]: {"location": "Dublin, Ireland", "jobReqId": "JR0002"},
+        },
+    )
+    tenant.mount()
+
+    result = WorkdayAdapter().fetch(SLUG)
+
+    # Real requisition ids keep the ids stored for existing roles unchanged.
+    assert sorted(j.source_job_id for j in result.jobs) == ["JR0001", "JR0002", "R-3"]
