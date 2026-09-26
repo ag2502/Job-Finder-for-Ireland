@@ -1178,3 +1178,35 @@ def test_taleo_tbe_follows_the_scroll_pages():
     job = result.jobs[0]
     assert (job.title, job.location_raw) == ("Sales Associate 1", "Store, Dublin")
     assert job.url.endswith("org=ACME&cws=7&rid=1")
+
+
+@respx.mock
+def test_wordpress_reads_a_vacancy_post_type_and_its_stated_location():
+    from jobfinder.sources.wordpress import WordPressAdapter
+
+    posts = [
+        {"id": 1, "status": "publish", "link": "https://acme.ie/vacancy/deli-assistant/", "date_gmt": "2026-09-25T16:36:34",
+         "title": {"rendered": "Deli Assistant"}, "content": {"rendered": "<p>Job title Deli Assistant</p><p>Location&nbsp;Centra Rathmines&nbsp;</p>"}},
+        {"id": 2, "status": "publish", "link": "https://acme.ie/vacancy/analyst/", "date_gmt": "2026-09-24T10:00:00",
+         "title": {"rendered": "Analyst &#8211; Finance"}, "content": {"rendered": "<p>Join us</p>"}, "meta": {"_job_location": "Dublin 2"}},
+    ]
+    respx.get("https://acme.ie/wp-json/wp/v2/vacancy").mock(
+        return_value=httpx.Response(200, json=posts, headers={"X-WP-Total": "2", "X-WP-TotalPages": "1"})
+    )
+
+    result = WordPressAdapter().fetch("acme.ie|vacancy")
+
+    assert result.status is CrawlStatus.OK
+    deli, analyst = result.jobs
+    assert deli.location_raw == "Centra Rathmines"
+    assert (analyst.title, analyst.location_raw) == ("Analyst – Finance", "Dublin 2")
+
+
+@respx.mock
+def test_wordpress_short_read_fails():
+    from jobfinder.sources.wordpress import WordPressAdapter
+
+    respx.get("https://acme.ie/wp-json/wp/v2/vacancy").mock(
+        return_value=httpx.Response(200, json=[], headers={"X-WP-Total": "5", "X-WP-TotalPages": "1"})
+    )
+    assert WordPressAdapter().fetch("acme.ie|vacancy").status is CrawlStatus.FAILED

@@ -53,6 +53,7 @@ def load_adapters() -> None:
         teamtailor,
         workable,
         workday,
+        wordpress,
     )
 
     # Tier 1b: employers on bespoke platforms.
