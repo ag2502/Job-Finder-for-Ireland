@@ -853,3 +853,24 @@ def test_a_retired_source_is_switched_off_and_the_rest_are_left_alone(session, t
     assert retire_sources(session, retired) == 1
     assert (wrong.enabled, right.enabled) == (False, True)
     assert retire_sources(session, retired) == 0  # idempotent
+
+
+@respx.mock
+def test_a_greenhouse_board_under_someone_elses_name_is_rejected():
+    """Regression: the "linkedin" Greenhouse board belongs to "LI Test Company"."""
+    from jobfinder.registry.bulk_detect import board_belongs_to
+
+    respx.get("https://boards-api.greenhouse.io/v1/boards/linkedin").mock(
+        return_value=httpx.Response(200, json={"name": "LI Test Company"})
+    )
+    respx.get("https://boards-api.greenhouse.io/v1/boards/stripe").mock(
+        return_value=httpx.Response(200, json={"name": "Stripe"})
+    )
+    linkedin = Company(name="LinkedIn", normalized_name="linkedin", website="https://linkedin.com",
+                       coverage_state=CoverageState.UNRESOLVED)
+    stripe = Company(name="Stripe", normalized_name="stripe", website="https://stripe.com",
+                     coverage_state=CoverageState.UNRESOLVED)
+
+    with build_client() as client:
+        assert not board_belongs_to("greenhouse", "linkedin", linkedin, client)
+        assert board_belongs_to("greenhouse", "stripe", stripe, client)

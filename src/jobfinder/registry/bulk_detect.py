@@ -101,6 +101,11 @@ def _owner_named_by_board(adapter: str, slug: str, client: httpx.Client | None) 
     owns = client is None
     client = client or build_client()
     try:
+        if adapter == "greenhouse":
+            # Greenhouse names every board's owner. A probe under a company's name finds
+            # whoever registered that slug: "linkedin" belongs to "LI Test Company".
+            response = client.get(f"https://boards-api.greenhouse.io/v1/boards/{slug}")
+            return (response.json() or {}).get("name") if response.status_code == 200 else None
         if adapter == "breezy":
             from jobfinder.sources.breezy import board_owner
 
@@ -148,7 +153,7 @@ def board_belongs_to(adapter: str, slug: str, company: Company, client) -> bool:
     return bool(words) and any(len(w) >= 4 for w in words) and all(w in board for w in words)
 
 
-OWNERSHIP_CHECKED = {"breezy", "eightfold", "hirehive", "occupop", "pinpoint"}
+OWNERSHIP_CHECKED = {"breezy", "eightfold", "greenhouse", "hirehive", "occupop", "pinpoint"}
 NON_ALNUM = re.compile(r"[^a-z0-9]+")
 
 # How many companies to process between commits. Small enough that little is lost to a
