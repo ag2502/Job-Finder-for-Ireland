@@ -870,3 +870,62 @@ def test_oleeo_slug_is_read_from_a_board_url():
 
     url = "https://dunnes.tal.net/vx/lang-en-GB/mobile-0/appcentre-ext/brand-4/candidate/jobboard/vacancy/3/adv/"
     assert slug_from_url(url) == "dunnes.tal.net|3"
+
+
+# ---------------------------------------------------------------------------
+# Phenom
+# ---------------------------------------------------------------------------
+
+PHENOM_HOME = '<script>phApp.ddo = {"siteConfig":{"locale":"en_gb","country":"gb","refNum":"ACMEGB","siteType":"external"}};</script>'
+
+
+def _phenom_search(request: httpx.Request) -> httpx.Response:
+    import json as _json
+
+    body = _json.loads(request.content)
+    if body["ddoKey"] == "jobDetail":
+        return httpx.Response(200, json={"jobDetail": {"data": {"job": {"description": f"<p>Full advert {body['jobId']}</p>"}}}})
+    assert (body["lang"], body["country"]) == ("en_gb", "gb")
+    aggregations = [{"field": "country", "value": {"IRL": 3, "Netherlands": 40}}]
+    if not body["selected_fields"]:
+        return httpx.Response(200, json={"refineSearch": {"totalHits": 43, "data": {"jobs": [], "aggregations": aggregations}}})
+    assert body["selected_fields"] == {"country": ["IRL"]}
+    jobs = [
+        {"jobId": str(n), "title": f"Site Engineer {n}", "location": "Dublin, IRL",
+         "multi_location": ["Dublin, IRL", "Kill, Kildare, IRL"], "postedDate": "2026-09-01T00:00:00.000+0000",
+         "category": "Engineering", "descriptionTeaser": "Teaser"}
+        for n in range(3)
+    ][body["from"]:body["from"] + body["size"]]
+    return httpx.Response(200, json={"refineSearch": {"totalHits": 3, "data": {"jobs": jobs, "aggregations": aggregations}}})
+
+
+@respx.mock
+def test_phenom_filters_by_the_sites_own_irish_facet_value(monkeypatch):
+    """BAM's facet names Ireland "IRL"; the value is read from the facets, not assumed."""
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.phenom import PhenomAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    respx.get("https://careers.acme.com/").mock(return_value=httpx.Response(200, text=PHENOM_HOME))
+    respx.post("https://careers.acme.com/widgets").mock(side_effect=_phenom_search)
+
+    result = PhenomAdapter().fetch("careers.acme.com")
+
+    assert result.status is CrawlStatus.OK
+    assert len(result.jobs) == 3
+    job = result.jobs[0]
+    assert job.url == "https://careers.acme.com/gb/en/job/0"
+    assert (job.location_raw, job.extra_locations) == ("Dublin, IRL", ["Kill, Kildare, IRL"])
+    assert job.description == "<p>Full advert 0</p>"
+
+
+@respx.mock
+def test_phenom_response_without_facets_fails_rather_than_emptying_the_board():
+    from jobfinder.sources.phenom import PhenomAdapter
+
+    respx.get("https://careers.acme.com/").mock(return_value=httpx.Response(200, text=PHENOM_HOME))
+    respx.post("https://careers.acme.com/widgets").mock(
+        return_value=httpx.Response(200, json={"refineSearch": {"status": 500, "data": {}}})
+    )
+
+    assert PhenomAdapter().fetch("careers.acme.com").status is CrawlStatus.FAILED

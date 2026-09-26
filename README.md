@@ -71,6 +71,7 @@ the employer.
 | 1 | `smartrecruiters` | Native `country=ie` facet; list-then-detail for descriptions |
 | 1 | `recruitee` | Full advert in the list response, so one request per board |
 | 1 | `personio` | XML feed; tenant may live on `.de` or `.com` |
+| 1 | `phenom` | Phenom career sites' search widget, filtered by the site's own Irish facet value |
 | 1b | `amazon` | Bespoke platform; `country=IRL` |
 | 1b | `google` | No API, but the careers page is server-rendered |
 | 1b | `apple` | Search page carries its results as hydration data; `ireland-IRL` |

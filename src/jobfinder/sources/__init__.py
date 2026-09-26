@@ -40,6 +40,7 @@ def load_adapters() -> None:
         oleeo,
         oracle_recruiting,
         personio,
+        phenom,
         pinpoint,
         recruitee,
         smartrecruiters,
