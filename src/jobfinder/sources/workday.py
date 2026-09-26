@@ -10,20 +10,26 @@ its own tenant, so a source is addressed by a compound slug:
     tenant:wdhost:site      e.g.  accenture:wd103:AccentureCareers
 
     POST https://{tenant}.{wdhost}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs
-         {"appliedFacets": {}, "limit": 20, "offset": 0, "searchText": "Dublin"}
+         {"appliedFacets": {...}, "limit": 20, "offset": 0, "searchText": ""}
 
-Two shape details drive the implementation:
+The adapter returns a tenant's **Irish** postings and leaves Dublin to the pipeline,
+which checks every office a role lists. Four details of the API drive how:
 
-* The list endpoint omits descriptions and gives only a *relative* date ("Posted
-  Yesterday"). The per-job detail endpoint carries the full description and a real
-  `startDate`, but costs one request each.
-* So the adapter filters to Dublin from the list response first and only then fetches
-  details for the survivors. On a tenant with thousands of global roles that is the
-  difference between ~120 detail requests and several thousand.
-
-`searchText` is a free-text search rather than a location facet — location facet IDs
-differ per tenant and would need discovery. Searching several terms and merging by
-`externalPath` recovers the recall that a single term would lose.
+* `total` is reported on the first page only. Every later page says `"total": 0`, so a
+  loop that re-reads it stops after twenty postings. That is how Mastercard, with 60
+  Dublin roles, was crawled as 37: the first page of "Dublin" and of "Ireland", merged.
+* Location is best read through the tenant's own facets, not free text. Country
+  facets use Workday's global reference id for Ireland on every tenant, under
+  whatever name the tenant gave the facet (`locationCountry`, `Location_Country`,
+  `Country_and_Jurisdiction`, ...). Tenants without one still have a `locations`
+  facet whose values name their offices, and that facet counts a role under each of
+  its offices, not only the first.
+* The list response names only the first office, or just "6 Locations". The per-job
+  detail carries the full description, a real `startDate`, and `additionalLocations`,
+  which is where a Stockholm-led role that is also open in Dublin says so.
+* `searchText` is kept as a safety net for tenants whose facets name no Irish office,
+  and its results are filtered on what the list says before any detail is fetched,
+  since "Dublin" also matches every London role that mentions the Dublin team.
 """
 
 from __future__ import annotations
@@ -34,16 +40,21 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from jobfinder.core.config import settings
 from jobfinder.normalize.location import normalize_location
-from jobfinder.sources.base import BaseAdapter, RawJob, register
+from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 
 logger = logging.getLogger(__name__)
 
 PAGE_SIZE = 20
-MAX_PAGES = 50  # safety stop; 1000 postings per search term is ample for one city
+MAX_PAGES = 50  # safety stop: 1000 postings per query is far above any tenant's Irish set
 SEARCH_TERMS = ("Dublin", "Ireland")
 
+# Workday's reference id for the country Ireland. It is the same on every tenant,
+# because it comes from Workday's global country table rather than the tenant's setup.
+IRELAND_COUNTRY_ID = "04a05835925f45b3a59406a2a6b72c8a"
+
+_IRISH_WORDS = re.compile(r"\b(ireland|irl|eire|éire)\b", re.IGNORECASE)
+_MULTI_LOCATION = re.compile(r"^\s*\d+\s+locations?\s*$", re.IGNORECASE)
 _RELATIVE_DAYS = re.compile(r"(\d+)\+?\s*days?\s*ago", re.IGNORECASE)
 
 
@@ -80,6 +91,51 @@ def parse_slug(slug: str) -> tuple[str, str, str]:
     return parts[0], parts[1], parts[2]
 
 
+def is_irish_place(text: str | None) -> bool:
+    """True for a location string naming Ireland or a Dublin office."""
+    if not text:
+        return False
+    return bool(_IRISH_WORDS.search(text)) or normalize_location(text).is_dublin
+
+
+def irish_facets(facets: list[dict] | None) -> list[dict[str, list[str]]]:
+    """The facet filters that select a tenant's Irish postings.
+
+    Returns one `appliedFacets` body per filter: the country facet if the tenant has
+    one, and its Irish office values if it has those. Both are kept because they are
+    not always the same set — a tenant's country facet may count a role only under its
+    first office, while its `locations` facet counts every office.
+    """
+    country: dict[str, list[str]] = {}
+    offices: dict[str, list[str]] = {}
+
+    def walk(entries: list[dict], parameter: str | None) -> None:
+        for entry in entries or []:
+            name = entry.get("facetParameter") or parameter
+            values = entry.get("values")
+            if values is not None:
+                walk(values, name)
+                continue
+            value_id = entry.get("id")
+            if not (name and value_id):
+                continue
+            if value_id == IRELAND_COUNTRY_ID:
+                country.setdefault(name, []).append(value_id)
+            elif "location" in name.lower() and is_irish_place(entry.get("descriptor")):
+                offices.setdefault(name, []).append(value_id)
+
+    walk(facets or [], None)
+
+    filters: list[dict[str, list[str]]] = []
+    # One filter per facet: values within a facet are OR-ed by Workday, but separate
+    # facets are AND-ed, which would ask for roles that are in every listed place.
+    for name, ids in country.items():
+        filters.append({name: ids})
+    for name, ids in offices.items():
+        filters.append({name: ids})
+    return filters
+
+
 class WorkdayAdapter(BaseAdapter):
     name = "workday"
     tier = 1
@@ -88,62 +144,117 @@ class WorkdayAdapter(BaseAdapter):
         tenant, wdhost, site = parse_slug(slug)
         base = f"https://{tenant}.{wdhost}.myworkdayjobs.com/wday/cxs/{tenant}/{site}"
 
-        listings = self._collect_listings(base, client)
-        logger.info("workday %s: %d unique listings across search terms", slug, len(listings))
+        first = self._post(base, client, {}, "", 0)
+        filters = irish_facets(first.get("facets"))
 
-        # Filter before enriching - see module docstring.
-        dublin = [item for item in listings.values() if self._looks_dublin(item)]
-        logger.info("workday %s: %d look like Dublin, fetching details", slug, len(dublin))
+        # Postings a facet placed in Ireland need no further evidence. Postings found
+        # only by free text do, and are held to what their list entry says.
+        by_facet: dict[str, dict] = {}
+        by_text: dict[str, dict] = {}
+        complete = True
 
-        jobs: list[RawJob] = []
-        for item in dublin:
-            jobs.append(self._build_job(base, tenant, wdhost, site, item, client))
-        return jobs
-
-    def _collect_listings(
-        self, base: str, client: httpx.Client
-    ) -> dict[str, dict]:
-        """Page through every search term, merging on externalPath."""
-        found: dict[str, dict] = {}
+        for applied in filters:
+            listings, whole = self._collect(base, client, applied, "")
+            by_facet.update(listings)
+            complete = complete and whole
 
         for term in SEARCH_TERMS:
-            offset = 0
-            for _ in range(MAX_PAGES):
-                response = client.post(
-                    f"{base}/jobs",
-                    json={
-                        "appliedFacets": {},
-                        "limit": PAGE_SIZE,
-                        "offset": offset,
-                        "searchText": term,
-                    },
-                    headers={"Content-Type": "application/json"},
-                )
-                response.raise_for_status()
-                payload = response.json()
-                postings = payload.get("jobPostings") or []
-                if not postings:
-                    break
+            listings, whole = self._collect(base, client, {}, term)
+            complete = complete and whole
+            for path, item in listings.items():
+                if path not in by_facet and self._worth_a_detail(item):
+                    by_text.setdefault(path, item)
 
-                for item in postings:
-                    path = item.get("externalPath")
-                    if path:
-                        found.setdefault(path, item)
+        logger.info(
+            "workday %s: %d Irish by facet (%d filters), %d more by search",
+            slug, len(by_facet), len(filters), len(by_text),
+        )
 
-                offset += PAGE_SIZE
-                if offset >= (payload.get("total") or 0):
-                    break
-                self.polite_pause()
+        jobs: list[RawJob] = []
+        for path, item in by_facet.items():
+            jobs.append(self._build_job(base, tenant, wdhost, site, item, client))
+        for path, item in by_text.items():
+            job = self._build_job(base, tenant, wdhost, site, item, client)
+            # A multi-office role is fetched on suspicion; keep it only if one of its
+            # offices turned out to be Irish.
+            if any(is_irish_place(loc) for loc in [job.location_raw, *job.extra_locations]):
+                jobs.append(job)
 
-        return found
+        return jobs if complete else PartialJobs(jobs)
+
+    def _post(
+        self,
+        base: str,
+        client: httpx.Client,
+        applied: dict[str, list[str]],
+        search_text: str,
+        offset: int,
+    ) -> dict:
+        response = client.post(
+            f"{base}/jobs",
+            json={
+                "appliedFacets": applied,
+                "limit": PAGE_SIZE,
+                "offset": offset,
+                "searchText": search_text,
+            },
+            headers={"Content-Type": "application/json"},
+        )
+        response.raise_for_status()
+        return response.json()
+
+    def _collect(
+        self,
+        base: str,
+        client: httpx.Client,
+        applied: dict[str, list[str]],
+        search_text: str,
+    ) -> tuple[dict[str, dict], bool]:
+        """Page through one query, merging on externalPath.
+
+        Returns the listings and whether the query was read to the end. `total` is
+        taken from the first page alone, because Workday reports it there and nowhere
+        else; a short or empty page also ends the query, which covers a tenant that
+        omits it altogether.
+        """
+        found: dict[str, dict] = {}
+        total: int | None = None
+        offset = 0
+
+        for _ in range(MAX_PAGES):
+            payload = self._post(base, client, applied, search_text, offset)
+            if total is None:
+                total = payload.get("total") or 0
+            postings = payload.get("jobPostings") or []
+
+            for item in postings:
+                path = item.get("externalPath")
+                if path:
+                    found.setdefault(path, item)
+
+            offset += PAGE_SIZE
+            if len(postings) < PAGE_SIZE or offset >= total:
+                return found, True
+            self.polite_pause()
+
+        logger.warning(
+            "workday %s %r: stopped at %d pages of %d postings", base, search_text or applied,
+            MAX_PAGES, total,
+        )
+        return found, False
 
     @staticmethod
     def _list_location(item: dict) -> str | None:
         """Recover a location string from the list response.
 
-        `bulletFields` is typically [requisitionId, location], and the externalPath is
-        shaped /job/{Location}/{Title}_{ReqId}. Either can be missing, so both are tried.
+        `locationsText` is the field the careers page shows. Older tenants put the
+        location in `bulletFields` ([requisitionId, location]) instead, and the
+        externalPath is shaped /job/{Location}/{Title}_{ReqId}, so both are tried.
         """
+        text = item.get("locationsText")
+        if text:
+            return text
+
         bullets = [b for b in (item.get("bulletFields") or []) if b]
         if len(bullets) >= 2:
             return bullets[-1]
@@ -154,13 +265,15 @@ class WorkdayAdapter(BaseAdapter):
             return match.group(1).replace("-", " ")
         return None
 
-    def _looks_dublin(self, item: dict) -> bool:
+    def _worth_a_detail(self, item: dict) -> bool:
+        """Whether a free-text hit might be Irish, judged from its list entry alone."""
         location = self._list_location(item)
-        if location and normalize_location(location).is_dublin:
+        if location and _MULTI_LOCATION.match(location):
+            return True  # the offices are only in the detail
+        if is_irish_place(location):
             return True
         # The title itself sometimes carries the office when the location is generic.
-        title = item.get("title") or ""
-        return normalize_location(title).is_dublin
+        return normalize_location(item.get("title") or "").is_dublin
 
     def _build_job(
         self,
@@ -176,6 +289,7 @@ class WorkdayAdapter(BaseAdapter):
         public_url = f"https://{tenant}.{wdhost}.myworkdayjobs.com/{site}{path}"
 
         location = self._list_location(item)
+        extra: list[str] = []
         description = None
         posted_at = parse_posted_on(item.get("postedOn"))
 
@@ -187,6 +301,7 @@ class WorkdayAdapter(BaseAdapter):
             info = detail.json().get("jobPostingInfo") or {}
             description = info.get("jobDescription")
             location = info.get("location") or location
+            extra = [loc for loc in info.get("additionalLocations") or [] if loc]
             public_url = info.get("externalUrl") or public_url
             if info.get("startDate"):
                 try:
@@ -207,6 +322,7 @@ class WorkdayAdapter(BaseAdapter):
             location_raw=location,
             description=description,
             posted_at=posted_at,
+            extra_locations=extra,
         )
 
 
