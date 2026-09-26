@@ -216,3 +216,6 @@ Adyen,greenhouse,adyen,2,false,curated,Board owner named Adyen by Greenhouse,htt
 SumUp,greenhouse,sumup,3,false,curated,Board owner named SumUp by Greenhouse; Dublin office,https://www.sumup.com/careers/
 Deliveroo,greenhouse,deliveroo,2,false,curated,Board owner named Deliveroo by Greenhouse,https://careers.deliveroo.co.uk
 Roblox,greenhouse,roblox,3,false,curated,Board owner named Roblox by Greenhouse,https://careers.roblox.com
+ICON plc,workday,icon:wd3:broadbean_external,1,true,curated,Found through the tenant's robots.txt site list; clinical research roles in Dublin,https://careers.iconplc.com/
+Mallinckrodt,workday,mallinckrodt:wd5:MallinckrodtCareers,3,false,curated,Found through the tenant's robots.txt site list,https://mallinckrodt.wd5.myworkdayjobs.com/MallinckrodtCareers
+Worldpay,workday,worldpay:wd5:Worldpay_External_Careers_Site,3,false,curated,Found through the tenant's robots.txt site list,https://worldpay.wd5.myworkdayjobs.com/Worldpay_External_Careers_Site
