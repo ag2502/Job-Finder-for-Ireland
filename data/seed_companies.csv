@@ -238,3 +238,9 @@ Enterprise Ireland,rezoomo,enterprise-ireland,2,false,curated,Rezoomo company pa
 Supermac's,rezoomo,supermacs,3,false,curated,Rezoomo company page,https://www.rezoomo.com/company/supermacs/jobs/
 Bord na Mona,rezoomo,bord-na-mona,2,false,curated,Rezoomo company page,https://www.rezoomo.com/company/bord-na-mona/jobs/
 Dogpatch Labs,rezoomo,dogpatch-labs,4,false,curated,Rezoomo company page,https://www.rezoomo.com/company/dogpatch-labs/jobs/
+Goldman Sachs,oracle_recruiting,hdpc.fa.us2.oraclecloud.com|LateralHiring,2,false,curated,Oracle Candidate Experience site read for Ireland,https://higher.gs.com
+Ornua,successfactors,careers.ornua.com,2,false,curated,SuccessFactors careers site,https://careers.ornua.com/search/
+C&C Group,careers_html,https://careers.candcgroupplc.com/vacancies/,2,true,curated,Vacancy list read by the generic HTML reader,https://careers.candcgroupplc.com/vacancies/
+Aircraft Leasing - AerCap,careers_html,https://www.aercap.com/careers/career-opportunities,2,true,curated,Vacancy list read by the generic HTML reader,https://www.aercap.com/careers/career-opportunities
+Jazz Pharmaceuticals,careers_html,https://careers.jazzpharma.com/jobs/,2,false,curated,Own job search; its Workday site refuses the public API,https://careers.jazzpharma.com/jobs/
+Maples Group,careers_html,https://maplesgroupcareers.ttcportals.com/search/jobs,2,false,curated,Careers portal read by the generic HTML reader,https://maplesgroupcareers.ttcportals.com/
