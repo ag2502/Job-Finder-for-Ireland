@@ -199,3 +199,4 @@ Kerry Group,phenom,jobs.kerry.com,1,true,curated,Phenom site; its SuccessFactors
 Ryanair,successfactors,jobs.ryanair.com|Ireland,1,true,curated,Global board searched for Ireland (Dublin and Shannon),https://careers.ryanair.com/jobs/
 CRH,successfactors,jobs.crh.com|Ireland,1,true,curated,SuccessFactors search app read through its JSON endpoint,https://jobs.crh.com/go/CRH-International/9763801/
 Vodafone Ireland,successfactors,opportunities.vodafone.com|Ireland,1,false,curated,Vodafone group board searched for Ireland,https://opportunities.vodafone.com
+Health Service Executive,hse,all,1,false,bespoke,HSE job search read page by page; confined competitions left out,https://about.hse.ie/jobs/job-search/

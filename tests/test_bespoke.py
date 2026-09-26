@@ -204,3 +204,46 @@ def test_revolut_page_without_positions_fails():
 
     respx.get(revolut.CAREERS_URL).mock(return_value=httpx.Response(200, text=revolut_page("positions", [])))
     assert revolut.RevolutAdapter().fetch("Ireland").status is CrawlStatus.FAILED
+
+
+def hse_page(cards: list[tuple[str, str, str | None]], total: int = 3) -> str:
+    items = "".join(
+        f'<li class="hse-listing__item hse-u-padding-bottom-3" data-testid="hse-listing__item"><article>'
+        f'<h3><a class="hse-listing__link" href="/jobs/job-search/{slug}/">{slug.replace("-", " ").title()}</a></h3>'
+        + (f'<p>Advertisement Type: {kind}</p>' if kind else "")
+        + f'<p>Category: Nursing</p><p>County: {county}</p>'
+        f'<ul><li><time dateTime="2026-09-26T07:14:20+01:00">26 September 2026</time></li></ul></article></li>'
+        for slug, county, kind in cards
+    )
+    return f"<p>{total} jobs</p><ol class=\"hse-listing__list\">{items}</ol>"
+
+
+@respx.mock
+def test_hse_reads_every_page_and_leaves_out_confined_competitions():
+    from jobfinder.sources.bespoke import hse
+
+    pages = {
+        "1": hse_page([("staff-nurse-dsn1", "Dublin South", None), ("cnm-2-gal", "Galway", None)]),
+        "2": hse_page([("grade-iv-kk", "Kilkenny", "Confined competition")]),
+        "3": "<ol class=\"hse-listing__list\"></ol>",
+    }
+    respx.get(hse.LIST_URL).mock(side_effect=lambda r: httpx.Response(200, text=pages[r.url.params["page"]]))
+
+    result = hse.HSEAdapter().fetch("all")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.source_job_id for j in result.jobs] == ["staff-nurse-dsn1", "cnm-2-gal"]
+    nurse = result.jobs[0]
+    assert nurse.url == "https://about.hse.ie/jobs/job-search/staff-nurse-dsn1/"
+    assert resolve_location(nurse).is_dublin
+    assert nurse.department == "Nursing"
+
+
+@respx.mock
+def test_hse_read_well_short_of_the_stated_total_fails():
+    from jobfinder.sources.bespoke import hse
+
+    pages = {"1": hse_page([("a-1", "Dublin", None)], total=300), "2": "<ol class=\"hse-listing__list\"></ol>"}
+    respx.get(hse.LIST_URL).mock(side_effect=lambda r: httpx.Response(200, text=pages[r.url.params["page"]]))
+
+    assert hse.HSEAdapter().fetch("all").status is CrawlStatus.FAILED

@@ -78,6 +78,7 @@ the employer.
 | 1b | `tiktok` | Public search API; city code `CT_37` is Dublin |
 | 1b | `ibm` | IBM's site search API, filtered to Ireland |
 | 1b | `revolut` | Every position is embedded in the careers page; Irish ones kept |
+| 1b | `hse` | HSE job search, paged; confined competitions (staff only) left out |
 | 3 | `jsonld` | Generic `schema.org/JobPosting` extraction from any careers site |
 | 4 | `adzuna` | Licensed aggregator; one source carries many employers |
 
