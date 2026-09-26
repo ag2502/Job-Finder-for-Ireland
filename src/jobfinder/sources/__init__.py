@@ -34,6 +34,7 @@ def load_adapters() -> None:
         cornerstone,
         eightfold,
         greenhouse,
+        hibob,
         hirehive,
         hrmanager,
         icims,

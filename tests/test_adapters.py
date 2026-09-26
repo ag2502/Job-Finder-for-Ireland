@@ -1210,3 +1210,24 @@ def test_wordpress_short_read_fails():
         return_value=httpx.Response(200, json=[], headers={"X-WP-Total": "5", "X-WP-TotalPages": "1"})
     )
     assert WordPressAdapter().fetch("acme.ie|vacancy").status is CrawlStatus.FAILED
+
+
+@respx.mock
+def test_hibob_reads_jobs_with_the_tenant_header():
+    from jobfinder.sources.hibob import HiBobAdapter
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        if request.headers.get("companyidentifier") != "acme":
+            return httpx.Response(401)
+        return httpx.Response(200, json={"jobAdDetails": [
+            {"id": "c078", "title": "Procurement Executive", "site": "Dublin", "country": "Ireland",
+             "department": "Finance", "workspaceTypeId": "on_site", "publishedAt": "2026-09-10T15:43:38.817Z",
+             "responsibilities": "<p>Buy things</p>", "requirements": None},
+        ]})
+
+    respx.get("https://acme.careers.hibob.com/api/job-ad").mock(side_effect=serve)
+
+    [job] = HiBobAdapter().fetch("acme").jobs
+    assert (job.location_raw, job.department) == ("Dublin, Ireland", "Finance")
+    assert job.url == "https://acme.careers.hibob.com/jobs/c078"
+    assert job.description == "<p>Buy things</p>"

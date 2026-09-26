@@ -78,6 +78,7 @@ the employer.
 | 1 | `hrmanager` | HR Manager job portal JSON list per customer |
 | 1 | `taleo_tbe` | Taleo Business Edition career sections, following their scroll pages |
 | 1 | `wordpress` | A WordPress site's vacancy post type, through the REST API |
+| 1 | `hibob` | HiBob hosted careers sites |
 | 1b | `amazon` | Bespoke platform; `country=IRL` |
 | 1b | `google` | No API, but the careers page is server-rendered |
 | 1b | `apple` | Search page carries its results as hydration data; `ireland-IRL` |
