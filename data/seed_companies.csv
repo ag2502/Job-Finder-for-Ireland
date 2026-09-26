@@ -55,14 +55,14 @@ Eurofins,smartrecruiters,Eurofins,3,false,recovered,Registered by the 2026-09-13
 Bearingpoint Ireland,greenhouse,bearingpoint,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.bearingpoint.com/en/careers/
 Dell Technologies,oracle_recruiting,enterpriseplatform.dell.com|careers,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://enterpriseplatform.dell.com/hcmUI/CandidateExperience/en/sites/careers
 Phorest,teamtailor,careers.phorest.com,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.phorest.com/
-SAP,successfactors,jobs.sap.com,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://jobs.sap.com
+SAP,successfactors,careers.sap.com|Ireland,1,false,curated,jobs.sap.com is a new site with few roles; the rest stay on careers.sap.com; searched for Ireland,https://careers.sap.com/search/?locationsearch=Ireland
 Scopely,greenhouse,scopely,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.scopely.com/us/en/c/art-jobs
 Capgemini,successfactors,careers.capgemini.com,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.capgemini.com
 Glanbia,successfactors,careers.glanbia.com,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.glanbia.com
 Ocuco,bamboohr,ocuco,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.ocuco.com/company/careers/
 AIB,successfactors,jobs.aib.ie,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.aib.ie/careers
 AMCS Group,jsonld,https://www.amcsgroup.com/careers/,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.amcsgroup.com/careers/
-BAM Ireland,jsonld,https://www.bamcareers.com/ie/en,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.bamcareers.com/ie/en
+BAM Ireland,phenom,www.bamcareers.com,2,false,curated,Phenom site read for Ireland (facet value IRL) instead of sampled as JSON-LD,https://www.bamcareers.com/ie/en
 FreeNow,greenhouse,freenow,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://free-now.com
 Smyths Toys,successfactors,careers.smythstoys.com,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.smythstoys.com
 Bank of Ireland,jsonld,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers
@@ -171,7 +171,7 @@ Vertical Bridge,greenhouse,verticalbridge,4,false,recovered,Registered by the 20
 Willis Towers Watson,jsonld,https://careers.wtwco.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.wtwco.com
 Wise,jsonld,https://wise.jobs/,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://wise.jobs/
 Xilinx,icims,careers.amd.com,3,false,curated,AMD's board (Xilinx is now AMD Dublin), read for Ireland,https://careers.amd.com/careers-home/jobs
-Zimmer Biomet,jsonld,https://careers.zimmerbiomet.com/us/en,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.zimmerbiomet.com/us/en
+Zimmer Biomet,phenom,careers.zimmerbiomet.com,2,false,curated,Phenom site read for Ireland instead of sampled as JSON-LD; Shannon,https://careers.zimmerbiomet.com
 Zinkworks,teamtailor,zinkworks,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.zinkworks.com/careers/
 Public Appointments Service,publicjobs,3,1,false,board,publicjobs.ie main board - every civil and public service competition,https://www.publicjobs.ie/en/
 Public Appointments Service,publicjobs,6,1,false,board,publicjobs.ie medical consultants board,https://www.publicjobs.ie/en/
@@ -197,3 +197,7 @@ Regeneron Ireland,workday,regeneron:wd1:Careers,2,false,curated,Found through th
 GSK Ireland,workday,gsk:wd5:GSKCareers,2,false,curated,Found through the tenant's robots.txt site list,https://gsk.wd5.myworkdayjobs.com/GSKCareers
 Expedia,workday,expedia:wd108:search,2,false,curated,Found through the tenant's robots.txt site list,https://expedia.wd108.myworkdayjobs.com/search
 Revolut,revolut,Ireland,1,false,bespoke,Positions embedded in the careers page; Irish ones read with their adverts,https://www.revolut.com/careers/?city=Dublin
+Kerry Group,phenom,jobs.kerry.com,1,true,curated,Phenom site; its SuccessFactors back end has no public search,https://jobs.kerry.com
+Ryanair,successfactors,jobs.ryanair.com|Ireland,1,true,curated,Global board searched for Ireland (Dublin and Shannon),https://careers.ryanair.com/jobs/
+CRH,successfactors,jobs.crh.com|Ireland,1,true,curated,SuccessFactors search app read through its JSON endpoint,https://jobs.crh.com/go/CRH-International/9763801/
+Vodafone Ireland,successfactors,opportunities.vodafone.com|Ireland,1,false,curated,Vodafone group board searched for Ireland,https://opportunities.vodafone.com
