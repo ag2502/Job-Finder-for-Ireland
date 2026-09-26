@@ -14,6 +14,12 @@ sites (internal, external, campus), and the host alone cannot say which is publi
 `TotalJobsCount` is the site's own size, and pagination is checked against it: an
 incomplete read would otherwise reach the reconciler as a complete board and close the
 roles on unread pages.
+
+The finder's `location` filter narrows a site to one country, and every read uses it
+(Ireland unless the slug names another place as a third part, `host|site|place`, or
+`*` for the whole board). Reading global boards whole was not only slow but broken:
+JPMorgan's has 7,495 roles, past the 6,000 the page ceiling allows, so the fetch failed
+every time and its 73 Dublin roles never appeared. Filtered, it is one page.
 """
 
 from __future__ import annotations
@@ -29,6 +35,7 @@ from jobfinder.sources.base import BaseAdapter, RawJob, register
 PAGE_SIZE = 100
 MAX_PAGES = 60
 COMPLETENESS = 0.95
+DEFAULT_LOCATION = "Ireland"
 
 SITE_URL = re.compile(
     r"https?://([a-z0-9.-]+)/hcmUI/CandidateExperience/[a-z]{2}(?:-[a-z]{2})?/sites/([A-Za-z0-9_-]+)",
@@ -42,11 +49,14 @@ def slug_from_url(url: str) -> str | None:
     return f"{match.group(1).lower()}|{match.group(2)}" if match else None
 
 
-def split_slug(slug: str) -> tuple[str, str]:
-    host, _, site = slug.partition("|")
+def split_slug(slug: str) -> tuple[str, str, str | None]:
+    """``(host, siteNumber, location)``; the location is None for a whole-board read."""
+    host, _, rest = slug.partition("|")
+    site, _, location = rest.partition("|")
     if not host or not site:
         raise ValueError(f"Oracle Recruiting slug must be 'host|siteNumber', got {slug!r}")
-    return host, site
+    location = location or DEFAULT_LOCATION
+    return host, site, None if location == "*" else location
 
 
 def _parse_date(value) -> datetime | None:
@@ -72,7 +82,8 @@ class OracleRecruitingAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        host, site = split_slug(slug)
+        host, site, location = split_slug(slug)
+        where = f",location={location}" if location else ""
         endpoint = f"https://{host}/hcmRestApi/resources/latest/recruitingCEJobRequisitions"
 
         jobs: dict[str, RawJob] = {}
@@ -81,7 +92,7 @@ class OracleRecruitingAdapter(BaseAdapter):
         for page in range(MAX_PAGES):
             offset = page * PAGE_SIZE
             finder = (
-                f"findReqs;siteNumber={site},limit={PAGE_SIZE},offset={offset},"
+                f"findReqs;siteNumber={site},limit={PAGE_SIZE},offset={offset}{where},"
                 "sortBy=POSTING_DATES_DESC"
             )
             # Built by hand: the finder's `;`, `,` and `=` are its own syntax, and letting

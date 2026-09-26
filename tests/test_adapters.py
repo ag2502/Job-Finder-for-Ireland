@@ -583,6 +583,22 @@ def test_oracle_recruiting_reads_requisitions_with_their_site_urls():
     assert first.url == "https://jobs.acme.com/hcmUI/CandidateExperience/en/sites/CX_1/job/R1"
 
 
+@respx.mock
+def test_oracle_recruiting_reads_one_country_not_the_global_board():
+    """Regression: JPMorgan's 7,495-role board overran the page ceiling every run."""
+    from jobfinder.sources.oracle_recruiting import OracleRecruitingAdapter
+
+    route = respx.get(url__startswith=ORACLE_ENDPOINT).mock(
+        return_value=httpx.Response(200, json=_oracle_page(["R1"], total=1))
+    )
+
+    OracleRecruitingAdapter().fetch("jobs.acme.com|CX_1")
+    assert ",location=Ireland," in str(route.calls.last.request.url)
+
+    OracleRecruitingAdapter().fetch("jobs.acme.com|CX_1|*")
+    assert "location=" not in str(route.calls.last.request.url)
+
+
 def test_oracle_recruiting_rejects_a_slug_without_its_site_number():
     """A pod name alone - what the old fingerprint captured - addresses nothing."""
     from jobfinder.sources.oracle_recruiting import OracleRecruitingAdapter
