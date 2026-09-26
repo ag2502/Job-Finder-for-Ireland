@@ -75,7 +75,7 @@ Corvil,greenhouse,picoquantitativetrading,4,false,recovered,Registered by the 20
 Docusign,icims,careers.docusign.com,2,false,curated,careers site fronts this board; read whole for Ireland instead of sampled as JSON-LD,https://careers.docusign.com/careers-home
 EdgeTier,ashby,edgetier.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.edgetier.com/careers/
 Nory,ashby,nory,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.nory.ai/careers
-Okta,jsonld,https://www.okta.com/company/careers/,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.okta.com/company/careers/
+Okta,greenhouse,okta,3,false,curated,Board owner named Okta by Greenhouse; read whole instead of sampled as JSON-LD,https://www.okta.com/company/careers/
 PCI Pharma Services,workday,pciservices:wd1:External,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://pci.com/
 Pipedrive,lever,pipedrive,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.pipedrive.com/en/jobs
 Adobe,workday,adobe:wd5:external_experienced,2,false,curated,Phenom careers site is a front for this Workday board; read whole for Ireland instead of sampled as JSON-LD,https://careers.adobe.com/us/en
@@ -84,20 +84,18 @@ Deciphex,bamboohr,deciphex,3,false,recovered,Registered by the 2026-09-13 regist
 Demonware,workday,xboxgaming:wd1:External,3,false,curated,Xbox Gaming board (Activision; Blizzard; Demonware); its Irish roles are Demonware's Dublin studio,https://careers.demonware.net
 Ding,bamboohr,ding,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://company.ding.com/careers/
 Etsy,jsonld,https://careers.etsy.com,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.etsy.com
-Euronext Dublin,jsonld,https://www.euronext.com/en/about/careers,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.euronext.com/en/about/careers
 Keywords Studios,jsonld,https://www.keywordsstudios.com/en/careers/browse-careers/,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.keywordsstudios.com/en/careers/browse-careers/
 Payslip,greenhouse,payslipltd,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://payslip.com/careers
 Perrigo,successfactors,careers.perrigo.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.perrigo.com/
 Randstad Ireland,jsonld,https://www.randstad.co.uk/jobs/s-it/ss-erp-crm/,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.randstad.co.uk/jobs/s-it/ss-erp-crm/
 RTE,candidatemanager,YFBB|BAZFU,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://about.rte.ie/working-with-rte/vacancies/
-Savills Ireland,jsonld,https://careers.savills.com/,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.savills.com/
+Savills Ireland,teamtailor,careers.savills.com,3,false,curated,Teamtailor careers site read from its feed instead of sampled as JSON-LD,https://careers.savills.com/
 Zeus Packaging,bamboohr,zeuspackaging,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://global.zeuspackaging.com/careers/
 Airtable,greenhouse,airtable,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://airtable.com/careers
 Algolia,greenhouse,algolia,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.algolia.com/careers
 Amgen Ireland,workday,amgen:wd1:Careers,2,false,curated,careers site fronts this board; read whole for Ireland instead of sampled as JSON-LD,https://careers.amgen.com/en
 Aon,icims,jobs.aon.com,3,false,curated,careers site fronts this board; read whole for Ireland instead of sampled as JSON-LD,https://jobs.aon.com/
 AstraZeneca,eightfold,astrazeneca,2,false,curated,careers site fronts this board; read whole for Ireland instead of sampled as JSON-LD,https://careers.astrazeneca.com
-Becton Dickinson,jsonld,https://jobs.bd.com/en,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://jobs.bd.com/en
 Booking.com,icims,external-workingatbooking,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.booking.com
 Brex,jsonld,https://www.brex.com/careers,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.brex.com/careers
 Broadridge,workday,broadridge:wd5:Careers,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://broadridge.wd5.myworkdayjobs.com/Careers
@@ -120,7 +118,6 @@ GitHub,icims,careers-githubinc,3,false,recovered,Registered by the 2026-09-13 re
 Glofox,workday,abcfinancial:wd5:ABCFinancialServices,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://abcfitness.com/careers/
 gradireland,jsonld,https://targetjobs.co.uk,1,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://targetjobs.co.uk
 Grafana Labs,greenhouse,grafanalabs,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://grafana.com/careers/
-Grammarly,greenhouse,grammarly,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://superhuman.com/company/careers
 HealthTech Ireland,jsonld,https://www.recruitmentplus.ie/,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.recruitmentplus.ie/
 Hostelworld,teamtailor,people.hostelworld.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://people.hostelworld.com/
 HPE,workday,hpe:wd5:Jobsathpe,2,false,curated,Phenom careers site is a front for this Workday board; read whole for Ireland instead of sampled as JSON-LD,https://careers.hpe.com/us/en
@@ -167,7 +164,7 @@ Unity,workday,unitytech:wd1:Unity,3,false,recovered,Registered by the 2026-09-13
 UrbanVolt,personio,urbanvolt,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://urbanvolt.com/careers/
 Vertical Bridge,greenhouse,verticalbridge,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://verticalbridge.ie
 Willis Towers Watson,jsonld,https://careers.wtwco.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.wtwco.com
-Wise,jsonld,https://wise.jobs/,2,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://wise.jobs/
+Wise,smartrecruiters,Wise,2,false,curated,SmartRecruiters board owned by Wise; read for Ireland instead of sampled as JSON-LD,https://wise.jobs/
 Xilinx,icims,careers.amd.com,3,false,curated,AMD's board (Xilinx is now AMD Dublin), read for Ireland,https://careers.amd.com/careers-home/jobs
 Zimmer Biomet,phenom,careers.zimmerbiomet.com,2,false,curated,Phenom site read for Ireland instead of sampled as JSON-LD; Shannon,https://careers.zimmerbiomet.com
 Zinkworks,teamtailor,zinkworks,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.zinkworks.com/careers/

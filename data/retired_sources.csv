@@ -6,3 +6,5 @@ workday,vhr-jazz:wd1:JazzPharmaceuticals,Site no longer exists (HTTP 422 on ever
 successfactors,jobs.sap.com,Moved: jobs.sap.com is a new careers app; the roles are read from careers.sap.com
 jsonld,https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect,Meta's terms prohibit automated collection without written permission; see sources/policy.py
 jsonld,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers,Behind an AWS WAF bot challenge; fails every run and is not to be evaded
+greenhouse,grammarly,Board removed from Greenhouse's public API (HTTP 404 every run)
+personio,xtremepush,Personio XML feed switched off (HTTP 404 every run)
