@@ -46,8 +46,8 @@ _US_STATE_NAMES = {
 
 # "or" is a separator in "Dublin OR London" far more often than it is Oregon, and
 # "in"/"me"/"la" collide with common words. Excluding them from the immediately-after
-# check costs nothing: Dublin, Oregon is not a place.
-_AMBIGUOUS_CODES = {"or", "in", "me", "la", "de", "ok", "hi", "id", "ma", "pa"}
+# check costs nothing: Dublin, Oregon is not a place. "co" is "Co. Dublin", not Colorado.
+_AMBIGUOUS_CODES = {"or", "in", "me", "la", "de", "ok", "hi", "id", "ma", "pa", "co"}
 _SAFE_STATE_CODES = _US_STATE_CODES - _AMBIGUOUS_CODES
 
 _IRELAND_SIGNALS = {
@@ -57,6 +57,7 @@ _IRELAND_SIGNALS = {
 _US_SIGNALS = {
     "united states", "usa", "u.s.", "u.s.a.", "us",
 }
+_US_WORDS = re.compile(r"\b(?:USA|US|U\.S\.A?\.?|United States)\b")
 
 # Dublin neighbourhoods, business districts and satellite towns that appear as the
 # whole location string with no city name attached.
@@ -69,6 +70,14 @@ _DUBLIN_LOCALITIES = {
     "ballycoolin", "damastown", "clondalkin", "malahide", "howth", "blackrock",
     "stillorgan", "booterstown", "ranelagh", "rathmines", "smithfield",
     "the liberties", "temple bar", "spencer dock", "north wall", "ringsend",
+    "loughlinstown", "baldoyle", "grange castle", "grangecastle", "liffey valley",
+    "sandymount", "drumcondra", "glasnevin", "clontarf", "raheny", "castleknock",
+    "ballymun", "dalkey", "killiney", "portmarnock", "balbriggan", "skerries",
+    "donabate", "saggart", "terenure", "rathgar", "inchicore", "ballyfermot",
+    "phibsborough", "stoneybatter", "foxrock", "cabinteely", "glenageary",
+    "knocklyon", "templeogue", "firhouse", "mulhuddart", "clonsilla", "coolock",
+    "artane", "ballymount", "stepaside", "sallynoggin", "deansgrange", "goatstown",
+    "clonshaugh", "kilmainham",
     # County Dublin's local authority areas, which public-sector boards give as the
     # location of a council role.
     "fingal", "dún laoghaire-rathdown", "dun laoghaire-rathdown",
@@ -109,24 +118,61 @@ def _tokenize(text: str) -> list[str]:
     return [p.strip() for p in parts if p and p.strip()]
 
 
+def _is_state(word: str) -> bool:
+    """A US state as it appears beside a place name without a comma.
+
+    Codes must be written in capitals ("Dublin GA"), because a lower-case two-letter
+    word beside Dublin is far more likely to be prose than a state.
+    """
+    if len(word) == 2:
+        return word.isupper() and word.lower() in _SAFE_STATE_CODES
+    return word.lower() in _US_STATE_NAMES
+
+
+# A code may follow a hyphen ("DUBLIN- OH"); a full name only plain space, because
+# "Dublin - New York" is a list of two offices far more often than a place in New York.
+_CODE_AFTER = re.compile(r"^[\s\-–]+([A-Z]{2})\b")
+_NAME_AFTER = re.compile(r"^\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)")
+_WORD_BEFORE = re.compile(r"([A-Za-z]+)[\s\-–]+$")
+
+
 def _dublin_followed_by_us_state(text: str) -> bool:
-    """True when a US state token directly follows a Dublin mention.
+    """True when a US state sits directly beside a Dublin mention.
 
     This is what distinguishes "Dublin, CA" (a US city) from
     "SF, New York, Seattle, Dublin, Luxembourg" (a list of offices including Dublin).
+
+    Workday tenants also write US offices without the comma, and those were being
+    read as Irish: "Store 2745084 Dublin GA", "DUBLIN-  OH - US",
+    "Dublin California United States", and, state first, "USA OH - Dublin FSS".
     """
     for match in _DUBLIN_WORD.finditer(text):
         tail = text[match.end():].lstrip()
-        if not tail.startswith(","):
-            # Require a comma; "Dublin California" without one does not occur in
-            # practice and the looser rule would misfire on prose.
+        if tail.startswith(","):
+            tail = tail[1:].strip().lower()
+            if not tail:
+                continue
+            # Compare against the next entry only, up to the following separator.
+            next_entry = _SEPARATORS.split(tail)[0].strip()
+            if next_entry in _SAFE_STATE_CODES or next_entry in _US_STATE_NAMES:
+                return True
             continue
-        tail = tail[1:].strip().lower()
-        if not tail:
-            continue
-        # Compare against the next entry only, up to the following separator.
-        next_entry = _SEPARATORS.split(tail)[0].strip()
-        if next_entry in _SAFE_STATE_CODES or next_entry in _US_STATE_NAMES:
+
+        rest = text[match.end():]
+        code = _CODE_AFTER.match(rest)
+        if code and _is_state(code.group(1)):
+            return True
+        name = _NAME_AFTER.match(rest)
+        if name:
+            words = name.group(1).lower().split()
+            # Two-word states ("New York") as well as one-word ones.
+            if " ".join(words) in _US_STATE_NAMES or words[0] in _US_STATE_NAMES:
+                return True
+
+        # State first is accepted only with the country named too, because a code
+        # before Dublin is otherwise just the previous office in a list.
+        before = _WORD_BEFORE.search(text[: match.start()])
+        if before and _is_state(before.group(1)) and _US_WORDS.search(text):
             return True
     return False
 

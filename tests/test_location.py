@@ -34,6 +34,12 @@ US_DUBLINS = [
     "Dublin, GA",
     "Dublin, Georgia",
     "Dublin, TX",
+    # Workday tenants write US offices without the comma.
+    "Store 2745084 Dublin GA",
+    "Store 2743401 Dublin OH",
+    "DUBLIN-  OH - US",
+    "Dublin California United States",
+    "USA OH - Dublin FSS E Svc Ctr",
 ]
 
 NON_DUBLIN = [
@@ -80,6 +86,9 @@ def test_non_dublin_locations(raw: str | None) -> None:
         "Citywest",
         "Blanchardstown",
         "Leopardstown, Dublin 18",
+        "Loughlinstown, Ireland",
+        "Ireland - Dublin - Grange Castle",
+        "Liffey Valley, Block B",
     ],
 )
 def test_dublin_localities_and_postcodes(raw: str) -> None:
@@ -117,6 +126,22 @@ def test_multi_office_listing_including_us_and_dublin() -> None:
     result = normalize_location("SF, New York, Seattle, Dublin, Luxembourg")
     assert result.is_dublin
     assert not result.needs_review
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "Dublin - New York",
+        "Dublin OR London",
+        "Dublin Co Dublin",
+        "Dublin - IE",
+        "NY - Dublin",
+        "Dublin (Hybrid)",
+        "IRL - L - DUBLIN",
+    ],
+)
+def test_a_neighbouring_office_or_county_is_not_a_us_state(raw: str) -> None:
+    assert normalize_location(raw).is_dublin, f"wrongly rejected {raw!r}"
 
 
 def test_explicit_ireland_beats_us_state_adjacency() -> None:
