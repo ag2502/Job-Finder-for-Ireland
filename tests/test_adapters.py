@@ -1146,3 +1146,35 @@ def test_hrmanager_reads_positions_and_refuses_an_unknown_customer():
     assert (job.title, job.location_raw, job.extra_locations) == ("Accountant - Dublin", "Dublin", ["Cork"])
     assert job.department == "Finance" and job.posted_at.year == 2026
     assert HRManagerAdapter().fetch("nobody").status is CrawlStatus.FAILED
+
+
+def _tbe_page(rids: list[int], next_from: int | None) -> str:
+    blocks = "".join(
+        f'<div class="oracletaleocwsv2-accordion-head-info"><h4 class="oracletaleocwsv2-head-title">'
+        f'<a href="https://lde.tbe.taleo.net/lde02/ats/careers/v2/viewRequisition?org=ACME&amp;cws=7&amp;rid={r}" class="viewJobLink">Sales Associate {r}</a></h4>'
+        f'<div tabindex="0" >Store, Dublin</div> <div tabindex="0" >{r}</div> </div> <!--/.accordion-head-info -->'
+        for r in rids
+    )
+    more = (f'<a href="/lde02/ats/careers/v2/searchResults?next&amp;rowFrom={next_from}&amp;act=null" class="jscroll-next">next</a>'
+            if next_from is not None else "")
+    return f'<div class="oracletaleocwsv2-accordion">{blocks}</div>{more}'
+
+
+@respx.mock
+def test_taleo_tbe_follows_the_scroll_pages():
+    from jobfinder.sources.taleo_tbe import TaleoTBEAdapter
+
+    respx.get("https://lde.tbe.taleo.net/lde02/ats/careers/v2/searchResults", params={"org": "ACME"}).mock(
+        return_value=httpx.Response(200, text=_tbe_page([1, 2], next_from=2))
+    )
+    respx.get("https://lde.tbe.taleo.net/lde02/ats/careers/v2/searchResults", params={"rowFrom": "2"}).mock(
+        return_value=httpx.Response(200, text=_tbe_page([3], next_from=None))
+    )
+
+    result = TaleoTBEAdapter().fetch("lde.tbe.taleo.net/lde02|ACME|7")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.source_job_id for j in result.jobs] == ["1", "2", "3"]
+    job = result.jobs[0]
+    assert (job.title, job.location_raw) == ("Sales Associate 1", "Store, Dublin")
+    assert job.url.endswith("org=ACME&cws=7&rid=1")

@@ -49,6 +49,7 @@ def load_adapters() -> None:
         rezoomo,
         smartrecruiters,
         successfactors,
+        taleo_tbe,
         teamtailor,
         workable,
         workday,
