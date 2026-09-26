@@ -71,6 +71,26 @@ JOB_URL_HINT = re.compile(
 # that does not depend on the site behaving reasonably.
 MAX_JOB_PAGES = 60
 MAX_SITEMAP_FETCHES = 5
+# A curated source may raise the page ceiling (never past this) and give the pattern its
+# job pages follow, when the site is one employer's and its sitemap is the whole board.
+HARD_MAX_JOB_PAGES = 500
+
+
+def split_slug(slug: str) -> tuple[str, int, re.Pattern]:
+    """``url|max=N|match=REGEX`` -> the careers URL, page ceiling and job-URL pattern.
+
+    Dalata's job pages are ``/breakfast-chef-310215.htm``: nothing in the path says
+    "job", and its sitemap lists 181 of them, so the defaults read none of it.
+    """
+    url, *options = slug.split("|")
+    cap, hint = MAX_JOB_PAGES, JOB_URL_HINT
+    for option in options:
+        key, _, value = option.partition("=")
+        if key == "max" and value.isdigit():
+            cap = min(int(value), HARD_MAX_JOB_PAGES)
+        elif key == "match" and value:
+            hint = re.compile(value, re.I)
+    return url, cap, hint
 
 
 def _parse_date(value) -> datetime | None:
@@ -289,7 +309,8 @@ class JsonLdAdapter(BaseAdapter):
     tier = 3
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        careers_url = slug if "//" in slug else f"https://{slug}"
+        target, cap, hint = split_slug(slug)
+        careers_url = target if "//" in target else f"https://{target}"
         if is_excluded(careers_url):
             raise ExcludedSite(f"{careers_url} is on a site this project does not crawl")
         origin = _origin(careers_url)
@@ -298,12 +319,14 @@ class JsonLdAdapter(BaseAdapter):
         if not robots.allows(careers_url):
             raise PermissionError(f"robots.txt disallows {careers_url}")
 
-        candidates, discovery_truncated = self._discover(careers_url, origin, client, robots)
+        candidates, discovery_truncated = self._discover(
+            careers_url, origin, client, robots, cap=cap, hint=hint
+        )
         if not candidates:
             raise ValueError(f"no job pages discovered under {careers_url}")
 
         jobs: dict[str, RawJob] = {}
-        for url in candidates[:MAX_JOB_PAGES]:
+        for url in candidates[:cap]:
             for job in self._extract_page(url, client):
                 # A posting can appear under several URLs (a listing card and its own
                 # page). Keyed by source id so the same role is stored once.
@@ -315,7 +338,7 @@ class JsonLdAdapter(BaseAdapter):
 
         # The ceilings above make this a sample on any large site. A sample must not be
         # reported as the whole board, or every job outside it is closed.
-        if discovery_truncated or len(candidates) > MAX_JOB_PAGES:
+        if discovery_truncated or len(candidates) > cap:
             return PartialJobs(jobs.values())
         return list(jobs.values())
 
@@ -342,17 +365,20 @@ class JsonLdAdapter(BaseAdapter):
         origin: str,
         client: httpx.Client,
         robots: RobotsPolicy,
+        *,
+        cap: int = MAX_JOB_PAGES,
+        hint: re.Pattern = JOB_URL_HINT,
     ) -> tuple[list[str], bool]:
         """Job page URLs, and whether discovery stopped before reading everything.
 
         From the sitemap if there is one and the page if not.
         """
-        urls, truncated = self._from_sitemap(origin, client, robots)
+        urls, truncated = self._from_sitemap(origin, client, robots, cap=cap, hint=hint)
         if urls:
             logger.debug("jsonld: %d job URLs from sitemap for %s", len(urls), origin)
             return urls, truncated
 
-        urls = self._from_listing(careers_url, client, robots)
+        urls = self._from_listing(careers_url, client, robots, hint=hint)
         logger.debug("jsonld: %d job URLs from listing for %s", len(urls), careers_url)
 
         # The careers page itself sometimes carries the postings inline, so it is always
@@ -360,7 +386,13 @@ class JsonLdAdapter(BaseAdapter):
         return [careers_url] + urls, False
 
     def _from_sitemap(
-        self, origin: str, client: httpx.Client, robots: RobotsPolicy
+        self,
+        origin: str,
+        client: httpx.Client,
+        robots: RobotsPolicy,
+        *,
+        cap: int = MAX_JOB_PAGES,
+        hint: re.Pattern = JOB_URL_HINT,
     ) -> tuple[list[str], bool]:
         """Job URLs listed in the site's sitemap, and whether some sitemaps went unread.
 
@@ -393,11 +425,11 @@ class JsonLdAdapter(BaseAdapter):
             nested = [loc for loc in locations if loc.endswith((".xml", ".xml.gz"))]
             pages = [loc for loc in locations if loc not in nested]
 
-            found.extend(loc for loc in pages if JOB_URL_HINT.search(loc))
+            found.extend(loc for loc in pages if hint.search(loc))
             # Job-related sitemaps first; the rest are unlikely to repay a fetch.
             queue.extend(sorted(nested, key=lambda loc: not JOB_URL_HINT.search(loc)))
 
-            if len(found) >= MAX_JOB_PAGES:
+            if len(found) >= cap:
                 break
 
         # Declared or nested sitemaps still queued mean job URLs may have gone unseen.
@@ -406,7 +438,12 @@ class JsonLdAdapter(BaseAdapter):
         return _dedupe(found), bool(unread)
 
     def _from_listing(
-        self, careers_url: str, client: httpx.Client, robots: RobotsPolicy
+        self,
+        careers_url: str,
+        client: httpx.Client,
+        robots: RobotsPolicy,
+        *,
+        hint: re.Pattern = JOB_URL_HINT,
     ) -> list[str]:
         """Job URLs linked from the careers page.
 
@@ -431,7 +468,7 @@ class JsonLdAdapter(BaseAdapter):
             # crawl of the vendor's marketing site.
             if urlsplit(absolute).netloc != base_host:
                 continue
-            if not JOB_URL_HINT.search(absolute):
+            if not hint.search(absolute):
                 continue
             if is_excluded(absolute) or not robots.allows(absolute):
                 continue

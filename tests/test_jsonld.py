@@ -374,3 +374,16 @@ def test_unread_nested_sitemaps_make_a_small_sample_partial_too(monkeypatch):
 
     assert result.status is CrawlStatus.PARTIAL
     assert 0 < len(result.jobs) < jsonld.MAX_JOB_PAGES
+
+
+def test_a_curated_slug_can_widen_the_ceiling_and_name_the_job_url_pattern():
+    """Dalata's 181 job pages are /breakfast-chef-310215.htm: no "job" in the path."""
+    from jobfinder.sources.jsonld import MAX_JOB_PAGES, split_slug
+
+    url, cap, hint = split_slug(r"https://careers.acme.ie/jobs|max=400|match=-\d{5,}\.htm$")
+    assert (url, cap) == ("https://careers.acme.ie/jobs", 400)
+    assert hint.search("https://careers.acme.ie/breakfast-chef-310215.htm")
+    assert not hint.search("https://careers.acme.ie/about.htm")
+
+    assert split_slug("https://careers.acme.ie|max=99999")[1] == 500
+    assert split_slug("https://careers.acme.ie")[1] == MAX_JOB_PAGES
