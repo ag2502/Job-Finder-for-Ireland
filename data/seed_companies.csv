@@ -200,3 +200,12 @@ Ryanair,successfactors,jobs.ryanair.com|Ireland,1,true,curated,Global board sear
 CRH,successfactors,jobs.crh.com|Ireland,1,true,curated,SuccessFactors search app read through its JSON endpoint,https://jobs.crh.com/go/CRH-International/9763801/
 Vodafone Ireland,successfactors,opportunities.vodafone.com|Ireland,1,false,curated,Vodafone group board searched for Ireland,https://opportunities.vodafone.com
 Health Service Executive,hse,all,1,false,bespoke,HSE job search read page by page; confined competitions left out,https://about.hse.ie/jobs/job-search/
+University College Dublin,corehr,"ucdrecruit|1|Dublin, Ireland",1,false,curated,CoreHR e-recruitment,https://www.ucd.ie/hr/jobs/
+Trinity College Dublin,corehr,"trrecruit|1|Dublin, Ireland",1,false,curated,CoreHR e-recruitment (jobs.tcd.ie),https://jobs.tcd.ie/
+Dublin City University,corehr,"dcurecruit|1|Dublin, Ireland",1,false,curated,CoreHR e-recruitment,https://www.dcu.ie/people/jobs
+Technological University Dublin,corehr,"tudrecruit|1|Dublin, Ireland",1,false,curated,CoreHR e-recruitment,https://www.tudublin.ie/explore/jobs/
+Royal College of Surgeons in Ireland,corehr,"rcsirecruit|1000|Dublin, Ireland",2,false,curated,CoreHR e-recruitment,https://www.rcsi.com/careers
+Maynooth University,corehr,"nuimrecruit|1|Maynooth, Co. Kildare, Ireland",2,false,curated,CoreHR e-recruitment,https://www.maynoothuniversity.ie/human-resources/vacancies
+University College Cork,corehr,"uccrecruit|5023|Cork, Ireland",2,false,curated,CoreHR e-recruitment,https://www.ucc.ie/en/hr/vacancies/
+University of Galway,corehr,"nuigrecruit|1|Galway, Ireland",2,false,curated,CoreHR e-recruitment,https://www.universityofgalway.ie/about-us/jobs/
+Eir,careers_html,https://jobs.eir.care/jobs,1,false,curated,Odoo careers site read as a plain vacancy list,https://jobs.eir.care/jobs
