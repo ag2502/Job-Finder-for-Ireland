@@ -50,7 +50,7 @@ def load_adapters() -> None:
     )
 
     # Tier 1b: employers on bespoke platforms.
-    from jobfinder.sources.bespoke import amazon, google  # noqa: F401
+    from jobfinder.sources.bespoke import amazon, apple, google, ibm, tiktok  # noqa: F401
 
     # Tier 3 is imported above alongside Tier 1: `jsonld` is addressed by careers URL
     # rather than by platform slug, but it registers the same way.

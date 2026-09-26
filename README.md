@@ -73,6 +73,9 @@ the employer.
 | 1 | `personio` | XML feed; tenant may live on `.de` or `.com` |
 | 1b | `amazon` | Bespoke platform; `country=IRL` |
 | 1b | `google` | No API, but the careers page is server-rendered |
+| 1b | `apple` | Search page carries its results as hydration data; `ireland-IRL` |
+| 1b | `tiktok` | Public search API; city code `CT_37` is Dublin |
+| 1b | `ibm` | IBM's site search API, filtered to Ireland |
 | 3 | `jsonld` | Generic `schema.org/JobPosting` extraction from any careers site |
 | 4 | `adzuna` | Licensed aggregator; one source carries many employers |
 

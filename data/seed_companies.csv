@@ -181,3 +181,6 @@ Public Appointments Service,publicjobs,7,1,false,board,publicjobs.ie state board
 Microsoft,eightfold,microsoft|microsoft.com,1,false,bespoke,careers.microsoft.com now runs on Eightfold; Leopardstown campus,https://careers.microsoft.com/
 Salesforce,workday,salesforce:wd12:External_Career_Site,1,false,ats-detection,Dublin tower; Workday board,https://careers.salesforce.com/
 gradireland,gradireland,all,1,false,board,"Graduate jobs, schemes and internships from ~300 Irish employers",https://gradireland.com/graduate-jobs
+Apple,apple,ireland-IRL,1,false,bespoke,Own platform; search page carries its results as hydration data,https://jobs.apple.com/en-ie/search?location=ireland-IRL
+TikTok,tiktok,CT_37,1,false,bespoke,lifeattiktok.com search API; CT_37 is Dublin,https://lifeattiktok.com/search
+IBM,ibm,Ireland,1,false,bespoke,IBM site search API filtered to Ireland; Mulhuddart campus,https://www.ibm.com/careers/search
