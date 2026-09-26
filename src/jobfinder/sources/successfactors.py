@@ -103,7 +103,12 @@ class SuccessFactorsAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        host = slug.removeprefix("https://").removeprefix("http://").rstrip("/")
+        # A board carrying other countries' roles names one to search, `host|Ireland`,
+        # which becomes the site's own location search. Irish employers' boards are read
+        # whole, since their locations do not always name the country.
+        target, _, place = slug.partition("|")
+        host = target.removeprefix("https://").removeprefix("http://").rstrip("/")
+        where = {"locationsearch": place} if place else {}
 
         jobs: dict[str, RawJob] = {}
         total: int | None = None
@@ -120,6 +125,7 @@ class SuccessFactorsAdapter(BaseAdapter):
                 f"https://{host}/search/",
                 params={
                     "q": "",
+                    **where,
                     "sortColumn": "referencedate",
                     "sortDirection": "desc",
                     "startrow": startrow,
@@ -148,6 +154,11 @@ class SuccessFactorsAdapter(BaseAdapter):
             self.polite_pause()
 
         if not jobs:
+            # Tenants moved to the newer search app render no rows at all; their results
+            # come from a JSON endpoint instead. Classic tenants answer it with a 401.
+            listed = self._fetch_json(host, place, client)
+            if listed is not None:
+                return listed
             raise ValueError(f"no SuccessFactors job rows found on {host}")
         if repeated and total is None:
             # Career Site Builder pages state no total. A page that repeats could be a
@@ -159,6 +170,65 @@ class SuccessFactorsAdapter(BaseAdapter):
             # first up to the ceiling. That is a sample: reported as one, so the jobs read
             # are kept current and the unread tail is never closed on their account.
             return PartialJobs(jobs.values())
+        if total and len(jobs) < total * COMPLETENESS:
+            raise ValueError(
+                f"SuccessFactors read {len(jobs)} of {total} jobs from {host}; "
+                "refusing to report an incomplete board"
+            )
+        return list(jobs.values())
+
+
+    def _fetch_json(
+        self, host: str, place: str, client: httpx.Client
+    ) -> list[RawJob] | None:
+        """Read a tenant on the newer search app, or None if the tenant is not on it.
+
+        POST /services/recruiting/v1/jobs takes the same location search as the classic
+        page, answers ten roles a page with the board's `totalJobs`, and names every
+        office a role is open in. CRH's board is read this way.
+        """
+        jobs: dict[str, RawJob] = {}
+        total: int | None = None
+
+        for page_number in range(MAX_PAGES):
+            response = client.post(
+                f"https://{host}/services/recruiting/v1/jobs",
+                json={
+                    "locale": "en_US", "pageNumber": page_number, "sortBy": "",
+                    "keywords": "", "location": place, "facetFilters": {}, "brand": "",
+                    "skills": [], "categoryId": 0, "alertId": "", "rcmCandidateId": "",
+                },
+                headers={"Accept": "application/json"},
+            )
+            if page_number == 0 and response.status_code in (401, 403, 404, 405):
+                return None
+            response.raise_for_status()
+            payload = response.json()
+            if total is None:
+                total = int(payload.get("totalJobs") or 0)
+
+            rows = payload.get("jobSearchResult") or []
+            for row in rows:
+                data = row.get("response") or {}
+                job_id = str(data.get("id") or "").strip()
+                title = (data.get("unifiedStandardTitle") or "").strip()
+                if not job_id or not title:
+                    continue
+                places = [loc.strip() for loc in data.get("jobLocationShort") or [] if loc.strip()]
+                slug = data.get("unifiedUrlTitle") or data.get("urlTitle") or "job"
+                jobs.setdefault(job_id, RawJob(
+                    source_job_id=job_id,
+                    title=html.unescape(title),
+                    url=f"https://{host}/job/{slug}/{job_id}-en_US/",
+                    location_raw=places[0] if places else None,
+                    extra_locations=places[1:],
+                ))
+            if not rows or len(jobs) >= total:
+                break
+            self.polite_pause()
+        else:
+            return PartialJobs(jobs.values())
+
         if total and len(jobs) < total * COMPLETENESS:
             raise ValueError(
                 f"SuccessFactors read {len(jobs)} of {total} jobs from {host}; "

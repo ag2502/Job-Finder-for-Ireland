@@ -680,6 +680,70 @@ def test_successfactors_board_beyond_the_page_ceiling_is_partial(monkeypatch):
 
 
 @respx.mock
+def test_successfactors_global_board_is_searched_for_one_country():
+    """SAP's board is global; `host|Ireland` makes it the site's own location search."""
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    route = respx.get(url__startswith="https://careers.acme.com/search/").mock(
+        return_value=httpx.Response(200, text=_rmk_page([101], total=1))
+    )
+
+    assert SuccessFactorsAdapter().fetch("careers.acme.com|Ireland").status is CrawlStatus.OK
+    assert route.calls.last.request.url.params["locationsearch"] == "Ireland"
+    assert route.calls.last.request.url.host == "careers.acme.com"
+
+    SuccessFactorsAdapter().fetch("careers.acme.com")
+    assert "locationsearch" not in route.calls.last.request.url.params
+
+
+@respx.mock
+def test_successfactors_tenant_on_the_json_search_app_is_read_through_it():
+    """CRH's search page renders no rows; its results come from a JSON endpoint."""
+    import json as _json
+
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    respx.get(url__startswith="https://jobs.acme.com/search/").mock(
+        return_value=httpx.Response(200, text="<div id='rmk-jobs-search'></div>")
+    )
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        body = _json.loads(request.content)
+        assert body["location"] == "Ireland"
+        ids = list(range(12))[body["pageNumber"] * 10:body["pageNumber"] * 10 + 10]
+        return httpx.Response(200, json={"totalJobs": 12, "jobSearchResult": [
+            {"response": {"id": str(i), "unifiedStandardTitle": f"Engineer {i}",
+                          "unifiedUrlTitle": f"Engineer-{i}",
+                          "jobLocationShort": ["Dublin, Leinster, Ireland ", "Cork, Munster, Ireland"]}}
+            for i in ids
+        ]})
+
+    respx.post("https://jobs.acme.com/services/recruiting/v1/jobs").mock(side_effect=serve)
+
+    result = SuccessFactorsAdapter().fetch("jobs.acme.com|Ireland")
+
+    assert result.status is CrawlStatus.OK
+    assert len(result.jobs) == 12
+    job = result.jobs[0]
+    assert (job.location_raw, job.extra_locations) == ("Dublin, Leinster, Ireland", ["Cork, Munster, Ireland"])
+    assert job.url == "https://jobs.acme.com/job/Engineer-0/0-en_US/"
+
+
+@respx.mock
+def test_successfactors_classic_tenant_with_no_rows_still_fails():
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    respx.get(url__startswith="https://careers.acme.ie/search/").mock(
+        return_value=httpx.Response(200, text="<table></table>")
+    )
+    respx.post("https://careers.acme.ie/services/recruiting/v1/jobs").mock(
+        return_value=httpx.Response(401, json={"totalJobs": 0})
+    )
+
+    assert SuccessFactorsAdapter().fetch("careers.acme.ie").status is CrawlStatus.FAILED
+
+
+@respx.mock
 def test_successfactors_read_that_breaks_off_early_fails():
     from jobfinder.sources.successfactors import SuccessFactorsAdapter
 
