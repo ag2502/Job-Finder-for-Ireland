@@ -8,3 +8,7 @@ jsonld,https://www.metacareers.com/?utm_source=meta.com&utm_medium=redirect,Meta
 jsonld,https://careers.bankofireland.com/home?utm_source=BOI&amp;utm_medium=Footer&amp;utm_campaign=Careers,Behind an AWS WAF bot challenge; fails every run and is not to be evaded
 greenhouse,grammarly,Board removed from Greenhouse's public API (HTTP 404 every run)
 personio,xtremepush,Personio XML feed switched off (HTTP 404 every run)
+greenhouse,linkedin,Board belongs to LI Test Company; LinkedIn is also excluded by policy
+cornerstone,box,No Cornerstone site under this name (DNS fails)
+cornerstone,tetratech,Tetra Tech's Australian careers site; not RPS Ireland
+breezy,fathom,An unrelated US company named Fathom
