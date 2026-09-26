@@ -828,3 +828,28 @@ def test_a_workable_job_link_is_not_taken_for_an_account():
     assert detect_in_text('<a href="https://apply.workable.com/glenveagh/">Jobs</a>') == (
         "workable", "glenveagh",
     )
+
+
+def test_a_retired_source_is_switched_off_and_the_rest_are_left_alone(session, tmp_path):
+    """Detection filed Fortune Brands' board under Zoom; curation retires it."""
+    from jobfinder.core.models import Company, CoverageState, Source
+    from jobfinder.registry.seed import retire_sources
+
+    zoom = Company(name="Zoom", normalized_name="zoom", coverage_state=CoverageState.ATS_DETECTED)
+    session.add(zoom)
+    session.flush()
+    wrong = Source(company_id=zoom.id, adapter="workday", slug="fortune:wd108:Fortune", tier=1)
+    right = Source(company_id=zoom.id, adapter="workday", slug="zoom:wd5:Zoom", tier=1)
+    session.add_all([wrong, right])
+    session.flush()
+
+    retired = tmp_path / "retired.csv"
+    retired.write_text(
+        "adapter,slug,reason\n"
+        "workday,fortune:wd108:Fortune,another company's board\n"
+        "workday,nobody:wd1:Gone,never registered\n"
+    )
+
+    assert retire_sources(session, retired) == 1
+    assert (wrong.enabled, right.enabled) == (False, True)
+    assert retire_sources(session, retired) == 0  # idempotent

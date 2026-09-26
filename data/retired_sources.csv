@@ -1,0 +1,5 @@
+adapter,slug,reason
+workday,fortune:wd108:Fortune,Fortune Brands' board matched to Zoom by detection; Zoom is zoom:wd5:Zoom
+workday,wonder:wd1:Grubhub_Careers,Grubhub's board matched to Just Eat Takeaway by detection
+workday,mmc:wd1:en_US,Not a Workday site (404); Marsh McLennan is mmc:wd1:MMC
+workday,vhr-jazz:wd1:JazzPharmaceuticals,Site no longer exists (HTTP 422 on every run)

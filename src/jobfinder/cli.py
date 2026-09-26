@@ -21,7 +21,7 @@ from jobfinder.core.models import (
     SourceCrawl,
 )
 from jobfinder.pipeline.run import crawl
-from jobfinder.registry.seed import seed_companies
+from jobfinder.registry.seed import retire_sources, seed_companies
 from jobfinder.registry.universe import import_universe
 
 
@@ -42,7 +42,8 @@ def cmd_seed(args: argparse.Namespace) -> int:
     init_db()
     with session_scope() as session:
         companies, sources = seed_companies(session)
-    print(f"seeded {companies} new companies and {sources} new sources")
+        retired = retire_sources(session)
+    print(f"seeded {companies} new companies and {sources} new sources; retired {retired}")
     return 0
 
 

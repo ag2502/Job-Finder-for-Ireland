@@ -22,6 +22,7 @@ from jobfinder.sources.base import get_adapter
 logger = logging.getLogger(__name__)
 
 DEFAULT_SEED = DATA_DIR / "seed_companies.csv"
+DEFAULT_RETIRED = DATA_DIR / "retired_sources.csv"
 
 
 def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int]:
@@ -102,3 +103,33 @@ def seed_companies(session: Session, path: Path | None = None) -> tuple[int, int
     session.flush()
     logger.info("seeded %d companies, %d sources", companies_added, sources_added)
     return companies_added, sources_added
+
+
+def retire_sources(session: Session, path: Path | None = None) -> int:
+    """Disable the sources listed in `retired_sources.csv`. Returns how many changed.
+
+    Seeding only ever adds, so a source that detection got wrong - a board belonging to
+    another company, a site that no longer exists - stayed enabled beside the correct
+    one once it was curated. Listing it here switches it off on the next seed, and keeps
+    it off: detection skips companies that have an enabled source, so it will not come
+    back through the sweep either.
+    """
+    path = path or DEFAULT_RETIRED
+    if not path.exists():
+        return 0
+
+    retired = 0
+    with path.open(newline="", encoding="utf-8-sig") as fh:
+        for row in csv.DictReader(fh):
+            adapter = (row.get("adapter") or "").strip()
+            slug = (row.get("slug") or "").strip()
+            source = session.execute(
+                select(Source).where(Source.adapter == adapter, Source.slug == slug)
+            ).scalar_one_or_none()
+            if source is not None and source.enabled:
+                source.enabled = False
+                retired += 1
+                logger.info("retired %s:%s (%s)", adapter, slug, (row.get("reason") or "").strip())
+
+    session.flush()
+    return retired
