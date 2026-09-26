@@ -995,3 +995,45 @@ def test_corehr_tenant_without_a_results_page_fails():
         return_value=httpx.Response(200, text="<html>CoreError Page</html>")
     )
     assert CoreHRAdapter().fetch("gone|1|Dublin").status is CrawlStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# Cornerstone
+# ---------------------------------------------------------------------------
+
+CSOD_HOME = (
+    '<script>csod.context={"corp":"acme","cultureID":2,"cultureName":"en-GB",'
+    '"endpoints":{"cloud":"https://uk.api.csod.com/","api":"/"},"token":"tok123"};\n</script>'
+)
+
+
+@respx.mock
+def test_cornerstone_reads_the_regional_api_named_by_the_page():
+    import json as _json
+
+    from jobfinder.sources.cornerstone import CornerstoneAdapter
+
+    respx.get(url__startswith="https://acme.csod.com/ux/ats/careersite/5/home").mock(
+        return_value=httpx.Response(200, text=CSOD_HOME)
+    )
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        assert request.headers["authorization"] == "Bearer tok123"
+        body = _json.loads(request.content)
+        ids = list(range(30))[(body["pageNumber"] - 1) * 25: body["pageNumber"] * 25]
+        return httpx.Response(200, json={"data": {"totalCount": 30, "requisitions": [
+            {"requisitionId": i, "displayJobTitle": f"Store Manager {i}", "postingEffectiveDate": "03/09/2026",
+             "externalDescription": "Lead the store", "locations": [{"city": "Mary St", "state": "Dublin City", "country": "IE"}]}
+            for i in ids
+        ]}})
+
+    respx.post("https://uk.api.csod.com/rec-job-search/external/jobs").mock(side_effect=serve)
+
+    result = CornerstoneAdapter().fetch("acme|5")
+
+    assert result.status is CrawlStatus.OK
+    assert len(result.jobs) == 30
+    job = result.jobs[0]
+    assert job.url == "https://acme.csod.com/ux/ats/careersite/5/home/requisition/0?c=acme"
+    assert job.location_raw == "Mary St, Dublin City, IE"
+    assert (job.posted_at.day, job.posted_at.month) == (3, 9)  # en-GB dates are day first

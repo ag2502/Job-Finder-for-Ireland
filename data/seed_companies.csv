@@ -209,3 +209,4 @@ Maynooth University,corehr,"nuimrecruit|1|Maynooth, Co. Kildare, Ireland",2,fals
 University College Cork,corehr,"uccrecruit|5023|Cork, Ireland",2,false,curated,CoreHR e-recruitment,https://www.ucc.ie/en/hr/vacancies/
 University of Galway,corehr,"nuigrecruit|1|Galway, Ireland",2,false,curated,CoreHR e-recruitment,https://www.universityofgalway.ie/about-us/jobs/
 Eir,careers_html,https://jobs.eir.care/jobs,1,false,curated,Odoo careers site read as a plain vacancy list,https://jobs.eir.care/jobs
+Three Ireland,cornerstone,three-ireland|5,1,false,curated,Cornerstone career site read through its regional search API,https://three-ireland.csod.com/ux/ats/careersite/5/home?c=three-ireland

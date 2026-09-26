@@ -73,6 +73,7 @@ the employer.
 | 1 | `personio` | XML feed; tenant may live on `.de` or `.com` |
 | 1 | `phenom` | Phenom career sites' search widget, filtered by the site's own Irish facet value |
 | 1 | `corehr` | CoreHR e-recruitment tenants (the universities, much of the public sector) |
+| 1 | `cornerstone` | Cornerstone career sites, through the regional API the page names |
 | 1b | `amazon` | Bespoke platform; `country=IRL` |
 | 1b | `google` | No API, but the careers page is server-rendered |
 | 1b | `apple` | Search page carries its results as hydration data; `ireland-IRL` |

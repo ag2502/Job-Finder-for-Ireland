@@ -31,6 +31,7 @@ def load_adapters() -> None:
         candidatemanager,
         careers_html,
         corehr,
+        cornerstone,
         eightfold,
         greenhouse,
         hirehive,
