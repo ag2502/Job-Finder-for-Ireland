@@ -258,3 +258,5 @@ DPS Group,wordpress,dpsgroupglobal.com|job-listings,3,false,curated,WP Job Manag
 Ergo,wordpress,"ergogroup.ie|career|Dublin, Ireland",2,false,curated,"WordPress career post type; roles state no place, Ergo is Dublin-based",https://ergogroup.ie/careers/
 HealthBeacon,wordpress,"healthbeacon.com|jobs|Dublin, Ireland",4,true,curated,"WordPress jobs post type; roles state no place, HealthBeacon is Dublin-based",https://healthbeacon.com/careers/
 Dalata Hotel Group,jsonld,"https://careers.dalatahotelgroup.com/jobs|max=400|match=-\d{5,}\.htm$",2,true,curated,Every job page in the sitemap carries JobPosting markup,https://careers.dalatahotelgroup.com/jobs
+ElevenLabs,ashby,elevenlabs,2,false,curated,Voice AI; many roles list Dublin among their offices,https://elevenlabs.io/careers
+LiveKit,ashby,livekit,3,false,curated,Voice AI infrastructure; remote-Ireland roles,https://livekit.io/careers
