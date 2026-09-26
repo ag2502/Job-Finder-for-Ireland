@@ -35,6 +35,7 @@ def load_adapters() -> None:
         eightfold,
         greenhouse,
         hirehive,
+        hrmanager,
         icims,
         jsonld,
         lever,

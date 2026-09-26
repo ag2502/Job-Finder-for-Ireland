@@ -1123,3 +1123,26 @@ def test_rezoomo_unknown_company_fails_rather_than_emptying_the_board():
 
     respx.post(API_URL).mock(return_value=httpx.Response(200, json={"success": False, "data": {}}))
     assert RezoomoAdapter().fetch("nobody").status is CrawlStatus.FAILED
+
+
+@respx.mock
+def test_hrmanager_reads_positions_and_refuses_an_unknown_customer():
+    from jobfinder.sources.hrmanager import API_URL, HRManagerAdapter
+
+    respx.get(url__startswith=API_URL.format(alias="acme")).mock(return_value=httpx.Response(200, json={
+        "TransactionStatus": {"StatusCode": 0}, "PositionCountCustomer": 1, "Items": [{
+            "Id": 145423, "Name": "Accountant - Dublin - 145423",
+            "AdvertisementUrlSecure": "https://candidate.hr-manager.net/ApplicationInit.aspx?cid=1&ProjectId=145423",
+            "PositionLocationMultiSelection": [{"Name": "Dublin"}, {"Name": "Cork"}],
+            "PositionCategory": {"Name": "Finance"}, "Published": "/Date(1789038452000+0200)/",
+        }],
+    }))
+    respx.get(url__startswith=API_URL.format(alias="nobody")).mock(return_value=httpx.Response(200, json={
+        "TransactionStatus": {"StatusCode": 1, "Description": "Value cannot be null."}, "Items": [],
+    }))
+
+    result = HRManagerAdapter().fetch("acme")
+    [job] = result.jobs
+    assert (job.title, job.location_raw, job.extra_locations) == ("Accountant - Dublin", "Dublin", ["Cork"])
+    assert job.department == "Finance" and job.posted_at.year == 2026
+    assert HRManagerAdapter().fetch("nobody").status is CrawlStatus.FAILED
