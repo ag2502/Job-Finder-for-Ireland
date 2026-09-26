@@ -22,28 +22,79 @@
 # run holds the database at a time. `push` is deliberately called only after a successful
 # crawl: a run that dies halfway leaves the previous state untouched rather than
 # overwriting it with a partial one.
+#
+# `pull` starts from the committed snapshot only when the release does not exist. It used
+# to do so whenever the download failed, for any reason, and the run then published the
+# snapshot over the live state: on 2026-09-25 that erased every source the registry
+# sweeps had found since 2026-09-06, and nothing reported it. A release that exists but
+# cannot be read now fails the run, which leaves the state where it was.
 set -euo pipefail
 
 TAG="${JOBFINDER_STATE_TAG:-state}"
 ASSET="jobfinder.db"
+# A second copy, uploaded before the main asset is replaced. `--clobber` deletes the old
+# asset before uploading the new one, so an upload that dies in between would otherwise
+# leave the release with no state at all.
+SPARE="jobfinder.spare.db"
 DB="${JOBFINDER_STATE_PATH:-$PWD/jobfinder.db}"
 
+looks_like_state() {
+  python3 - "$1" <<'PY'
+import sqlite3, sys
+try:
+    con = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+    n = con.execute("select count(*) from sources").fetchone()[0]
+except sqlite3.Error as exc:
+    sys.exit(f"not a crawler database: {exc}")
+if n == 0:
+    sys.exit("crawler database has no sources")
+PY
+}
+
+download() {
+  local name="$1" attempt
+  for attempt in 1 2 3; do
+    if gh release download "$TAG" --pattern "$name" --output "$DB" --clobber \
+        && looks_like_state "$DB"; then
+      echo "restored state from release '$TAG' asset $name ($(du -h "$DB" | cut -f1))"
+      return 0
+    fi
+    echo "download of $name failed (attempt $attempt); retrying"
+    sleep $((attempt * ${JOBFINDER_STATE_RETRY_SECONDS:-15}))
+  done
+  return 1
+}
+
 pull() {
-  if gh release download "$TAG" --pattern "$ASSET" --output "$DB" --clobber 2>/dev/null; then
-    echo "restored state from release '$TAG' ($(du -h "$DB" | cut -f1))"
-    return
+  local view
+  if view=$(gh release view "$TAG" --json assets --jq '.assets[].name' 2>&1); then
+    if grep -qx "$ASSET" <<<"$view" && download "$ASSET"; then
+      return
+    fi
+    if grep -qx "$SPARE" <<<"$view" && download "$SPARE"; then
+      echo "::warning::main state asset unreadable; restored from $SPARE"
+      return
+    fi
+    if [ "${JOBFINDER_STATE_BOOTSTRAP:-}" != "1" ]; then
+      echo "::error::release '$TAG' exists but no state could be restored from it." \
+        "Refusing to start from the snapshot, which would overwrite the live state." \
+        "Set JOBFINDER_STATE_BOOTSTRAP=1 to rebuild deliberately."
+      exit 1
+    fi
+  elif ! grep -qi "not found" <<<"$view"; then
+    echo "::error::could not reach release '$TAG': $view"
+    exit 1
   fi
 
-  # First run, or the release was deleted. Seed from the snapshot committed for the
-  # website rather than starting empty: it carries real `first_seen_at` timestamps for
-  # the jobs it holds, so the history that drives close decisions survives. It covers
-  # only Dublin and remote postings, so the first crawl after a bootstrap re-registers
-  # everything else as newly seen — a one-off cost, and only on a cold start.
+  # First run, the release was deleted, or a deliberate rebuild. Seed from the snapshot
+  # committed for the website rather than starting empty: it carries real
+  # `first_seen_at` timestamps for the jobs it holds, so the history that drives close
+  # decisions survives.
   if [ -f data/jobfinder.db ]; then
     cp data/jobfinder.db "$DB"
-    echo "no release '$TAG' yet; bootstrapped from the committed snapshot"
+    echo "::warning::no state in release '$TAG'; bootstrapped from the committed snapshot"
   else
-    echo "no release '$TAG' and no snapshot; starting from an empty database"
+    echo "::warning::no release '$TAG' and no snapshot; starting from an empty database"
   fi
 }
 
@@ -52,6 +103,7 @@ push() {
     echo "::error::no database at $DB to publish"
     exit 1
   fi
+  looks_like_state "$DB"
 
   # `gh release create` fails if the tag exists, which is the normal case after the first
   # run, so the absence of the release is what decides whether to create it.
@@ -63,6 +115,11 @@ push() {
     echo "created release '$TAG'"
   fi
 
+  local spare_dir
+  spare_dir=$(mktemp -d)
+  cp "$DB" "$spare_dir/$SPARE"
+  gh release upload "$TAG" "$spare_dir/$SPARE" --clobber
+  rm -rf "$spare_dir"
   gh release upload "$TAG" "$DB" --clobber
   echo "published state to release '$TAG' ($(du -h "$DB" | cut -f1))"
 }
