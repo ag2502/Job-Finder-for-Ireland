@@ -191,3 +191,8 @@ Boston Scientific,eightfold,bostonscientific,1,false,curated,Galway and Clonmel,
 PayPal,eightfold,paypal,1,false,curated,Dublin,https://paypal.eightfold.ai/careers
 Dublin Airport Authority,oracle_recruiting,fa-etol-saasfaprod1.fa.ocs.oraclecloud.com|CX_1,1,false,curated,Found by rendering daa.ie/careers,https://fa-etol-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1
 JPMorgan Chase,oracle_recruiting,jpmc.fa.oraclecloud.com|CX_1001,1,false,curated,Dublin; read filtered to Ireland,https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001
+Analog Devices,workday,analogdevices:wd1:External,2,false,curated,Found through the tenant's robots.txt site list; Limerick and Dublin,https://analogdevices.wd1.myworkdayjobs.com/External
+IQVIA,workday,iqvia:wd1:IQVIA,2,false,curated,Found through the tenant's robots.txt site list,https://iqvia.wd1.myworkdayjobs.com/IQVIA
+Regeneron Ireland,workday,regeneron:wd1:Careers,2,false,curated,Found through the tenant's robots.txt site list,https://regeneron.wd1.myworkdayjobs.com/Careers
+GSK Ireland,workday,gsk:wd5:GSKCareers,2,false,curated,Found through the tenant's robots.txt site list,https://gsk.wd5.myworkdayjobs.com/GSKCareers
+Expedia,workday,expedia:wd108:search,2,false,curated,Found through the tenant's robots.txt site list,https://expedia.wd108.myworkdayjobs.com/search
