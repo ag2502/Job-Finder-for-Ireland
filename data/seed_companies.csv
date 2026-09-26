@@ -260,3 +260,12 @@ HealthBeacon,wordpress,"healthbeacon.com|jobs|Dublin, Ireland",4,true,curated,"W
 Dalata Hotel Group,jsonld,"https://careers.dalatahotelgroup.com/jobs|max=400|match=-\d{5,}\.htm$",2,true,curated,Every job page in the sitemap carries JobPosting markup,https://careers.dalatahotelgroup.com/jobs
 ElevenLabs,ashby,elevenlabs,2,false,curated,Voice AI; many roles list Dublin among their offices,https://elevenlabs.io/careers
 LiveKit,ashby,livekit,3,false,curated,Voice AI infrastructure; remote-Ireland roles,https://livekit.io/careers
+Codec,pinpoint,codec,3,false,curated,pinpoint board found by name; roles confirmed as the company's own,
+Storm Technology,hirehive,storm,3,false,curated,hirehive board found by name; roles confirmed as the company's own,
+Fund Recs,hirehive,fund-recs,4,false,curated,hirehive board found by name; roles confirmed as the company's own,
+Boxever,hirehive,boxever,4,false,curated,hirehive board found by name; roles confirmed as the company's own,
+Bizimply,pinpoint,bizimply,3,false,curated,pinpoint board found by name; roles confirmed as the company's own,
+Netwatch,bamboohr,netwatch,3,false,curated,bamboohr board found by name; roles confirmed as the company's own,
+Scurri,pinpoint,scurri,3,false,curated,pinpoint board found by name; roles confirmed as the company's own,
+Utmost,bamboohr,utmost,4,false,curated,bamboohr board found by name; roles confirmed as the company's own,
+CurrencyFair,bamboohr,currencyfair,3,false,curated,bamboohr board found by name; roles confirmed as the company's own,
