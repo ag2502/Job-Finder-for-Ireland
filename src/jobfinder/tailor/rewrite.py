@@ -275,7 +275,9 @@ def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str],
     """
     by_id = document.by_id
     cv_text = document.text()
-    known = extract_skills(cv_text + "\n" + stated) | _DESCRIBED
+    # Matched the forgiving way the score matches, so "A/B tests" in the CV backs the
+    # advert's "A/B testing".
+    evidence = ats._norm(cv_text + "\n" + stated)
     kept, reasons, dropped, removals = {}, {}, [], []
     for edit in answer.get("edits") or []:
         pid = str(edit.get("id", "")).strip().strip("[]")
@@ -299,7 +301,8 @@ def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str],
             dropped.append({"id": pid, "why": "it added a figure your CV does not state ("
                             + ", ".join(sorted(invented)) + ")"})
             continue
-        new_skills = extract_skills(plain(text)) - known
+        new_skills = {s for s in extract_skills(plain(text)) - _DESCRIBED
+                      if not ats._has(s, evidence)}
         if new_skills:
             dropped.append({"id": pid, "why": "it named something your CV does not mention ("
                             + ", ".join(sorted(new_skills)) + "); tell us if you have used it"})

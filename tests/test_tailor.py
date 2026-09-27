@@ -305,6 +305,15 @@ def test_a_tool_the_cv_never_names_is_refused_until_the_candidate_states_it(monk
     assert "Kubernetes" in revised.edits[bullet.id]
 
 
+def test_the_adverts_form_of_a_skill_the_cv_names_is_not_an_invention(monkeypatch):
+    doc = _load("cv.pdf")
+    bullet = _by_text(doc, "Designed and analysed A/B tests")
+    monkeypatch.setattr(llm, "ask", lambda *a, **k: (_answer([
+        {"id": bullet.id, "text": bullet.text.replace("A/B tests", "A/B testing"),
+         "reason": "x"}]), "stub"))
+    assert bullet.id in rewrite.tailor(doc, JOB).edits
+
+
 def test_a_word_limiting_a_claim_is_never_dropped(monkeypatch):
     doc = _load("cv.txt")
     target = next(p for p in doc.paragraphs if not p.locked and p.kind != "heading")
