@@ -301,7 +301,7 @@ Glossy and springy, like Aqua-era Mac buttons made light.
 
 ### Chips
 - **Field tags:** white pills (14px, 500) with a 16px dot in the group's tag colour. Hover lifts 2px on the spring. Checked, the dot becomes a solid tag-colour circle with a white tick, the chip takes an 11% tint of the tag colour, a tag-coloured border and 600 weight. Groups are headed by a 13px label with a 9px dot in the same colour.
-- **Status pills:** 11.5px 650 pills, 3px 9px. Green on green wash by default; tag red for "applied" and "required"; pale yellow for "stretch".
+- **Status pills:** 11.5px 650 pills, 3px 9px. Green on green wash by default; tag red for "applied" and "required"; pale yellow for "stretch". "Applied" carries a white tick; the moment Apply is pressed the pill springs in from 55% and its tick draws itself.
 - **Count badges:** red pills (22px high, 11.5px 700 white) in the top-right corner of app icons, ringed in white.
 
 ### Cards / Containers

@@ -1769,3 +1769,11 @@ def test_the_unsubscribe_link_asks_first_then_stops_everything(client: TestClien
     client.post(f"/alerts/unsubscribe?token={token}", data={"List-Unsubscribe": "One-Click"})
     assert fake.unsubscribed == [token, token]
     assert client.post("/alerts/unsubscribe", data={"token": "not-a-token"}).status_code == 400
+
+
+def test_a_fresh_application_stamps_itself_in(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post("/applications", data={"advert_key": "b" * 32, "title": "Engineer",
+                                                  "company": "Stripe", "url": "https://x.example"},
+                           headers={"HX-Request": "true"})
+    assert "stamp--fresh" in response.text and "stamp__tick" in response.text

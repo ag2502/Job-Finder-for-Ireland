@@ -2497,8 +2497,9 @@ def mark_applied(
     return templates.TemplateResponse(
         request,
         "_applied_tag.html",
+        # `fresh`: this stamp replaces the Apply just pressed, so it draws itself in.
         {"request": request, "advert_key": advert_key, "title": title,
-         "company": company, "url": url},
+         "company": company, "url": url, "fresh": True},
     )
 
 

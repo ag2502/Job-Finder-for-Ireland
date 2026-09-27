@@ -350,6 +350,14 @@ p{margin:0 0 14px;max-width:var(--measure)}
 .stamp--filled{background:var(--tag-red);color:#fff}
 .stamp--brass{background:#fff4c7;color:#7a5800}
 .stamp--flat{transform:none}
+.stamp__tick{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
+  stroke-linecap:round;stroke-linejoin:round}
+@media (prefers-reduced-motion:no-preference){
+  .stamp--fresh{animation:stamp-in .5s var(--spring)}
+  .stamp--fresh .stamp__tick path{stroke-dasharray:16;stroke-dashoffset:16;animation:tick .4s .18s ease-out forwards}
+}
+@keyframes stamp-in{0%{transform:scale(.55);opacity:0}60%{opacity:1}100%{transform:none}}
+@keyframes tick{to{stroke-dashoffset:0}}
 
 /* ------------------------------------------------------------- controls --- */
 label{display:block}

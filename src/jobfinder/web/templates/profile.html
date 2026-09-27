@@ -108,7 +108,7 @@
                 <svg aria-hidden="true"><use href="#i-save"/></svg>Unsave
               </button>
               {% if item.applied %}
-                <span class="stamp stamp--filled">applied</span>
+                <span class="stamp stamp--filled stamp--applied"><svg class="stamp__tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 4.8"/></svg>applied</span>
               {% elif item.url %}
                 {% with advert_key = item.advert_key, title = item.title,
                         company = item.company, url = item.url %}{% include "_apply_button.html" %}{% endwith %}
@@ -142,7 +142,7 @@
           </div>
           <div class="record__side">
             <div class="record__actions">
-              <span class="stamp stamp--filled">applied</span>
+              <span class="stamp stamp--filled stamp--applied"><svg class="stamp__tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 4.8"/></svg>applied</span>
               <button class="linkish small" hx-post="/applications/remove"
                       hx-vals='{{ {"advert_key": item.advert_key}|tojson }}'
                       hx-headers='{"X-From": "profile"}'
