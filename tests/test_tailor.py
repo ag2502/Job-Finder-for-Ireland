@@ -275,6 +275,15 @@ def test_a_boost_never_brings_figures_of_its_own(monkeypatch):
     assert bullet.id not in result.edits
 
 
+def test_the_model_sees_which_section_each_paragraph_is_in():
+    text = (FIXTURES / "cv.txt").read_bytes() + (
+        b"\nPROJECTS\n- Built a voice agent with FastAPI and an LLM that books appointments.\n")
+    doc = document.load(text, "cv.txt")
+    lines = rewrite._paragraph_lines(doc, {}, False)
+    assert "(bullet in EXPERIENCE," in lines and "(bullet in PROJECTS," in lines
+    assert "(heading" in lines, "a heading has no section of its own"
+
+
 def test_a_tool_the_cv_never_names_is_refused_until_the_candidate_states_it(monkeypatch):
     doc = _load("cv.pdf")
     bullet = _by_text(doc, "Wrote SQL and dbt")

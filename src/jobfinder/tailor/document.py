@@ -123,6 +123,7 @@ class Paragraph:
     locked: bool
     limit: int  # the most characters a rewrite may use
     why_locked: str = ""
+    section: str = ""  # the heading it sits under, when that is a standard section name
     # Format-specific handles, kept out of anything serialised.
     _ref: object = field(default=None, repr=False)
     # The text with its bold phrases marked, as the model sees it.
@@ -277,7 +278,8 @@ def load(data: bytes, filename: str) -> CvDocument:
 
 
 def _lock_fact_sections(paragraphs: list[Paragraph]) -> None:
-    """Lock everything under Education, Certifications, Awards and the like."""
+    """Note each paragraph's section, and lock everything under Education,
+    Certifications, Awards and the like."""
     section, column = "", None
     for paragraph in paragraphs:
         name = plain(paragraph.text).strip()
@@ -291,6 +293,7 @@ def _lock_fact_sections(paragraphs: list[Paragraph]) -> None:
         if paragraph.kind == "heading" and _SECTION_NAMES.match(name):
             section = name
             continue
+        paragraph.section = section.rstrip(":").strip()
         if section and not paragraph.locked and _FACT_SECTIONS.search(section):
             paragraph.locked = True
             paragraph.why_locked = f"part of your {section.lower().rstrip(':')}"
