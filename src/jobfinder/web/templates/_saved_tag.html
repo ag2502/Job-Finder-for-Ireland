@@ -10,14 +10,14 @@
             hx-post="/saved/remove" hx-vals='{{ vals }}'
             hx-target="closest .save-mark" hx-swap="outerHTML"
             title="Remove from your saved list">
-      <svg aria-hidden="true"><use href="#i-save"/></svg>Saved
+      <svg aria-hidden="true"><use href="#i-save"/></svg><span class="savebtn__label">Saved</span>
     </button>
   {% else %}
     <button class="savebtn"
             hx-post="/saved" hx-vals='{{ vals }}'
             hx-target="closest .save-mark" hx-swap="outerHTML"
             title="Save this to come back to">
-      <svg aria-hidden="true"><use href="#i-save"/></svg>Save
+      <svg aria-hidden="true"><use href="#i-save"/></svg><span class="savebtn__label">Save</span>
     </button>
   {% endif %}
 </span>

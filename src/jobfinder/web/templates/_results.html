@@ -261,7 +261,7 @@
       <div class="record__side">
         <span class="meter" data-level="{{ item.strength }}" title="{{ item.strength_label }}: {{ item.why }}">
           <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
-          {{ item.strength_label }}
+          <span class="meter__label">{{ item.strength_label }}</span>
         </span>
 
         <div class="record__actions">
@@ -274,7 +274,7 @@
             {% else %}
               {# No account yet: Save is the same offer, it just needs one first. #}
               <a class="savebtn" href="/login?next=/&amp;why=save" title="Sign in to save this for later">
-                <svg aria-hidden="true"><use href="#i-save"/></svg>Save
+                <svg aria-hidden="true"><use href="#i-save"/></svg><span class="savebtn__label">Save</span>
               </a>
             {% endif %}
           {% endif %}

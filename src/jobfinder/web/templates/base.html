@@ -760,8 +760,33 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   html:not(.js) .menubar__nav{overflow-x:auto;scrollbar-width:none}
   html:not(.js) .menubar .status{display:none}
 }
+/* Phones: a row is four short lines rather than a stack. The logo, who and when share
+   the first with the match bars; the title takes the second; the chips share the last
+   with Save and Apply. The two wrappers step aside (display:contents) so their parts sit
+   on one grid, which fits five or six jobs to a screen where the stack fitted two. */
+@media (max-width:860px){
+  .resultswin .record{display:grid;grid-template-columns:30px minmax(0,1fr) auto;
+    column-gap:10px;row-gap:3px;padding:12px 14px 13px;align-items:center}
+  .resultswin .record__main,.resultswin .record__side{display:contents}
+  .resultswin .record .logo{--size:30px;grid-column:1;grid-row:1 / span 2;align-self:start;margin-top:2px}
+  .resultswin .record__top{grid-column:2 / -1;grid-row:1;margin:0;padding-right:30px}
+  /* Floated into the corner rather than given a column: a column would be as wide as
+     Apply below it, and squeeze the employer's name to a letter on a small phone. */
+  .resultswin .record__side .meter{position:absolute;top:14px;right:14px}
+  .resultswin .record__side .meter__label,.resultswin .record .savebtn__label{position:absolute;width:1px;height:1px;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .resultswin .record__title{grid-column:2 / -1;grid-row:2;font-size:1rem;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .resultswin .record .chips{grid-column:1 / 3;grid-row:3;margin:6px 0 0;gap:5px}
+  .resultswin .record .chips:empty{display:none}
+  .resultswin .record .chip{font-size:11.5px;padding:2px 8px}
+  .resultswin .record__actions{grid-column:3;grid-row:3;margin-top:6px;flex-wrap:nowrap;gap:6px}
+  .resultswin .record .btn--apply{padding:6px 13px}
+  .resultswin .record .savebtn{padding:0;width:40px;height:40px;justify-content:center}
+  .resultswin .record .savebtn svg{width:16px;height:16px}
+  .resultswin .record .also{grid-column:1 / -1;grid-row:4;margin-top:4px}
+}
 @media (max-width:420px){
-  .record__side{padding-left:0}
   .menubar .status{font-size:12.5px}
 }
 @media (max-width:380px){
