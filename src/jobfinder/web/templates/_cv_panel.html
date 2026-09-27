@@ -12,8 +12,7 @@
 {% if cv %}
   {% set paper = {
       "name": cv.name, "kind": cv.kind, "size": cv.size_label, "added": cv.added_on,
-      "summary": cv.summary, "years": cv.years, "seniority": cv.seniority,
-      "words": cv.words or 0, "skills": (cv.skills or [])[:24],
+      "summary": cv.summary, "words": cv.words or 0, "skills": (cv.skills or [])[:24],
       "fields": cv.field_list,
     } %}
   <div class="cvstage" data-cvstage data-cv='{{ paper|tojson }}'>
@@ -23,7 +22,6 @@
     <figure class="paper" aria-hidden="true">
       <div class="paper__top"><span>{{ cv.name }}</span><span>{{ cv.kind }} &middot; {{ cv.size_label }}</span></div>
       <p class="paper__title">{{ cv.summary or "Curriculum vitae" }}</p>
-      {% if cv.years is not none %}<p class="paper__sub">About {{ cv.years }} year{{ "" if cv.years == 1 else "s" }}{% if cv.seniority %} &middot; {{ cv.seniority }} level{% endif %}</p>{% endif %}
       {% if cv.field_list %}
       <p class="paper__label">Where it points</p>
       <div class="paper__pills">{% for f in cv.field_list %}<span style="--g:var(--g-{{ f.group }})">{{ f.label }}</span>{% endfor %}</div>
@@ -54,12 +52,6 @@
     {% if cv_error %}<p class="error" role="alert">{{ cv_error }}</p>{% endif %}
 
     {% if cv.summary %}<p class="cvread__summary">{{ cv.summary }}</p>{% endif %}
-
-    <div class="cvread__facts">
-      <div class="fact"><span>Experience</span><b>{% if cv.years is not none %}about {{ cv.years }} year{{ "" if cv.years == 1 else "s" }}{% else %}not stated{% endif %}</b></div>
-      <div class="fact"><span>Level</span><b>{{ cv.seniority or "not stated" }}</b></div>
-      <div class="fact"><span>Skills found</span><b>{{ cv.skills|length }}</b></div>
-    </div>
 
     {% if cv.field_list %}
     <h3 class="cvread__h">Where it points</h3>

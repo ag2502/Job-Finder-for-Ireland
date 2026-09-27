@@ -105,7 +105,7 @@
     var g = c.getContext('2d');
     g.scale(width / PW, height / PH);
 
-    var ink = token('--ink', '#15171c'), ink2 = token('--ink-2', '#454b56'),
+    var ink = token('--ink', '#15171c'),
         ink3 = token('--ink-3', '#5c626d'), line = token('--line', '#dde1e7');
 
     g.fillStyle = '#fff';
@@ -136,13 +136,6 @@
       g.fillStyle = ink;
       g.fillText('Curriculum vitae', M, 146);
       y = 146;
-    }
-    if (data.years !== null && data.years !== undefined) {
-      g.font = '500 17px Geist, system-ui, sans-serif';
-      g.fillStyle = ink2;
-      y += 34;
-      g.fillText('About ' + data.years + (data.years === 1 ? ' year' : ' years') +
-        (data.seniority ? ' · ' + data.seniority + ' level' : ''), M, y);
     }
 
     if (data.fields && data.fields.length) {

@@ -221,9 +221,6 @@
 
       <div class="about__block">
         {% call years_slider(me.years) %}
-          {% if me.cv and me.cv.years is not none %}
-            Your CV looks like about <strong>{{ me.cv.years }} years</strong>.
-          {% endif %}
           The finder shows jobs asking for this many years or fewer.
         {% endcall %}
       </div>
@@ -341,7 +338,6 @@
   .paper__top span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .paper__title{margin:0 0 .6em;font-size:1.75em;line-height:1.2;font-weight:700;letter-spacing:-.025em;color:var(--ink);
     display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
-  .paper__sub{margin:0 0 .4em;color:var(--ink-2);font-size:1.02em}
   .paper__label{margin:1.4em 0 .6em;font-size:.8em;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
   .paper__pills,.paper__skills{display:flex;flex-wrap:wrap;gap:.45em}
   .paper__pills span{display:inline-flex;align-items:center;gap:.45em;padding:.35em .8em;border-radius:99px;
@@ -371,12 +367,6 @@
   .cvread__file b{display:block;font-family:var(--mono);font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .cvread__live svg{flex:none}
   .cvread__summary{font-size:1.2rem;line-height:1.4;font-weight:600;letter-spacing:-.02em;margin:0 0 18px;text-wrap:pretty}
-  .cvread__facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1px;margin:0 0 22px;
-    background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .fact{background:#fff;padding:11px 14px}
-  .fact span{display:block;font-size:12px;font-weight:600;color:var(--ink-3)}
-  .fact b{display:block;font-size:15px;font-weight:650;letter-spacing:-.01em;text-transform:none}
-  .fact b::first-letter{text-transform:uppercase}
   .cvread__h{font-size:13.5px;font-weight:650;margin:0 0 4px;color:var(--ink)}
   .cvread__note{margin:0 0 10px}
   .cvread__fields{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
@@ -394,7 +384,7 @@
   .cvread__privacy{margin:14px 0 0}
   @media (prefers-reduced-motion:no-preference){
     .is-fresh .fpill,.is-fresh .skill{animation:tag-in .5s var(--spring) calc(var(--k,0) * 45ms + 350ms) both}
-    .is-fresh .cvread__summary,.is-fresh .cvread__facts{animation:rise-in .5s var(--ease) .2s both}
+    .is-fresh .cvread__summary{animation:rise-in .5s var(--ease) .2s both}
   }
   @keyframes tag-in{from{opacity:0;transform:translateY(10px) scale(.85)}}
 
@@ -618,8 +608,6 @@
     .me__acts,.me__acts .btn,.me__out,.me__out button{width:100%}
     .cvstage{min-height:380px}
     .cvstage__hint{bottom:auto;top:12px;left:16px;font-size:17px}
-    .cvread__facts{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-    .cvread__facts .fact:last-child{grid-column:1 / -1}
     .cvread__actions > form,.cvread__actions .btn{width:100%}
     .cvreading{flex-direction:column;gap:20px}
   }
@@ -627,7 +615,7 @@
 {% endblock %}
 
 {% block scripts %}
-{% if account %}<script src="/static/cvsheet-1.js" defer></script>{% endif %}
+{% if account %}<script src="/static/cvsheet-2.js" defer></script>{% endif %}
 <script>
 (function () {
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.tabs [role="tab"]'));

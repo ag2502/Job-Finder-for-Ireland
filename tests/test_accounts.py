@@ -1078,7 +1078,9 @@ def test_the_profile_shows_the_cv_or_asks_for_one(client: TestClient, fake):
     page = client.get("/profile").text
     assert "data-cvstage" in page and "jane-doe-cv.txt" in page
     assert "CV added" in page
-    assert "/static/cvsheet-1.js" in page
+    assert "/static/cvsheet-2.js" in page
+    # The years and level read from CV prose were too often wrong to print as fact.
+    assert "6 years" not in page and "senior level" not in page
 
 
 def test_a_new_upload_replaces_the_old_one(client: TestClient, fake):

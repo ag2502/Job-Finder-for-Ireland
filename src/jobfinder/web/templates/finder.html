@@ -223,13 +223,8 @@
           <div>
             {% set stated = profile.years if profile and profile.years is not none else none %}
             {% call years_slider(stated) %}
-              {% if me and me.cv and me.cv.years is not none and stated is none %}
-                Your CV looks like about <strong>{{ me.cv.years }} years</strong>. Slide to
-                narrow things down, or leave it on Any to see everything.
-              {% else %}
-                Shows jobs asking for that many years <strong>or fewer</strong>. At 2 or
-                less, graduate jobs come in too.
-              {% endif %}
+              Shows jobs asking for that many years <strong>or fewer</strong>. At 2 or
+              less, graduate jobs come in too.
             {% endcall %}
           </div>
           <div>

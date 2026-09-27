@@ -744,7 +744,10 @@ async def search(
         search_profile.update(
             skills=cv.get("skills") or [],
             corpus_terms=cv.get("terms") or [],
-            seniority=cv.get("seniority"),
+            # The CV's level and years are not passed on. Both are guesses from prose
+            # (a "Director" line anywhere reads a graduate as a director, and a school
+            # date as years of work), and they scored every role at the searcher's real
+            # level as a mismatch. Only the slider speaks for their experience.
             # What the CV says it is, as opposed to what the searcher ticked. Kept apart
             # from "fields" on purpose: the boxes are a statement of what they want to
             # do next, and the CV only a record of what they have done. Its fields are
