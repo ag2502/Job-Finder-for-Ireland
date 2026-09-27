@@ -55,6 +55,25 @@
     </form>
     {% endif %}
 
+    {% if has_file and not needs_text %}
+    {# A letter from the same CV, for the same advert. Written, shown, and left with
+       the person: nothing about it is kept. #}
+    <form class="tchoice-form" hx-post="/letter/start" hx-target="#tailor-body"
+          hx-swap="innerHTML" hx-indicator="#tailor" data-working="Writing your cover letter"
+          data-working-steps="Reading the job advert|Picking what in your CV fits it|Writing the letter|Checking every fact against your CV">
+      <input type="hidden" name="title" value="{{ job.title }}">
+      <input type="hidden" name="company" value="{{ job.company }}">
+      <input type="hidden" name="url" value="{{ job.url }}">
+      <input type="hidden" name="advert_key" value="{{ job.advert_key }}">
+      <input type="hidden" name="job_id" value="{{ job.job_id }}">
+      <button type="submit" class="tchoice">
+        <span class="tchoice__icon" aria-hidden="true"><svg width="22" height="22"><use href="#i-doc"/></svg></span>
+        <span class="tchoice__text"><b>Draft a cover letter</b>
+          <span>From your CV, for this advert, in about a minute. You can change every word before you use it.</span></span>
+      </button>
+    </form>
+    {% endif %}
+
     <button type="button" class="tchoice tchoice--plain" data-tailor-go>
       <span class="tchoice__icon" aria-hidden="true"><svg width="22" height="22"><use href="#i-arrow"/></svg></span>
       <span class="tchoice__text"><b>No thanks, take me to the job</b>
@@ -62,3 +81,4 @@
     </button>
   </div>
 </div>
+<style>.tchoice-form{display:block;margin:0}</style>

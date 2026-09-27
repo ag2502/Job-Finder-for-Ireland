@@ -74,6 +74,17 @@
   modal.addEventListener('click', function (e) {
     if (e.target.closest('[data-tailor-close]')) { close(); return; }
     if (e.target.closest('[data-tailor-go]')) { go(); return; }
+    // A cover letter's Copy: whatever is in the box now, edits and all.
+    var copy = e.target.closest('[data-letter-copy]');
+    if (copy) {
+      var text = body.querySelector('.letter__text');
+      if (!text || !navigator.clipboard) return;
+      navigator.clipboard.writeText(text.value).then(function () {
+        copy.textContent = 'Copied';
+        setTimeout(function () { copy.textContent = 'Copy'; }, 1800);
+      });
+      return;
+    }
     var cancel = e.target.closest('[data-tailor-cancel]');
     if (cancel) { close(); return; }
     // A missing keyword or a gap: start a sentence about it in the suggestion box.
@@ -111,6 +122,18 @@
     var trigger = e.detail.elt.closest('[data-working]');
     var title = modal.querySelector('[data-working-title]');
     if (title) title.textContent = trigger ? trigger.getAttribute('data-working') : 'Working';
+    // The steps shown while it works: tailoring's own, unless the trigger names others
+    // (a cover letter reads the same advert but does different things with it).
+    var steps = modal.querySelector('[data-working-steps]');
+    if (steps) {
+      if (!steps._tailoring) steps._tailoring = steps.innerHTML;
+      var named = trigger && trigger.getAttribute('data-working-steps');
+      steps.innerHTML = named
+        ? named.split('|').map(function (s) {
+            return '<li>' + s.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</li>';
+          }).join('')
+        : steps._tailoring;
+    }
     var started = Date.now(), el = modal.querySelector('[data-working-clock]');
     clearInterval(clock);
     if (el) {

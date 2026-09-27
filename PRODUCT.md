@@ -83,6 +83,10 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
 - New since your last visit (2026-09-27): for a signed-in searcher, "new" means found
   after their previous visit (a gap of an hour starts a new one), with a "show only
   these" toggle; signed out, it still means found in the last day.
+- Cover letter drafts (2026-09-27): Apply's window offers a letter written from the CV
+  on the profile for that advert, 180 to 260 words. Sentences with a figure found in
+  neither the CV nor the advert, or with a stock phrase, are removed before it is shown.
+  Editable, copied or downloaded as Word or text, and never stored; 15 a day.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
 - An employer directory covering the whole registry, including employers that cannot be

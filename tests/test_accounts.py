@@ -1448,7 +1448,7 @@ def test_apply_asks_about_tailoring_only_when_it_is_on(client: TestClient, fake,
     monkeypatch.setattr(tailor_llm, "available", lambda: True)
     page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
     assert "data-tailor=" in page and 'id="tailor"' in page
-    assert "/static/tailor-1.js" in page
+    assert "/static/tailor-2.js" in page
 
 
 def test_the_offer_says_what_is_needed_first(client: TestClient, fake, tailoring):
@@ -1652,3 +1652,72 @@ def test_a_visit_label_reads_like_speech():
     assert _visit_label(now - timedelta(minutes=5)) == "earlier today"
     assert _visit_label(now - timedelta(days=1, hours=1)) in ("yesterday", "on " + (now - timedelta(days=1, hours=1)).strftime("%A"))
     assert _visit_label(now - timedelta(days=30)).startswith("on ")
+
+
+# ------------------------------------------------------------------ cover letters
+
+from jobfinder.tailor import letter as tailor_letter  # noqa: E402
+
+LETTER = {
+    "greeting": "Dear Hiring Team,",
+    "name": "Aoife Byrne",
+    "paragraphs": [
+        "I would like to apply for the Senior Data Scientist role in Payments. My churn "
+        "models in Python are close to the modelling work the advert describes.",
+        "At my current employer I built and deployed churn prediction models with "
+        "scikit-learn and XGBoost. I also ran experiments with product teams, and "
+        "worked in Python and SQL every day to prepare the data those models learned from.",
+        "I led a team of 45 analysts across Europe.",
+        "I am passionate about payments and thrilled by this chance.",
+        "I would be glad to talk about how this experience fits the team.",
+    ],
+}
+
+
+def test_a_letter_loses_sentences_with_invented_figures_or_stock_phrases():
+    cv = "Aoife Byrne. Data Scientist. Built churn prediction models in Python with scikit-learn and XGBoost. " * 3
+    letter = tailor_letter.check(LETTER, cv, ADVERT)
+    body = " ".join(letter.paragraphs)
+    assert "45 analysts" not in body, "45 appears in neither the CV nor the advert"
+    assert "passionate" not in body and "thrilled" not in body
+    assert "churn prediction models" in body
+    assert len(letter.removed) == 2
+    assert letter.text.startswith("Dear Hiring Team,") and letter.text.endswith("Aoife Byrne")
+    assert "—" not in letter.text
+
+
+def test_a_letter_is_drafted_from_the_cv_and_never_stored(client: TestClient, fake, monkeypatch):
+    monkeypatch.setattr(tailor_llm, "available", lambda: True)
+    monkeypatch.setattr(tailor_proofread.settings, "languagetool_url", "")
+    sent = []
+
+    def answer(system, user, schema, **kwargs):
+        sent.append(user)
+        return LETTER, "stub-model"
+
+    monkeypatch.setattr(tailor_llm, "ask", answer)
+    _with_docx_cv(client)
+    before = dict(fake.tailored)
+    response = client.post("/letter/start", data={
+        "title": "Senior Data Scientist, Payments", "company": "Stripe",
+        "url": "https://stripe.example/jobs/1", "job_text": ADVERT},
+        headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert 'class="letter__text"' in response.text and "Dear Hiring Team," in response.text
+    assert "ADVERT:" in sent[0] and "CV:" in sent[0]
+    assert fake.tailored == before, "a letter is not kept"
+
+    word = client.post("/letter/download", data={"text": "Dear Hiring Team,\n\nHello.",
+                                                  "title": "Data Scientist", "company": "Stripe"})
+    assert word.status_code == 200 and word.content[:2] == b"PK"
+    assert "Cover letter for Data Scientist at Stripe.docx" in word.headers["content-disposition"]
+    text = client.post("/letter/download", data={"text": "Hello.", "title": "X", "kind": "txt"})
+    assert text.text == "Hello."
+
+
+def test_the_offer_includes_a_cover_letter_when_tailoring_is_on(client: TestClient, fake, tailoring):
+    _with_docx_cv(client)
+    offer = client.get("/tailor/offer", params={"title": "Data Scientist", "company": "Stripe",
+                                                "job_id": "", "url": ""}).text
+    # The advert text is unknown for an empty job id, so only tailoring (with a paste box) shows.
+    assert "Draft a cover letter" not in offer

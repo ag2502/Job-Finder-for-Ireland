@@ -2624,6 +2624,7 @@ def company_jobs(request: Request, company_id: int):
 
 from jobfinder.tailor import llm as tailor_llm  # noqa: E402
 from jobfinder.tailor import rewrite as tailor_rewrite  # noqa: E402
+from jobfinder.tailor import letter as tailor_letter  # noqa: E402
 
 TAILOR_DAILY_LIMIT = 10
 TAILOR_MAX_ROUNDS = 8
@@ -2982,6 +2983,96 @@ def tailor_download(request: Request, tailored_id: str):
     ascii_name = re.sub(r"[^\w. ,&()-]", "", name) or f"tailored-cv.{kind}"
     return Response(
         data, media_type=tailor_document.MIME[kind],
+        headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; "
+                                        f"filename*=UTF-8''{quote(name)}",
+                 "Cache-Control": "private, no-store"},
+    )
+
+
+# Cover letters a day, per browser session. Drafts are not stored, so this is counted in
+# the session cookie: a soft cap on the free models, not a security boundary.
+LETTER_DAILY_LIMIT = 15
+
+
+def _letter_allowance(request: Request) -> int:
+    """How many letters this session has written today, resetting at midnight UTC."""
+    today = datetime.now(timezone.utc).date().isoformat()
+    used = request.session.get("letters") or {}
+    return used.get("n", 0) if used.get("day") == today else 0
+
+
+@app.post("/letter/start", response_class=HTMLResponse)
+def letter_start(
+    request: Request,
+    title: str = Form(...),
+    company: str = Form(""),
+    url: str = Form(""),
+    advert_key: str = Form(""),
+    job_id: str = Form(""),
+    job_text: str = Form(""),
+    note: str = Form(""),
+):
+    """Draft a cover letter for one job from the CV on the profile.
+
+    Shown in the tailoring window for the person to read, change, copy or download.
+    Nothing is stored: the letter exists in the page and in whatever they save.
+    """
+    account = _tailor_account(request)
+    job = {"advert_key": advert_key, "title": title, "company": company, "url": url,
+           "job_id": job_id}
+    cv = (_stored_profile(account) or {}).get("cv") or {}
+    if not cv.get("file"):
+        return _tailor_error(request, "Add your CV to your profile first; the letter is "
+                             "written from it.", job=job)
+    text = job_text.strip() or _job_text(job_id, url)
+    if len(text) < TAILOR_MIN_JOB_CHARS:
+        return _tailor_error(request, "We need the job advert to write the letter for. Paste "
+                             "its description in and try again.", job=job)
+    used = _letter_allowance(request)
+    if used >= LETTER_DAILY_LIMIT:
+        return _tailor_error(request, f"That is {LETTER_DAILY_LIMIT} cover letters today, the "
+                             "daily limit that keeps this free. You can write more tomorrow.",
+                             job=job)
+    try:
+        document = _source_document(account, cv["file"], cv.get("name") or "cv.pdf")
+        letter = tailor_letter.write(document.text(), title, company, text, note=note)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not fetch the CV file for a letter", exc_info=True)
+        return _tailor_error(request, "Your CV file could not be fetched just now. Please try "
+                             "again in a moment.", job=job)
+    except (tailor_document.DocumentError, tailor_letter.LetterError) as exc:
+        return _tailor_error(request, str(exc), job=job)
+    request.session["letters"] = {
+        "day": datetime.now(timezone.utc).date().isoformat(), "n": used + 1,
+    }
+    context = _base_context(request) | {
+        "job": job, "letter": letter, "job_text": job_text,
+        "left": LETTER_DAILY_LIMIT - used - 1,
+    }
+    return templates.TemplateResponse(request, "_letter.html", context)
+
+
+@app.post("/letter/download")
+def letter_download(
+    request: Request,
+    text: str = Form(...),
+    title: str = Form(""),
+    company: str = Form(""),
+    kind: str = Form("docx"),
+):
+    """The letter as edited on the page, as a Word document or plain text."""
+    _tailor_account(request)
+    text = text.strip()[:12000]
+    name = re.sub(r'[\\/:*?"<>|\n\r\t]+', " ", f"Cover letter for {title} at {company}"
+                  if company else f"Cover letter for {title}")
+    name = re.sub(r"\s+", " ", name).strip()[:120]
+    if kind == "txt":
+        data, media, name = text.encode("utf-8"), "text/plain; charset=utf-8", name + ".txt"
+    else:
+        data, media, name = tailor_letter.docx(text), tailor_document.MIME["docx"], name + ".docx"
+    ascii_name = re.sub(r"[^\w. ,&()-]", "", name) or "cover-letter"
+    return Response(
+        data, media_type=media,
         headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; "
                                         f"filename*=UTF-8''{quote(name)}",
                  "Cache-Control": "private, no-store"},
