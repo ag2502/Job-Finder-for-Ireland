@@ -844,6 +844,11 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 @keyframes slap{0%{opacity:0;transform:translateY(-18px) rotate(-18deg) scale(1.7)}55%{opacity:1;transform:rotate(-5deg) scale(.94)}100%{transform:rotate(-7deg)}}
 @keyframes peel{to{opacity:0;transform:translate(10px,-14px) rotate(8deg) scale(.9)}}
 @media (max-width:860px){ .appsticker{top:-6px;right:44px;width:70px} .appsticker i{font-size:15px} }
+/* The smallest phones: smaller and higher, so it never sits on the title below. */
+@media (max-width:420px){
+  .appsticker{top:-14px;right:36px;width:58px;border-radius:6px}
+  .appsticker b{font-size:8.5px;padding:2px 0 1px} .appsticker i{font-size:13px;padding:0 0 3px}
+}
 @media (forced-colors:active){ .appsticker{border:1px solid CanvasText;filter:none} }
 .nametag{
   width:170px;background:#fff;border-radius:10px;overflow:hidden;

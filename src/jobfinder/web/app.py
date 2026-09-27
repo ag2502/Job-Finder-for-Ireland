@@ -1514,10 +1514,10 @@ def _facts_for(job: JobPosting) -> dict:
     return found
 
 
-def _visit_label(when: datetime) -> str:
-    """When a last visit was, as someone would say it: "this morning", "on Tuesday"."""
+def _visit_label(when: datetime, now: datetime | None = None) -> str:
+    """When a last visit was, as someone would say it: "earlier today", "on Tuesday"."""
     local = when.astimezone(DUBLIN)
-    today = datetime.now(DUBLIN).date()
+    today = (now or datetime.now(DUBLIN)).astimezone(DUBLIN).date()
     days = (today - local.date()).days
     if days <= 0:
         return "earlier today"

@@ -1656,10 +1656,12 @@ def test_a_visit_label_reads_like_speech():
 
     from jobfinder.web.app import _visit_label
 
-    now = datetime.now(timezone.utc)
-    assert _visit_label(now - timedelta(minutes=5)) == "earlier today"
-    assert _visit_label(now - timedelta(days=1, hours=1)) in ("yesterday", "on " + (now - timedelta(days=1, hours=1)).strftime("%A"))
-    assert _visit_label(now - timedelta(days=30)).startswith("on ")
+    # A fixed midday, so the test cannot fail just after midnight.
+    now = datetime(2026, 9, 24, 12, 0, tzinfo=timezone.utc)
+    assert _visit_label(now - timedelta(minutes=5), now) == "earlier today"
+    assert _visit_label(now - timedelta(days=1), now) == "yesterday"
+    assert _visit_label(now - timedelta(days=3), now) == "on Monday"   # 24 Sep 2026 is a Thursday
+    assert _visit_label(now - timedelta(days=30), now) == "on 25 August"
 
 
 # ------------------------------------------------------------------ cover letters
