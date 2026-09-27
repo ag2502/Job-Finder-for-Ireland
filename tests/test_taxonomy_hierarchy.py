@@ -192,6 +192,10 @@ def test_a_far_match_is_described_as_a_sideways_move():
         ("Data Warehouse Engineer", "supply-chain"),         # "warehouse"
         ("Device Driver Engineer", "transport"),             # "driver"
         ("Fleet Remediation Engineering", "transport"),      # "fleet"
+        # AI is named by phrase, never as a bare word, which would file these under ML.
+        ("AI Business Solution Sales Manager", "machine-learning"),
+        ("AI Recruiter", "machine-learning"),
+        ("Financial Services Graduate Programme", "finance"),  # "finance" is not "financial"
     ],
 )
 def test_broad_terms_do_not_capture_unrelated_titles(title, must_not_be):
@@ -211,6 +215,15 @@ def test_broad_terms_do_not_capture_unrelated_titles(title, must_not_be):
         ("IT Support Engineer", "it-support"),
         ("Controls Engineer - Automation", "electrical-engineering"),
         ("Clinical Research Associate", "clinical-research"),
+        # Graduate schemes are titled by area rather than by job, and none of these
+        # classified, so they sat under "every other graduate job" for an ML search.
+        ("AI & Data Graduate Programme FY28", "machine-learning"),
+        ("EY Ireland – AI & Data Graduate Programme 2027", "machine-learning"),
+        ("Graduate AI Automation Engineer", "machine-learning"),
+        ("Full Stack Engineer (AI/ML)", "machine-learning"),
+        ("Finance Graduate Pathways", "finance"),
+        ("Accountancy/Finance Graduate Development Programme 2027", "finance"),
+        ("Cyber Security Graduate Programme FY28", "security-engineering"),
     ],
 )
 def test_the_new_fields_classify_the_titles_they_were_added_for(title, expected):

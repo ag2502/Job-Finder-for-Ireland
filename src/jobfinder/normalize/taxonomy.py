@@ -200,7 +200,7 @@ _add(Field(
     label="Security & Cybersecurity",
     terms=("security engineer", "cybersecurity", "infosec", "application security",
            "penetration test", "security analyst", "soc analyst", "security architect",
-           "threat intelligence", "incident response"),
+           "threat intelligence", "incident response", "cyber security"),
     related=_near("devops", "cloud") + _far("network-engineering", "compliance", "backend"),
     skills=("siem", "splunk", "burp", "nmap", "owasp", "iso 27001", "soc 2",
             "penetration testing", "crowdstrike", "kali", "metasploit", "nessus",
@@ -250,7 +250,12 @@ _add(Field(
     label="Machine Learning & AI",
     terms=("machine learning", "ml engineer", "ai engineer", "deep learning", "nlp",
            "computer vision", "mlops", "artificial intelligence", "llm",
-           "applied scientist", "generative ai", "ml scientist", "prompt engineer"),
+           "applied scientist", "generative ai", "ml scientist", "prompt engineer",
+           # Graduate programmes are named by area, not by job title: "AI & Data
+           # Graduate Programme". A bare "ai" would also catch "AI Sales Manager".
+           "ai & data", "data & ai", "ai and data", "data and ai", "ai/ml",
+           "applied ai", "ai automation", "ai architect", "ai specialist",
+           "ai scientist", "ai developer"),
     related=_near("data-science", "data-engineering", "research-science")
             + _far("software-engineering"),
     skills=("pytorch", "tensorflow", "scikit-learn", "hugging face", "transformers",
@@ -523,7 +528,10 @@ _add(Field(
     label="Finance & Financial Services",
     terms=("financial analyst", "finance manager", "fp&a", "treasury", "controller",
            "investment analyst", "fund accountant", "credit analyst", "banking",
-           "financial controller", "corporate finance", "portfolio analyst"),
+           "financial controller", "corporate finance", "portfolio analyst",
+           # The bare word, for graduate schemes titled by area ("Finance Graduate
+           # Pathways"). It cannot reach "financial", which is spelt differently.
+           "finance"),
     related=_near("accounting", "business-intelligence")
             + _far("audit-risk", "compliance", "operations", "quantitative-finance"),
     skills=("excel", "sap", "oracle financials", "netsuite", "hyperion", "vba",
