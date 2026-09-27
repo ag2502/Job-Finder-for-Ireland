@@ -3,9 +3,9 @@
    Every skill starts switched on. Tapping one leaves it out and the headline recounts
    the jobs asking for at least one of those still on, from the job lists in the JSON
    below; hovering one says what it opens on its own. Counts only: which jobs they are
-   is the finder's business. #}
+   is the finder's business. Technical skills and the rest are listed apart. #}
 {% if demand and demand.rows %}
-{% set shown = 8 %}
+{% set shown = 8 if demand.groups|selectattr('rows')|list|length == 1 else 6 %}
 <section class="demand" data-demand>
   <h3 class="cvread__h">Your skills, in demand</h3>
   <div class="demand__head">
@@ -26,17 +26,25 @@
     <span class="drow__n">{{ "{:,}".format(r.count) }}</span>
   </button></li>
   {% endmacro %}
-  <ul class="demand__rows">
-    {% for r in demand.rows[:shown] %}{{ drow(r, loop.index0) }}{% endfor %}
-  </ul>
-  {% if demand.rows|length > shown %}
-  <details class="cvread__more demand__more">
-    <summary>and {{ demand.rows|length - shown }} more</summary>
+  {% for g in demand.groups %}
+  <div class="demand__group">
+    <h4 class="demand__kind">{{ g.label }}{% if g.rows %}<span>{{ g.rows|length }} skill{{ '' if g.rows|length == 1 else 's' }}</span>{% endif %}</h4>
+    {% if not g.rows %}
+    <p class="demand__none small muted">{% if g.on_cv %}No live job asks for these right now.{% else %}None picked up from your CV.{% endif %}</p>
+    {% endif %}
     <ul class="demand__rows">
-      {% for r in demand.rows[shown:] %}{{ drow(r, loop.index0) }}{% endfor %}
+      {% for r in g.rows[:shown] %}{{ drow(r, loop.index0) }}{% endfor %}
     </ul>
-  </details>
-  {% endif %}
+    {% if g.rows|length > shown %}
+    <details class="cvread__more demand__more">
+      <summary>and {{ g.rows|length - shown }} more</summary>
+      <ul class="demand__rows">
+        {% for r in g.rows[shown:] %}{{ drow(r, loop.index0) }}{% endfor %}
+      </ul>
+    </details>
+    {% endif %}
+  </div>
+  {% endfor %}
 
   <div class="demand__foot">
     {% if demand.idle %}

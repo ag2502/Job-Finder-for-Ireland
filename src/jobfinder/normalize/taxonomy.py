@@ -841,6 +841,16 @@ SKILL_FIELDS: dict[str, frozenset[str]] = {
     for skill in ALL_SKILLS
 }
 
+# The groups whose skills are technical: the tools and methods of building, data,
+# science and industry. Everything else (selling, finance, law, people, design, service)
+# is not, including the software those jobs run on: Salesforce is a sales skill.
+TECHNICAL_GROUPS = frozenset({"engineering", "data-ai", "science-health", "industry"})
+
+
+def is_technical(skill: str) -> bool:
+    """Whether any field listing this skill is a technical one."""
+    return any(FIELDS[key].group in TECHNICAL_GROUPS for key in SKILL_FIELDS.get(skill, ()))
+
 
 def relatedness(keys: list[str] | tuple[str, ...]) -> dict[str, float]:
     """The neighbours one hop out from the chosen fields, and how close each one is.

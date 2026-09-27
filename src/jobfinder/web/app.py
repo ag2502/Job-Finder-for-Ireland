@@ -71,7 +71,7 @@ from jobfinder.normalize.dedup import (
     same_employer,
 )
 from jobfinder.normalize.experience import matches_experience
-from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills
+from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills, is_technical
 
 logger = logging.getLogger(__name__)
 
@@ -1106,10 +1106,22 @@ def _cv_demand(skills: list[str]) -> dict:
     top = rows[0]["count"] if rows else 1
     for r in rows:
         r["w"] = round(r["count"] / top, 3)
+    # Technical and non technical apart, each busiest first, on the one shared scale so
+    # a bar in either group still compares with a bar in the other. Both are always
+    # there: an empty one says so, which is itself a reading of the CV.
+    groups = [
+        {
+            "label": label,
+            "rows": [r for r in rows if is_technical(r["skill"]) == technical],
+            "on_cv": any(is_technical(skill) == technical for skill in skills),
+        }
+        for label, technical in (("Technical", True), ("Non technical", False))
+    ]
     return {
         "total": total,
         "any": len(dense),
         "rows": rows,
+        "groups": groups,
         "idle": sorted(skill for skill, jobs in asked.items() if not jobs),
         "jobs": {
             skill: sorted(dense[j] for j in jobs) for skill, jobs in asked.items() if jobs

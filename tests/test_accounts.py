@@ -1122,6 +1122,24 @@ def test_the_cv_panel_counts_the_live_jobs_asking_for_its_skills(
     assert data["total"] == 10 and set(data["jobs"]["aws"]) & set(data["jobs"]["python"])
 
 
+def test_the_demand_panel_lists_technical_skills_apart(monkeypatch):
+    from jobfinder.web import app as web
+
+    monkeypatch.setattr(web, "_skill_demand", lambda: (10, {
+        "python": frozenset({1, 2}), "salesforce": frozenset({3, 4, 5}),
+        "jira": frozenset({6}),
+    }))
+    demand = web._cv_demand(["python", "salesforce", "jira"])
+    assert [(g["label"], [r["skill"] for r in g["rows"]]) for g in demand["groups"]] == [
+        ("Technical", ["python"]), ("Non technical", ["salesforce", "jira"]),
+    ]
+    # An empty group still shows, saying whether the CV has any such skill at all.
+    only = web._cv_demand(["python"])
+    assert [(g["label"], len(g["rows"]), g["on_cv"]) for g in only["groups"]] == [
+        ("Technical", 1, True), ("Non technical", 0, False),
+    ]
+
+
 def test_the_demand_count_needs_a_signed_in_account(client: TestClient, fake):
     assert client.get("/profile/cv/demand").status_code == 401
 
