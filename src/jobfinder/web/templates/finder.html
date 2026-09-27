@@ -701,13 +701,20 @@
   .jobsheet__acts .savebtn__label{position:static;width:auto;height:auto;clip:auto}
   /* While the advert loads: a few grey lines where it will be. */
   .jobsheet__skel i{display:block;height:12px;border-radius:6px;background:#eceef2;margin:0 0 12px}
-  .jobsheet__skel i:first-child{height:22px;width:70%;margin-bottom:22px}
+  /* The heading is the row's own, so the first bar stands for the facts strip. */
+  .jobsheet__skel{margin-top:22px}
+  .jobsheet__skel i:first-child{height:62px;width:100%;border-radius:12px;margin-bottom:22px}
   .jobsheet__skel i:nth-child(3n){width:84%}
   @media (prefers-reduced-motion:no-preference){
     .jobsheet__skel i{animation:skel 1.2s ease-in-out infinite alternate}
   }
   @keyframes skel{to{opacity:.45}}
   @media (prefers-reduced-motion:reduce){ .jobsheet__win,.jobsheet__scrim{transition:none} }
+  /* Opened by a flight from its row (a view transition): the panel is simply there, and
+     the transition does the moving. */
+  .jobsheet.is-instant .jobsheet__win,.jobsheet.is-instant .jobsheet__scrim{transition:none}
+  ::view-transition-group(jobx-logo),::view-transition-group(jobx-title){
+    animation-duration:.46s;animation-timing-function:cubic-bezier(.2,.9,.2,1)}
   /* A phone: a sheet from the bottom, nearly the whole screen, with its own close. */
   @media (max-width:860px){
     .jobsheet__win{top:auto;left:0;right:0;bottom:0;width:auto;height:calc(100dvh - 44px);
@@ -974,29 +981,124 @@
     var current = null, lastFocus = null, closing = null;
     var skeleton = '<div class="jobsheet__skel" aria-hidden="true">' + new Array(10).join('<i></i>') + '</div>';
 
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var ticket = 0;   // which opening the advert on its way belongs to
+
+    // The row's own logo, employer and title, as the panel's heading: the panel has it
+    // the moment it opens, and the advert fills in beneath. Built to the same markup the
+    // server sends (_job_detail.html), so nothing moves when the real one replaces it.
+    function heading(card) {
+      var article = document.createElement('article');
+      article.className = 'jobx';
+      var head = document.createElement('header');
+      head.className = 'jobx__head';
+      var logo = card.querySelector('.logo');
+      if (logo) { logo = logo.cloneNode(true); logo.classList.add('logo--lg'); head.appendChild(logo); }
+      var who = document.createElement('div');
+      who.className = 'jobx__who';
+      var employer = document.createElement('p');
+      employer.className = 'jobx__employer';
+      employer.textContent = ((card.querySelector('.record__employer') || {}).textContent || '').trim();
+      var title = document.createElement('h2');
+      title.className = 'jobx__title';
+      title.id = 'jobx-title';
+      title.textContent = ((card.querySelector('.record__title') || {}).textContent || '').trim();
+      who.appendChild(employer); who.appendChild(title); head.appendChild(who);
+      article.appendChild(head);
+      article.insertAdjacentHTML('beforeend', skeleton);
+      return article;
+    }
+
+    // Why this job is in the search: the row's meter and chips, said in full.
+    function match(card) {
+      var slot = body.querySelector('[data-jobx-match]');
+      var meter = card.querySelector('.meter'), chips = card.querySelector('.chips');
+      if (!slot || !meter) return;
+      var m = meter.cloneNode(true);
+      var why = (meter.getAttribute('title') || '').split(': ').slice(1).join(': ');
+      m.removeAttribute('title');
+      slot.appendChild(m);
+      if (why) { var p = document.createElement('p'); p.textContent = why; slot.appendChild(p); }
+      if (chips && chips.children.length) slot.appendChild(chips.cloneNode(true));
+    }
+
     function open(card) {
       clearTimeout(closing);
+      var alreadyOpen = !sheet.hidden && sheet.classList.contains('is-open');
       current = card;
-      lastFocus = document.activeElement;
-      var id = card.getAttribute('data-job');
+      if (!alreadyOpen) lastFocus = document.activeElement;
+      var id = card.getAttribute('data-job'), mine = ++ticket;
       var who = card.querySelector('.record__employer');
       name.textContent = (who ? who.textContent.trim() : 'job') + ': advert';
       page.href = '/jobs/' + id;
-      body.innerHTML = skeleton;
-      body.scrollTop = 0;
       acts.innerHTML = '';
       var own = card.querySelector('.record__actions');
       if (own) { acts.innerHTML = own.innerHTML; htmx.process(acts); }
       watch.takeRecords();   // copying the row in is not a change to copy back
-      sheet.hidden = false;
-      document.documentElement.classList.add('job-open');
-      requestAnimationFrame(function () { sheet.classList.add('is-open'); });
-      htmx.ajax('GET', '/jobs/' + id, { target: body, swap: 'innerHTML' });
+
+      var arrived = fetch('/jobs/' + id, { headers: { 'HX-Request': 'true' } })
+        .then(function (r) { return r.text(); })
+        .catch(function () {
+          return '<p class="jobx__gone">This advert could not be loaded. Check your connection and try again.</p>';
+        });
+      function show() {
+        body.innerHTML = '';
+        body.appendChild(heading(card));
+        body.scrollTop = 0;
+        sheet.hidden = false;
+        document.documentElement.classList.add('job-open');
+      }
+
+      // Opening from the list, the row's logo and title fly into the panel's heading
+      // (a view transition); the advert is put in only once they have landed, so
+      // nothing under them changes mid-flight. Stepping between jobs with the panel
+      // open, or without view transitions, it simply changes.
+      var landed;
+      var logo = card.querySelector('.logo'), title = card.querySelector('.record__title');
+      if (!alreadyOpen && document.startViewTransition && !reduced.matches && logo && title) {
+        // Both titles are shrunk to their text for the flight: the row's box is far wider
+        // and shorter than the panel's, and scaling one shape into the other stretched
+        // the words.
+        logo.style.viewTransitionName = 'jobx-logo';
+        title.style.viewTransitionName = 'jobx-title';
+        title.style.width = 'fit-content';
+        sheet.classList.add('is-instant');
+        var flight = document.startViewTransition(function () {
+          logo.style.viewTransitionName = '';
+          title.style.viewTransitionName = '';
+          title.style.width = '';
+          show();
+          sheet.classList.add('is-open');
+          var head = body.querySelector('.jobx__head');
+          head.querySelector('.logo').style.viewTransitionName = 'jobx-logo';
+          var to = head.querySelector('.jobx__title');
+          to.style.viewTransitionName = 'jobx-title';
+          to.style.width = 'fit-content';
+        });
+        landed = flight.finished.catch(function () {}).then(function () {
+          sheet.classList.remove('is-instant');
+          Array.prototype.forEach.call(body.querySelectorAll('.jobx__head [style]'), function (el) {
+            el.style.viewTransitionName = '';
+            el.style.width = '';
+          });
+        });
+      } else {
+        show();
+        if (!alreadyOpen) requestAnimationFrame(function () { sheet.classList.add('is-open'); });
+        landed = Promise.resolve();
+      }
+      Promise.all([arrived, landed]).then(function (done) {
+        if (mine !== ticket || current !== card) return;   // another job was opened since
+        body.innerHTML = done[0];
+        htmx.process(body);
+        match(card);
+      });
       body.focus({ preventScroll: true });
     }
 
     function close() {
       if (sheet.hidden) return;
+      ticket++;
       sheet.classList.remove('is-open');
       document.documentElement.classList.remove('job-open');
       closing = setTimeout(function () {
@@ -1006,22 +1108,6 @@
       current = null;
     }
     window.SortedJob = { open: open, close: close, current: function () { return current; } };
-
-    // Why this job is in the search: the row's meter and chips, said in full.
-    document.body.addEventListener('htmx:afterSwap', function (e) {
-      if (e.detail.target === body && current) {
-        var slot = body.querySelector('[data-jobx-match]');
-        var meter = current.querySelector('.meter'), chips = current.querySelector('.chips');
-        if (slot && meter) {
-          var m = meter.cloneNode(true);
-          var why = (meter.getAttribute('title') || '').split(': ').slice(1).join(': ');
-          m.removeAttribute('title');
-          slot.appendChild(m);
-          if (why) { var p = document.createElement('p'); p.textContent = why; slot.appendChild(p); }
-          if (chips && chips.children.length) slot.appendChild(chips.cloneNode(true));
-        }
-      }
-    });
 
     // Save or Apply changed in the panel: the row takes the same state. Watched rather
     // than caught from htmx's events, because both swap themselves out whole and the
@@ -1167,6 +1253,12 @@
         el.classList.add('filed-in', 'filed-now');
       });
       nameOnScreen();
+      // Given back once the move is over, so the next change starts clean.
+      setTimeout(function () {
+        Array.prototype.forEach.call(document.querySelectorAll('#result-list [data-job]'), function (el) {
+          el.style.viewTransitionName = '';
+        });
+      }, 700);
     });
   })();
 
