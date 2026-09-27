@@ -317,7 +317,8 @@ def _total(response) -> int:
     """Pull the result count out of the rendered heading."""
     import re
 
-    match = re.search(r"([\d,]+) (?:job|internship)", response.text)
+    # The figure sits in its own element (it rolls when it changes), so allow a tag.
+    match = re.search(r"([\d,]+)(?:</\w+>)? (?:job|internship)", response.text)
     return int(match.group(1).replace(",", "")) if match else 0
 
 
@@ -1037,7 +1038,7 @@ def test_the_work_mode_picker_narrows_to_what_adverts_state(client):
                              headers={"HX-Request": "true"})
     hybrid = client.post("/search", data={"chosen_fields": ["software-engineering"], "mode": "hybrid"},
                          headers={"HX-Request": "true"})
-    total = lambda r: int(re.search(r'class="rstick__count">\s*<b>([\d,]+)</b>', r.text).group(1).replace(",", ""))
+    total = lambda r: int(re.search(r'class="rstick__count">\s*<b[^>]*>([\d,]+)</b>', r.text).group(1).replace(",", ""))
     assert total(hybrid) <= total(everything)
     assert hybrid.headers["HX-Push-Url"].endswith("mode=hybrid")
     rows = re.findall(r'<article class="record.*?</article>', hybrid.text, re.S)
