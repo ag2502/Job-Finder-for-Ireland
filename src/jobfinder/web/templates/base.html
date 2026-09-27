@@ -745,8 +745,12 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 .pulling span.sub{display:block;font-size:13px;color:var(--ink-2);max-width:62ch}
 .htmx-indicator{opacity:0;transition:opacity .2s}
 .htmx-request .htmx-indicator,.htmx-request.htmx-indicator{opacity:1}
-#results{transition:opacity .2s var(--ease)}
-#results.htmx-request{opacity:.45;pointer-events:none}
+/* While a search runs, the list gives way to skeleton rows shaped like the ones on their
+   way (finder.html), so the page says "results are coming" rather than dimming what is
+   about to be replaced. Show more has its own indicator and never hides the list. */
+#results.htmx-request{display:none}
+.skel{display:none}
+#results.htmx-request + .skel{display:block}
 
 /* ---------------------------------------------------------------- motion -- */
 /* One grammar: things open like windows do. Everything is visible without JS; the

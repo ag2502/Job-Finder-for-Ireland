@@ -281,6 +281,22 @@
     {% include "_results.html" %}
   {% endif %}
 </div>
+{# Stands in for the results while a search runs: see #results.htmx-request in base.html. #}
+<div class="skel win resultswin" aria-hidden="true">
+  {{ titlebar("results: sorting") }}
+  <div class="skel__head"><i class="skel__h"></i><i class="skel__sub"></i></div>
+  {% for n in range(7) %}
+  <div class="skel__row" style="--n:{{ n }}">
+    <i class="skel__logo"></i>
+    <div class="skel__main">
+      <i class="skel__who"></i>
+      <i class="skel__title" style="width:{{ [72, 58, 84, 64, 78, 52, 70][n] }}%"></i>
+      <span class="skel__chips"><i></i><i></i>{% if n % 2 %}<i></i>{% endif %}</span>
+    </div>
+    <i class="skel__btn"></i>
+  </div>
+  {% endfor %}
+</div>
 </section>
 
 {# The keyboard, for anyone working through a long list at a desk. "?" opens this. #}
@@ -623,6 +639,33 @@
   .slipwin.is-received{animation:receive .7s var(--spring)}
   @keyframes gulp{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:none}}
   @keyframes receive{0%{transform:scale(.97)}50%{transform:scale(1.012)}100%{transform:none}}
+
+  /* ------------------------------------------------------ skeleton rows */
+  .skel__head i,.skel__row i{display:block;border-radius:7px;background:#e9ecf0}
+  .skel__head{padding:26px 26px 22px;border-bottom:1px solid var(--line)}
+  .skel__h{height:30px;width:min(260px,60%);margin-bottom:12px}
+  .skel__sub{height:12px;width:min(180px,40%)}
+  .skel__row{display:flex;align-items:flex-start;gap:16px;padding:19px 26px;border-bottom:1px solid var(--line)}
+  .skel__row:last-child{border-bottom:0}
+  .skel__logo{flex:none;width:44px;height:44px;border-radius:24%!important}
+  .skel__main{flex:1;min-width:0}
+  .skel__who{height:11px;width:30%;margin:4px 0 9px}
+  .skel__title{height:15px;margin-bottom:12px}
+  .skel__chips{display:flex;gap:6px}
+  .skel__chips i{height:20px;width:64px;border-radius:999px}
+  .skel__btn{flex:none;width:92px;height:32px;border-radius:999px!important;align-self:center}
+  @media (prefers-reduced-motion:no-preference){
+    /* A sheen passes down the rows, each a beat after the one above. */
+    .skel__head i,.skel__row i{background:linear-gradient(90deg,#e9ecf0 0%,#f4f5f8 45%,#e9ecf0 90%);background-size:220% 100%;
+      animation:sheen 1.3s ease-in-out infinite;animation-delay:calc(var(--n,0) * 70ms)}
+  }
+  @keyframes sheen{from{background-position:120% 0}to{background-position:-100% 0}}
+  @media (max-width:860px){
+    .skel__head{padding:18px 16px 16px}
+    .skel__row{padding:12px 14px;gap:10px}
+    .skel__logo{width:30px;height:30px}
+    .skel__btn{width:78px;height:30px}
+  }
 
   /* --------------------------------------------------------- one advert */
   html.job-open,html.job-open body{overflow:hidden}
