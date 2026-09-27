@@ -13,13 +13,13 @@
   <div class="spread">
     <h2 style="margin:0">
       {% if internships_only and graduate_only %}
-        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }} &amp; graduate job{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> internship{{ "" if total == 1 else "s" }} &amp; graduate job{{ "" if total == 1 else "s" }}
       {% elif internships_only %}
-        {{ "{:,}".format(total) }} internship{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> internship{{ "" if total == 1 else "s" }}
       {% elif graduate_only %}
-        {{ "{:,}".format(total) }} graduate job{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> graduate job{{ "" if total == 1 else "s" }}
       {% else %}
-        {{ "{:,}".format(total) }} job{{ "" if total == 1 else "s" }} match
+        <span data-roll>{{ "{:,}".format(total) }}</span> job{{ "" if total == 1 else "s" }} match
       {% endif %}
     </h2>
 
@@ -96,7 +96,7 @@
 {% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if within else 0) %}
 <div class="rstick">
   <p class="rstick__count">
-    <b>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
+    <b data-roll>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
     {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">

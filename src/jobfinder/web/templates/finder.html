@@ -1131,6 +1131,35 @@
     });
   })();
 
+  // Counts roll from the old total to the new one when a search or filter changes it,
+  // so "268" becoming "82" reads as the same list narrowing rather than a new page.
+  (function () {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var before = null;
+    var number = function (el) { return parseInt((el.textContent || '').replace(/[^\d]/g, ''), 10); };
+    document.body.addEventListener('htmx:beforeRequest', function (e) {
+      if (!e.detail.target || e.detail.target.id !== 'results') return;
+      var el = document.querySelector('#results [data-roll]');
+      before = el ? number(el) : null;
+    });
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (!e.detail.target || e.detail.target.id !== 'results' || before === null || reduced.matches) return;
+      var from = before;
+      before = null;
+      Array.prototype.forEach.call(document.querySelectorAll('#results [data-roll]'), function (el) {
+        var to = number(el);
+        if (isNaN(to) || to === from) return;
+        var t0 = null, span = Math.min(900, 380 + Math.abs(to - from) * 2);
+        (function step(ts) {
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / span), eased = 1 - Math.pow(1 - p, 4);
+          el.textContent = Math.round(from + (to - from) * eased).toLocaleString('en-IE');
+          if (p < 1) requestAnimationFrame(step);
+        })(performance.now());
+      });
+    });
+  })();
+
   // A seconds counter, so a long search reads as working rather than stuck.
   (function () {
     var elapsed = document.getElementById('search-elapsed');
