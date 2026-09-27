@@ -449,6 +449,18 @@
     .facets{-webkit-mask-image:none;mask-image:none}
   }
 
+  /* Rows rise into place as they scroll into view, driven by the scroll itself: no
+     script, nothing running while the page is still, and on browsers without scroll
+     timelines the rows are simply there. The first screen keeps its filing-in. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      #result-list .record,#result-list .cocard{
+        animation:scroll-in linear both;animation-timeline:view();animation-range:entry 0% entry 55%;
+      }
+    }
+  }
+  @keyframes scroll-in{from{opacity:.15;transform:translateY(26px) scale(.975)}}
+
   .guide__count{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
 
   .empty{padding:48px 24px 52px;text-align:center}
