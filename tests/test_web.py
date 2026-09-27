@@ -890,3 +890,15 @@ def test_a_band_heading_is_not_repeated_on_the_next_page():
     assert "In the fields you picked" not in continued
     changed = templates.get_template("_result_rows.html").render(prev_tier=None, **context)
     assert "In the fields you picked" in changed
+
+
+def test_the_filters_wait_for_show_jobs_on_a_phone(client):
+    """On a phone the filter bar is a sheet: it re-runs on change only when the sheet
+    layout is not holding it, and Show jobs fires `apply` to run it with every choice."""
+    page = client.post(
+        "/search", data={"chosen_fields": ["backend"]}, headers={"HX-Request": "true"}
+    ).text
+    assert 'hx-trigger="change[!rbarHeld], apply"' in page
+    assert "data-filters-apply" in page and "data-filters-open" in page
+    # Sort sits on the bar that stays, once, so paging never sends two orders.
+    assert page.count('name="sort"') == 1

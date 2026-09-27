@@ -79,10 +79,49 @@
   {% endif %}
 </div>
 
-{# The filter bar: a tab per field with its count, then who is hiring and the order.
-   One listener for all of it, so any change re-runs the search with the lot. #}
-<div class="rbar" hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
-     hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+{# The bar that stays: how many, the order, and a way back to the filters from anywhere
+   down the list. It sticks under the menu bar for as long as the results are on screen.
+   Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
+{% set active = (1 if facet else 0) + (1 if company else 0) %}
+<div class="rstick">
+  <p class="rstick__count">
+    <b>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
+    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}</span>{% endif %}
+  </p>
+  <label class="pick rstick__sort">
+    <span class="rstick__sortlabel">Sort</span>
+    <select name="sort" aria-label="Sort results"
+            hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
+            hx-swap="innerHTML show:#results:top" hx-trigger="change" hx-indicator="#search-loading, #results">
+      {% for key, label in sorts.items() %}
+      <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <button type="button" class="secondary rstick__filters" data-filters-open
+          aria-controls="rbar" aria-expanded="false">
+    <svg width="16" height="16" aria-hidden="true"><use href="#i-filter"/></svg>Filters
+    {%- if active %}<span class="rstick__n" aria-label="{{ active }} on">{{ active }}</span>{% endif %}
+  </button>
+</div>
+
+{# The filter bar: a tab per field with its count, then the layout and who is hiring.
+   One listener for all of it, so any change re-runs the search with the lot.
+
+   On a phone it is a sheet instead, opened from the bar above, and holds its changes
+   until "Show jobs": re-running on every tap would swap the results, and the sheet with
+   them, out from under the thumb. `rbarHeld` is set by the finder's script while the
+   sheet layout applies; `apply` is what Show jobs fires. #}
+<div class="rbar" id="rbar" role="group" aria-labelledby="rbar-title"
+     hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
+     hx-swap="innerHTML show:#results:top" hx-trigger="change[!rbarHeld], apply"
+     hx-indicator="#search-loading, #results">
+  <div class="rbar__head">
+    <h2 class="rbar__title" id="rbar-title">Filters</h2>
+    <button type="button" class="rbar__close" data-filters-close aria-label="Close filters">
+      <svg width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg>
+    </button>
+  </div>
   {% if facets and facets|length > 1 %}
   <div class="facets" role="radiogroup" aria-label="Show one field">
     <label class="facet facet--all">
@@ -117,18 +156,14 @@
       </select>
     </label>
     {% endif %}
-    <label class="pick">
-      <span>Sort</span>
-      <select name="sort">
-        {% for key, label in sorts.items() %}
-        <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
-          {{ label }}
-        </option>
-        {% endfor %}
-      </select>
-    </label>
+  </div>
+
+  <div class="rbar__foot">
+    <button type="button" class="secondary" data-filters-clear>Clear</button>
+    <button type="button" data-filters-apply>Show jobs</button>
   </div>
 </div>
+<div class="rscrim" data-filters-close hidden></div>
 
 {% if view == "company" and groups %}
 {# A card per employer, in the order its best role ranks. #}
@@ -212,6 +247,27 @@
   .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
+  /* The sheet's own heading and buttons, for phones only. */
+  .rbar__head,.rbar__foot{display:none}
+
+  /* The bar that stays: count, sort and Filters, under the menu bar all the way down. */
+  .resultswin{--rstick:50px}
+  .rstick{
+    position:sticky;top:calc(48px + env(safe-area-inset-top));z-index:6;
+    display:flex;align-items:center;gap:10px;height:var(--rstick);padding:0 26px;
+    background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);
+  }
+  .rstick__count{margin:0 auto 0 0;min-width:0;font-size:14px;color:var(--ink-2);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .rstick__count b{color:var(--ink);font-weight:700}
+  .rstick__on{color:var(--ink);font-weight:600}
+  .rstick__sort select{width:auto;font-size:13.5px;padding:6px 30px 6px 11px}
+  .rstick__filters{gap:7px;padding:6px 14px;min-height:0;font-size:13.5px}
+  .rstick__filters svg{transform:none!important}
+  .rstick__n{display:inline-grid;place-items:center;min-width:19px;height:19px;padding:0 5px;
+    border-radius:10px;background:var(--aqua);color:#fff;font-size:11.5px;font-weight:700;text-shadow:none}
+  /* Band headings stick under the bar rather than behind it. */
+  .resultswin .guide{top:calc(48px + var(--rstick) + env(safe-area-inset-top))}
 
   /* List or cards: a segmented control, the white thumb on the one in use. */
   .seg{display:inline-flex;padding:3px;border-radius:999px;background:#e2e5ea;
@@ -355,20 +411,46 @@
     .corole{padding:11px 14px}
     .rbar{padding:12px 16px}
   }
-  @media (max-width:700px){
-    .rbar{gap:10px;padding:12px 0}
-    .facets{padding:3px 16px;margin:-3px 0;scroll-snap-type:x proximity;scroll-padding:0 16px}
-    .facet{scroll-snap-align:start}
-    .rbar__picks{display:grid;grid-template-columns:1fr 1fr;margin:0;padding:0 16px}
-    .pick{flex-direction:column;align-items:stretch;gap:4px}
+  /* Phones and small tablets: the filter bar is a sheet that rises from the bottom,
+     opened from the bar that stays. Tabs wrap rather than scroll sideways in it, since
+     the sheet has the height to show them all. */
+  @media (max-width:860px){
+    .rstick{padding:0 12px 0 16px;gap:8px}
+    .rstick__sortlabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+    .rstick__sort select{max-width:132px;padding:6px 28px 6px 10px}
+    .rbar{
+      position:fixed;left:0;right:0;bottom:0;z-index:130;display:block;padding:0;gap:0;
+      max-height:min(84dvh,680px);overflow-y:auto;overscroll-behavior:contain;
+      background:#fff;border:0;border-radius:18px 18px 0 0;
+      box-shadow:0 -12px 44px -12px rgba(20,24,33,.4);
+      transform:translateY(102%);visibility:hidden;
+      transition:transform .38s var(--ease),visibility 0s .38s;
+    }
+    .rbar.is-open{transform:none;visibility:visible;transition:transform .38s var(--ease)}
+    .rbar__head{display:flex;align-items:center;justify-content:space-between;gap:12px;
+      position:sticky;top:0;z-index:1;padding:16px 12px 12px 18px;background:#fff;border-bottom:1px solid var(--line)}
+    .rbar__head::before{content:"";position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;
+      border-radius:2px;background:#d5dae1}
+    .rbar__title{margin:0;font-size:1.15rem;letter-spacing:-.02em}
+    .rbar__close{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;color:var(--ink-2);
+      background:var(--win-bar);border:0;box-shadow:none;text-shadow:none}
+    .rbar__close:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
+    .rbar__close svg{transform:none!important}
+    .facets{flex-wrap:wrap;overflow:visible;padding:16px 18px 6px;margin:0;-webkit-mask-image:none;mask-image:none}
+    .rbar__picks{display:grid;grid-template-columns:1fr;gap:14px;margin:0;padding:14px 18px 18px}
+    .pick{flex-direction:column;align-items:stretch;gap:5px}
     .pick select{max-width:none;width:100%}
-    .rbar__picks .seg{grid-column:1/-1;display:flex;margin-right:0}
-    .pick:only-of-type{grid-column:1/-1}
+    .rbar__picks .seg{display:flex;margin-right:0}
     .seg__opt{flex:1}
-    .seg__opt span{padding:7px 13px}
+    .seg__opt span{padding:8px 13px}
+    .rbar__foot{display:flex;gap:10px;position:sticky;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom));
+      background:#fff;border-top:1px solid var(--line)}
+    .rbar__foot button{flex:1}
+    .rbar__foot [data-filters-apply]{flex:2}
+    .rscrim{position:fixed;inset:0;z-index:125;background:rgba(20,24,33,.34)}
+    .rscrim[hidden]{display:none}
   }
-  /* The smallest phones: one picker per line, so neither is cut short. */
-  @media (max-width:359px){
-    .rbar__picks{grid-template-columns:1fr}
+  @media (max-width:860px) and (prefers-reduced-motion:reduce){
+    .rbar,.rbar.is-open{transition:none}
   }
 </style>
