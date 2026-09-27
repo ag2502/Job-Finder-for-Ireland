@@ -1205,25 +1205,45 @@ def _search_results(
         # counted within the other: with Amazon picked, the field tabs count Amazon's
         # jobs, so every tab says exactly what clicking it would show.
         total_all = len(items)
-        known_fields = {i["field"]["key"] for i in items if i["field"]}
+        known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}
         facet = facet if facet in known_fields else None
         company = company if company in {i["company"] for i in items} else None
 
         def in_facet(item: dict) -> bool:
-            return not facet or bool(item["field"] and item["field"]["key"] == facet)
+            if not facet:
+                return True
+            if facet == OTHER_FACET:
+                return not item["field"]
+            return bool(item["field"] and item["field"]["key"] == facet)
 
         def at_company(item: dict) -> bool:
             return not company or item["company"] == company
 
+        # Every field the searcher picked, and every one their CV points to, gets a tab
+        # even when nothing is open in it. Leaving it out read as though the choice had
+        # been ignored, when the honest answer is "none right now".
         field_counts: dict[str, dict] = {}
+        for tier, keys in ((rank.TIER_CHOSEN, candidate.fields),
+                           (rank.TIER_CV, candidate.cv_fields)):
+            for key in keys:
+                if key in FIELDS and key not in field_counts:
+                    field_counts[key] = {"key": key, "label": FIELDS[key].label,
+                                         "group": FIELDS[key].group, "count": 0, "tier": tier}
         company_counts: dict[str, int] = {}
         for item in items:
-            if at_company(item) and item["field"]:
-                entry = field_counts.setdefault(
-                    item["field"]["key"], dict(item["field"], count=0, tier=item["tier"])
-                )
+            if at_company(item):
+                # Rows no field claims get a tab of their own, so the tabs add up to All.
+                if item["field"]:
+                    entry = field_counts.setdefault(
+                        item["field"]["key"], dict(item["field"], count=0, tier=item["tier"])
+                    )
+                    entry["tier"] = min(entry["tier"], item["tier"])
+                else:
+                    entry = field_counts.setdefault(OTHER_FACET, {
+                        "key": OTHER_FACET, "label": "Other fields", "group": "",
+                        "count": 0, "tier": item["tier"],
+                    })
                 entry["count"] += 1
-                entry["tier"] = min(entry["tier"], item["tier"])
             if in_facet(item):
                 company_counts[item["company"]] = company_counts.get(item["company"], 0) + 1
         facet_all = sum(1 for i in items if at_company(i))
@@ -1280,8 +1300,12 @@ def _search_results(
         "total_all": total_all,
         "facet_all": facet_all,
         # The fields the searcher picked lead, in the same order as the bands below,
-        # then the busiest first within each.
-        "facets": sorted(field_counts.values(), key=lambda f: (f["tier"], -f["count"], f["label"])),
+        # then the busiest first within each. A field with nothing open still shows.
+        # Other fields comes last whatever its size.
+        "facets": sorted(
+            field_counts.values(),
+            key=lambda f: (f["key"] == OTHER_FACET, f["tier"], -f["count"], f["label"]),
+        ),
         "companies": sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold())),
         "facet": facet,
         "company": company,

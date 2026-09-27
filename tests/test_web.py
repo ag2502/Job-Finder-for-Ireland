@@ -206,6 +206,25 @@ def test_the_filter_bar_narrows_by_company_and_field(client):
     assert _total(type("R", (), {"text": ignored})) == _total(type("R", (), {"text": everything}))
 
 
+def test_every_picked_field_gets_a_tab_and_the_tabs_add_up_to_all(client):
+    """A picked field with nothing open used to vanish from the bar, which read as
+    though the choice had been ignored, and rows in no field had no tab at all."""
+    fields = {"chosen_fields": ["machine-learning", "data-science"], "graduate_only": "1"}
+    text = client.post("/search", data=fields, headers={"HX-Request": "true"}).text
+    tabs = dict(re.findall(
+        r'name="facet" value="([a-z-]+)"[^>]*>\s*<span class="facet__face">[^<]*<b>([\d,]+)</b>',
+        text,
+    ))
+    if not tabs:
+        pytest.skip("this snapshot has no graduate jobs to tab")
+    assert {"machine-learning", "data-science"} <= set(tabs)
+    everything = int(re.search(r'All <b>([\d,]+)</b>', text).group(1).replace(",", ""))
+    assert sum(int(n.replace(",", "")) for n in tabs.values()) == everything
+    for key, count in tabs.items():
+        if count == "0":
+            assert re.search(rf'value="{key}"[^>]*disabled', text), "an empty tab cannot be picked"
+
+
 def test_the_company_view_lays_the_same_results_out_by_employer(client):
     fields = {"chosen_fields": ["backend", "cloud", "devops"]}
     as_list = client.post("/search", data=fields, headers={"HX-Request": "true"}).text

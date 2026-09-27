@@ -113,8 +113,11 @@
       <span class="facet__face">All <b>{{ "{:,}".format(facet_all) }}</b></span>
     </label>
     {% for f in facets %}
-    <label class="facet" style="--g:var(--g-{{ f.group }})">
-      <input type="radio" name="facet" value="{{ f.key }}" {% if facet == f.key %}checked{% endif %}>
+    {# A field that was picked, or that the CV points to, stays on the bar with nothing
+       open in it, so the choice visibly counted. #}
+    <label class="facet{% if not f.count %} facet--empty{% endif %}"{% if f.group %} style="--g:var(--g-{{ f.group }})"{% endif %}
+           {% if not f.count %}title="Nothing open in {{ f.label }} right now"{% endif %}>
+      <input type="radio" name="facet" value="{{ f.key }}" {% if facet == f.key %}checked{% endif %}{% if not f.count %} disabled{% endif %}>
       <span class="facet__face">{{ f.label }} <b>{{ "{:,}".format(f.count) }}</b></span>
     </label>
     {% endfor %}
@@ -362,6 +365,9 @@
   .facet--all input:checked + .facet__face{background:var(--ink);border-color:var(--ink);color:#fff}
   .facet--all input:checked + .facet__face b{color:rgba(255,255,255,.72)}
   .facet input:focus-visible + .facet__face{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .facet--empty{cursor:default}
+  .facet--empty .facet__face{background:transparent;border-style:dashed;color:var(--ink-3);box-shadow:none}
+  .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
 
