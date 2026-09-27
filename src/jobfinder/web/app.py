@@ -668,6 +668,8 @@ async def search(
     sort: str | None = Form(default=None),
     show_applied: str | None = Form(default=None),
     use_cv: str | None = Form(default=None),
+    facet: str | None = Form(default=None),
+    company: str | None = Form(default=None),
 ):
     previous_profile = _profile(request) or {}
 
@@ -754,6 +756,8 @@ async def search(
             applied_keys=applied,
             saved_keys=saved_keys,
             show_applied=bool(show_applied),
+            facet=facet or None,
+            company=company or None,
         )
     )
 
@@ -999,8 +1003,15 @@ def _search_results(
     applied_keys: set[str] | None = None,
     saved_keys: set[str] | None = None,
     show_applied: bool = False,
+    facet: str | None = None,
+    company: str | None = None,
 ) -> dict:
-    """Rank the active jobs against a profile and build the template context."""
+    """Rank the active jobs against a profile and build the template context.
+
+    `facet` (a field key) and `company` (an employer name) narrow a search that has
+    already run, from the filter bar above the results. They never change the ranking
+    or the counts the bar itself shows, which are taken before either applies.
+    """
     candidate = Candidate(
         skills=set(profile.get("skills") or []),
         fields=profile.get("fields") or [],
@@ -1159,6 +1170,34 @@ def _search_results(
             )
             items = dated + undated
 
+        # The filter bar's counts are taken before it narrows anything, and each side is
+        # counted within the other: with Amazon picked, the field tabs count Amazon's
+        # jobs, so every tab says exactly what clicking it would show.
+        total_all = len(items)
+        known_fields = {i["field"]["key"] for i in items if i["field"]}
+        facet = facet if facet in known_fields else None
+        company = company if company in {i["company"] for i in items} else None
+
+        def in_facet(item: dict) -> bool:
+            return not facet or bool(item["field"] and item["field"]["key"] == facet)
+
+        def at_company(item: dict) -> bool:
+            return not company or item["company"] == company
+
+        field_counts: dict[str, dict] = {}
+        company_counts: dict[str, int] = {}
+        for item in items:
+            if at_company(item) and item["field"]:
+                entry = field_counts.setdefault(
+                    item["field"]["key"], dict(item["field"], count=0, tier=item["tier"])
+                )
+                entry["count"] += 1
+                entry["tier"] = min(entry["tier"], item["tier"])
+            if in_facet(item):
+                company_counts[item["company"]] = company_counts.get(item["company"], 0) + 1
+        facet_all = sum(1 for i in items if at_company(i))
+        items = [i for i in items if in_facet(i) and at_company(i)]
+
         # One employer often opens the same role several times over (four "Software
         # Development Engineer, AWS Database Migration Service" adverts at once), and
         # listing each as its own row buried everything below them. Repeats fold under
@@ -1184,6 +1223,14 @@ def _search_results(
     return {
         "items": page_items,
         "total": total,
+        "total_all": total_all,
+        "facet_all": facet_all,
+        # The fields the searcher picked lead, in the same order as the bands below,
+        # then the busiest first within each.
+        "facets": sorted(field_counts.values(), key=lambda f: (f["tier"], -f["count"], f["label"])),
+        "companies": sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold())),
+        "facet": facet,
+        "company": company,
         "page": page,
         "pages": max(1, (len(rows_out) + per_page - 1) // per_page),
         "query": query or "",

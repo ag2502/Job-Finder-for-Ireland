@@ -170,9 +170,40 @@ def test_every_record_carries_employer_title_and_date(client):
         "/search",
         data={"chosen_fields": ["backend"]},
     )
-    for part in ("record__employer", "record__title", "accession"):
+    for part in ("record__employer", "record__title", "record__age"):
         assert part in response.text
     assert "btn--apply" in response.text, "every record needs an apply link"
+
+
+def test_the_filter_bar_narrows_by_company_and_field(client):
+    """The tabs and the company picker narrow a search without re-ranking it."""
+    fields = {"chosen_fields": ["backend", "cloud", "devops"]}
+    everything = client.post("/search", data=fields, headers={"HX-Request": "true"}).text
+    companies = re.findall(r'<option value="([^"]+)"[^>]*>[^<]*\((\d+)\)</option>', everything)
+    assert companies, "the company picker lists who is hiring"
+    name, count = companies[0]
+
+    narrowed = client.post(
+        "/search", data={**fields, "company": name}, headers={"HX-Request": "true"}
+    ).text
+    assert _total(type("R", (), {"text": narrowed})) == int(count)
+    employers = set(re.findall(r'class="record__employer">([^<]+)<', narrowed))
+    assert employers == {name.replace("&", "&amp;")}
+    assert "Show all" in narrowed
+
+    tabs = re.findall(r'name="facet" value="([a-z_]+)"', everything)
+    assert tabs, "a search over several fields offers a tab per field"
+    one = client.post(
+        "/search", data={**fields, "facet": tabs[0]}, headers={"HX-Request": "true"}
+    ).text
+    assert _total(type("R", (), {"text": one})) < _total(type("R", (), {"text": everything}))
+
+    # Nonsense filters are ignored rather than emptying the list.
+    ignored = client.post(
+        "/search", data={**fields, "facet": "nope", "company": "Nobody Ltd"},
+        headers={"HX-Request": "true"},
+    ).text
+    assert _total(type("R", (), {"text": ignored})) == _total(type("R", (), {"text": everything}))
 
 
 def test_htmx_request_returns_only_the_table(client):

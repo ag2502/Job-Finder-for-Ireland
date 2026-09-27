@@ -12,7 +12,11 @@
   "0 years" search silently became a search of every level (81 jobs, then 244).
 #}
 {% from "_macros.html" import logo, titlebar %}
-{% set rerun_include = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied]" %}
+{% set rerun_base = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied]" %}
+{# The filter bar rides along with paging and re-sorting, but a new search from the form
+   starts unfiltered, since the form does not include it. #}
+{% set rerun_include = rerun_base ~ ", #results input[name=facet], #results select[name=company]" %}
+{% set filtered = facet or company %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 {# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
@@ -27,7 +31,7 @@
    } %}
 
 <div class="win resultswin">
-{{ titlebar("results: " ~ ("{:,}".format(total)) ~ " found") }}
+{{ titlebar("results: " ~ ("{:,}".format(total_all|default(total))) ~ " found") }}
 <div class="drawerhead">
   <div class="spread">
     <h2 style="margin:0">
@@ -45,7 +49,7 @@
     <div class="row" style="gap:16px">
       {% if new_count %}<span class="stamp">{{ new_count }} new</span>{% endif %}
       {% if account and applied_count %}
-      <label class="accession" style="display:flex;align-items:center;gap:7px;cursor:pointer"
+      <label class="rsummary" style="display:flex;align-items:center;gap:7px;cursor:pointer"
              title="{{ applied_count }} job{{ '' if applied_count == 1 else 's' }} you have applied to">
         <input type="checkbox" name="show_applied" value="1" {% if show_applied %}checked{% endif %}
                hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
@@ -53,22 +57,18 @@
         show applied
       </label>
       {% endif %}
-      <label class="accession" style="display:flex;align-items:center;gap:8px">
-        Sort
-        <select name="sort" style="width:auto;font-size:13px;padding:5px 24px 5px 2px"
-                hx-post="/search" hx-include="{{ rerun_include }}"
-                hx-target="#results" hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
-          {% for key, label in sorts.items() %}
-          <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
-            {{ label }}
-          </option>
-          {% endfor %}
-        </select>
-      </label>
     </div>
   </div>
 
-  <p class="accession" style="margin:12px 0 0;color:var(--ink-3);line-height:1.6">
+  <p class="rsummary">
+    {% if filtered %}
+      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}</strong>,
+      from {{ "{:,}".format(total_all) }} in all
+      <button class="linkish" type="button"
+              hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
+              hx-swap="innerHTML" hx-indicator="#search-loading, #results">Show all</button>
+      <br>
+    {% endif %}
     {% if candidate_years is not none and not early_only %}
       {% if candidate_years > 15 %}15+ years of experience &middot;
       {% else %}asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;{% endif %}
@@ -100,6 +100,50 @@
     more areas, or turn on remote jobs.
   </p>
   {% endif %}
+</div>
+
+{# The filter bar: a tab per field with its count, then who is hiring and the order.
+   One listener for all of it, so any change re-runs the search with the lot. #}
+<div class="rbar" hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
+     hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+  {% if facets and facets|length > 1 %}
+  <div class="facets" role="radiogroup" aria-label="Show one field">
+    <label class="facet facet--all">
+      <input type="radio" name="facet" value="" {% if not facet %}checked{% endif %}>
+      All <b>{{ "{:,}".format(facet_all) }}</b>
+    </label>
+    {% for f in facets %}
+    <label class="facet" style="--g:var(--g-{{ f.group }})">
+      <input type="radio" name="facet" value="{{ f.key }}" {% if facet == f.key %}checked{% endif %}>
+      {{ f.label }} <b>{{ "{:,}".format(f.count) }}</b>
+    </label>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="rbar__picks">
+    {% if companies and companies|length > 1 %}
+    <label class="pick">
+      <span>Company</span>
+      <select name="company">
+        <option value="">All {{ companies|length }} companies</option>
+        {% for name, count in companies %}
+        <option value="{{ name }}" {% if company == name %}selected{% endif %}>{{ name }} ({{ count }})</option>
+        {% endfor %}
+      </select>
+    </label>
+    {% endif %}
+    <label class="pick">
+      <span>Sort</span>
+      <select name="sort">
+        {% for key, label in sorts.items() %}
+        <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>
+          {{ label }}
+        </option>
+        {% endfor %}
+      </select>
+    </label>
+  </div>
 </div>
 
 {% if items %}
@@ -263,8 +307,43 @@
   .resultswin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
   .drawerhead{padding:26px 26px 20px;border-bottom:1px solid var(--line);background:#fff}
   .drawerhead h2{font-size:clamp(1.5rem,3vw,2.1rem)}
-  .drawerhead select{width:auto;font-size:14px;padding:7px 32px 7px 12px}
-  .drawerhead .accession{font-size:13px}
+  .rsummary{margin:10px 0 0;font-size:13.5px;line-height:1.6;color:var(--ink-3)}
+  .rsummary strong{color:var(--ink);font-weight:650}
+  .rsummary .linkish{font-size:13.5px;margin-left:4px}
+
+  /* The filter bar, like a bank's transaction filters: tabs that count, then pickers. */
+  .rbar{
+    display:flex;align-items:center;gap:14px;padding:12px 26px;
+    background:var(--win-bar);border-bottom:1px solid var(--line);
+  }
+  .facets{
+    display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;padding:3px 2px;margin:-3px -2px;
+    scrollbar-width:none;overscroll-behavior-x:contain;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
+            mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
+  }
+  .facets::-webkit-scrollbar{display:none}
+  .facets:has(.facet:last-child:hover){-webkit-mask-image:none;mask-image:none}
+  .facet{
+    --g:var(--ink-3);
+    position:relative;flex:none;display:inline-flex;align-items:center;gap:7px;
+    padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line-strong);
+    font-size:13px;font-weight:550;color:var(--ink);white-space:nowrap;cursor:pointer;
+    box-shadow:0 1px 2px rgba(20,24,33,.05);
+    transition:transform .3s var(--spring),background .2s,border-color .2s,color .2s;
+  }
+  .facet::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g)}
+  .facet--all::before{content:none}
+  .facet b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
+  .facet input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
+  .facet:hover{transform:translateY(-1px);border-color:#9aa2ae}
+  .facet:has(input:checked){background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:650}
+  .facet--all:has(input:checked){background:var(--ink);border-color:var(--ink);color:#fff}
+  .facet--all:has(input:checked) b{color:rgba(255,255,255,.72)}
+  .facet:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+  .rbar__picks{display:flex;align-items:center;gap:12px;flex:none;margin-left:auto}
+  .pick{display:flex;align-items:center;gap:7px;margin:0;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+  .pick select{width:auto;max-width:220px;font-size:13.5px;padding:6px 30px 6px 11px}
   .filed{border-radius:0 0 var(--r-win) var(--r-win)}
   .filed .record:last-child{border-radius:0 0 var(--r-win) var(--r-win)}
   .paging{
@@ -330,6 +409,18 @@
   .empty p{margin:0 auto}
   .empty .beachball{width:40px;height:40px;margin:0 auto 16px;display:block}
   .beachball--still{animation:none}
+  @media (max-width:980px){
+    .rbar{flex-direction:column;align-items:stretch;gap:10px;padding:12px 0}
+    .facets{padding:3px 16px;margin:-3px 0;scroll-snap-type:x proximity;scroll-padding:0 16px}
+    .facet{scroll-snap-align:start}
+    .rbar__picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:0;padding:0 16px}
+    .pick{flex-direction:column;align-items:stretch;gap:4px}
+    .pick select{max-width:none;width:100%}
+  }
+  @media (min-width:861px) and (max-width:980px){
+    .facets{padding:3px 26px;scroll-padding:0 26px}
+    .rbar__picks{padding:0 26px}
+  }
   @media (max-width:860px){
     .drawerhead{padding:18px 16px 16px}
     .drawerhead .spread{gap:12px}
