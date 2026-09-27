@@ -95,6 +95,16 @@ def test_skill_extraction_avoids_substring_false_positives():
     assert "go" not in found
 
 
+def test_go_is_the_language_not_the_everyday_word():
+    """"go-to-market", "go-live" and "want to go" read as the Go language in a quarter of
+    Dublin's adverts, and in any CV that called its author a go-to person."""
+    for text in ("the go-to person", "our Go-to-Market team", "hit go-live dates",
+                 "where you want to go", "Go to the careers site"):
+        assert "go" not in extract_skills(text), text
+    for text in ("Bash, Python, or Go", "Java, Go, and Scala", "Go (Golang) services"):
+        assert "go" in extract_skills(text), text
+
+
 # --------------------------------------------------------------------------
 # Resume parsing
 # --------------------------------------------------------------------------

@@ -921,10 +921,19 @@ def classify_title(title: str) -> list[str]:
     ]
 
 
+# Skills whose name is also an everyday word. The generic pattern read "go" in
+# "go-to-market", "go-live" and "where you want to go", so a quarter of Dublin's adverts
+# asked for the Go language. The language is written with a capital, and never as the
+# first half of those phrases.
+_SKILL_OVERRIDES = {
+    "go": re.compile(r"(?<![\w+#.])Go(?![\w+#-])(?!\s+(?:to|live)\b)"),
+}
+
 _SKILL_PATTERNS = {
     skill: (
         skill.lower(),
-        re.compile(rf"(?<![\w+#.]){re.escape(skill)}(?![\w+#])", re.IGNORECASE),
+        _SKILL_OVERRIDES.get(skill)
+        or re.compile(rf"(?<![\w+#.]){re.escape(skill)}(?![\w+#])", re.IGNORECASE),
     )
     for skill in ALL_SKILLS
 }
