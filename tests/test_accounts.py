@@ -1777,3 +1777,13 @@ def test_a_fresh_application_stamps_itself_in(client: TestClient, fake):
                                                   "company": "Stripe", "url": "https://x.example"},
                            headers={"HX-Request": "true"})
     assert "stamp--fresh" in response.text and "stamp__tick" in response.text
+
+
+def test_applied_rows_shown_again_carry_their_sticker(client: TestClient, fake):
+    _signed_in(client)
+    key, _title = _first_result(client)
+    client.post("/applications", data={"advert_key": key, "title": "x", "company": "y",
+                                       "url": "https://x.example"}, headers={"HX-Request": "true"})
+    shown = client.post("/search", data={"chosen_fields": ["software-engineering"], "show_applied": "1"},
+                        headers={"HX-Request": "true"}).text
+    assert 'class="appsticker"' in shown and "sorted!" in shown

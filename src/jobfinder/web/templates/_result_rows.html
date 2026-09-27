@@ -63,6 +63,7 @@
     {# The whole row opens the advert in a panel over the list (finder.html); the title
        is a real link to the job's own page, for new tabs and for no JavaScript. #}
     <article class="record filing" data-job="{{ item.job.id }}">
+      {% if item.applied %}{% include "_applied_sticker.html" %}{% endif %}
       {{ logo(item.company, item.domain) }}
       <div class="record__main">
         <p class="record__top">

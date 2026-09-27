@@ -393,6 +393,9 @@ The By company view lays the same ranked, filtered rows out as white cards (12px
 ### Signature: the mascot
 The two-window mark is a character: the front window's two white dots are its eyes. It blinks every few seconds, and where there is a mouse its eyes drift toward the pointer (under a unit of movement, easing). It takes moods: glancing side to side while a search runs, surprised (wider eyes and a small open mouth) when a search finds nothing, happy (eyes turned to ^ ^, a small hop) for 1.5s after a save or an application, and sleepy (eyes closed, dozing) on the offline page. A 76px one fronts "No jobs matched" and the offline page. Touch screens get the blink and the moods, not the tracking; reduced motion keeps it still; High Contrast draws it in system colours.
 
+### Signature: the Applied sticker
+Applying slaps a small sticker onto the row, the name tag in miniature: a red band reading "Applied" over a white slip with "sorted!" in Gochi Hand, tilted -7 degrees near the row's top right (over the meter's corner on a phone). It drops in from larger and settles on a quick overshoot; Undo peels it off. Rows already applied to, shown again with show applied, carry it still. Paper, so white in either theme.
+
 ### Signature: desktop objects
 - **Careers windows:** small windows (30px title bars, 10px lights) showing an employer's icon, "N open in Dublin" in green, and a few real titles. On the home desk they carry a slight tilt and depth-based pointer parallax, can be picked up and thrown with momentum, and fly into the form window when the primary button is pressed.
 - **Dock:** a glass tray of the biggest employers' icons (60px) with count badges and a "+N" aqua folder; icons swell up to 1.55x under the pointer and show a dark tooltip.

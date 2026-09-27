@@ -831,6 +831,20 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 /* -------------------------------------------------------------- stickers -- */
 .sticker{position:absolute;z-index:3;user-select:none;
   filter:drop-shadow(0 8px 14px rgba(20,24,33,.2))}
+/* The Applied sticker on a row (_applied_sticker.html): the name tag, smaller. */
+.appsticker{position:absolute;z-index:3;top:10px;right:168px;display:flex;flex-direction:column;width:78px;
+  border-radius:7px;overflow:hidden;background:#fff;border:1px solid rgba(20,24,33,.12);text-align:center;
+  transform:rotate(-7deg);pointer-events:none;filter:drop-shadow(0 5px 8px rgba(20,24,33,.22))}
+.appsticker b{display:block;padding:3px 0 2px;background:var(--tag-red);color:#fff;font-size:10px;font-weight:800;letter-spacing:.04em}
+.appsticker i{display:block;padding:1px 0 4px;font-style:normal;font-family:var(--hand);font-size:17px;line-height:1.1;color:#15171c}
+@media (prefers-reduced-motion:no-preference){
+  .appsticker.is-slapped{animation:slap .5s cubic-bezier(.2,1.4,.4,1)}
+  .appsticker.is-peeling{animation:peel .3s ease-in forwards}
+}
+@keyframes slap{0%{opacity:0;transform:translateY(-18px) rotate(-18deg) scale(1.7)}55%{opacity:1;transform:rotate(-5deg) scale(.94)}100%{transform:rotate(-7deg)}}
+@keyframes peel{to{opacity:0;transform:translate(10px,-14px) rotate(8deg) scale(.9)}}
+@media (max-width:860px){ .appsticker{top:-6px;right:44px;width:70px} .appsticker i{font-size:15px} }
+@media (forced-colors:active){ .appsticker{border:1px solid CanvasText;filter:none} }
 .nametag{
   width:170px;background:#fff;border-radius:10px;overflow:hidden;
   border:1px solid var(--edge);text-align:center;
@@ -1310,6 +1324,37 @@ document.addEventListener('submit', function (e) {
   document.body.addEventListener('htmx:afterRequest', function (e) {
     var path = e.detail.requestConfig && e.detail.requestConfig.path;
     if (!e.detail.failed && (path === '/saved' || path === '/applications')) window.SortedMood('happy', 1500);
+  });
+})();
+
+// Applying: a sticker is slapped on the row, and Undo peels it off. From the row the
+// Apply was in, or the row the job panel was opened from.
+(function () {
+  function rowOf(elt) {
+    var row = elt && elt.closest && elt.closest('.record');
+    if (!row && window.SortedJob && elt && elt.closest && elt.closest('.jobsheet')) row = window.SortedJob.current();
+    return row;
+  }
+  document.body.addEventListener('htmx:afterRequest', function (e) {
+    var path = e.detail.requestConfig && e.detail.requestConfig.path;
+    if (e.detail.failed || (path !== '/applications' && path !== '/applications/remove')) return;
+    var row = rowOf(e.detail.elt);
+    if (!row) return;
+    var old = row.querySelector('.appsticker');
+    if (path === '/applications') {
+      if (old) return;
+      // Built from parts, the same markup as _applied_sticker.html.
+      var sticker = document.createElement('span'), band = document.createElement('b'), word = document.createElement('i');
+      sticker.className = 'appsticker is-slapped';
+      sticker.setAttribute('aria-hidden', 'true');
+      band.textContent = 'Applied';
+      word.textContent = 'sorted!';
+      sticker.appendChild(band); sticker.appendChild(word);
+      row.insertBefore(sticker, row.firstChild);
+    } else if (old) {
+      old.classList.add('is-peeling');
+      setTimeout(function () { old.remove(); }, window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 300);
+    }
   });
 })();
 
