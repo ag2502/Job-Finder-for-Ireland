@@ -144,6 +144,38 @@
           {% if item.is_new %}<li class="stamp">new</li>{% endif %}
           {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
         </ul>
+
+        {% if item.also %}
+        {# The same title at the same employer, folded under this row. Each is still its
+           own advert with its own Apply, since they are separate openings. #}
+        <details class="also">
+          <summary>{{ item.also|length + 1 }} openings with this title</summary>
+          <ul class="also__list">
+            {% for other in item.also %}
+            <li class="also__row">
+              <a href="{{ other.job.url }}" target="_blank" rel="noopener" class="also__what">
+                Opening {{ loop.index + 1 }}{% if other.place %}, {{ other.place }}{% endif -%}
+              </a>
+              <span class="record__age">{{ other.age }}</span>
+              <span class="also__act">
+                {% if other.applied %}
+                  {% with advert_key = other.advert_key, title = other.job.title,
+                          company = other.company, url = other.job.url %}{% include "_applied_tag.html" %}{% endwith %}
+                {% elif account or not accounts_enabled %}
+                  {% with advert_key = other.advert_key, title = other.job.title,
+                          company = other.company, url = other.job.url, job_id = other.job.id %}{% include "_apply_button.html" %}{% endwith %}
+                {% else %}
+                  <a class="btn btn--apply" href="/login?next=/&amp;why=apply"
+                     title="Sign in first, so this job is recorded and never offered to you again">Apply
+                    <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
+                  </a>
+                {% endif %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
       </div>
 
       <div class="record__side">
@@ -272,6 +304,25 @@
   .meter[data-level="2"] i:nth-child(-n+2),
   .meter[data-level="3"] i{background:var(--ink)}
   .meter[data-level="3"]{color:var(--ink)}
+
+  /* Repeat openings of one role, folded under the first. */
+  .also{margin-top:10px}
+  .also summary{
+    display:inline-flex;align-items:center;gap:6px;cursor:pointer;list-style:none;
+    font-size:12.5px;font-weight:600;color:var(--aqua-deep);
+  }
+  .also summary::-webkit-details-marker{display:none}
+  .also summary::before{content:"";width:0;height:0;border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;
+    border-left:6px solid currentColor;transition:transform .25s var(--spring)}
+  .also[open] summary::before{transform:rotate(90deg)}
+  .also summary:hover{color:var(--ink)}
+  .also__list{list-style:none;margin:8px 0 0;padding:0;border-left:2px solid var(--line);max-width:520px}
+  .also__row{display:flex;align-items:center;gap:10px;padding:6px 0 6px 12px;font-size:13px}
+  .also__what{color:var(--ink-2);text-decoration:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .also__what:hover{color:var(--aqua-deep);text-decoration:underline}
+  .also__row .record__age::before{content:none}
+  .also__act{margin-left:auto;flex:none}
+  .also__act .btn--apply{padding:4px 12px;font-size:12.5px}
 
   .guide__count{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
 

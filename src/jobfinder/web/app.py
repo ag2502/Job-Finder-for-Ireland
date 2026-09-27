@@ -1159,17 +1159,33 @@ def _search_results(
             )
             items = dated + undated
 
+        # One employer often opens the same role several times over (four "Software
+        # Development Engineer, AWS Database Migration Service" adverts at once), and
+        # listing each as its own row buried everything below them. Repeats fold under
+        # the first one in the current order, which lists the others on request.
+        rows_out: list[dict] = []
+        by_role: dict[tuple, dict] = {}
+        for item in items:
+            role = (item["job"].company_id, " ".join(item["job"].title.casefold().split()))
+            head = by_role.get(role)
+            if head is None:
+                item["also"] = []
+                by_role[role] = item
+                rows_out.append(item)
+            else:
+                head["also"].append(item)
+
         per_page = 25
         total = len(items)
         page = max(page, 1)
         start = (page - 1) * per_page
-        page_items = items[start : start + per_page]
+        page_items = rows_out[start : start + per_page]
 
     return {
         "items": page_items,
         "total": total,
         "page": page,
-        "pages": max(1, (total + per_page - 1) // per_page),
+        "pages": max(1, (len(rows_out) + per_page - 1) // per_page),
         "query": query or "",
         "new_count": sum(1 for i in items if i["is_new"]),
         "tiered": tiered,
