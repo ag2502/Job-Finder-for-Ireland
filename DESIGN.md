@@ -334,6 +334,9 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), the
 ### The address bar
 A search writes itself into the address (`/?f=backend&y=2&sort=newest`, plus `field`, `co` and `view` for the filter bar), so Refresh, Back and a shared link all reopen it: the page opens straight onto the results, past the desk and the story. A plain `/` is still the blank form. Back reloads the address rather than restoring a snapshot.
 
+### Keyboard
+On a wide screen with a mouse, the bar that stays carries a quiet **? Keys** button. `j`/`k` move a cursor over the rows (the row tints #f2f6fe with a 3px aqua edge on its left, and keeps clear of the sticky bars), `o` or Enter opens the advert, `s` saves, `a` applies, `f` opens the filters, `/` goes to the title search, `?` lists them all in a small window, Esc closes whatever is open. With an advert open, `j`/`k` step the panel to the next job; at the end of what is loaded, `j` fetches more. Keys are ignored while typing or with a modifier held. Keys are drawn as small white mono caps with a hairline underside.
+
 ### Installable and offline
 The site installs as an app (manifest, the two-window mark on a desk-grey squircle, standalone, opening on the finder). Where the browser offers installing, the phone menu gains an **Install the app** row. A service worker asks the network first for every page and keeps the last 40 pages opened (searches, jobs, the profile) as a fallback; with no connection, a page not kept shows **No connection right now.** with a window listing what is kept on the device, named by each page's title. Signing out empties the kept pages.
 

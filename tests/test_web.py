@@ -1018,3 +1018,10 @@ def test_the_service_worker_is_served_from_the_root_and_never_pinned(client):
 def test_the_offline_page_is_not_personal(client):
     page = client.get("/offline")
     assert page.status_code == 200 and "kept-on-this-device" in page.text
+
+
+def test_the_keyboard_shortcuts_are_listed(client):
+    page = client.get("/?f=backend").text
+    assert 'id="keys"' in page and "data-keys-open" in page
+    for key in ("<kbd>j</kbd>", "<kbd>s</kbd>", "<kbd>a</kbd>", "<kbd>/</kbd>"):
+        assert key in page

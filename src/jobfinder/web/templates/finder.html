@@ -283,6 +283,27 @@
 </div>
 </section>
 
+{# The keyboard, for anyone working through a long list at a desk. "?" opens this. #}
+<div class="keys" id="keys" hidden>
+  <div class="keys__scrim" data-keys-close></div>
+  <section class="win keys__win" role="dialog" aria-modal="true" aria-labelledby="keys-title">
+    <div class="win__body">
+      <h2 id="keys-title">Keyboard shortcuts</h2>
+      <dl class="keys__list">
+        <div><dt><kbd>j</kbd> <kbd>k</kbd></dt><dd>Next and previous job</dd></div>
+        <div><dt><kbd>o</kbd> or <kbd>Enter</kbd></dt><dd>Open the advert</dd></div>
+        <div><dt><kbd>s</kbd></dt><dd>Save or unsave</dd></div>
+        <div><dt><kbd>a</kbd></dt><dd>Apply on the employer's site</dd></div>
+        <div><dt><kbd>f</kbd></dt><dd>Filters</dd></div>
+        <div><dt><kbd>/</kbd></dt><dd>Search job titles</dd></div>
+        <div><dt><kbd>Esc</kbd></dt><dd>Close whatever is open</dd></div>
+      </dl>
+      <p class="small muted">With an advert open, <kbd>j</kbd> and <kbd>k</kbd> move to the next one.</p>
+      <button type="button" class="secondary" data-keys-close>Done</button>
+    </div>
+  </section>
+</div>
+
 {# One advert, opened from its row: a panel down the right on a wide screen, a sheet
    from the bottom on a phone. Outside #results, so a new search does not take it away.
    The body comes from /jobs/<id>; Save and Apply are the row's own, copied in. #}
@@ -662,6 +683,27 @@
     .jobsheet__acts .btn--apply{flex:1;max-width:260px}
   }
 
+  /* ------------------------------------------------------------ the keyboard */
+  .record.is-cursor{background:#f2f6fe;box-shadow:inset 3px 0 0 var(--aqua)}
+  kbd{display:inline-block;min-width:1.7em;padding:1px 6px;border-radius:6px;text-align:center;
+    font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink);background:#fff;
+    border:1px solid var(--line-strong);box-shadow:0 1px 0 var(--line-strong)}
+  .keys{position:fixed;inset:0;z-index:160;display:grid;place-items:center;padding:16px}
+  .keys[hidden]{display:none}
+  .keys__scrim{position:absolute;inset:0;background:rgba(20,24,33,.3)}
+  .keys__win{position:relative;width:min(440px,100%);box-shadow:0 3px 8px rgba(20,24,33,.12),0 50px 90px -24px rgba(20,24,33,.5)}
+  .keys__win h2{font-size:1.3rem;margin-bottom:14px}
+  .keys__list{margin:0 0 14px}
+  .keys__list > div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-bottom:1px solid var(--line)}
+  .keys__list dt{white-space:nowrap}
+  .keys__list dd{margin:0;color:var(--ink-2);font-size:14px;text-align:right}
+  .rstick__keys{display:none}
+  @media (pointer:fine) and (min-width:861px){
+    .rstick__keys{display:inline-flex;align-items:center;gap:6px;min-height:0;padding:5px 9px;font-size:12.5px;
+      color:var(--ink-3);background:none;border:0;box-shadow:none;text-shadow:none}
+    .rstick__keys:hover:not(:disabled){color:var(--ink);background:var(--win-bar);transform:none;filter:none;box-shadow:none}
+  }
+
   /* ------------------------------------------------------------- smaller */
   /* Extras that need height to spare above and below the headline. */
   @media (max-height:939px){
@@ -960,6 +1002,88 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape' && !sheet.hidden && !document.documentElement.classList.contains('tailor-open')) close();
+    });
+  })();
+
+  // The keyboard. A cursor moves over the rows (j and k), and the keys act on whichever
+  // row it is on. Keys are ignored while typing, and with a modifier held, so they never
+  // take a shortcut from the browser.
+  (function () {
+    var keys = document.getElementById('keys');
+    var cursor = null;
+    function rows() { return Array.prototype.slice.call(document.querySelectorAll('#result-list .record[data-job]')); }
+    function place(row) {
+      if (!row) return;
+      if (cursor) cursor.classList.remove('is-cursor');
+      cursor = row;
+      row.classList.add('is-cursor');
+      var title = row.querySelector('.record__title a');
+      if (title) title.focus({ preventScroll: true });
+      row.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+      // Held back from under the sticky bars at the top.
+      var top = row.getBoundingClientRect().top, clear = 48 + 50 + 44;
+      if (top < clear) window.scrollBy(0, top - clear);
+    }
+    function step(by) {
+      var list = rows();
+      if (!list.length) return;
+      var i = list.indexOf(cursor);
+      if (i === -1) { place(by > 0 ? list[0] : list[list.length - 1]); return; }
+      var next = list[Math.max(0, Math.min(list.length - 1, i + by))];
+      // At the end of what is loaded, fetch more; the cursor moves on when it arrives.
+      if (by > 0 && i === list.length - 1) {
+        var more = document.querySelector('#result-list .more__btn');
+        if (more) more.click();
+        return;
+      }
+      place(next);
+      if (window.SortedJob && window.SortedJob.current()) window.SortedJob.open(next);
+    }
+    function showKeys(open) {
+      keys.hidden = !open;
+      if (open) keys.querySelector('button').focus();
+    }
+    document.addEventListener('click', function (e) {
+      if (e.target.closest && e.target.closest('[data-keys-close]')) showKeys(false);
+      if (e.target.closest && e.target.closest('[data-keys-open]')) showKeys(true);
+      var row = e.target.closest && e.target.closest('#result-list .record[data-job]');
+      if (row) { if (cursor) cursor.classList.remove('is-cursor'); cursor = row; row.classList.add('is-cursor'); }
+    });
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail.target && e.detail.target.id === 'results') cursor = null;
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      var t = e.target;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      if (!keys.hidden) { if (e.key === 'Escape') showKeys(false); return; }
+      if (document.documentElement.classList.contains('tailor-open')) return;
+      var act = function (sel) {
+        var el = cursor && cursor.isConnected && cursor.querySelector(sel);
+        if (el) el.click();
+      };
+      switch (e.key) {
+        case 'j': step(1); break;
+        case 'k': step(-1); break;
+        case 'o': if (cursor && window.SortedJob) window.SortedJob.open(cursor); break;
+        case 's': act('.savebtn'); break;
+        case 'a': act('.btn--apply'); break;
+        case 'f': var f = document.querySelector('[data-filters-open]'); if (f) f.click(); break;
+        case '/':
+          var q = document.getElementById('q');
+          if (!q) return;
+          q.scrollIntoView({ block: 'center' }); q.focus();
+          break;
+        case '?': showKeys(true); break;
+        default: return;
+      }
+      e.preventDefault();
+    });
+    // Show more, pressed by j at the end of the list: carry on to the first new row.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (!cursor || !e.detail.elt || !e.detail.elt.classList || !e.detail.elt.classList.contains('more__btn')) return;
+      var list = rows(), i = list.indexOf(cursor);
+      if (i > -1 && list[i + 1]) place(list[i + 1]);
     });
   })();
 
