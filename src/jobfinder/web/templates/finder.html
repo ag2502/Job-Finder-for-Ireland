@@ -275,7 +275,7 @@
   </div>
 </div>
 
-<div id="results">
+<div id="results"{% if landing %} data-landing{% endif %}>
   {% if items is defined %}
     {% include "_results.html" %}
   {% endif %}
@@ -1127,6 +1127,20 @@
         requestAnimationFrame(function () { requestAnimationFrame(function () { desk.classList.add('is-up'); }); });
       }, 1000);
     });
+  })();
+
+  // Opened from a search link (Refresh, Back, or someone else's link): go straight to the
+  // results, past the desk and the story, as if the search had just been run.
+  (function () {
+    var results = document.getElementById('results');
+    if (!results || !results.hasAttribute('data-landing')) return;
+    // Or the browser puts back wherever a reload left the page, after this has run.
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+    function land() {
+      if (window.foldStory) window.foldStory();
+      window.scrollTo({ top: results.getBoundingClientRect().top + window.scrollY - 60, behavior: 'instant' });
+    }
+    if (document.readyState === 'complete') land(); else window.addEventListener('load', land);
   })();
 </script>
 {% endblock %}

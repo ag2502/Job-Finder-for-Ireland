@@ -28,7 +28,7 @@ import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import quote, urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
@@ -691,22 +691,70 @@ def _finder_context(request: Request, stored: dict | None = None) -> dict:
     return context
 
 
+# How a search is written in the address bar, short enough to read and to share:
+# /?f=backend&f=frontend&y=2&sort=newest. Each key is the form field it stands for.
+URL_KEYS = {
+    "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
+    "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
+    "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
+    "view": "view",
+}
+
+
+def _search_url(profile: dict, context: dict) -> str:
+    """The address that runs this search again, filter bar and layout included.
+
+    Built from what was actually run, not from what was posted, so an ignored value (an
+    unknown sort, a company with nothing in this search) never makes it into a link.
+    Defaults are left out; a plain `/` is still the blank form.
+    """
+    pairs: list[tuple[str, str]] = [("f", key) for key in profile["fields"]]
+    if profile.get("years") is not None:
+        pairs.append(("y", str(profile["years"])))
+    if profile.get("query"):
+        pairs.append(("q", profile["query"]))
+    for flag, key in (("remote", "include_remote"), ("intern", "internships_only"),
+                      ("grad", "graduate_only"), ("cv", "use_cv"), ("applied", "show_applied")):
+        if profile.get(key):
+            pairs.append((flag, "1"))
+    if profile.get("sort") and profile["sort"] != DEFAULT_SORT:
+        pairs.append(("sort", profile["sort"]))
+    if context.get("facet"):
+        pairs.append(("field", context["facet"]))
+    if context.get("company"):
+        pairs.append(("co", context["company"]))
+    if context.get("view") and context["view"] != DEFAULT_VIEW:
+        pairs.append(("view", context["view"]))
+    return "/?" + urlencode(pairs)
+
+
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    """The finder: the search form, blank on every visit. Results arrive by /search."""
+    """The finder: the search form, blank on a plain visit.
+
+    With a search in the address (see URL_KEYS) it runs that search and lands on the
+    results, which is what Refresh, Back and a shared link do.
+    """
     # Supabase falls back to the project's Site URL - this page - when the callback
     # address is not on its allow list. Finish the sign-in rather than dropping it.
     if request.query_params.get("code") and "oauth" in request.session:
         return RedirectResponse(f"/auth/callback?{request.url.query}", status_code=303)
 
-    # Every visit starts with a blank form. The search is still kept in the session
-    # while the page is open, because paging and re-sorting re-run it, but a refresh,
-    # the logo, or coming back later all begin again: the owner decided a search should
-    # not follow anyone around. A saved profile is different, because saving it was a
-    # choice: the form offers it with one button rather than filling itself in.
-    request.session.pop("profile", None)
-    context = _finder_context(request)
-    response = templates.TemplateResponse(request, "finder.html", context)
+    params = request.query_params
+    if params.getlist("f"):
+        form = {
+            field: (params.getlist(key) if key == "f" else params.get(key))
+            for key, field in URL_KEYS.items()
+        }
+        response = _search(request, form)
+    else:
+        # A plain visit starts with a blank form. The search in progress is kept in
+        # the session only while the page is open, because Show more and re-sorting
+        # re-run it: the owner decided a search should not follow anyone around. What
+        # does come back is a search written into a link, which the person chose to
+        # keep. A saved profile is offered with one button, never filled in.
+        request.session.pop("profile", None)
+        response = templates.TemplateResponse(request, "finder.html", _finder_context(request))
     # No back-forward cache either, or Back would restore the old ticks and results
     # from memory without asking the server.
     response.headers["Cache-Control"] = "no-store"
@@ -731,7 +779,24 @@ async def search(
     view: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
+    form = {
+        "chosen_fields": chosen_fields, "include_remote": include_remote,
+        "internships_only": internships_only, "graduate_only": graduate_only,
+        "years": years, "q": q, "sort": sort, "show_applied": show_applied,
+        "use_cv": use_cv, "facet": facet, "company": company, "view": view,
+    }
+    return _search(request, form, page=page, more=bool(more))
+
+
+def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
+    """Run a search from the form, or from a link, and answer in the shape asked for."""
     previous_profile = _profile(request) or {}
+    chosen_fields = [f for f in (form.get("chosen_fields") or []) if f]
+    years = form.get("years")
+    q = form.get("q")
+    sort = form.get("sort")
+    show_applied = form.get("show_applied")
+    use_cv = form.get("use_cv")
 
     # Roles are required. A CV on its own is too ambiguous to search on: it says what
     # someone has done, not what they want to do next, and a career-change or
@@ -774,9 +839,9 @@ async def search(
         # - silently narrowing on a number the searcher never entered would hide roles
         # they never asked to hide. The CV's estimate is surfaced as a hint instead.
         "years": stated_years,
-        "internships_only": bool(internships_only),
-        "graduate_only": bool(graduate_only),
-        "include_remote": bool(include_remote),
+        "internships_only": bool(form.get("internships_only")),
+        "graduate_only": bool(form.get("graduate_only")),
+        "include_remote": bool(form.get("include_remote")),
         "query": q or None,
         # An unrecognised value falls back to relevance rather than erroring: the sort
         # is a presentation choice, not something worth failing a search over.
@@ -819,19 +884,25 @@ async def search(
             applied_keys=applied,
             saved_keys=saved_keys,
             show_applied=bool(show_applied),
-            facet=facet or None,
-            company=company or None,
-            view=view,
+            facet=form.get("facet") or None,
+            company=form.get("company") or None,
+            view=form.get("view"),
         )
     )
+    context["search_url"] = _search_url(profile, context)
 
     # HTMX asks for the table alone; a normal form post gets the whole page back. Show
-    # more asks for less again: only the next page of rows, to go under the ones shown.
-    if request.headers.get("HX-Request"):
-        partial = "_result_rows.html" if more else "_results.html"
-        return templates.TemplateResponse(request, partial, context)
+    # more asks for less again: only the next page of rows, to go under the ones shown,
+    # and leaves the address alone, since it is the same search.
+    if request.headers.get("HX-Request") and not request.headers.get("HX-History-Restore-Request"):
+        if more:
+            return templates.TemplateResponse(request, "_result_rows.html", context)
+        response = templates.TemplateResponse(request, "_results.html", context)
+        response.headers["HX-Push-Url"] = context["search_url"]
+        return response
 
     context.update(_finder_context(request, stored))
+    context["landing"] = True
     return templates.TemplateResponse(request, "finder.html", context)
 
 

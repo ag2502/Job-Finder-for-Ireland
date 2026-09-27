@@ -945,3 +945,48 @@ def test_a_row_title_leads_to_the_job_on_this_site(client):
                        headers={"HX-Request": "true"}).text
     titles = re.findall(r'<h3 class="record__title">\s*<a href="([^"]+)"', page)
     assert titles and all(t.startswith("/jobs/") for t in titles)
+
+
+# ------------------------------------------------------------------ the address bar
+
+
+def test_a_search_writes_itself_into_the_address(client):
+    response = client.post(
+        "/search",
+        data={"chosen_fields": ["backend", "frontend"], "years": "2", "sort": "newest",
+              "include_remote": "1"},
+        headers={"HX-Request": "true"},
+    )
+    url = response.headers["HX-Push-Url"]
+    assert url.startswith("/?f=backend&f=frontend")
+    assert "y=2" in url and "sort=newest" in url and "remote=1" in url
+    # Show more is the same search, so it leaves the address alone.
+    more = client.post("/search?page=2", data={"chosen_fields": ["backend"], "more": "1"},
+                       headers={"HX-Request": "true"})
+    assert "HX-Push-Url" not in more.headers
+
+
+def test_a_search_link_runs_the_search(client):
+    """Refresh, Back and a shared link all open the address the search wrote."""
+    page = client.get("/?f=backend&y=2&sort=newest")
+    assert page.status_code == 200
+    assert "<div id=\"results\" data-landing>" in page.text and 'class="win resultswin"' in page.text
+    assert '<option value="newest" selected>' in page.text
+    # The form shows the search it ran.
+    assert re.search(r'value="backend"\s+checked', page.text)
+
+
+def test_a_plain_visit_is_still_blank(client):
+    client.post("/search", data={"chosen_fields": ["backend"]})
+    page = client.get("/")
+    assert "<div id=\"results\" data-landing>" not in page.text and 'class="win resultswin"' not in page.text
+
+
+def test_the_address_leaves_out_what_the_search_ignored(client):
+    response = client.post(
+        "/search",
+        data={"chosen_fields": ["backend"], "sort": "bogus", "company": "No Such Employer Ltd"},
+        headers={"HX-Request": "true"},
+    )
+    url = response.headers["HX-Push-Url"]
+    assert "sort=" not in url and "co=" not in url
