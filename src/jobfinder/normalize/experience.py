@@ -53,9 +53,11 @@ _YEAR_PATTERNS = [
     re.compile(r"experience[^.\n]{0,20}?(\d{1,2})\s*\+?\s*years?", re.I),
 ]
 
+# "Co - Op" is spaced out in Susquehanna's titles. A bare "placement" is an internship
+# ("Quantity Surveyor Placement") unless it names the person who arranges one.
 _INTERNSHIP = re.compile(
-    r"\b(intern|internship|co[- ]?op|placement student|student placement|"
-    r"summer analyst|work placement)\b",
+    r"\b(intern|internship|co\s*[-‐]?\s*op|summer analyst|"
+    r"placements?(?!\s+(?:coordinator|broker|officer|manager|lead|consultant|specialist|advis[eo]r)))\b",
     re.I,
 )
 
@@ -63,12 +65,20 @@ _INTERNSHIP = re.compile(
 # Engineer", "... Graduate Opportunities" - except where it names the recruiting job
 # rather than the hire ("Graduate Recruiter"). "Trainee" covers the Irish accountancy
 # route ("Trainee Accountant"), which is a graduate intake in all but name.
+# Banks name their graduate intake an "Analyst Program" (BNY, JPMorgan) and consultancies
+# an "Academy Programme", and "junior" is the entry rung everywhere it appears.
 _GRADUATE = re.compile(
-    r"\b(graduates?(?!\s+(?:recruit|talent|admission))|new grad|early careers?|"
-    r"apprentice|apprenticeship|trainee|entry[- ]level|"
+    r"\b(graduates?(?!\s+(?:recruit|talent|admission))|new grad|grad|early careers?|"
+    r"apprentice|apprenticeship|trainee|entry[- ]level|junior|jnr|"
+    r"analyst program(?:me)?|academy program(?:me)?|"
     r"fresher|campus hire|university hire)\b",
     re.I,
 )
+
+# "Emerging Talent" names the intake in "Software Engineer, Emerging Talent" but the team
+# in "Senior Recruiter, Emerging Talent", so the people who hire it are ruled out.
+_TALENT_INTAKE = re.compile(r"\b(early|emerging) talent\b", re.I)
+_TALENT_TEAM = re.compile(r"\b(recruit\w*|coordinat\w*|talent operations)\b", re.I)
 
 # A title's seniority implies a rough floor. Intentionally conservative: the aim is to
 # stop a one-year candidate being shown Principal roles, not to make fine distinctions.
@@ -158,7 +168,9 @@ def analyze(title: str, description: str | None = None) -> ExperienceProfile:
     )
     # An internship is nearly always signalled in the title; matching on description
     # alone turns every advert that mentions its intern programme into an internship.
-    is_graduate = bool(_GRADUATE.search(title))
+    is_graduate = bool(_GRADUATE.search(title)) or bool(
+        _TALENT_INTAKE.search(title) and not _TALENT_TEAM.search(title)
+    )
 
     if is_internship or is_graduate:
         return ExperienceProfile(

@@ -157,6 +157,10 @@ def test_unknown_stays_unknown():
         "Operations & Logistics Internship",
         "2027 Software Dev Engineer Intern",
         "Summer Analyst, Markets",
+        # Spelt out with spaces, and bare placements, were both missed.
+        "Hardware Engineer University Co - Op Placement 2027",
+        "Quantity Surveyor Placement",
+        "Undergraduate Placement 2027",
     ],
 )
 def test_internships_detected(title: str) -> None:
@@ -168,6 +172,14 @@ def test_internships_detected(title: str) -> None:
 def test_internal_does_not_match_intern():
     assert not analyze("Internal Audit Manager").is_internship
     assert not analyze("Internal Communications Lead").is_internship
+
+
+@pytest.mark.parametrize(
+    "title",
+    ["Practice Placement Coordinator", "Senior Insurance Placement Broker"],
+)
+def test_the_person_arranging_placements_is_not_on_one(title: str) -> None:
+    assert not analyze(title).is_internship
 
 
 def test_a_mention_of_an_intern_programme_is_not_an_internship():
@@ -189,6 +201,12 @@ def test_a_mention_of_an_intern_programme_is_not_an_internship():
         "Graduate Software Engineer",
         "2027 Future Leaders Academy: ROI Audit & Assurance Graduate Opportunities",
         "Trainee Accountant",
+        # Graduate intakes under other names, each missed by the Graduate switch.
+        "2027 BNY Analyst Program - Client Service (Dublin)",
+        "2027 Global Payments Analyst Program - Full time - Dublin",
+        "Register your interest for our 2027 Digital Academy Programme",
+        "Software Engineer, Applied Emerging Talent (2027)",
+        "Junior .NET Developer",
     ],
 )
 def test_graduate_roles_detected(title: str) -> None:
@@ -199,7 +217,9 @@ def test_graduate_roles_detected(title: str) -> None:
 
 @pytest.mark.parametrize(
     "title",
-    ["Graduate Recruiter", "Graduate Talent Acquisition Partner", "Postgraduate Researcher"],
+    ["Graduate Recruiter", "Graduate Talent Acquisition Partner", "Postgraduate Researcher",
+     "Senior Recruiter, Emerging Talent", "Talent Operations Specialist, Emerging Talent",
+     "Lead, Early Talent Recruiting Coordination"],
 )
 def test_graduate_recruiting_jobs_are_not_graduate_roles(title: str) -> None:
     """The person hiring graduates is not a graduate hire."""
