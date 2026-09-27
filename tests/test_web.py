@@ -1064,3 +1064,29 @@ def test_the_job_panel_says_when_pay_is_not_stated(client):
         pytest.skip("no live job in this database")
     panel = client.get(f"/jobs/{job_id}", headers={"HX-Request": "true"}).text
     assert "<dt>Salary</dt>" in panel and "<dt>Work mode</dt>" in panel
+
+
+def test_how_long_a_job_has_really_been_open():
+    from datetime import datetime, timedelta, timezone
+    from types import SimpleNamespace
+
+    from jobfinder.web.app import _freshness
+
+    now = datetime(2026, 9, 27, tzinfo=timezone.utc)
+    old = SimpleNamespace(posted_at=now - timedelta(days=130), first_seen_at=now - timedelta(days=20))
+    assert _freshness(old, now)["open_label"] == "open 4 months"
+    fresh = SimpleNamespace(posted_at=now - timedelta(days=3), first_seen_at=now - timedelta(days=3))
+    assert _freshness(fresh, now)["open_label"] == "" and not _freshness(fresh, now)["reposted"]
+    # Listed here for two months, then given a new date by the employer.
+    redated = SimpleNamespace(posted_at=now - timedelta(days=2), first_seen_at=now - timedelta(days=60))
+    info = _freshness(redated, now)
+    assert info["reposted"] and info["open_days"] == 60
+
+
+def test_the_posted_picker_keeps_only_recent_jobs(client):
+    recent = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "7"},
+                         headers={"HX-Request": "true"})
+    assert recent.status_code == 200 and "within=7" in recent.headers["HX-Push-Url"]
+    bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "9999"},
+                        headers={"HX-Request": "true"})
+    assert "within=" not in bogus.headers["HX-Push-Url"]

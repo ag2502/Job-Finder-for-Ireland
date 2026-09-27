@@ -3,7 +3,7 @@
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar %}
-{% set filtered = facet or company or mode or paid %}
+{% set filtered = facet or company or mode or paid or within %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 
@@ -39,7 +39,7 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}</strong>,
+      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}</strong>,
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
@@ -82,11 +82,11 @@
 {# The bar that stays: how many, the order, and a way back to the filters from anywhere
    down the list. It sticks under the menu bar for as long as the results are on screen.
    Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
-{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) %}
+{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if within else 0) %}
 <div class="rstick">
   <p class="rstick__count">
     <b>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -167,6 +167,15 @@
         <option value="">Any</option>
         {% for key, label in work_modes.items() %}
         <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="pick">
+      <span>Posted</span>
+      <select name="within">
+        <option value="">Any time</option>
+        {% for days, label in within_choices.items() %}
+        <option value="{{ days }}" {% if within == days %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
     </label>
@@ -371,6 +380,8 @@
   .chip--skill{background:var(--aqua-wash);border-color:#d6e4ff;color:var(--aqua-deep)}
   .chip--more{font-family:var(--mono);font-weight:500}
   .chip--level{color:var(--ink);font-weight:600}
+  /* Worth knowing before applying: an old advert, or one given a new date. */
+  .chip--flag{color:#7a5800;background:#fff8dc;border-color:#f1dd92}
   /* Pay, as the advert states it: the one figure people scan for, so it reads first. */
   .chip--pay{color:var(--ink);font-weight:650;background:#fff;border-color:var(--line-strong)}
   .chips .stamp{padding:2px 9px;font-size:11.5px}

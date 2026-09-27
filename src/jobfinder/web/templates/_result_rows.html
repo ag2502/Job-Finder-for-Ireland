@@ -91,6 +91,8 @@
           {% if item.mode %}<li class="chip chip--mode">{{ item.mode.label }}</li>{% endif %}
           {% if item.place %}<li class="chip chip--place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ item.place }}</li>{% endif %}
           {% if item.is_new %}<li class="stamp">new</li>{% endif %}
+          {% if item.reposted %}<li class="chip chip--flag" title="Listed here since {{ item.listed_since }}; the employer has since given it a new date">reposted</li>
+          {% elif item.open_label %}<li class="chip chip--flag" title="First advertised {{ item.open_days }} days ago">{{ item.open_label }}</li>{% endif %}
           {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
         </ul>
 

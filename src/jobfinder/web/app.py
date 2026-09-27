@@ -248,7 +248,7 @@ RERUN_BASE = (
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
     ", #results input[name=facet], #results select[name=company], #results select[name=mode],"
-    " #results input[name=paid]"
+    " #results input[name=paid], #results select[name=within]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
@@ -754,7 +754,7 @@ URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
     "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
-    "view": "view", "mode": "mode", "paid": "paid",
+    "view": "view", "mode": "mode", "paid": "paid", "within": "within",
 }
 
 
@@ -786,6 +786,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("mode", context["mode"]))
     if context.get("paid"):
         pairs.append(("paid", "1"))
+    if context.get("within"):
+        pairs.append(("within", str(context["within"])))
     return "/?" + urlencode(pairs)
 
 
@@ -840,6 +842,7 @@ async def search(
     view: str | None = Form(default=None),
     mode: str | None = Form(default=None),
     paid: str | None = Form(default=None),
+    within: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -847,7 +850,7 @@ async def search(
         "internships_only": internships_only, "graduate_only": graduate_only,
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
-        "mode": mode, "paid": paid,
+        "mode": mode, "paid": paid, "within": within,
     }
     return _search(request, form, page=page, more=bool(more))
 
@@ -953,6 +956,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             view=form.get("view"),
             mode=form.get("mode") or None,
             paid=bool(form.get("paid")),
+            within=form.get("within"),
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -987,6 +991,7 @@ def _job_view(session, job: JobPosting) -> dict:
     name = company.name if company else "Unknown"
     first_seen = _as_utc(job.first_seen_at)
     return {
+        **_freshness(job, datetime.now(timezone.utc)),
         "job": job,
         "company": name,
         "domain": _logo_domain(name, company.website if company else None),
@@ -1363,6 +1368,32 @@ def _facts_for(job: JobPosting) -> dict:
     return found
 
 
+# How recently a job was posted, for the filter bar's Posted picker: days, and its name.
+WITHIN = {1: "Last 24 hours", 3: "Last 3 days", 7: "Last week", 30: "Last month"}
+# From this long open, a row says so. A quarter of Dublin's adverts have been up three
+# months or more; some are evergreen, some are roles nobody is hiring for any more, and
+# either way it is worth knowing before spending an evening on an application.
+LONG_OPEN_DAYS = 90
+# A posting date this much later than the day we first listed the job means the employer
+# gave an existing advert a new date: it is older than it looks.
+REPOSTED_AFTER = timedelta(days=7)
+
+
+def _freshness(job: JobPosting, now: datetime) -> dict:
+    """How long a job has really been open, from dates we hold rather than ones implied."""
+    posted, first_seen = _as_utc(job.posted_at), _as_utc(job.first_seen_at)
+    earliest = min(d for d in (posted, first_seen) if d) if (posted or first_seen) else None
+    open_days = (now - earliest).days if earliest else 0
+    reposted = bool(posted and first_seen and posted - first_seen > REPOSTED_AFTER)
+    return {
+        "open_days": open_days,
+        "open_label": (f"open {open_days // 30} months" if open_days >= LONG_OPEN_DAYS else ""),
+        "reposted": reposted,
+        "listed_since": first_seen.strftime("%d %b %Y") if first_seen else "",
+        "dated": posted or first_seen,
+    }
+
+
 # The work-mode picker's choices, as the filter bar names them.
 WORK_MODES = {
     advert_facts.REMOTE: "Remote",
@@ -1384,6 +1415,7 @@ def _search_results(
     view: str | None = None,
     mode: str | None = None,
     paid: bool = False,
+    within: str | int | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1502,6 +1534,7 @@ def _search_results(
                     "mode": stated["mode"],
                     # The pay the advert states, or None: never an estimate.
                     "salary": stated["salary"],
+                    **_freshness(job, now),
                     "company": companies.get(job.company_id, "Unknown"),
                     "domain": domains.get(job.company_id, ""),
                     "score": entry.score,
@@ -1572,6 +1605,14 @@ def _search_results(
             items = [i for i in items if i["mode"] and i["mode"].kind == mode]
         if paid:
             items = [i for i in items if i["salary"]]
+        try:
+            within = int(within) if within else None
+        except (TypeError, ValueError):
+            within = None
+        within = within if within in WITHIN else None
+        if within:
+            since = now - timedelta(days=within)
+            items = [i for i in items if i["dated"] and i["dated"] >= since]
 
         total_all = len(items)
         known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}
@@ -1701,6 +1742,8 @@ def _search_results(
         "company": company,
         "mode": mode,
         "paid": paid,
+        "within": within,
+        "within_choices": WITHIN,
         "work_modes": WORK_MODES,
         "page": page,
         "pages": max(1, (len(units) + per_page - 1) // per_page),

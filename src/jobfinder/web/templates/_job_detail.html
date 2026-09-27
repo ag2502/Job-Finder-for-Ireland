@@ -17,7 +17,9 @@
   <dl class="jobx__facts">
     <div class="jobx__fact">
       <dt>{{ "Posted" if posted else "First seen" }}</dt>
-      <dd>{{ posted or first_seen }}{% if age %} <span class="jobx__age">({{ age }})</span>{% endif %}</dd>
+      <dd>{{ posted or first_seen }}{% if age %} <span class="jobx__age">({{ age }})</span>{% endif %}
+        {%- if reposted %}<span class="jobx__note">Reposted: listed here since {{ listed_since }}</span>
+        {%- elif open_label %}<span class="jobx__note">Open {{ open_days }} days</span>{% endif %}</dd>
     </div>
     <div class="jobx__fact">
       <dt>Where</dt>
