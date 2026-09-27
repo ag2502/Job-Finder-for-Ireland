@@ -72,6 +72,7 @@ from jobfinder.normalize.dedup import (
     same_employer,
 )
 from jobfinder.normalize.experience import matches_experience
+from jobfinder.normalize import facts as advert_facts
 from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills, is_technical
 
 logger = logging.getLogger(__name__)
@@ -245,7 +246,9 @@ RERUN_BASE = (
 )
 # The filter bar rides along with paging and re-sorting, but a new search from the form
 # starts unfiltered, since the form does not include it.
-RERUN_INCLUDE = RERUN_BASE + ", #results input[name=facet], #results select[name=company]"
+RERUN_INCLUDE = RERUN_BASE + (
+    ", #results input[name=facet], #results select[name=company], #results select[name=mode]"
+)
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
 
@@ -750,7 +753,7 @@ URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
     "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
-    "view": "view",
+    "view": "view", "mode": "mode",
 }
 
 
@@ -778,6 +781,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("co", context["company"]))
     if context.get("view") and context["view"] != DEFAULT_VIEW:
         pairs.append(("view", context["view"]))
+    if context.get("mode"):
+        pairs.append(("mode", context["mode"]))
     return "/?" + urlencode(pairs)
 
 
@@ -830,6 +835,7 @@ async def search(
     facet: str | None = Form(default=None),
     company: str | None = Form(default=None),
     view: str | None = Form(default=None),
+    mode: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -837,6 +843,7 @@ async def search(
         "internships_only": internships_only, "graduate_only": graduate_only,
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
+        "mode": mode,
     }
     return _search(request, form, page=page, more=bool(more))
 
@@ -940,6 +947,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             facet=form.get("facet") or None,
             company=form.get("company") or None,
             view=form.get("view"),
+            mode=form.get("mode") or None,
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -982,6 +990,7 @@ def _job_view(session, job: JobPosting) -> dict:
         "age": _age(_as_utc(job.posted_at) or first_seen, datetime.now(timezone.utc)),
         "place": _short_place(job.location_raw),
         "experience": _experience_label(job),
+        "mode": _facts_for(job)["mode"],
         "blocks": advert.blocks(job.description),
     }
 
@@ -1328,6 +1337,33 @@ def _cv_demand(skills: list[str]) -> dict:
     }
 
 
+# What each advert's prose states (see normalize/facts.py), worked out once per advert per
+# process. The snapshot is replaced by a deploy, never in place, so an entry can only go
+# stale when a local database changes under a running server; the text check covers that.
+_FACTS: dict[int, tuple[int, dict]] = {}
+
+
+def _facts_for(job: JobPosting) -> dict:
+    text = job.description or ""
+    key = hash(text)
+    hit = _FACTS.get(job.id)
+    if hit is not None and hit[0] == key:
+        return hit[1]
+    found = {
+        "mode": advert_facts.work_mode(text, is_remote=job.is_remote),
+    }
+    _FACTS[job.id] = (key, found)
+    return found
+
+
+# The work-mode picker's choices, as the filter bar names them.
+WORK_MODES = {
+    advert_facts.REMOTE: "Remote",
+    advert_facts.HYBRID: "Hybrid",
+    advert_facts.ONSITE: "On-site",
+}
+
+
 def _search_results(
     profile: dict,
     *,
@@ -1339,6 +1375,7 @@ def _search_results(
     facet: str | None = None,
     company: str | None = None,
     view: str | None = None,
+    mode: str | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1449,9 +1486,12 @@ def _search_results(
                 STRENGTH_CAPS.get(entry.tier, 1)
             )
             strength = _strength(position, len(scored), 1 if entry.fallback else cap)
+            stated = _facts_for(job)
             items.append(
                 {
                     "job": job,
+                    # How the advert says the work is done, or None where it does not.
+                    "mode": stated["mode"],
                     "company": companies.get(job.company_id, "Unknown"),
                     "domain": domains.get(job.company_id, ""),
                     "score": entry.score,
@@ -1513,6 +1553,14 @@ def _search_results(
         # The filter bar's counts are taken before it narrows anything, and each side is
         # counted within the other: with Amazon picked, the field tabs count Amazon's
         # jobs, so every tab says exactly what clicking it would show.
+        # Narrowing on what adverts state works like the search itself: the counts below
+        # are taken within it. Adverts that do not say are left out of a narrowed list,
+        # since nothing about them says they fit.
+        mode = mode if mode in WORK_MODES else None
+        total_search = len(items)
+        if mode:
+            items = [i for i in items if i["mode"] and i["mode"].kind == mode]
+
         total_all = len(items)
         known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}
         facet = facet if facet in known_fields else None
@@ -1626,6 +1674,8 @@ def _search_results(
         "units_total": len(units),
         "total": total,
         "total_all": total_all,
+        # Before any picker in the filter bar, for "Hybrid, from 268 in all".
+        "total_search": total_search,
         "facet_all": facet_all,
         # The fields the searcher picked lead, in the same order as the bands below,
         # then the busiest first within each. A field with nothing open still shows.
@@ -1637,6 +1687,8 @@ def _search_results(
         "companies": sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold())),
         "facet": facet,
         "company": company,
+        "mode": mode,
+        "work_modes": WORK_MODES,
         "page": page,
         "pages": max(1, (len(units) + per_page - 1) // per_page),
         "view": view,

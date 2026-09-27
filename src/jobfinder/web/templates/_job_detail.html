@@ -21,7 +21,11 @@
     </div>
     <div class="jobx__fact">
       <dt>Where</dt>
-      <dd>{{ "Dublin" if job.is_dublin else "Outside Dublin" }}{% if place %}, {{ place }}{% endif %}{% if job.is_remote %}, remote{% endif %}</dd>
+      <dd>{{ "Dublin" if job.is_dublin else "Outside Dublin" }}{% if place %}, {{ place }}{% endif %}</dd>
+    </div>
+    <div class="jobx__fact">
+      <dt>Work mode</dt>
+      <dd>{{ mode.label|capitalize if mode else "Not stated" }}</dd>
     </div>
     <div class="jobx__fact">
       <dt>Experience</dt>

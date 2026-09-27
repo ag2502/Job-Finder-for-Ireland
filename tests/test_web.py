@@ -1025,3 +1025,24 @@ def test_the_keyboard_shortcuts_are_listed(client):
     assert 'id="keys"' in page and "data-keys-open" in page
     for key in ("<kbd>j</kbd>", "<kbd>s</kbd>", "<kbd>a</kbd>", "<kbd>/</kbd>"):
         assert key in page
+
+
+# ------------------------------------------------------------------ what adverts state
+
+
+def test_the_work_mode_picker_narrows_to_what_adverts_state(client):
+    from jobfinder.web.app import _facts_for, JobPosting  # noqa: F401
+
+    everything = client.post("/search", data={"chosen_fields": ["software-engineering"]},
+                             headers={"HX-Request": "true"})
+    hybrid = client.post("/search", data={"chosen_fields": ["software-engineering"], "mode": "hybrid"},
+                         headers={"HX-Request": "true"})
+    total = lambda r: int(re.search(r'class="rstick__count">\s*<b>([\d,]+)</b>', r.text).group(1).replace(",", ""))
+    assert total(hybrid) <= total(everything)
+    assert hybrid.headers["HX-Push-Url"].endswith("mode=hybrid")
+    rows = re.findall(r'<article class="record.*?</article>', hybrid.text, re.S)
+    assert all("hybrid" in row for row in rows)
+    # An unknown mode is ignored rather than emptying the list.
+    bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "mode": "moon"},
+                        headers={"HX-Request": "true"})
+    assert total(bogus) == total(everything)

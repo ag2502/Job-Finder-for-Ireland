@@ -3,7 +3,7 @@
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar %}
-{% set filtered = facet or company %}
+{% set filtered = facet or company or mode %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 
@@ -39,8 +39,8 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}</strong>,
-      from {{ "{:,}".format(total_all) }} in all
+      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}</strong>,
+      from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
               hx-swap="innerHTML" hx-indicator="#search-loading, #results">Show all</button>
@@ -82,11 +82,11 @@
 {# The bar that stays: how many, the order, and a way back to the filters from anywhere
    down the list. It sticks under the menu bar for as long as the results are on screen.
    Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
-{% set active = (1 if facet else 0) + (1 if company else 0) %}
+{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) %}
 <div class="rstick">
   <p class="rstick__count">
     <b>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -157,6 +157,19 @@
       </select>
     </label>
     {% endif %}
+  </div>
+
+  {# What the adverts themselves state. Narrowing leaves out the ones that do not say. #}
+  <div class="rbar__stated">
+    <label class="pick">
+      <span>Work mode</span>
+      <select name="mode">
+        <option value="">Any</option>
+        {% for key, label in work_modes.items() %}
+        <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+    </label>
   </div>
 
   <div class="rbar__foot">
@@ -248,6 +261,7 @@
   .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
+  .rbar__stated{display:flex;align-items:center;gap:12px;flex:1 1 100%;flex-wrap:wrap}
   /* The sheet's own heading and buttons, for phones only. */
   .rbar__head,.rbar__foot{display:none}
 
@@ -418,7 +432,8 @@
   @media (max-width:860px){
     .rstick{padding:0 12px 0 16px;gap:8px}
     .rstick__sortlabel{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-    .rstick__sort select{max-width:132px;padding:6px 28px 6px 10px}
+    .rstick__sort select{max-width:none;padding:6px 28px 6px 10px}
+    .rstick__on{display:none}
     .rbar{
       position:fixed;left:0;right:0;bottom:0;z-index:130;display:block;padding:0;gap:0;
       max-height:min(84dvh,680px);overflow-y:auto;overscroll-behavior:contain;
@@ -438,7 +453,8 @@
     .rbar__close:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
     .rbar__close svg{transform:none!important}
     .facets{flex-wrap:wrap;overflow:visible;padding:16px 18px 6px;margin:0;-webkit-mask-image:none;mask-image:none}
-    .rbar__picks{display:grid;grid-template-columns:1fr;gap:14px;margin:0;padding:14px 18px 18px}
+    .rbar__picks{display:grid;grid-template-columns:1fr;gap:14px;margin:0;padding:14px 18px 4px}
+    .rbar__stated{display:grid;grid-template-columns:1fr;gap:14px;padding:10px 18px 18px}
     .pick{flex-direction:column;align-items:stretch;gap:5px}
     .pick select{max-width:none;width:100%}
     .rbar__picks .seg{display:flex;margin-right:0}

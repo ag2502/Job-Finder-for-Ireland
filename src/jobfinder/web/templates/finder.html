@@ -907,7 +907,7 @@
         var b = bar();
         var all = b.querySelector('input[name="facet"][value=""]'); if (all) all.checked = true;
         var list = b.querySelector('input[name="view"][value="list"]'); if (list) list.checked = true;
-        var co = b.querySelector('select[name="company"]'); if (co) co.value = '';
+        Array.prototype.forEach.call(b.querySelectorAll('select'), function (sel) { sel.value = ''; });
       }
     });
     document.addEventListener('keydown', function (e) {
