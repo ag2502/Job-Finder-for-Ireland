@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 
 from jobfinder.matching.rank import BM25Index, Candidate, rank_jobs, seniority_fit, tokenize
-from jobfinder.matching.resume import detect_seniority, detect_years, parse_resume
+from jobfinder.matching.resume import detect_seniority, detect_years, own_skills, parse_resume
 from jobfinder.normalize.taxonomy import (
     classify_title,
     expand_fields,
@@ -117,6 +117,50 @@ def test_parse_resume_extracts_signals():
     assert parsed.years_experience == 5
     assert parsed.email == "amogh.g2003@gmail.com"
     assert "software-engineering" in parsed.fields
+
+
+ML_CV = """
+Profile
+AI/ML engineer. Cut inference cost by re-architecting a full speech-to-text, LLM and
+text-to-speech pipeline for on-premise deployment.
+Experience
+- Integrated the voice agent into the end-to-end SaaS user journey.
+- Owned delivery from requirements gathering through to go-live.
+Technical Skills
+Languages & Libraries: Python, SQL, PyTorch, TensorFlow, Pandas
+Observability & MLOps: OpenTelemetry, Git, Streamlit, Power BI
+Leadership
+- Recognised for reporting the highest number of chapter activities.
+- Directed all branding, graphics and social media output for the chapter.
+Certifications
+- Cisco: Introduction to Cybersecurity
+"""
+
+
+def test_a_cv_keeps_only_the_skills_its_background_supports():
+    """Words from other fields' vocabularies, used in passing, are not skills: an ML
+    engineer's "sales pipeline", "SaaS", "reporting" and "social media" are prose."""
+    found = extract_skills(ML_CV)
+    assert {"pipeline", "saas", "reporting", "social media", "cisco"} <= found
+    kept = own_skills(ML_CV, found, ["machine-learning"])
+    assert {"python", "pytorch", "tensorflow", "pandas", "llm", "sql", "git"} <= kept
+    assert not kept & {"pipeline", "saas", "reporting", "social media", "cisco",
+                       "requirements gathering"}
+    # A skill from another field still counts where the CV lists it as one.
+    assert "power bi" in kept
+
+
+def test_a_skill_only_the_model_named_needs_the_background_and_a_plain_word():
+    found = extract_skills(ML_CV)
+    kept = own_skills(ML_CV, found, ["machine-learning"], named=["go", "keras", "salesforce"])
+    assert "keras" in kept, "a tool of the CV's own field, named another way"
+    assert "go" not in kept, "the text reader already turned down every 'go' in it"
+    assert "salesforce" not in kept
+
+
+def test_a_cv_with_no_fields_keeps_everything_found():
+    found = extract_skills(ML_CV)
+    assert own_skills(ML_CV, found, []) == found
 
 
 def test_parse_empty_resume_is_safe():

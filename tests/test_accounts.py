@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 
 from jobfinder.core import supabase
 from jobfinder.core.db import init_db
-from jobfinder.web.app import app
+from jobfinder.web.app import CV_READING, app
 
 
 def _account(email: str = "jane@example.com") -> supabase.Account:
@@ -1081,6 +1081,20 @@ def test_the_profile_shows_the_cv_or_asks_for_one(client: TestClient, fake):
     assert "/static/cvsheet-2.js" in page
     # The years and level read from CV prose were too often wrong to print as fact.
     assert "6 years" not in page and "senior level" not in page
+
+
+def test_a_cv_read_by_an_older_reader_is_read_again_from_its_file(
+    client: TestClient, fake
+):
+    _with_cv(client)
+    cv = fake.profile["cv"]
+    cv.pop("reading")
+    cv["skills"] = ["python", "social media"]
+    added = cv["added_at"]
+    client.get("/profile")
+    cv = fake.profile["cv"]
+    assert cv["reading"] == CV_READING and "social media" not in cv["skills"]
+    assert "python" in cv["skills"] and cv["added_at"] == added
 
 
 def test_the_cv_panel_counts_the_live_jobs_asking_for_its_skills(

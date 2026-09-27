@@ -61,7 +61,7 @@ from jobfinder.matching import rank
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
 from jobfinder.matching import llm_profile
-from jobfinder.matching.resume import parse_resume
+from jobfinder.matching.resume import own_skills, parse_resume
 from jobfinder.tailor import document as tailor_document
 from jobfinder.normalize.dedup import (
     canonical_title,
@@ -71,7 +71,7 @@ from jobfinder.normalize.dedup import (
     same_employer,
 )
 from jobfinder.normalize.experience import matches_experience
-from jobfinder.normalize.taxonomy import ALL_SKILLS, FIELDS, GROUPS
+from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills
 
 logger = logging.getLogger(__name__)
 
@@ -343,6 +343,10 @@ def _stored_profile(account: supabase.Account | None) -> dict | None:
 # quietly change how results rank.
 MAX_CV_SKILLS = 60
 MAX_CV_TERMS = 120
+# Which reader produced a stored reading. Raised when a change to the reader should
+# reach CVs already on file; `_reread_cv` brings an older one up to date from the kept
+# file. 2: skills are judged against the CV's own fields (`resume.own_skills`).
+CV_READING = 2
 CV_KINDS = {".pdf": "PDF", ".docx": "Word", ".doc": "Word", ".txt": "Text"}
 
 
@@ -364,13 +368,14 @@ def _read_cv(data: bytes, filename: str) -> dict | None:
         logger.warning("corpus vocabulary unavailable", exc_info=True)
         terms = []
 
-    # Only the tokens the taxonomy knows can score against a job, because the other
-    # half of that comparison is `extract_skills` over the advert. A skill the model
-    # named that nothing in the corpus asks for would be a word in a list, not a match.
-    skills = parsed.skills | (
-        {s for s in reading.skills if s in ALL_SKILLS} if reading else set()
-    )
     fields = (reading.fields if reading and reading.fields else parsed.fields) or []
+    # Only the tokens the taxonomy knows can score against a job, because the other
+    # half of that comparison is `extract_skills` over the advert. Judged again here
+    # against the model's fields where it gave some, which are better evidence of the
+    # CV's background than the rules' guess `parse_resume` judged them by.
+    skills = own_skills(
+        parsed.text, extract_skills(parsed.text), fields, reading.skills if reading else ()
+    )
     # The model's figure wins where it has one: `detect_years` falls back to the span
     # between the earliest and latest years printed anywhere on the page, so a CV
     # listing a 2016 school-leaving date reads as nine years of experience.
@@ -393,7 +398,32 @@ def _read_cv(data: bytes, filename: str) -> dict | None:
         "years": years,
         "terms": terms,
         "titles": parsed.titles[:5],
+        "reading": CV_READING,
     }
+
+
+def _reread_cv(account: supabase.Account, stored: dict | None) -> dict | None:
+    """The profile with its CV read again by the current reader, if an older one read it.
+
+    Only possible where the file was kept, which it is for every CV added since
+    tailoring. Anything that fails leaves the old reading in place for next time: a
+    stale skill list is worse than a fresh one, but far better than a profile page that
+    will not load.
+    """
+    cv = (stored or {}).get("cv")
+    if not cv or not cv.get("file") or cv.get("reading") == CV_READING:
+        return stored
+    try:
+        data = supabase.download_file(account, cv["file"])
+        fresh = _read_cv(data, cv.get("name") or "cv")
+        if fresh is None:
+            return stored
+        fresh = {**cv, **fresh, "added_at": cv.get("added_at") or fresh["added_at"]}
+        supabase.save_profile(account, cv=fresh)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not read a stored CV again", exc_info=True)
+        return stored
+    return {**stored, "cv": fresh}
 
 
 def _cv_view(cv: dict | None) -> dict | None:
@@ -1694,6 +1724,7 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
         applied_rows, applied_error = applied_job.result()
         stored, stored_error = stored_job.result()
         tailored_rows, _tailored_error = tailored_job.result()
+    stored = _reread_cv(account, stored)
     for row in tailored_rows:
         row["saved_on"] = _format_applied_at(row.get("updated_at") or row.get("created_at"))
 

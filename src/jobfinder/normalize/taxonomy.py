@@ -832,6 +832,15 @@ ALL_SKILLS: frozenset[str] = frozenset(
     skill for f in FIELDS.values() for skill in f.skills
 )
 
+# The fields that list each skill. Many of the words mean one thing in their own field
+# and another everywhere else: "pipeline" is a sales skill, "saas" a sales one, "glm" an
+# actuarial model and "reporting" an operations duty, and an ML engineer's CV uses all
+# four in passing. Which field a skill belongs to is how a CV reading tells the two apart.
+SKILL_FIELDS: dict[str, frozenset[str]] = {
+    skill: frozenset(key for key, f in FIELDS.items() if skill in f.skills)
+    for skill in ALL_SKILLS
+}
+
 
 def relatedness(keys: list[str] | tuple[str, ...]) -> dict[str, float]:
     """The neighbours one hop out from the chosen fields, and how close each one is.
@@ -928,6 +937,7 @@ def classify_title(title: str) -> list[str]:
 _SKILL_OVERRIDES = {
     "go": re.compile(r"(?<![\w+#.])Go(?![\w+#-])(?!\s+(?:to|live)\b)"),
 }
+AMBIGUOUS_SKILLS: frozenset[str] = frozenset(_SKILL_OVERRIDES)
 
 _SKILL_PATTERNS = {
     skill: (

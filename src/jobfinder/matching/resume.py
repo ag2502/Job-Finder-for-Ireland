@@ -15,10 +15,17 @@ from __future__ import annotations
 import io
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from jobfinder.normalize.taxonomy import classify_title, extract_skills
+from jobfinder.normalize.taxonomy import (
+    AMBIGUOUS_SKILLS,
+    SKILL_FIELDS,
+    classify_title,
+    extract_skills,
+    relatedness,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -194,6 +201,67 @@ def extract_titles(text: str, limit: int = 12) -> list[str]:
     return titles
 
 
+# What separates the items of a list. A skills section is written as short items between
+# commas, pipes, semicolons or bullets in every layout; running prose is not.
+_LIST_SEPARATORS = re.compile(r"[,|;\u2022\u00b7]")
+
+
+def _listed(line: str) -> list[str]:
+    """The items of a line that lists things rather than says them, or nothing.
+
+    A list is three or more short items (four words at most, which leaves room for a
+    heading such as "Observability & MLOps: Opik"). Only the short items count, so a
+    sentence that happens to hold "speech-to-text, LLM and text-to-speech pipeline"
+    lists nothing from its long middle, and "directed all branding, graphics and social
+    media output" is not a list at all.
+    """
+    short = [
+        item for item in _LIST_SEPARATORS.split(line)
+        if item.strip() and len(item.split()) <= 4
+    ]
+    return short if len(short) >= 3 else []
+
+
+def own_skills(
+    text: str, found: set[str], fields: list[str], named: Iterable[str] = ()
+) -> set[str]:
+    """The skills a CV claims, out of every skill word it happens to contain.
+
+    `found` is what `extract_skills` read from the text and `named` what a model said the
+    CV names. Matching the vocabulary anywhere in the text reads an ML engineer's
+    "reporting the highest number of activities" as the operations skill, "SaaS user
+    journey" as the sales one and a "Cisco: Introduction to Cybersecurity" course as
+    network engineering, so a word only counts when the CV's background supports it:
+
+    * it belongs to one of the CV's fields or a neighbour of one, or
+    * the CV lists it, on a line of short items the way skills sections are written,
+      which is how a data scientist's "Power BI" survives while their fields are ML.
+
+    A skill only the model named has no line to be listed on, so it needs the first. One
+    whose word is ambiguous enough to need its own pattern ("go") is dropped outright:
+    the text reader has already looked at every use of that word and turned it down.
+
+    With no fields to judge by, everything found is kept; there is nothing to weigh it
+    against, and an empty reading helps nobody.
+    """
+    if not fields:
+        return set(found) | {s for s in named if s in SKILL_FIELDS}
+    background = set(fields) | set(relatedness(fields))
+    listed_skills = extract_skills(
+        "\n".join(item for line in text.splitlines() for item in _listed(line))
+    )
+
+    def fits(skill: str) -> bool:
+        return bool(SKILL_FIELDS.get(skill, frozenset()) & background)
+
+    kept = {s for s in found if fits(s) or s in listed_skills}
+    kept |= {
+        s for s in named
+        if s in SKILL_FIELDS and s not in found and s not in AMBIGUOUS_SKILLS and fits(s)
+    }
+    return kept
+
+
 def parse_resume(data: bytes, filename: str) -> ParsedResume:
     text = extract_text(data, filename)
     if not text.strip():
@@ -216,7 +284,7 @@ def parse_resume(data: bytes, filename: str) -> ParsedResume:
 
     return ParsedResume(
         text=text,
-        skills=extract_skills(text),
+        skills=own_skills(text, extract_skills(text), detected_fields),
         titles=titles,
         fields=detected_fields,
         seniority=detect_seniority(text),
