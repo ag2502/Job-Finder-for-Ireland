@@ -206,6 +206,22 @@ def test_the_filter_bar_narrows_by_company_and_field(client):
     assert _total(type("R", (), {"text": ignored})) == _total(type("R", (), {"text": everything}))
 
 
+def test_the_company_view_lays_the_same_results_out_by_employer(client):
+    fields = {"chosen_fields": ["backend", "cloud", "devops"]}
+    as_list = client.post("/search", data=fields, headers={"HX-Request": "true"}).text
+    by_company = client.post(
+        "/search", data={**fields, "view": "company"}, headers={"HX-Request": "true"}
+    ).text
+    assert 'class="cocard' in by_company and 'class="record' not in by_company
+    # Same search, same total: the view only changes the layout.
+    assert _total(type("R", (), {"text": by_company})) == _total(type("R", (), {"text": as_list}))
+    names = re.findall(r'class="cocard__name">([^<]+)<', by_company)
+    assert len(names) == len(set(names)), "one card per employer"
+    # An unknown view falls back to the list rather than erroring.
+    odd = client.post("/search", data={**fields, "view": "grid"}, headers={"HX-Request": "true"}).text
+    assert 'class="record' in odd
+
+
 def test_htmx_request_returns_only_the_table(client):
     response = client.post(
         "/search",

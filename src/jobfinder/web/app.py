@@ -86,6 +86,12 @@ SORTS = {
 }
 DEFAULT_SORT = "relevance"
 
+# The two ways to lay results out: a ranked list, or a card per employer. The list is
+# the default because it is the ranking; the cards answer "who is hiring for this".
+VIEWS = ("list", "company")
+DEFAULT_VIEW = "list"
+COMPANIES_PER_PAGE = 12
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
@@ -670,6 +676,7 @@ async def search(
     use_cv: str | None = Form(default=None),
     facet: str | None = Form(default=None),
     company: str | None = Form(default=None),
+    view: str | None = Form(default=None),
 ):
     previous_profile = _profile(request) or {}
 
@@ -758,6 +765,7 @@ async def search(
             show_applied=bool(show_applied),
             facet=facet or None,
             company=company or None,
+            view=view,
         )
     )
 
@@ -1005,12 +1013,15 @@ def _search_results(
     show_applied: bool = False,
     facet: str | None = None,
     company: str | None = None,
+    view: str | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
     `facet` (a field key) and `company` (an employer name) narrow a search that has
     already run, from the filter bar above the results. They never change the ranking
     or the counts the bar itself shows, which are taken before either applies.
+
+    `view="company"` lays the same rows out as one card per employer instead.
     """
     candidate = Candidate(
         skills=set(profile.get("skills") or []),
@@ -1214,11 +1225,34 @@ def _search_results(
             else:
                 head["also"].append(item)
 
-        per_page = 25
+        view = view if view in VIEWS else DEFAULT_VIEW
         total = len(items)
         page = max(page, 1)
+        groups: list[dict] = []
+        if view == "company":
+            # One card per employer, in the order its best role ranks, so the same
+            # ordering still decides who comes first.
+            by_company: dict[str, dict] = {}
+            for item in rows_out:
+                card = by_company.get(item["company"])
+                if card is None:
+                    card = by_company[item["company"]] = {
+                        "company": item["company"], "domain": item["domain"],
+                        "rows": [], "openings": 0, "strength": item["strength"],
+                        "strength_label": item["strength_label"],
+                    }
+                    groups.append(card)
+                card["rows"].append(item)
+                card["openings"] += 1 + len(item["also"])
+            per_page = COMPANIES_PER_PAGE
+            units = groups
+        else:
+            per_page = 25
+            units = rows_out
         start = (page - 1) * per_page
-        page_items = rows_out[start : start + per_page]
+        page_items = rows_out[start : start + per_page] if view == "list" else []
+        page_groups = groups[start : start + per_page]
+        shown = page_items or [row for card in page_groups for row in card["rows"]]
 
     return {
         "items": page_items,
@@ -1232,7 +1266,9 @@ def _search_results(
         "facet": facet,
         "company": company,
         "page": page,
-        "pages": max(1, (len(rows_out) + per_page - 1) // per_page),
+        "pages": max(1, (len(units) + per_page - 1) // per_page),
+        "view": view,
+        "groups": page_groups,
         "query": query or "",
         "new_count": sum(1 for i in items if i["is_new"]),
         "tiered": tiered,
@@ -1244,7 +1280,7 @@ def _search_results(
         # A field chip on every row only tells the searcher something when more than
         # one field could be the answer.
         "show_field": len(profile.get("fields") or []) + len(profile.get("cv_fields") or []) > 1,
-        "fallback": bool(page_items and all(i["fallback"] for i in page_items)),
+        "fallback": bool(shown and all(i["fallback"] for i in shown)),
         "show_applied": show_applied,
         "applied_count": len(applied_keys or set()),
         "saved_count": len(saved_keys or set()),

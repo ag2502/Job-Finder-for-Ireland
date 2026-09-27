@@ -12,7 +12,7 @@
   "0 years" search silently became a search of every level (81 jobs, then 244).
 #}
 {% from "_macros.html" import logo, titlebar %}
-{% set rerun_base = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied]" %}
+{% set rerun_base = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied], #results input[name=view]" %}
 {# The filter bar rides along with paging and re-sorting, but a new search from the form
    starts unfiltered, since the form does not include it. #}
 {% set rerun_include = rerun_base ~ ", #results input[name=facet], #results select[name=company]" %}
@@ -122,6 +122,10 @@
   {% endif %}
 
   <div class="rbar__picks">
+    <div class="seg" role="radiogroup" aria-label="Lay out results">
+      <label class="seg__opt"><input type="radio" name="view" value="list" {% if view != "company" %}checked{% endif %}>List</label>
+      <label class="seg__opt"><input type="radio" name="view" value="company" {% if view == "company" %}checked{% endif %}>By company</label>
+    </div>
     {% if companies and companies|length > 1 %}
     <label class="pick">
       <span>Company</span>
@@ -146,7 +150,47 @@
   </div>
 </div>
 
-{% if items %}
+{% if view == "company" and groups %}
+{# A card per employer, in the order its best role ranks. Three roles show; the rest
+   fold away, so a company with fifty openings takes no more room than one with five. #}
+<div class="cogrid" id="result-list">
+  {% for card in groups %}
+  <section class="cocard filing" aria-label="{{ card.company }}">
+    <header class="cocard__head">
+      {{ logo(card.company, card.domain) }}
+      <div class="cocard__who">
+        <h3 class="cocard__name">{{ card.company }}</h3>
+        <span class="cocard__count">{{ card.openings }} job{{ "" if card.openings == 1 else "s" }}</span>
+      </div>
+      <span class="meter" data-level="{{ card.strength }}" title="Best role here: {{ card.strength_label|lower }}">
+        <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      </span>
+    </header>
+    {% for part in [card.rows[:3], card.rows[3:]] if part %}
+      {% if loop.index == 2 %}<details class="cocard__more"><summary>{{ part|length }} more role{{ "" if part|length == 1 else "s" }}</summary>{% endif %}
+      <ul class="cocard__roles">
+        {% for row in part %}
+        <li class="corole">
+          <div class="corole__main">
+            <a class="corole__title" href="{{ row.job.url }}" target="_blank" rel="noopener">{{ row.job.title }}</a>
+            <span class="corole__meta">
+              {{- row.age -}}
+              {%- if row.experience %} &middot; {{ row.experience }}{% endif -%}
+              {%- if row.job.is_remote %} &middot; remote{% endif -%}
+              {%- if row.also %} &middot; {{ row.also|length + 1 }} openings{% endif -%}
+            </span>
+          </div>
+          <span class="corole__act">{% with it = row %}{% include "_apply_control.html" %}{% endwith %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if loop.index == 2 %}</details>{% endif %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+
+{% elif items %}
 <div class="filed" id="result-list">
   {% for item in items %}
     {% if tiered and band_counts|length > 1 and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
@@ -202,18 +246,7 @@
               </a>
               <span class="record__age">{{ other.age }}</span>
               <span class="also__act">
-                {% if other.applied %}
-                  {% with advert_key = other.advert_key, title = other.job.title,
-                          company = other.company, url = other.job.url %}{% include "_applied_tag.html" %}{% endwith %}
-                {% elif account or not accounts_enabled %}
-                  {% with advert_key = other.advert_key, title = other.job.title,
-                          company = other.company, url = other.job.url, job_id = other.job.id %}{% include "_apply_button.html" %}{% endwith %}
-                {% else %}
-                  <a class="btn btn--apply" href="/login?next=/&amp;why=apply"
-                     title="Sign in first, so this job is recorded and never offered to you again">Apply
-                    <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
-                  </a>
-                {% endif %}
+                {% with it = other %}{% include "_apply_control.html" %}{% endwith %}
               </span>
             </li>
             {% endfor %}
@@ -243,42 +276,12 @@
             {% endif %}
           {% endif %}
 
-          {% if item.applied %}
-            {# The partial names the advert itself, not the row it came from, so the
-               same include serves the results and the profile. #}
-            {% with advert_key = item.advert_key, title = item.job.title,
-                    company = item.company, url = item.job.url %}{% include "_applied_tag.html" %}{% endwith %}
-          {% elif account or not accounts_enabled %}
-            {% with advert_key = item.advert_key, title = item.job.title,
-                    company = item.company, url = item.job.url, job_id = item.job.id %}{% include "_apply_button.html" %}{% endwith %}
-          {% else %}
-          {# Applying is what an account is FOR: it is the moment worth remembering, and
-             remembering it is what keeps this job out of tomorrow's results. So the
-             click goes through sign-in first and comes straight back here. #}
-          <a class="btn btn--apply" href="/login?next=/&amp;why=apply"
-             title="Sign in first, so this job is recorded and never offered to you again">Apply
-            <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
-          </a>
-          {% endif %}
+          {% with it = item %}{% include "_apply_control.html" %}{% endwith %}
         </div>
       </div>
     </article>
   {% endfor %}
 </div>
-
-{% if pages > 1 %}
-<div class="paging">
-  {% if page > 1 %}
-    <button class="secondary" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
-       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Back</button>
-  {% else %}<span></span>{% endif %}
-  <span class="accession">Page {{ page }} of {{ pages }}</span>
-  {% if page < pages %}
-    <button class="secondary" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
-       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Next</button>
-  {% else %}<span></span>{% endif %}
-</div>
-{% endif %}
 
 {% else %}
 <div class="empty">
@@ -300,6 +303,20 @@
   </p>
 </div>
 {% endif %}
+
+{% if pages > 1 and (items or groups) %}
+<div class="paging">
+  {% if page > 1 %}
+    <button class="secondary" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
+       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Back</button>
+  {% else %}<span></span>{% endif %}
+  <span class="accession">Page {{ page }} of {{ pages }}</span>
+  {% if page < pages %}
+    <button class="secondary" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
+       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Next</button>
+  {% else %}<span></span>{% endif %}
+</div>
+{% endif %}
 </div>
 
 <style>
@@ -313,11 +330,11 @@
 
   /* The filter bar, like a bank's transaction filters: tabs that count, then pickers. */
   .rbar{
-    display:flex;align-items:center;gap:14px;padding:12px 26px;
+    display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;padding:14px 26px;
     background:var(--win-bar);border-bottom:1px solid var(--line);
   }
   .facets{
-    display:flex;gap:6px;flex:1;min-width:0;overflow-x:auto;padding:3px 2px;margin:-3px -2px;
+    display:flex;gap:6px;flex:1 1 100%;min-width:0;overflow-x:auto;padding:3px 2px;margin:-3px -2px;
     scrollbar-width:none;overscroll-behavior-x:contain;
     -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
             mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
@@ -341,7 +358,56 @@
   .facet--all:has(input:checked){background:var(--ink);border-color:var(--ink);color:#fff}
   .facet--all:has(input:checked) b{color:rgba(255,255,255,.72)}
   .facet:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
-  .rbar__picks{display:flex;align-items:center;gap:12px;flex:none;margin-left:auto}
+  .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
+  .rbar__picks .seg{margin-right:auto}
+
+  /* List or cards: a segmented control, the white thumb on the one in use. */
+  .seg{display:inline-flex;padding:3px;border-radius:999px;background:#e2e5ea;
+    box-shadow:inset 0 1px 2px rgba(20,24,33,.1)}
+  .seg__opt{position:relative;padding:5px 13px;border-radius:999px;font-size:13px;font-weight:600;
+    color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,box-shadow .25s var(--ease)}
+  .seg__opt input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
+  .seg__opt:hover{color:var(--ink)}
+  .seg__opt:has(input:checked){background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .seg__opt:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+
+  /* By company: a card per employer on the grey of the window, three roles showing. */
+  .cogrid{
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,330px),1fr));
+    gap:16px;align-items:start;padding:20px 22px 24px;background:var(--win-bar);
+  }
+  .cogrid:last-child{border-radius:0 0 var(--r-win) var(--r-win)}
+  .cocard{
+    background:#fff;border:1px solid rgba(20,24,33,.1);border-radius:12px;overflow:hidden;
+    box-shadow:var(--shadow-sm);transition:box-shadow .3s var(--ease),transform .35s var(--spring);
+  }
+  .cocard:hover{box-shadow:var(--shadow-win);transform:translateY(-2px)}
+  .cocard__head{display:flex;align-items:center;gap:12px;padding:14px 16px 12px}
+  .cocard__head .logo{--size:40px}
+  .cocard__who{flex:1;min-width:0}
+  .cocard__name{margin:0;font-size:1rem;font-weight:700;letter-spacing:-.015em;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cocard__count{font-family:var(--mono);font-size:12px;color:var(--sorted)}
+  .cocard__roles{list-style:none;margin:0;padding:0}
+  .corole{display:flex;align-items:center;gap:12px;padding:11px 16px;border-top:1px solid var(--line)}
+  .corole__main{flex:1;min-width:0}
+  .corole__title{
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+    font-size:14px;font-weight:600;line-height:1.35;color:var(--ink);text-decoration:none;
+  }
+  .corole__title:hover{color:var(--aqua-deep);text-decoration:underline;text-underline-offset:3px}
+  .corole__meta{display:block;margin-top:3px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .corole__act{flex:none}
+  .corole__act .btn--apply{padding:5px 12px;font-size:12.5px}
+  .cocard__more summary{
+    display:flex;align-items:center;gap:7px;padding:10px 16px;border-top:1px solid var(--line);
+    font-size:12.5px;font-weight:600;color:var(--aqua-deep);cursor:pointer;list-style:none;
+  }
+  .cocard__more summary::-webkit-details-marker{display:none}
+  .cocard__more summary::before{content:"";border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;
+    border-left:6px solid currentColor;transition:transform .25s var(--spring)}
+  .cocard__more[open] summary::before{transform:rotate(90deg)}
+  .cocard__more summary:hover{color:var(--ink);background:#f7f9fd}
   .pick{display:flex;align-items:center;gap:7px;margin:0;font-size:12.5px;font-weight:600;color:var(--ink-3)}
   .pick select{width:auto;max-width:220px;font-size:13.5px;padding:6px 30px 6px 11px}
   .filed{border-radius:0 0 var(--r-win) var(--r-win)}
@@ -416,6 +482,8 @@
     .rbar__picks{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:0;padding:0 16px}
     .pick{flex-direction:column;align-items:stretch;gap:4px}
     .pick select{max-width:none;width:100%}
+    .seg{grid-column:1/-1;display:flex}
+    .seg__opt{flex:1;text-align:center;padding:7px 13px}
   }
   @media (min-width:861px) and (max-width:980px){
     .facets{padding:3px 26px;scroll-padding:0 26px}
@@ -426,5 +494,7 @@
     .drawerhead .spread{gap:12px}
     .paging{padding:12px 16px}
     .paging button{flex:1}
+    .cogrid{padding:12px;gap:12px}
+    .corole{padding:11px 14px}
   }
 </style>

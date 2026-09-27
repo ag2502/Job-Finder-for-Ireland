@@ -1,0 +1,19 @@
+{# Apply, or "applied", for one result `it`, in whichever form the searcher's account
+   calls for. Shared by the list rows, their folded repeats and the company cards. #}
+{% if it.applied %}
+  {# The partial names the advert itself, not the row it came from, so the
+     same include serves the results and the profile. #}
+  {% with advert_key = it.advert_key, title = it.job.title,
+          company = it.company, url = it.job.url %}{% include "_applied_tag.html" %}{% endwith %}
+{% elif account or not accounts_enabled %}
+  {% with advert_key = it.advert_key, title = it.job.title,
+          company = it.company, url = it.job.url, job_id = it.job.id %}{% include "_apply_button.html" %}{% endwith %}
+{% else %}
+{# Applying is what an account is FOR: it is the moment worth remembering, and
+   remembering it is what keeps this job out of tomorrow's results. So the
+   click goes through sign-in first and comes straight back here. #}
+<a class="btn btn--apply" href="/login?next=/&amp;why=apply"
+   title="Sign in first, so this job is recorded and never offered to you again">Apply
+  <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
+</a>
+{% endif %}
