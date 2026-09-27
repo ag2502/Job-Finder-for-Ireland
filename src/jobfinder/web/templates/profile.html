@@ -382,6 +382,56 @@
   .cvread__actions form{margin:0}
   .cvread__actions .btn,.cvread__actions button{padding:9px 18px;font-size:14.5px;min-height:42px}
   .cvread__privacy{margin:14px 0 0}
+
+  /* The CV's skills against the live jobs: a count that moves as skills are left out. */
+  .demand{margin:0 0 24px}
+  .demand.is-loading .skill{animation:demand-wait 1.4s ease-in-out calc(var(--k,0) * 60ms) infinite}
+  @keyframes demand-wait{50%{opacity:.45}}
+  .demand__head{display:flex;align-items:flex-end;gap:14px;margin:6px 0 10px;flex-wrap:wrap}
+  .demand__n{font-size:clamp(2.4rem,5vw,3.1rem);line-height:.9;font-weight:750;letter-spacing:-.04em;
+    font-variant-numeric:tabular-nums;color:var(--ink);min-width:2ch}
+  .demand__of{margin:0;flex:1 1 200px;font-size:14.5px;font-weight:600;line-height:1.35;color:var(--ink-2);text-wrap:pretty}
+  .demand__of span{display:block;font-weight:500;color:var(--ink-3);font-size:13px}
+  .demand__meter{position:relative;height:10px;border-radius:99px;background:#eef0f4;overflow:hidden;
+    box-shadow:inset 0 1px 2px rgba(20,24,33,.08)}
+  .demand__meter i{position:absolute;inset:0 auto 0 0;border-radius:inherit}
+  .demand__fill{width:calc(var(--p) * 100%);background:linear-gradient(90deg,var(--aqua),var(--aqua-hi));
+    transition:width .6s var(--ease)}
+  .demand__peek{width:calc(var(--q) * 100%);background:var(--sticker);
+    box-shadow:0 0 0 1px rgba(232,180,0,.35);transition:width .35s var(--ease)}
+  .demand__caption{margin:9px 0 12px;min-height:1.5em;color:var(--ink-3)}
+  .demand__caption b{color:var(--ink);font-family:var(--mono);font-weight:600}
+  .demand__rows{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+  .drow{all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:minmax(6.5em,9.5em) 1fr 3.2em;
+    align-items:center;gap:12px;padding:6px 8px;border-radius:9px;cursor:pointer;
+    transition:background .2s var(--ease),opacity .25s var(--ease)}
+  .drow:hover:not(:disabled),.drow:active:not(:disabled){background:var(--aqua-wash);transform:none;filter:none;box-shadow:none}
+  .drow:focus-visible{outline:2.5px solid var(--aqua);outline-offset:1px}
+  .drow__name{font-family:var(--mono);font-size:13.5px;color:var(--aqua-deep);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .drow__bar{height:8px;border-radius:99px;background:#f0f2f5;overflow:hidden}
+  .drow__bar i{display:block;height:100%;width:calc(var(--w) * 100%);border-radius:inherit;background:var(--aqua);
+    transform-origin:left;transition:background .25s var(--ease),transform .45s var(--spring)}
+  .drow:hover .drow__bar i{background:var(--aqua-deep)}
+  .drow__n{text-align:right;font-size:13.5px;font-weight:650;font-variant-numeric:tabular-nums;color:var(--ink)}
+  .drow[aria-pressed="false"]{opacity:.5}
+  .drow[aria-pressed="false"] .drow__name{text-decoration:line-through;color:var(--ink-3)}
+  .drow[aria-pressed="false"] .drow__bar i{background:var(--line-strong);transform:scaleX(.08)}
+  .demand__more{margin-top:6px}
+  .demand__more .demand__rows{margin-top:6px}
+  .demand__foot{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:10px}
+  .demand__idle{margin:0;line-height:2}
+  .skill--idle{font-size:12px;padding:2px 8px;margin:0 2px;background:#f4f5f7;color:var(--ink-3);border-color:var(--line)}
+  .demand__reset{font-size:13.5px;font-weight:600;color:var(--aqua-deep)}
+  .demand__reset[hidden]{display:none}
+  .demand .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  @media (prefers-reduced-motion:no-preference){
+    .demand[data-demand] .drow__bar i{animation:bar-grow .8s var(--ease) calc(var(--k,0) * 55ms + 120ms) backwards}
+    .demand[data-demand] .demand__fill{animation:bar-grow 1s var(--ease) .1s backwards}
+  }
+  @keyframes bar-grow{from{transform:scaleX(0)}}
+  @media (prefers-reduced-motion:reduce){
+    .demand__fill,.demand__peek,.drow__bar i{transition:none}
+  }
   @media (prefers-reduced-motion:no-preference){
     .is-fresh .fpill,.is-fresh .skill{animation:tag-in .5s var(--spring) calc(var(--k,0) * 45ms + 350ms) both}
     .is-fresh .cvread__summary{animation:rise-in .5s var(--ease) .2s both}
@@ -707,6 +757,87 @@
       form.querySelector('.cvremove__confirm').hidden = true;
       var back = form.querySelector('[data-cv-ask]'); back.hidden = false; back.focus();
     }
+  });
+
+  // Skills in demand: a skill tapped off leaves the count, and the headline recounts
+  // the jobs asking for at least one of those still on.
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function jobsOf(box) {
+    if (!box._jobs) box._jobs = JSON.parse(box.querySelector('[data-demand-data]').textContent);
+    return box._jobs;
+  }
+  function tween(el, to) {
+    var from = el._n == null ? parseInt(el.textContent.replace(/\D/g, ''), 10) || 0 : el._n;
+    el._n = to;
+    cancelAnimationFrame(el._raf);
+    if (reduced.matches || from === to) { el.textContent = to.toLocaleString('en-IE'); return; }
+    var start = performance.now(), span = 550;
+    (function step(now) {
+      var t = Math.min(1, (now - start) / span), e = 1 - Math.pow(1 - t, 3);
+      el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-IE');
+      if (t < 1) el._raf = requestAnimationFrame(step);
+    })(start);
+  }
+  function recount(box) {
+    var data = jobsOf(box), seen = {}, n = 0, off = 0;
+    box.querySelectorAll('.drow').forEach(function (row) {
+      if (row.getAttribute('aria-pressed') !== 'true') { off++; return; }
+      (data.jobs[row.getAttribute('data-skill')] || []).forEach(function (i) {
+        if (!seen[i]) { seen[i] = 1; n++; }
+      });
+    });
+    tween(box.querySelector('[data-demand-count]'), n);
+    box.querySelector('.demand__meter').style.setProperty('--p', data.total ? n / data.total : 0);
+    box.querySelector('[data-demand-reset]').hidden = !off;
+    box.querySelector('[data-demand-status]').textContent =
+      n.toLocaleString('en-IE') + (n === 1 ? ' job asks' : ' jobs ask') + ' for the skills still on.';
+  }
+  function peek(row) {
+    var box = row && row.closest('[data-demand]');
+    var target = box || document.querySelector('[data-demand]');
+    if (!target) return;
+    var caption = target.querySelector('[data-demand-caption]'), meter = target.querySelector('.demand__meter');
+    if (!row) {
+      caption.textContent = caption.getAttribute('data-default');
+      meter.style.setProperty('--q', 0);
+      return;
+    }
+    var count = +row.getAttribute('data-count'), total = jobsOf(box).total;
+    var pct = total ? Math.round(count / total * 100) : 0;
+    caption.innerHTML = '';
+    var name = document.createElement('b'); name.textContent = row.getAttribute('data-skill');
+    caption.append(name, ' on its own: ' + count.toLocaleString('en-IE') +
+      (count === 1 ? ' job, ' : ' jobs, ') + (pct < 1 ? 'under 1' : pct) + '% of what is open.');
+    meter.style.setProperty('--q', total ? count / total : 0);
+  }
+  document.addEventListener('click', function (e) {
+    var row = e.target.closest('[data-demand] .drow');
+    if (row) {
+      row.setAttribute('aria-pressed', row.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+      recount(row.closest('[data-demand]'));
+      return;
+    }
+    var reset = e.target.closest('[data-demand-reset]');
+    if (reset) {
+      var box = reset.closest('[data-demand]');
+      box.querySelectorAll('.drow').forEach(function (r) { r.setAttribute('aria-pressed', 'true'); });
+      recount(box);
+      var first = box.querySelector('.drow'); if (first) first.focus();
+    }
+  });
+  document.addEventListener('pointerover', function (e) {
+    if (!e.target.closest || !e.target.closest('[data-demand]')) return;
+    peek(e.target.closest('.drow'));
+  });
+  document.addEventListener('focusin', function (e) {
+    if (e.target.closest && e.target.closest('[data-demand] .drow')) peek(e.target);
+  });
+  document.addEventListener('focusout', function (e) {
+    if (e.target.closest && e.target.closest('[data-demand] .drow')) peek(null);
+  });
+  document.addEventListener('pointerout', function (e) {
+    var box = e.target.closest && e.target.closest('[data-demand]');
+    if (box && !box.contains(e.relatedTarget)) peek(null);
   });
 
   // The empty sheet in the drop zone leans toward the pointer.

@@ -154,6 +154,15 @@ def _advert(text: str) -> _Advert:
     return found
 
 
+def advert_skills(text: str) -> frozenset[str]:
+    """The skills an advert asks for, without the tokenising a full score needs."""
+    found = _ADVERTS.get(text)
+    if found is not None:
+        return found.skills
+    skills = _PRECOMPUTED_SKILLS.get(advert_hash(text)) if _PRECOMPUTED_SKILLS else None
+    return skills if skills is not None else frozenset(extract_skills(text))
+
+
 def _advert_signal(text: str, vocabulary: Vocabulary) -> frozenset[str]:
     advert = _advert(text)
     if advert.signal is None or advert.signal_vocab != id(vocabulary):

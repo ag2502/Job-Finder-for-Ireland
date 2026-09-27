@@ -22,6 +22,8 @@ from concurrent.futures import ThreadPoolExecutor
 import logging
 import os
 import re
+import threading
+import time
 import uuid
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
@@ -1022,6 +1024,69 @@ def _preload_advert_skills() -> None:
     )
 
 
+# Which live Dublin jobs ask for each skill, for the CV panel's "in demand" count. Built
+# for every skill at once and shared by every profile, so each visit only looks up its
+# own. The snapshot is replaced by a deploy, not in place, so ten minutes stale is never
+# more than one crawl behind on a local database.
+_DEMAND_TTL = 600
+_demand_lock = threading.Lock()
+_demand: tuple[float, int, dict[str, frozenset[int]]] | None = None
+
+
+def _skill_demand() -> tuple[int, dict[str, frozenset[int]]]:
+    """How many live Dublin jobs there are, and which of them ask for each skill.
+
+    The same jobs a search offers: live, in Dublin, one row per advert however many
+    boards carry it, so a skill's count is a count of real openings.
+    """
+    global _demand
+    with _demand_lock:
+        if _demand is not None and time.monotonic() - _demand[0] < _DEMAND_TTL:
+            return _demand[1], _demand[2]
+        _preload_advert_skills()
+        wanted: dict[str, set[int]] = {}
+        with session_scope() as session:
+            rows = session.execute(
+                select(JobPosting).where(_is_offerable(), JobPosting.is_dublin.is_(True))
+            ).scalars().all()
+            rows = _prefer_direct_sources(session, rows, _grouping_keys(session, rows))
+            for row in rows:
+                for skill in rank.advert_skills(f"{row.title}\n{row.description or ''}"):
+                    wanted.setdefault(skill, set()).add(row.id)
+        _demand = (
+            time.monotonic(), len(rows), {k: frozenset(v) for k, v in wanted.items()}
+        )
+        return _demand[1], _demand[2]
+
+
+def _cv_demand(skills: list[str]) -> dict:
+    """The CV's skills against the live jobs, for the panel to count and toggle.
+
+    Jobs are renumbered 0..n over only those asking for one of these skills, which keeps
+    the lists the page unions small; the page needs to know which jobs overlap, never
+    which jobs they are.
+    """
+    total, index = _skill_demand()
+    asked = {skill: index.get(skill, frozenset()) for skill in skills}
+    dense = {job: i for i, job in enumerate(sorted(set().union(*asked.values())))}
+    rows = sorted(
+        ({"skill": skill, "count": len(jobs)} for skill, jobs in asked.items() if jobs),
+        key=lambda r: (-r["count"], r["skill"]),
+    )
+    top = rows[0]["count"] if rows else 1
+    for r in rows:
+        r["w"] = round(r["count"] / top, 3)
+    return {
+        "total": total,
+        "any": len(dense),
+        "rows": rows,
+        "idle": sorted(skill for skill, jobs in asked.items() if not jobs),
+        "jobs": {
+            skill: sorted(dense[j] for j in jobs) for skill, jobs in asked.items() if jobs
+        },
+    }
+
+
 def _search_results(
     profile: dict,
     *,
@@ -1733,6 +1798,19 @@ async def upload_cv(request: Request, resume: UploadFile | None = None):
     if request.headers.get("HX-Request"):
         return _cv_panel(request, account, cv, fresh=True)
     return RedirectResponse("/profile#cv", status_code=303)
+
+
+@app.get("/profile/cv/demand", response_class=HTMLResponse)
+def cv_demand(request: Request):
+    """How many live Dublin jobs ask for each skill on the CV. Fetched after the page
+    has drawn, because the first count after a cold start reads every advert."""
+    account = _account(request)
+    if account is None:
+        raise HTTPException(status_code=401, detail="Sign in to see your CV.")
+    cv = (_stored_profile(account) or {}).get("cv") or {}
+    context = _base_context(request)
+    context.update(demand=_cv_demand(cv.get("skills") or []) if cv else None)
+    return templates.TemplateResponse(request, "_cv_demand.html", context)
 
 
 @app.post("/profile/cv/remove", response_class=HTMLResponse)

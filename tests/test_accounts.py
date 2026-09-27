@@ -1083,6 +1083,35 @@ def test_the_profile_shows_the_cv_or_asks_for_one(client: TestClient, fake):
     assert "6 years" not in page and "senior level" not in page
 
 
+def test_the_cv_panel_counts_the_live_jobs_asking_for_its_skills(
+    client: TestClient, fake, monkeypatch
+):
+    from jobfinder.web import app as web
+
+    # Jobs 1 and 2 want Python, 2 and 3 want AWS: three distinct jobs, not four.
+    monkeypatch.setattr(web, "_skill_demand", lambda: (10, {
+        "python": frozenset({1, 2}), "aws": frozenset({2, 3}), "rust": frozenset({4}),
+    }))
+    _with_cv(client)
+    page = client.get("/profile").text
+    assert 'hx-get="/profile/cv/demand"' in page
+
+    demand = client.get("/profile/cv/demand").text
+    assert "data-demand" in demand and "Your skills, in demand" in demand
+    assert re.search(r"data-demand-count>3<", demand)
+    assert "out of 10 open right now" in demand
+    # Busiest first; a skill no job asks for is named apart, not drawn as an empty bar.
+    assert demand.index('data-skill="aws"') < demand.index('data-skill="python"')
+    assert 'data-skill="kafka"' not in demand and "skill--idle\">kafka" in demand
+    # The page unions these, so the two skills must share job 2's number.
+    data = json.loads(re.search(r"data-demand-data>(.*?)</script>", demand).group(1))
+    assert data["total"] == 10 and set(data["jobs"]["aws"]) & set(data["jobs"]["python"])
+
+
+def test_the_demand_count_needs_a_signed_in_account(client: TestClient, fake):
+    assert client.get("/profile/cv/demand").status_code == 401
+
+
 def test_a_new_upload_replaces_the_old_one(client: TestClient, fake):
     _with_cv(client)
     client.post(

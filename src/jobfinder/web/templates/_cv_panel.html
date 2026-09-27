@@ -53,25 +53,24 @@
 
     {% if cv.summary %}<p class="cvread__summary">{{ cv.summary }}</p>{% endif %}
 
+    {% if cv.skills %}
+    {# The skills as plain tags until the live count arrives, and for good without
+       JavaScript. htmx swaps in _cv_demand.html once the page has drawn. #}
+    <section class="demand is-loading" hx-get="/profile/cv/demand" hx-trigger="load" hx-swap="outerHTML" aria-busy="true">
+      <h3 class="cvread__h">Your skills, in demand</h3>
+      <p class="small muted cvread__note">Counting the live Dublin jobs that ask for each of your {{ cv.skills|length }} skills&hellip;</p>
+      <div class="cvread__skills">
+        {% for s in cv.skills %}<span class="skill" style="--k:{{ loop.index0 }}">{{ s }}</span>{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
     {% if cv.field_list %}
     <h3 class="cvread__h">Where it points</h3>
     <p class="small muted cvread__note">Jobs in these fields come up in your results too, just below the ones you pick.</p>
     <div class="cvread__fields">
       {% for f in cv.field_list %}<span class="fpill" style="--g:var(--g-{{ f.group }});--k:{{ loop.index0 }}">{{ f.label }}</span>{% endfor %}
     </div>
-    {% endif %}
-
-    {% if cv.skills %}
-    <h3 class="cvread__h">Skills we picked up</h3>
-    <div class="cvread__skills">
-      {% for s in cv.skills[:18] %}<span class="skill" style="--k:{{ loop.index0 }}">{{ s }}</span>{% endfor %}
-    </div>
-    {% if cv.skills|length > 18 %}
-    <details class="cvread__more">
-      <summary>and {{ cv.skills|length - 18 }} more</summary>
-      <div class="cvread__skills">{% for s in cv.skills[18:] %}<span class="skill">{{ s }}</span>{% endfor %}</div>
-    </details>
-    {% endif %}
     {% endif %}
 
     <div class="cvread__actions">
