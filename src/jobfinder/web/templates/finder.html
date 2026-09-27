@@ -418,9 +418,9 @@
   .dock{
     position:relative;display:flex;align-items:flex-end;gap:10px;
     padding:10px 30px;border-radius:24px;max-width:100%;
-    background:rgba(255,255,255,.74);
-    border:1px solid rgba(255,255,255,.9);
-    box-shadow:0 0 0 1px rgba(20,24,33,.08),0 20px 40px -18px rgba(20,24,33,.35);
+    background:var(--pane-soft);
+    border:1px solid var(--pane);
+    box-shadow:0 0 0 1px var(--edge),0 20px 40px -18px rgba(20,24,33,.35);
   }
   /* Magnification is drawn, never laid out: each icon scales and lifts, and its
      neighbours slide aside, all by transform. Growing their real size made the tray
@@ -465,7 +465,7 @@
   .step__btn::after{display:none}
   .step__btn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:6px}
   .step__n{display:grid;place-items:center;width:28px;height:28px;border-radius:50%;flex:none;
-    font-size:13px;font-weight:700;background:#fff;color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line-strong);
+    font-size:13px;font-weight:700;background:var(--surface);color:var(--ink-3);box-shadow:inset 0 0 0 1px var(--line-strong);
     transition:background .3s var(--ease),color .3s var(--ease),box-shadow .3s var(--ease),transform .5s var(--spring)}
   /* Every step is readable at once; the active one is simply brighter. Expanding and
      collapsing them moved the text under the reader on every step change. */
@@ -493,7 +493,7 @@
   .story.is-done[data-step] .step[data-i] .step__n{background:var(--sorted);color:#fff;box-shadow:none;transform:none}
   .story.is-done[data-step] .step[data-i] .step__bar i{transform:none;background:var(--sorted);animation:none}
   .story.is-done .demo *{animation:none!important}
-  .demo{position:relative;height:390px;overflow:hidden;background:#fff;contain:layout paint}
+  .demo{position:relative;height:390px;overflow:hidden;background:var(--surface);contain:layout paint}
   .demo__pane{position:absolute;inset:0;padding:28px 30px;opacity:0;visibility:hidden;
     transform:translateY(12px);will-change:opacity,transform;
     transition:opacity .25s var(--ease),transform .35s var(--ease),visibility 0s .25s}
@@ -515,7 +515,7 @@
   .demo__bin{display:flex;align-items:center;gap:7px;margin:26px 0 0;font-family:var(--hand);font-size:21px;color:var(--ink-2)}
   .demo__bin svg{color:var(--sorted)}
   .demo__rows{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
-  .demo__rows li{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--line);background:#fff}
+  .demo__rows li{display:flex;align-items:center;gap:13px;padding:13px 16px;border-bottom:1px solid var(--line);background:var(--surface)}
   .demo__rows li:last-child{border-bottom:0}
   .demo__rows li > span:not(.logo):not(.btn){flex:1;min-width:0}
   .demo__rows b{display:block;font-size:14px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -538,7 +538,7 @@
   .demo-chip.is-pick{background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:600;
     box-shadow:0 0 0 1px var(--g)}
   .demo-chip.is-pick::before{background:var(--g) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;box-shadow:none}
-  @keyframes pick{0%{background:#fff;border-color:var(--line-strong);box-shadow:none;transform:scale(1)}
+  @keyframes pick{0%{background:var(--surface);border-color:var(--line-strong);box-shadow:none;transform:scale(1)}
     45%{transform:scale(1.08)}100%{transform:none}}
   @keyframes rise{from{opacity:0;transform:translateY(12px)}}
   @keyframes drop{from{opacity:0;transform:translateY(-40px) rotate(-6deg) scale(.9)}}
@@ -559,7 +559,7 @@
   .chipgrid .drawer{margin:0}
 
   .slip__extras{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:28px;
-    margin:34px -40px 0;padding:28px 40px;background:#f7f8fa;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+    margin:34px -40px 0;padding:28px 40px;background:var(--surface-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
   .slip__inputs{display:grid;gap:20px}
   .slip__extras--solo{grid-template-columns:minmax(0,1fr)}
   .slip__head .fillme{margin-left:auto;padding:8px 16px;min-height:0;font-size:14px}
@@ -574,11 +574,11 @@
      this card says which one is ranking the results, as a small sheet of paper that
      floats and leans toward the pointer. */
   .cvcard{--rx:0deg;--ry:0deg;position:relative;display:flex;align-items:center;gap:20px;
-    padding:18px 20px;border-radius:14px;background:#fff;border:1px solid var(--line-strong);
+    padding:18px 20px;border-radius:14px;background:var(--surface);border:1px solid var(--line-strong);
     color:var(--ink);text-decoration:none;perspective:700px;
     box-shadow:0 1px 2px rgba(20,24,33,.05);
     transition:border-color .2s var(--ease),box-shadow .3s var(--ease),transform .4s var(--spring)}
-  .cvcard--on{background:linear-gradient(180deg,#fff,#f6fbf8);border-color:color-mix(in srgb,var(--sorted) 45%,var(--line-strong))}
+  .cvcard--on{background:linear-gradient(180deg,var(--surface),var(--surface-2));border-color:color-mix(in srgb,var(--sorted) 45%,var(--line-strong))}
   .cvcard--add{border-style:dashed;border-color:#b3bac5}
   .cvcard--add:hover{border-color:var(--aqua);background:var(--aqua-wash);transform:translateY(-2px);
     box-shadow:0 14px 26px -16px rgba(43,116,240,.55)}
@@ -598,18 +598,18 @@
   .switch--sm .box{width:32px;height:19px}
   .switch--sm .box::after{width:15px;height:15px}
   .switch--sm:has(input:checked) .box::after{transform:translateX(13px)}
-  .cvcard:has(input[name=use_cv]:not(:checked)){background:#fff;border-color:var(--line-strong)}
+  .cvcard:has(input[name=use_cv]:not(:checked)){background:var(--surface);border-color:var(--line-strong)}
   .cvcard:has(input[name=use_cv]:not(:checked)) .minipaper{opacity:.45;filter:grayscale(1)}
   .cvcard:has(input[name=use_cv]:not(:checked)) .cvcard__eyebrow{color:var(--ink-3)}
 
   .minipaper{flex:none;display:block;width:64px;height:84px;transform-style:preserve-3d;
     transition:opacity .3s var(--ease),filter .3s var(--ease)}
   .minipaper__sheet{position:relative;display:flex;flex-direction:column;gap:5px;width:100%;height:100%;
-    padding:10px 9px;border-radius:4px;background:#fff;
+    padding:10px 9px;border-radius:4px;background:var(--surface);
     box-shadow:0 0 0 1px rgba(20,24,33,.1),0 10px 18px -8px rgba(20,24,33,.4);
     transform:rotateX(var(--rx)) rotateY(var(--ry)) rotate(-4deg);
     transition:transform .5s var(--spring)}
-  .minipaper__sheet i{display:block;height:3px;border-radius:2px;background:#dfe3e9}
+  .minipaper__sheet i{display:block;height:3px;border-radius:2px;background:var(--fill-2)}
   .minipaper__sheet i.short{width:60%}
   .minipaper__sheet i.minipaper__head{height:6px;width:70%;background:var(--ink);margin-bottom:3px}
   .minipaper__sheet i.hlbar{background:var(--sticker)}
@@ -641,7 +641,7 @@
   @keyframes receive{0%{transform:scale(.97)}50%{transform:scale(1.012)}100%{transform:none}}
 
   /* ------------------------------------------------------ skeleton rows */
-  .skel__head i,.skel__row i{display:block;border-radius:7px;background:#e9ecf0}
+  .skel__head i,.skel__row i{display:block;border-radius:7px;background:var(--skel)}
   .skel__head{padding:26px 26px 22px;border-bottom:1px solid var(--line)}
   .skel__h{height:30px;width:min(260px,60%);margin-bottom:12px}
   .skel__sub{height:12px;width:min(180px,40%)}
@@ -656,7 +656,7 @@
   .skel__btn{flex:none;width:92px;height:32px;border-radius:999px!important;align-self:center}
   @media (prefers-reduced-motion:no-preference){
     /* A sheen passes down the rows, each a beat after the one above. */
-    .skel__head i,.skel__row i{background:linear-gradient(90deg,#e9ecf0 0%,#f4f5f8 45%,#e9ecf0 90%);background-size:220% 100%;
+    .skel__head i,.skel__row i{background:linear-gradient(90deg,var(--skel) 0%,var(--skel-hi) 45%,var(--skel) 90%);background-size:220% 100%;
       animation:sheen 1.3s ease-in-out infinite;animation-delay:calc(var(--n,0) * 70ms)}
   }
   @keyframes sheen{from{background-position:120% 0}to{background-position:-100% 0}}
@@ -676,7 +676,7 @@
   .jobsheet__win{
     position:absolute;top:calc(48px + env(safe-area-inset-top) + 12px);right:12px;bottom:12px;
     width:min(600px,calc(100vw - 24px));display:flex;flex-direction:column;
-    background:#fff;border:1px solid rgba(20,24,33,.14);border-radius:var(--r-win);overflow:hidden;
+    background:var(--surface);border:1px solid var(--edge);border-radius:var(--r-win);overflow:hidden;
     box-shadow:0 3px 8px rgba(20,24,33,.12),0 50px 90px -24px rgba(20,24,33,.5);
     transform:translateX(calc(100% + 24px));transition:transform .42s var(--ease);
   }
@@ -720,9 +720,9 @@
     .jobsheet__win{top:auto;left:0;right:0;bottom:0;width:auto;height:calc(100dvh - 44px);
       border-radius:18px 18px 0 0;border-bottom:0;transform:translateY(102%)}
     .jobsheet__bar .lights,.jobsheet__bar .win__title{visibility:hidden}
-    .jobsheet__bar{position:relative;height:44px;background:#fff;border-bottom:1px solid var(--line)}
+    .jobsheet__bar{position:relative;height:44px;background:var(--surface);border-bottom:1px solid var(--line)}
     .jobsheet__bar::before{content:"";position:absolute;top:7px;left:50%;width:36px;height:4px;margin-left:-18px;
-      border-radius:2px;background:#d5dae1}
+      border-radius:2px;background:var(--line-strong)}
     .jobsheet__x{display:grid;place-items:center;position:absolute;right:8px;top:4px;width:36px;height:36px;
       min-height:0;padding:0;border-radius:50%;color:var(--ink-2);background:var(--win-bar);border:0;box-shadow:none;text-shadow:none}
     .jobsheet__x:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
@@ -734,9 +734,9 @@
   }
 
   /* ------------------------------------------------------------ the keyboard */
-  .record.is-cursor{background:#f2f6fe;box-shadow:inset 3px 0 0 var(--aqua)}
+  .record.is-cursor{background:var(--surface-2);box-shadow:inset 3px 0 0 var(--aqua)}
   kbd{display:inline-block;min-width:1.7em;padding:1px 6px;border-radius:6px;text-align:center;
-    font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink);background:#fff;
+    font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink);background:var(--surface);
     border:1px solid var(--line-strong);box-shadow:0 1px 0 var(--line-strong)}
   .keys{position:fixed;inset:0;z-index:160;display:grid;place-items:center;padding:16px}
   .keys[hidden]{display:none}

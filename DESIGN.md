@@ -180,16 +180,34 @@ components:
 
 The site is a light computer desktop. A cool grey ground with a faint dotted grid stands in for the screen; every piece of content that works (the find-my-jobs form, the results, the company list, a company's jobs, the privacy notes) sits in a white app window with a grey title bar, three traffic lights and a mono filename. Employers show up as app icons with their real favicons and a red notification badge carrying their open-job count. The home page acts out the premise: real employers' careers windows scattered across the desk, draggable and throwable, which one aqua button sorts into a single list below.
 
-The light ground is chosen for how the site is actually used. Someone arrives mid-hunt on a laptop with twenty careers tabs open, or on a phone on a bus, and both need to read a long list in daylight. The desktop metaphor is literal enough to explain the product without copy ("close the other nineteen tabs"), and it stays out of the way once the visitor is working: from the first result onward the page is a plain white list inside a window.
+The light ground is the default, chosen for how the site is actually used. Someone arrives mid-hunt on a laptop with twenty careers tabs open, or on a phone on a bus, and both need to read a long list in daylight. The desktop metaphor is literal enough to explain the product without copy ("close the other nineteen tabs"), and it stays out of the way once the visitor is working: from the first result onward the page is a plain white list inside a window. After dark, or on request, the same desktop has a night version (see Night desk).
 
 Play lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing on the page signals alerts or notifications (the opt-in email alerts live on the profile and in the inbox, not in the interface). The red badge is a count, not something unread.
 
 **Key Characteristics:**
-- Light desktop ground (#eceef2, 22px dotted grid) under white windows; no dark surfaces except the dock tooltip.
+- Light desktop ground (#eceef2, 22px dotted grid) under white windows by default, with a night desk that follows the device or the Appearance control.
 - One action colour: glossy aqua pills. Green reads as "sorted / live". Red is kept to count badges and a few marks (applied, required, errors).
 - Finder tag colours identify the eleven field groups, and that is their only job.
 - Three typefaces with separate jobs: Geist carries the interface, Geist Mono types data, Gochi Hand scribbles asides.
 - Springy for anything you touch, an exponential settle for anything that arrives; everything still works and stays visible with reduced motion or without JS.
+
+## Night desk
+
+The dark theme (2026-09-27): the same desktop after dark. It follows the device, or the **Appearance** control (a round button in the menu bar; a row in the phone menu) cycling Follow the device, Dark, Light, remembered on the device and applied before the first paint so a dark page never flashes white.
+
+| Token | Light | Night |
+|---|---|---|
+| desk / desk-dot | #eceef2 / #c3c9d2 | #101216 / #272b33 |
+| win / win-bar | #ffffff / #f4f5f7 | #1a1d22 / #22262c |
+| surface / surface-2 | #ffffff / #f7f9fd | #20242a / #262b32 |
+| line / line-strong | #dde1e7 / #c4cad3 | #2c3038 / #3c414b |
+| ink / ink-2 / ink-3 | #15171c / #454b56 / #5c626d | #eceef2 / #b6bcc6 / #8d939e |
+| aqua / aqua-deep | #2b74f0 / #1a55c2 | #3d85f7 / #8cb8ff (lifted, so aqua text holds contrast) |
+| sorted / sorted-wash | #1c9a4a / #e6f6ec | #44c97b / #15301f |
+| thumb | #ffffff | #434953 |
+| hl (highlighter) | sticker | sticker at 50% |
+
+Shadows deepen to black. Stickers, count badges, traffic lights and field tags keep their colours; logo tiles and the name tag stay white paper, and the legal pad title bar dims to an old-paper brown.
 
 ## Colors
 
@@ -397,7 +415,8 @@ The By company view lays the same ranked, filtered rows out as white cards (12px
 - **Do** show real company favicons in app icons, falling back to a lettered squircle.
 
 ### Don't:
-- **Don't** switch to a dark ground or a dark "serious" register; the desktop is light.
+- **Don't** hard-code a surface or edge colour: use the tokens (`--surface`, `--surface-2`, `--fill`, `--pane`, `--glass`, `--edge`, `--thumb`, `--hl`), so the night desk follows. Only logo tiles and stickers stay white in both, being paper.
+- **Don't** make the night desk a different product: same layout, same motion, same colours for stickers, badges and field tags.
 - **Don't** add a second action colour, or use aqua, green or tag colours as decoration.
 - **Don't** use the red badge or any bell, envelope or "unread" treatment to suggest alerts; the badge is a count, and the only thing the site sends is the email alerts a person ticked on their profile.
 - **Don't** set headlines in all lowercase or all caps, or in the mono or hand face.

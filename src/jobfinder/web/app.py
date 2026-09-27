@@ -812,6 +812,11 @@ def home(request: Request):
             field: (params.getlist(key) if key == "f" else params.get(key))
             for key, field in URL_KEYS.items()
         }
+        # A switch in a link is on for 1 (what the site writes) and off for anything
+        # else, so a hand-edited "paid=0" means what it says.
+        for key in ("remote", "intern", "grad", "cv", "applied", "paid"):
+            field = URL_KEYS[key]
+            form[field] = "1" if (form.get(field) or "").lower() in ("1", "true", "on", "yes") else None
         response = _search(request, form)
     else:
         # A plain visit starts with a blank form. The search in progress is kept in

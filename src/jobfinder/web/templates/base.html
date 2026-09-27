@@ -3,8 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#eceef2">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#eceef2" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101216" media="(prefers-color-scheme: dark)">
+{# The Appearance choice, applied before anything paints, so a dark page never flashes
+   white first. See the Appearance control at the end of this file. #}
+<script>try{var t=localStorage.getItem('sp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
 <title>{% block title %}Sorted Place: every job in Dublin, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Dublin right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
@@ -20,7 +24,7 @@
    page's inline scripts, and every click would be handled twice. #}
 <meta name="htmx-config" content='{"historyCacheSize":0,"refreshOnHistoryMiss":true}'>
 <script src="/static/htmx-1.9.12.min.js" defer></script>
-{% if account and tailor_on() %}<link rel="stylesheet" href="/static/tailor-3.css">{% endif %}
+{% if account and tailor_on() %}<link rel="stylesheet" href="/static/tailor-4.css">{% endif %}
 {# Chrome and Edge fetch a page the moment the pointer rests on its link, so clicking the
    logo or a menu item lands on a page that is already here. Links that act are left out. #}
 <script type="speculationrules">
@@ -39,10 +43,10 @@
 
 :root{
   /* the desktop */
-  --desk:#eceef2; --desk-dot:#c3c9d2; --desk-deep:#dfe3e9;
+  --desk:#eceef2; --desk-dot:#c3c9d2; --desk-deep:var(--fill-2);
 
   /* the windows */
-  --win:#ffffff; --win-bar:#f4f5f7; --win-bar-2:#e8eaee;
+  --win:#ffffff; --win-bar:var(--win-bar); --win-bar-2:#e8eaee;
   --line:#dde1e7; --line-strong:#c4cad3;
 
   /* ink */
@@ -74,10 +78,69 @@
   --ease:cubic-bezier(.16,1,.3,1);
   --spring:cubic-bezier(.34,1.56,.64,1);
 
+  /* Surfaces and edges, named so the night desk can redefine them (below). */
+  --surface:#fff;         /* rows, cards, inputs, chips: what sits inside a window */
+  --surface-2:#f7f9fd;    /* the same, hovered or raised */
+  --fill:#eef0f3;         /* quiet fills: tracks, chosen tabs, disabled controls */
+  --fill-2:#e2e5ea;       /* recessed tracks */
+  --ghost-end:#f3f4f7;    /* the foot of a ghost pill's gradient */
+  --hi:#fff;              /* the inset highlight on a pill */
+  --pane:rgba(255,255,255,.97);       /* menus, sticky bars, floating pills */
+  --pane-soft:rgba(255,255,255,.74);  /* the dock tray */
+  --glass:rgba(246,247,249,.86);      /* the menu bar */
+  --edge:rgba(20,24,33,.12);          /* hairline edges drawn in ink */
+  --skel:#e9ecf0; --skel-hi:#f4f5f8;  /* skeleton shapes and their sheen */
+  --hl:var(--sticker);                /* the highlighter under a headline's phrase */
+  --thumb:#fff;                       /* the chosen side of a segmented control */
+  --pad:#fbf3c8; --pad-2:#f3e6a6; --pad-edge:#e6d58a;  /* the legal pad title bar */
+
   --measure:68ch;
   --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --hand:"Gochi Hand","Comic Sans MS",cursive;
 }
+
+/* ------------------------------------------------------------ night desk --- */
+/* The same desktop after dark: a charcoal desk with a faint grid, slate windows, ink
+   turned to light, and aqua lifted so its text holds contrast. Stickers, badges and the
+   field tags keep their colours; they read on either ground. Chosen by the device, or
+   by the Appearance control (data-theme on <html>, set before the first paint). */
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --desk:#101216; --desk-dot:#272b33; --desk-deep:#0b0c0f;
+  --win:#1a1d22; --win-bar:#22262c; --win-bar-2:#1d2025;
+  --line:#2c3038; --line-strong:#3c414b;
+  --ink:#eceef2; --ink-2:#b6bcc6; --ink-3:#8d939e;
+  --aqua:#3d85f7; --aqua-hi:#7cb0ff; --aqua-deep:#8cb8ff; --aqua-wash:#1b2940;
+  --sorted:#44c97b; --sorted-wash:#15301f;
+  --surface:#20242a; --surface-2:#262b32; --fill:#2b3038; --fill-2:#30353e;
+  --ghost-end:#1c2025; --hi:rgba(255,255,255,.07);
+  --pane:rgba(31,34,40,.97); --pane-soft:rgba(31,34,40,.8); --glass:rgba(20,22,26,.82);
+  --edge:rgba(255,255,255,.09); --skel:#262a31; --skel-hi:#31363e;
+  --hl:rgba(255,216,74,.5); --thumb:#434953;
+  --pad:#3b3522; --pad-2:#332d1b; --pad-edge:#4a4128;
+  --shadow-win:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -10px rgba(0,0,0,.7);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -18px rgba(0,0,0,.8);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --desk:#101216; --desk-dot:#272b33; --desk-deep:#0b0c0f;
+  --win:#1a1d22; --win-bar:#22262c; --win-bar-2:#1d2025;
+  --line:#2c3038; --line-strong:#3c414b;
+  --ink:#eceef2; --ink-2:#b6bcc6; --ink-3:#8d939e;
+  --aqua:#3d85f7; --aqua-hi:#7cb0ff; --aqua-deep:#8cb8ff; --aqua-wash:#1b2940;
+  --sorted:#44c97b; --sorted-wash:#15301f;
+  --surface:#20242a; --surface-2:#262b32; --fill:#2b3038; --fill-2:#30353e;
+  --ghost-end:#1c2025; --hi:rgba(255,255,255,.07);
+  --pane:rgba(31,34,40,.97); --pane-soft:rgba(31,34,40,.8); --glass:rgba(20,22,26,.82);
+  --edge:rgba(255,255,255,.09); --skel:#262a31; --skel-hi:#31363e;
+  --hl:rgba(255,216,74,.5); --thumb:#434953;
+  --pad:#3b3522; --pad-2:#332d1b; --pad-edge:#4a4128;
+  --shadow-win:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -10px rgba(0,0,0,.7);
+  --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -18px rgba(0,0,0,.8);
+  --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+:root[data-theme="light"]{color-scheme:light}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:72px}
@@ -115,9 +178,9 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   position:fixed;inset:0 0 auto 0;z-index:100;height:calc(48px + env(safe-area-inset-top));
   display:flex;align-items:center;gap:6px;
   padding:env(safe-area-inset-top) max(18px,env(safe-area-inset-right)) 0 max(18px,env(safe-area-inset-left));
-  background:rgba(246,247,249,.86);
+  background:var(--glass);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  border-bottom:1px solid rgba(20,24,33,.08);
+  border-bottom:1px solid var(--edge);
   font-size:14px;
 }
 .brand{display:inline-flex;align-items:center;gap:9px;text-decoration:none;
@@ -144,7 +207,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 /* sign in, as a small pill at the right-hand end of the bar */
 .signin{display:inline-flex;align-items:center;gap:8px;margin-left:12px;
   font-size:13.5px;font-weight:600;color:var(--ink);text-decoration:none;white-space:nowrap;
-  background:#fff;border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px 5px 6px;
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;padding:5px 13px 5px 6px;
   box-shadow:0 1px 2px rgba(20,24,33,.06);transition:box-shadow .2s var(--ease),border-color .2s var(--ease)}
 .signin:hover{border-color:#9aa2ae;box-shadow:0 4px 10px -5px rgba(20,24,33,.3)}
 .signin svg{width:18px;height:18px;flex:none}
@@ -171,7 +234,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .acct[open] .acct__chev{transform:rotate(180deg)}
 .acct__label{max-width:14ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .acct__menu{position:absolute;right:0;top:calc(100% + 8px);width:268px;
-  background:rgba(255,255,255,.97);border:1px solid rgba(20,24,33,.12);border-radius:12px;
+  background:var(--pane);border:1px solid var(--edge);border-radius:12px;
   box-shadow:0 3px 8px rgba(20,24,33,.12),0 28px 60px -20px rgba(20,24,33,.45);
   padding:6px;transform-origin:top right}
 @media (prefers-reduced-motion:no-preference){
@@ -210,7 +273,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .burger[aria-expanded="true"] i:first-of-type{transform:rotate(45deg)}
 .burger[aria-expanded="true"] i:last-of-type{transform:rotate(-45deg)}
 .burger .dot{position:absolute;top:9px;right:8px;width:9px;height:9px;border-radius:50%;
-  background:var(--sorted);box-shadow:0 0 0 2px #f6f7f9;transition:opacity .2s}
+  background:var(--sorted);box-shadow:0 0 0 2px var(--win-bar);transition:opacity .2s}
 .burger[aria-expanded="true"] .dot{opacity:0}
 
 /* the sheet the burger opens: every destination as a large, thumb-sized row */
@@ -218,7 +281,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
 .sheet__scrim{position:absolute;inset:0;background:rgba(20,24,33,.28);opacity:0;
   transition:opacity .25s var(--ease)}
-.sheet__panel{position:relative;background:#f6f7f9;border-bottom:1px solid rgba(20,24,33,.1);
+.sheet__panel{position:relative;background:var(--win-bar);border-bottom:1px solid var(--edge);
   box-shadow:0 30px 60px -24px rgba(20,24,33,.45);max-height:100%;overflow-y:auto;
   overscroll-behavior:contain;
   padding:10px max(16px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
@@ -241,6 +304,20 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .sheet__who > div > b{display:block;font-size:16px;letter-spacing:-.01em}
 .sheet__who > div > span{display:block;font-size:13px;color:var(--ink-3);overflow-wrap:anywhere}
 .sheet__label{margin:20px 4px 2px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+/* Appearance: follow the device, dark or light. A quiet round button in the menu bar;
+   a row in the phone menu. */
+.themebtn{width:32px;height:32px;min-height:0;padding:0;border-radius:50%;color:var(--ink-2);
+  background:none;border:0;box-shadow:none;text-shadow:none}
+.themebtn::after{display:none}
+.themebtn svg{width:17px;height:17px;transform:none!important}
+.themebtn:hover:not(:disabled){background:rgba(127,127,127,.14);color:var(--ink);transform:none;filter:none;box-shadow:none}
+.sheet__theme{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:52px;padding:0 4px;
+  font:inherit;font-size:18px;font-weight:600;letter-spacing:-.015em;color:var(--ink);background:none;border:0;
+  border-bottom:1px solid var(--line);border-radius:0;box-shadow:none;text-shadow:none;cursor:pointer}
+.sheet__theme::after{display:none}
+.sheet__theme:hover:not(:disabled){transform:none;filter:none;box-shadow:none;background:none}
+.sheet__themeval{display:inline-flex;align-items:center;gap:8px;font-size:15px;font-weight:500;color:var(--ink-3)}
+.sheet__themeval svg{width:17px;height:17px;transform:none!important}
 .sheet__install{margin:16px 0 0;width:100%;justify-content:space-between;min-height:48px;font-size:16px}
 .sheet__install[hidden]{display:none}
 .sheet .signin{margin:16px 0 0;justify-content:center;min-height:48px;font-size:16px;width:100%}
@@ -253,7 +330,7 @@ main{flex:1 0 auto;padding:0 0 110px}
 .win{
   position:relative;
   background:var(--win);
-  border:1px solid rgba(20,24,33,.12);
+  border:1px solid var(--edge);
   border-radius:var(--r-win);
   box-shadow:var(--shadow-win);
   overflow:clip;
@@ -297,7 +374,7 @@ p{margin:0 0 14px;max-width:var(--measure)}
 
 /* The highlighter pen: sweeps across once, left to right. */
 .hl{
-  background-image:linear-gradient(100deg,transparent 0 2%,var(--sticker) 2% 97%,transparent 97%);
+  background-image:linear-gradient(100deg,transparent 0 2%,var(--hl) 2% 97%,transparent 97%);
   background-repeat:no-repeat;background-size:100% 42%;background-position:0 86%;
   padding:0 .06em;border-radius:3px;
 }
@@ -326,7 +403,7 @@ p{margin:0 0 14px;max-width:var(--measure)}
   color:hsl(var(--hue,210) 55% 30%);
 }
 .logo img{position:absolute;inset:14%;width:72%;height:72%;object-fit:contain;border-radius:18%}
-.logo.has-img{background:#fff}
+.logo.has-img{background:#fff}  /* in both themes: most logos are drawn for white */
 .logo.has-img::before{content:none}
 .logo--sm{--size:30px}
 .logo--lg{--size:64px}
@@ -336,7 +413,7 @@ p{margin:0 0 14px;max-width:var(--measure)}
   position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 6px;
   display:inline-grid;place-items:center;border-radius:11px;
   background:var(--tag-red);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:-.01em;
-  box-shadow:0 0 0 2px #fff,0 2px 6px -1px rgba(192,44,40,.5);
+  box-shadow:0 0 0 2px var(--win),0 2px 6px -1px rgba(192,44,40,.5);
 }
 
 /* --------------------------------------------------------------- stamps --- */
@@ -363,7 +440,7 @@ p{margin:0 0 14px;max-width:var(--measure)}
 label{display:block}
 input[type=text],input[type=number],input[type=email],input[type=password],input[type=search],select{
   width:100%;font:inherit;font-size:15px;color:var(--ink);
-  background:#fff;border:1px solid var(--line-strong);border-radius:var(--r-ctl);
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:var(--r-ctl);
   padding:10px 13px;
   box-shadow:inset 0 1px 1.5px rgba(20,24,33,.05);
   transition:border-color .18s var(--ease),box-shadow .18s var(--ease);
@@ -403,19 +480,19 @@ button:hover:not(:disabled) svg,.btn:hover svg{transform:translateX(3px)}
 button:active:not(:disabled),.btn:active{transform:translateY(0);filter:brightness(.96);
   box-shadow:inset 0 2px 4px rgba(10,40,110,.3),0 1px 2px rgba(20,24,33,.12);transition-duration:.06s}
 button:focus-visible,.btn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:3px}
-button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color:var(--line-strong);
+button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-color:var(--line-strong);
   box-shadow:none;text-shadow:none;filter:none}
 
 /* the white pill: a secondary way in */
 .btn--ghost,button.secondary{
-  color:var(--ink);background-color:#fff;
-  background-image:linear-gradient(180deg,#fff 0%,#fff 50%,#f3f4f7 100%);
+  color:var(--ink);background-color:var(--surface);
+  background-image:linear-gradient(180deg,var(--surface) 0%,var(--surface) 50%,var(--ghost-end) 100%);
   border:1px solid var(--line-strong);text-shadow:none;
-  box-shadow:inset 0 1px 0 #fff,0 1px 2px rgba(20,24,33,.08),0 6px 14px -8px rgba(20,24,33,.3);
+  box-shadow:inset 0 1px 0 var(--hi),0 1px 2px rgba(20,24,33,.08),0 6px 14px -8px rgba(20,24,33,.3);
 }
 .btn--ghost:hover,button.secondary:hover:not(:disabled){filter:none;border-color:#9aa2ae;
-  box-shadow:inset 0 1px 0 #fff,0 2px 4px rgba(20,24,33,.08),0 12px 22px -12px rgba(20,24,33,.4)}
-.btn--ghost:active,button.secondary:active:not(:disabled){background-image:none;background-color:#f1f3f6;
+  box-shadow:inset 0 1px 0 var(--hi),0 2px 4px rgba(20,24,33,.08),0 12px 22px -12px rgba(20,24,33,.4)}
+.btn--ghost:active,button.secondary:active:not(:disabled){background-image:none;background-color:var(--fill);
   box-shadow:inset 0 2px 3px rgba(20,24,33,.12)}
 
 /* Things built on <button> that are not pills: text links, menu rows, icons, list rows. */
@@ -425,7 +502,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 /* Apply leaves this site, so it is the aqua outline that fills on hover. */
 .btn--apply{
   font-size:13.5px;padding:7px 15px;min-height:0;color:var(--aqua-deep);
-  background:#fff;border:1.5px solid var(--aqua);text-shadow:none;
+  background:var(--surface);border:1.5px solid var(--aqua);text-shadow:none;
   box-shadow:0 2px 6px -3px rgba(43,116,240,.5);
 }
 .btn--apply:hover{color:#fff;background:var(--aqua);filter:none}
@@ -452,7 +529,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .divider{
   position:relative;display:inline-flex;align-items:center;gap:8px;
   font-size:14px;font-weight:500;color:var(--ink);letter-spacing:-.01em;
-  background:#fff;border:1px solid var(--line-strong);border-radius:999px;
+  background:var(--surface);border:1px solid var(--line-strong);border-radius:999px;
   padding:7px 14px 7px 11px;cursor:pointer;user-select:none;
   box-shadow:0 1px 2px rgba(20,24,33,.05);
   transition:transform .4s var(--spring),background .2s var(--ease),border-color .2s var(--ease),box-shadow .25s var(--ease);
@@ -489,7 +566,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .yrs__level{font-size:12.5px;font-weight:650;color:var(--aqua-deep);background:var(--aqua-wash);
   border:1px solid rgba(43,116,240,.22);border-radius:999px;padding:3px 10px;align-self:center}
 .yrs.is-any .yrs__num{color:var(--ink-2)}
-.yrs.is-any .yrs__level{color:var(--ink-2);background:#eef0f3;border-color:var(--line)}
+.yrs.is-any .yrs__level{color:var(--ink-2);background:var(--fill);border-color:var(--line)}
 @media (prefers-reduced-motion:no-preference){
   .yrs__num.is-pop{animation:yrs-pop .28s var(--spring)}
 }
@@ -506,29 +583,29 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .yrs__track input[type=range]::-webkit-slider-runnable-track{
   height:8px;border-radius:999px;
   background:linear-gradient(90deg,var(--aqua) 0,#5c9bff calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)),
-    #dfe3e9 calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)));
+    var(--fill-2) calc(var(--thumb) / 2 + (100% - var(--thumb)) * var(--p)));
   box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
-.yrs__track input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:#dfe3e9;
+.yrs__track input[type=range]::-moz-range-track{height:8px;border-radius:999px;background:var(--fill-2);
   box-shadow:inset 0 1px 2px rgba(20,24,33,.12)}
 .yrs__track input[type=range]::-moz-range-progress{height:8px;border-radius:999px;
   background:linear-gradient(90deg,var(--aqua),#5c9bff)}
 .yrs__track input[type=range]::-webkit-slider-thumb{
   -webkit-appearance:none;appearance:none;width:var(--thumb);height:var(--thumb);margin-top:calc(4px - var(--thumb) / 2);
-  border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
-  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+  border-radius:50%;background:var(--surface);border:1px solid var(--edge);
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px var(--surface),inset 0 0 0 9px var(--aqua);
   transition:transform .2s var(--spring),box-shadow .2s var(--ease)}
 .yrs__track input[type=range]::-moz-range-thumb{
-  width:var(--thumb);height:var(--thumb);border-radius:50%;background:#fff;border:1px solid rgba(20,24,33,.14);
-  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua);
+  width:var(--thumb);height:var(--thumb);border-radius:50%;background:var(--surface);border:1px solid var(--edge);
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px var(--surface),inset 0 0 0 9px var(--aqua);
   transition:transform .2s var(--spring)}
 .yrs__track input[type=range]:hover::-webkit-slider-thumb{transform:scale(1.08)}
 .yrs__track input[type=range]:active::-webkit-slider-thumb{transform:scale(1.14);
-  box-shadow:0 1px 2px rgba(20,24,33,.2),0 8px 18px -4px rgba(43,116,240,.45),inset 0 0 0 6px #fff,inset 0 0 0 9px var(--aqua)}
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 8px 18px -4px rgba(43,116,240,.45),inset 0 0 0 6px var(--surface),inset 0 0 0 9px var(--aqua)}
 .yrs__track input[type=range]:active::-moz-range-thumb{transform:scale(1.14)}
 .yrs__track input[type=range]:focus-visible::-webkit-slider-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
 .yrs__track input[type=range]:focus-visible::-moz-range-thumb{outline:2.5px solid var(--aqua);outline-offset:3px}
 .yrs.is-any .yrs__track input[type=range]::-webkit-slider-thumb{
-  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px #fff,inset 0 0 0 9px #aab1bc}
+  box-shadow:0 1px 2px rgba(20,24,33,.2),0 4px 10px -2px rgba(20,24,33,.28),inset 0 0 0 6px var(--surface),inset 0 0 0 9px #aab1bc}
 
 /* The levels under the track: each band's edges fall halfway between two stops. */
 .yrs__bands{list-style:none;margin:4px 0 0;padding:0 calc(var(--thumb) / 2);
@@ -536,7 +613,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .yrs__bands li{position:relative;text-align:center;font-size:12px;font-weight:600;color:var(--ink-3);
   padding-top:9px;transition:color .2s var(--ease)}
 .yrs__bands li::before{content:"";position:absolute;left:3px;right:3px;top:0;height:3px;border-radius:2px;
-  background:#e3e6eb;transition:background .2s var(--ease)}
+  background:var(--fill-2);transition:background .2s var(--ease)}
 .yrs__bands li:first-child::before{display:none}
 .yrs__bands li.is-on{color:var(--ink)}
 .yrs__bands li.is-on::before{background:var(--aqua)}
@@ -572,12 +649,12 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .switch input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 .switch .box{
   position:relative;flex:none;width:38px;height:22px;border-radius:11px;
-  background:#d7dbe1;box-shadow:inset 0 1px 2px rgba(20,24,33,.18);
+  background:var(--fill-2);box-shadow:inset 0 1px 2px rgba(20,24,33,.18);
   transition:background .25s var(--ease);
 }
 .switch .box::after{
   content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;
-  background:#fff;box-shadow:0 1px 3px rgba(20,24,33,.3);
+  background:var(--surface);box-shadow:0 1px 3px rgba(20,24,33,.3);
   transition:transform .4s var(--spring);
 }
 .switch .box svg{display:none}
@@ -589,12 +666,12 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .filed{position:relative}
 .record{
   position:relative;display:flex;align-items:flex-start;gap:16px;
-  padding:19px 26px;background:#fff;color:var(--ink);
+  padding:19px 26px;background:var(--surface);color:var(--ink);
   border-bottom:1px solid var(--line);
   transition:background .2s var(--ease);
 }
 .record:last-child{border-bottom:0}
-.record:hover{background:#f7f9fd}
+.record:hover{background:var(--surface-2)}
 .record[data-job]{cursor:pointer}
 .record .logo{margin-top:2px}
 .record__main{flex:1;min-width:0}
@@ -616,7 +693,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .guide{
   position:sticky;top:calc(48px + env(safe-area-inset-top));z-index:2;
   display:flex;align-items:center;gap:8px;
-  padding:9px 22px;background:#f4f5f7;
+  padding:9px 22px;background:var(--win-bar);
   border-bottom:1px solid var(--line);border-top:1px solid var(--line);
   font-size:13px;font-weight:650;color:var(--ink-2);
 }
@@ -634,12 +711,12 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
    a grey hole where a fourth would sit. */
 .jobx__facts{display:flex;flex-wrap:wrap;gap:1px;margin:22px 0 0;
   background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.jobx__fact{flex:1 1 150px;background:#fff;padding:10px 14px;min-width:0}
+.jobx__fact{flex:1 1 150px;background:var(--surface);padding:10px 14px;min-width:0}
 .jobx__fact dt{font-size:12px;font-weight:600;color:var(--ink-3)}
 .jobx__fact dd{margin:2px 0 0;font-size:14px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
 .jobx__age{font-weight:400;color:var(--ink-3)}
 .jobx__note{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:#7a5800}
-.jobx__short{margin:16px 0 0;padding:14px 16px 12px;border-radius:12px;background:#fff;
+.jobx__short{margin:16px 0 0;padding:14px 16px 12px;border-radius:12px;background:var(--surface);
   border:1px solid var(--line-strong);box-shadow:var(--shadow-sm)}
 .jobx__short h3{margin:0 0 8px;font-size:13px;font-weight:650;color:var(--ink-3);letter-spacing:0}
 .jobx__short p{margin:0 0 8px;font-size:14.5px;line-height:1.5;color:var(--ink)}
@@ -667,7 +744,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 .savebtn{
   display:inline-flex;align-items:center;gap:6px;
   font:inherit;font-size:13.5px;font-weight:600;letter-spacing:-.01em;
-  color:var(--ink-2);background:#fff;
+  color:var(--ink-2);background:var(--surface);
   border:1px solid var(--line-strong);border-radius:999px;
   padding:7px 13px;cursor:pointer;text-decoration:none;
   box-shadow:0 1px 2px rgba(20,24,33,.06);
@@ -704,8 +781,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 
 /* A plain white panel, for empty states and notices that do not earn a title bar. */
 .card{
-  position:relative;background:#fff;color:var(--ink);
-  border:1px solid rgba(20,24,33,.1);border-radius:var(--r-win);
+  position:relative;background:var(--surface);color:var(--ink);
+  border:1px solid var(--edge);border-radius:var(--r-win);
   box-shadow:var(--shadow-win);padding:26px 28px;margin-bottom:16px;
 }
 .card--raised{box-shadow:var(--shadow-lift)}
@@ -723,12 +800,12 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   filter:drop-shadow(0 8px 14px rgba(20,24,33,.2))}
 .nametag{
   width:170px;background:#fff;border-radius:10px;overflow:hidden;
-  border:1px solid rgba(20,24,33,.1);text-align:center;
+  border:1px solid var(--edge);text-align:center;
 }
 .nametag__head{background:var(--tag-red);color:#fff;padding:7px 0 6px;line-height:1}
 .nametag__head b{display:block;font-size:17px;font-weight:800;letter-spacing:.06em}
 .nametag__head span{font-size:10px;font-weight:600;letter-spacing:.02em}
-.nametag__name{display:block;padding:8px 10px 12px;font-family:var(--hand);font-size:30px;line-height:1;color:var(--ink)}
+.nametag__name{display:block;padding:8px 10px 12px;font-family:var(--hand);font-size:30px;line-height:1;color:#15171c}
 .note{
   width:190px;padding:16px 16px 18px;background:var(--sticker);color:#3d3000;
   font-family:var(--hand);font-size:20px;line-height:1.2;border-radius:3px 3px 18px 3px;
@@ -741,7 +818,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);
 }
 .beachball::after{content:"";position:absolute;inset:0;border-radius:50%;
-  background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.75),rgba(255,255,255,0) 55%)}
+  background:radial-gradient(circle at 34% 28%,var(--pane-soft),rgba(255,255,255,0) 55%)}
 @media (prefers-reduced-motion:no-preference){.beachball{animation:spin .8s linear infinite}}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -749,9 +826,9 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   display:none;align-items:center;gap:14px;
   position:sticky;top:62px;z-index:20;
   width:fit-content;max-width:100%;margin:0 auto 16px;
-  background:rgba(255,255,255,.9);color:var(--ink);
+  background:var(--pane);color:var(--ink);
   -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
-  border:1px solid rgba(20,24,33,.1);border-radius:999px;
+  border:1px solid var(--edge);border-radius:999px;
   padding:10px 22px 10px 12px;box-shadow:var(--shadow-lift);
 }
 .pulling.htmx-request{display:flex}
@@ -801,7 +878,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 }
 
 /* ---------------------------------------------------------------- footer -- */
-.foot{border-top:1px solid rgba(20,24,33,.08);background:rgba(246,247,249,.7)}
+.foot{border-top:1px solid var(--edge);background:var(--glass)}
 .foot .wrap{display:flex;align-items:center;gap:18px 28px;flex-wrap:wrap;min-height:76px;
   font-size:13.5px;color:var(--ink-2);padding-top:18px;padding-bottom:18px}
 .foot .brand{font-size:14px}
@@ -916,6 +993,17 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   <symbol id="i-x" viewBox="0 0 16 16">
     <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </symbol>
+  <symbol id="i-sun" viewBox="0 0 16 16">
+    <circle cx="8" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M8 1.6v1.6M8 12.8v1.6M1.6 8h1.6M12.8 8h1.6M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-moon" viewBox="0 0 16 16">
+    <path d="M13.2 10.2A5.6 5.6 0 015.8 2.8a5.6 5.6 0 107.4 7.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+  </symbol>
+  <symbol id="i-auto" viewBox="0 0 16 16">
+    <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <path d="M8 2.4a5.6 5.6 0 010 11.2z" fill="currentColor"/>
+  </symbol>
   <symbol id="i-pin" viewBox="0 0 16 16">
     <path d="M8 14.2s4.6-4.3 4.6-7.8a4.6 4.6 0 00-9.2 0c0 3.5 4.6 7.8 4.6 7.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
     <circle cx="8" cy="6.4" r="1.6" fill="currentColor"/>
@@ -956,6 +1044,9 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   <div class="status">
     {% if rail|trim %}<span class="live"><i aria-hidden="true"></i><span>{{ rail }}</span></span>{% endif %}
     <span class="clock" id="clock" aria-label="Time in Dublin"></span>
+    <button type="button" class="themebtn" data-theme-cycle title="Appearance" aria-label="Appearance: follow the device">
+      <svg aria-hidden="true"><use href="#i-auto" data-theme-icon/></svg>
+    </button>
   </div>
   {% if accounts_enabled %}
     {% if account %}
@@ -1010,6 +1101,9 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
       </form>
       {% endif %}
     </nav>
+    <button type="button" class="sheet__theme" data-theme-cycle>Appearance
+      <span class="sheet__themeval"><span data-theme-label>Follow the device</span>
+        <svg aria-hidden="true"><use href="#i-auto" data-theme-icon/></svg></span></button>
     {# Shown only where the browser offers to install the site (Chrome and Edge on
        Android and desktop). Safari has no such offer; there it is Share, Add to Home
        Screen. #}
@@ -1068,6 +1162,44 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 </footer>
 
 <script>
+// Appearance: follow the device, dark, or light, remembered on this device. The choice
+// is put on <html> by the script in <head> before anything paints.
+(function () {
+  var order = ['auto', 'dark', 'light'];
+  var names = { auto: 'Follow the device', dark: 'Dark', light: 'Light' };
+  var icons = { auto: '#i-auto', dark: '#i-moon', light: '#i-sun' };
+  var root = document.documentElement;
+  function current() { return root.getAttribute('data-theme') || 'auto'; }
+  function paint() {
+    var t = current();
+    Array.prototype.forEach.call(document.querySelectorAll('[data-theme-cycle]'), function (b) {
+      b.setAttribute('aria-label', 'Appearance: ' + names[t].toLowerCase());
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-theme-icon]'), function (u) {
+      u.setAttribute('href', icons[t]);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('[data-theme-label]'), function (l) {
+      l.textContent = names[t];
+    });
+    // The browser's own bars follow a chosen theme too, not only the device's.
+    var metas = document.querySelectorAll('meta[name="theme-color"]');
+    Array.prototype.forEach.call(metas, function (m) {
+      if (!m.dataset.media) m.dataset.media = m.getAttribute('media') || '';
+      if (t === 'auto') m.setAttribute('media', m.dataset.media);
+      else if (m.dataset.media.indexOf(t) !== -1) m.removeAttribute('media');
+      else m.setAttribute('media', 'not all');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest || !e.target.closest('[data-theme-cycle]')) return;
+    var next = order[(order.indexOf(current()) + 1) % order.length];
+    if (next === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', next);
+    try { if (next === 'auto') localStorage.removeItem('sp-theme'); else localStorage.setItem('sp-theme', next); } catch (err) {}
+    paint();
+  });
+  paint();
+})();
+
 // Installable, and readable offline: see sw.js. Registered after the page has loaded, so
 // it never competes with the first paint for the network.
 if ('serviceWorker' in navigator) {

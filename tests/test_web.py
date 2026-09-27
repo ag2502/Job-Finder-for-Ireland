@@ -1091,3 +1091,19 @@ def test_the_posted_picker_keeps_only_recent_jobs(client):
     bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "9999"},
                         headers={"HX-Request": "true"})
     assert "within=" not in bogus.headers["HX-Push-Url"]
+
+
+def test_a_switch_in_a_link_is_off_unless_it_says_one(client):
+    off = client.get("/?f=software-engineering&paid=0").text
+    on = client.get("/?f=software-engineering&paid=1").text
+    total = lambda t: int(re.search(r'<b data-roll>([\d,]+)</b>', t).group(1).replace(",", ""))
+    assert total(off) >= total(on)
+    assert 'name="paid" value="1" checked' in on and 'name="paid" value="1" checked' not in off
+
+
+def test_the_night_desk_is_chosen_before_the_page_paints(client):
+    page = client.get("/").text
+    head = page.split("<body", 1)[0]
+    assert "localStorage.getItem('sp-theme')" in head, "the theme must be set in <head>"
+    assert ':root[data-theme="dark"]' in head and "prefers-color-scheme:dark" in head
+    assert "data-theme-cycle" in page

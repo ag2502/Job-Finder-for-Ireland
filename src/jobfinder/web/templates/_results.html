@@ -241,7 +241,7 @@
 <style>
   .resultswin{margin-top:6px;box-shadow:var(--shadow-lift);overflow:visible}
   .resultswin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
-  .drawerhead{padding:26px 26px 20px;border-bottom:1px solid var(--line);background:#fff}
+  .drawerhead{padding:26px 26px 20px;border-bottom:1px solid var(--line);background:var(--surface)}
   .drawerhead h2{font-size:clamp(1.5rem,3vw,2.1rem)}
   .rsummary{margin:10px 0 0;font-size:13.5px;line-height:1.6;color:var(--ink-3)}
   .rsummary strong{color:var(--ink);font-weight:650}
@@ -264,7 +264,7 @@
   .facet{--g:var(--ink-3);position:relative;flex:none;display:inline-flex;cursor:pointer}
   .facet__face{
     display:inline-flex;align-items:center;gap:7px;
-    padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line-strong);
+    padding:6px 12px;border-radius:999px;background:var(--surface);border:1px solid var(--line-strong);
     font-size:13px;font-weight:550;color:var(--ink);white-space:nowrap;
     box-shadow:0 1px 2px rgba(20,24,33,.05);
     transition:transform .3s var(--spring),background .2s,border-color .2s,color .2s;
@@ -275,11 +275,11 @@
   .facet input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
   .facet:hover .facet__face{transform:translateY(-1px);border-color:#9aa2ae}
   .facet input:checked + .facet__face{
-    background:#eef1f5;background:color-mix(in srgb,var(--g) 11%,#fff);
+    background:var(--fill);background:color-mix(in srgb,var(--g) 11%,#fff);
     border-color:var(--g);font-weight:650;
   }
-  .facet--all input:checked + .facet__face{background:var(--ink);border-color:var(--ink);color:#fff}
-  .facet--all input:checked + .facet__face b{color:rgba(255,255,255,.72)}
+  .facet--all input:checked + .facet__face{background:var(--ink);border-color:var(--ink);color:var(--win)}
+  .facet--all input:checked + .facet__face b{color:var(--win);opacity:.72}
   .facet input:focus-visible + .facet__face{outline:2.5px solid var(--aqua);outline-offset:2px}
   .facet--empty{cursor:default}
   .facet--empty .facet__face{background:transparent;border-style:dashed;color:var(--ink-3);box-shadow:none}
@@ -302,7 +302,7 @@
   .rstick{
     position:sticky;top:calc(48px + env(safe-area-inset-top));z-index:6;
     display:flex;align-items:center;gap:10px;height:var(--rstick);padding:0 26px;
-    background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);
+    background:var(--pane);border-bottom:1px solid var(--line);
   }
   .rstick__count{margin:0 auto 0 0;min-width:0;font-size:14px;color:var(--ink-2);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -317,14 +317,14 @@
   .resultswin .guide{top:calc(48px + var(--rstick) + env(safe-area-inset-top))}
 
   /* List or cards: a segmented control, the white thumb on the one in use. */
-  .seg{display:inline-flex;padding:3px;border-radius:999px;background:#e2e5ea;
+  .seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--fill-2);
     box-shadow:inset 0 1px 2px rgba(20,24,33,.1)}
   .seg__opt{position:relative;display:flex;cursor:pointer}
   .seg__opt span{flex:1;padding:5px 13px;border-radius:999px;font-size:13px;font-weight:600;text-align:center;
     color:var(--ink-2);white-space:nowrap;transition:background .2s,color .2s,box-shadow .25s var(--ease)}
   .seg__opt input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
   .seg__opt:hover span{color:var(--ink)}
-  .seg__opt input:checked + span{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .seg__opt input:checked + span{background:var(--thumb);color:var(--ink);box-shadow:var(--shadow-sm)}
   .seg__opt input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
 
   /* By company: a card per employer on the grey of the window, three roles showing. */
@@ -334,7 +334,7 @@
   }
   .cogrid:last-child{border-radius:0 0 var(--r-win) var(--r-win)}
   .cocard{
-    background:#fff;border:1px solid rgba(20,24,33,.1);border-radius:12px;overflow:hidden;
+    background:var(--surface);border:1px solid var(--edge);border-radius:12px;overflow:hidden;
     box-shadow:var(--shadow-sm);transition:box-shadow .3s var(--ease),transform .35s var(--spring);
   }
   .cocard:hover{box-shadow:var(--shadow-win);transform:translateY(-2px)}
@@ -363,7 +363,7 @@
   .cocard__more summary::before{content:"";border-top:4.5px solid transparent;border-bottom:4.5px solid transparent;
     border-left:6px solid currentColor;transition:transform .25s var(--spring)}
   .cocard__more[open] summary::before{transform:rotate(90deg)}
-  .cocard__more summary:hover{color:var(--ink);background:#f7f9fd}
+  .cocard__more summary:hover{color:var(--ink);background:var(--surface-2)}
   .pick{display:flex;align-items:center;gap:7px;margin:0;font-size:12.5px;font-weight:600;color:var(--ink-3)}
   .pick select{width:auto;max-width:220px;font-size:13.5px;padding:6px 30px 6px 11px}
   .filed{border-radius:0 0 var(--r-win) var(--r-win)}
@@ -391,16 +391,16 @@
     white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
   }
   .chip svg{width:12px;height:12px;color:var(--ink-3)}
-  .chip--field{background:#f1f3f6;border-color:var(--line-strong);color:var(--ink);
+  .chip--field{background:var(--fill);border-color:var(--line-strong);color:var(--ink);
     background:color-mix(in srgb,var(--g) 11%,#fff);border-color:color-mix(in srgb,var(--g) 35%,#fff)}
   .chip--field::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--g)}
-  .chip--skill{background:var(--aqua-wash);border-color:#d6e4ff;color:var(--aqua-deep)}
+  .chip--skill{background:var(--aqua-wash);border-color:color-mix(in srgb,var(--aqua) 22%,var(--surface));color:var(--aqua-deep)}
   .chip--more{font-family:var(--mono);font-weight:500}
   .chip--level{color:var(--ink);font-weight:600}
   /* Worth knowing before applying: an old advert, or one given a new date. */
   .chip--flag{color:#7a5800;background:#fff8dc;border-color:#f1dd92}
   /* Pay, as the advert states it: the one figure people scan for, so it reads first. */
-  .chip--pay{color:var(--ink);font-weight:650;background:#fff;border-color:var(--line-strong)}
+  .chip--pay{color:var(--ink);font-weight:650;background:var(--surface);border-color:var(--line-strong)}
   .chips .stamp{padding:2px 9px;font-size:11.5px}
 
   /* How high the job ranks in this search: three bars, like signal strength. */
@@ -485,16 +485,16 @@
     .rbar{
       position:fixed;left:0;right:0;bottom:0;z-index:130;display:block;padding:0;gap:0;
       max-height:min(84dvh,680px);overflow-y:auto;overscroll-behavior:contain;
-      background:#fff;border:0;border-radius:18px 18px 0 0;
+      background:var(--surface);border:0;border-radius:18px 18px 0 0;
       box-shadow:0 -12px 44px -12px rgba(20,24,33,.4);
       transform:translateY(102%);visibility:hidden;
       transition:transform .38s var(--ease),visibility 0s .38s;
     }
     .rbar.is-open{transform:none;visibility:visible;transition:transform .38s var(--ease)}
     .rbar__head{display:flex;align-items:center;justify-content:space-between;gap:12px;
-      position:sticky;top:0;z-index:1;padding:16px 12px 12px 18px;background:#fff;border-bottom:1px solid var(--line)}
+      position:sticky;top:0;z-index:1;padding:16px 12px 12px 18px;background:var(--surface);border-bottom:1px solid var(--line)}
     .rbar__head::before{content:"";position:absolute;top:6px;left:50%;width:36px;height:4px;margin-left:-18px;
-      border-radius:2px;background:#d5dae1}
+      border-radius:2px;background:var(--line-strong)}
     .rbar__title{margin:0;font-size:1.15rem;letter-spacing:-.02em}
     .rbar__close{width:40px;height:40px;min-height:0;padding:0;border-radius:50%;color:var(--ink-2);
       background:var(--win-bar);border:0;box-shadow:none;text-shadow:none}
@@ -509,7 +509,7 @@
     .seg__opt{flex:1}
     .seg__opt span{padding:8px 13px}
     .rbar__foot{display:flex;gap:10px;position:sticky;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom));
-      background:#fff;border-top:1px solid var(--line)}
+      background:var(--surface);border-top:1px solid var(--line)}
     .rbar__foot button{flex:1}
     .rbar__foot [data-filters-apply]{flex:2}
     .rscrim{position:fixed;inset:0;z-index:125;background:rgba(20,24,33,.34)}
