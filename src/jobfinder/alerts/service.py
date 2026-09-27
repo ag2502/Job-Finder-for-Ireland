@@ -25,8 +25,15 @@ def configured() -> bool:
 
 
 def _headers() -> dict[str, str]:
-    key = settings.supabase_service_role_key
-    return {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+    """Either shape of Supabase admin key. The legacy `service_role` key is a JWT and is
+    also sent as the bearer token; the newer `sb_secret_...` key is not a token at all,
+    and Supabase rejects it there, so it goes in `apikey` alone (as core/supabase.py
+    does for publishable keys)."""
+    key = settings.supabase_service_role_key.strip()
+    headers = {"apikey": key, "Content-Type": "application/json"}
+    if key.startswith("eyJ"):
+        headers["Authorization"] = f"Bearer {key}"
+    return headers
 
 
 def _get(path: str, params: dict) -> list[dict]:

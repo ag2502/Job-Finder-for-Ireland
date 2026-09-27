@@ -121,3 +121,11 @@ def test_run_without_a_mail_server_only_reports(monkeypatch):
 def test_run_without_the_service_key_reads_nothing(monkeypatch):
     monkeypatch.setattr(service, "configured", lambda: False)
     assert "no service role key" in str(digest.run(now=NOW))
+
+
+def test_either_shape_of_admin_key_is_sent_the_way_supabase_accepts(monkeypatch):
+    monkeypatch.setattr(settings, "supabase_service_role_key", "eyJhbGciOi.legacy")
+    assert service._headers()["Authorization"] == "Bearer eyJhbGciOi.legacy"
+    monkeypatch.setattr(settings, "supabase_service_role_key", "sb_secret_abc123")
+    headers = service._headers()
+    assert headers["apikey"] == "sb_secret_abc123" and "Authorization" not in headers
