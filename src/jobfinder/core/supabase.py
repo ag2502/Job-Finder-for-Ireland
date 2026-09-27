@@ -560,6 +560,68 @@ def save_profile(account: Account, **columns) -> None:
         raise SupabaseError(_message_from(response))
 
 
+# -------------------------------------------------------------------- alerts
+#
+# The account's own alert settings, under the same row level security as everything
+# else. Reading every subscriber's is the sender's job (jobfinder/alerts/service.py),
+# with the service role key, which this module never uses.
+
+
+def get_alerts(account: Account) -> dict | None:
+    """This account's alert settings, or None when it has never saved any."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/alerts",
+            headers=_auth_headers(account.access_token),
+            params={"select": "*", "user_id": f"eq.{account.user_id}", "limit": "1"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    rows = response.json()
+    return rows[0] if rows else None
+
+
+def save_alerts(account: Account, **columns) -> None:
+    """Write this account's alert settings, to its own sign-in address."""
+    base, _ = _require_config()
+    payload = {
+        "user_id": account.user_id,
+        "email": account.email,
+        **columns,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/alerts",
+            params={"on_conflict": "user_id"},
+            headers={
+                **_auth_headers(account.access_token),
+                "Prefer": "resolution=merge-duplicates,return=minimal",
+            },
+            json=payload,
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def unsubscribe(token: str) -> None:
+    """Turn off every alert for the account this email token belongs to.
+
+    Called from the link in an email, by someone who may not be signed in, so it goes
+    through the one database function the anonymous key may call for this.
+    """
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/rpc/unsubscribe_alerts",
+            headers=_auth_headers(),
+            json={"p_token": token},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
 # ------------------------------------------------------------------ CV files
 #
 # The CV document and the versions tailored from it, in the private `cvs` bucket.

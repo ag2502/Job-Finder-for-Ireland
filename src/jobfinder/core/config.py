@@ -208,6 +208,20 @@ class Settings(BaseSettings):
     # be given to this function.
     supabase_url: str = ""
     supabase_anon_key: str = ""
+    # Only ever set in GitHub Actions, for `jobfinder send-alerts`, which reads every
+    # subscriber's alert settings. Never in Vercel: see the note above.
+    supabase_service_role_key: str = ""
+
+    # Email alerts (jobfinder/alerts). Plain SMTP, so any sender works: a Gmail account
+    # with an app password (smtp.gmail.com:587, 500 a day), or Brevo's free SMTP relay.
+    # With no host set, `send-alerts` reports what it would send and sends nothing.
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+    # Where links in an email point: the live site, not wherever the sender runs.
+    site_url: str = "https://dublin-job-finder.vercel.app"
 
     @field_validator("supabase_url")
     @classmethod

@@ -17,6 +17,7 @@ searcher would notice.
 from __future__ import annotations
 
 import hmac
+from html import escape as html_escape
 import json
 from concurrent.futures import ThreadPoolExecutor
 import logging
@@ -1520,6 +1521,7 @@ def _search_results(
     within: str | int | None = None,
     since: datetime | None = None,
     new_only: bool = False,
+    per_page: int | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1807,7 +1809,8 @@ def _search_results(
             per_page = COMPANIES_PER_PAGE
             units = groups
         else:
-            per_page = 25
+            # The email alerts take a whole search in one go (per_page); the page takes 25.
+            per_page = per_page or 25
             units = rows_out
         start = (page - 1) * per_page
         page_items = rows_out[start : start + per_page] if view == "list" else []
@@ -2166,15 +2169,17 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
             logger.warning("could not load part of the profile", exc_info=True)
             return empty, exc
 
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=5) as pool:
         saved_job = pool.submit(fetch, supabase.list_saved, [])
         applied_job = pool.submit(fetch, supabase.list_applications, [])
         stored_job = pool.submit(fetch, supabase.get_profile, None)
         tailored_job = pool.submit(fetch, supabase.list_tailored, [])
+        alerts_job = pool.submit(fetch, supabase.get_alerts, None)
         saved_rows, saved_error = saved_job.result()
         applied_rows, applied_error = applied_job.result()
         stored, stored_error = stored_job.result()
         tailored_rows, _tailored_error = tailored_job.result()
+        alerts_row, alerts_error = alerts_job.result()
     stored = _reread_cv(account, stored)
     for row in tailored_rows:
         row["saved_on"] = _format_applied_at(row.get("updated_at") or row.get("created_at"))
@@ -2199,8 +2204,93 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
         me_unavailable=stored_error is not None,
         tailored=tailored_rows,
         cv_error=CV_ERRORS.get(cv_error, ""),
+        alerts=_alerts_view(alerts_row),
+        # The table not existing yet (schema.sql not re-run) reads as an error here: the
+        # section then says alerts are not available rather than offering a dead form.
+        alerts_unavailable=alerts_error is not None,
     )
     return templates.TemplateResponse(request, "profile.html", context)
+
+
+def _alerts_view(row: dict | None) -> dict:
+    row = row or {}
+    kinds = [label for key, label in (("internships", "internships"),
+                                      ("graduate", "graduate programmes"),
+                                      ("jobs", "jobs in your fields")) if row.get(key)]
+    return {
+        "internships": bool(row.get("internships")),
+        "graduate": bool(row.get("graduate")),
+        "jobs": bool(row.get("jobs")),
+        "frequency": row.get("frequency") if row.get("frequency") in ALERT_FREQUENCIES else "daily",
+        "kinds": kinds,
+        "any": bool(kinds),
+    }
+
+
+ALERT_FREQUENCIES = ("daily", "weekly")
+
+
+@app.post("/profile/alerts", response_class=HTMLResponse)
+def profile_alerts(
+    request: Request,
+    internships: str | None = Form(default=None),
+    graduate: str | None = Form(default=None),
+    jobs: str | None = Form(default=None),
+    frequency: str = Form(default="daily"),
+):
+    """Save which alerts to email, and how often. Only what is ticked is ever sent."""
+    account = _account(request)
+    if account is None:
+        return PlainTextResponse("Sign in to continue.", status_code=401)
+
+    def note(text: str, bad: bool = False):
+        if request.headers.get("HX-Request"):
+            icon = "" if bad else '<svg aria-hidden="true"><use href="#i-check"/></svg>'
+            return HTMLResponse(f'<span class="savednote{" savednote--bad" if bad else ""}" '
+                                f'role="status">{icon}{text}</span>')
+        return RedirectResponse("/profile#alerts", status_code=303)
+
+    if jobs and not (_stored_profile(account) or {}).get("fields"):
+        return note("Save the kinds of work you want under Search preferences first, so "
+                    "we know which jobs to send.", bad=True)
+    try:
+        supabase.save_alerts(
+            account,
+            internships=bool(internships), graduate=bool(graduate), jobs=bool(jobs),
+            frequency=frequency if frequency in ALERT_FREQUENCIES else "daily",
+        )
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not save alerts", exc_info=True)
+        return note("Could not save just now. Please try again.", bad=True)
+    if not (internships or graduate or jobs):
+        return note("Saved. No alerts will be sent.")
+    return note(f"Saved. We will email {html_escape(account.email)} when something new opens.")
+
+
+@app.get("/alerts/unsubscribe", response_class=HTMLResponse)
+def alerts_unsubscribe_page(request: Request, token: str = ""):
+    """Where the link in an email lands: a button, not an instant change, because mail
+    scanners open every link in a message and would otherwise unsubscribe people."""
+    context = _base_context(request) | {"token": token, "done": False}
+    return templates.TemplateResponse(request, "unsubscribe.html", context)
+
+
+@app.post("/alerts/unsubscribe", response_class=HTMLResponse)
+async def alerts_unsubscribe(request: Request, token: str = ""):
+    """Turn every alert off. Also what a mail app's own Unsubscribe button posts (RFC 8058)."""
+    if not token:
+        form = await request.form()
+        token = str(form.get("token") or "")
+    ok = True
+    try:
+        uuid.UUID(token)
+        await run_in_threadpool(supabase.unsubscribe, token)
+    except (ValueError, supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not unsubscribe a token", exc_info=True)
+        ok = False
+    context = _base_context(request) | {"token": token, "done": ok, "failed": not ok}
+    return templates.TemplateResponse(request, "unsubscribe.html", context,
+                                      status_code=200 if ok else 400)
 
 
 def _forget_files(account: supabase.Account, paths: list[str | None]) -> None:

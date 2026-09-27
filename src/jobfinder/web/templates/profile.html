@@ -251,6 +251,67 @@
     </details>
   </section>
 
+  {# Email alerts: sent only for what is ticked, only when something new has opened.
+     The jobs alert searches with the Search preferences above, so it needs some. #}
+  <section class="win aboutwin alertswin opens" id="alerts" aria-labelledby="alerts-title">
+    {{ titlebar("email-alerts") }}
+    <details class="aboutfold"{% if request.query_params.get("edit") == "alerts" %} open{% endif %}>
+      <summary class="aboutfold__head">
+        <span class="aboutfold__text">
+          <b id="alerts-title">Email alerts</b>
+          <span class="muted small">
+            {% if alerts_unavailable %}
+              Not available just yet.
+            {% elif alerts.any %}
+              On: {{ alerts.kinds|join(", ") }}, {{ alerts.frequency }}, to {{ account.email }}.
+            {% else %}
+              Off. Get new internships, graduate programmes or jobs in your fields by email.
+            {% endif %}
+          </span>
+        </span>
+        <span class="aboutfold__edit">Edit <svg viewBox="0 0 10 10" width="11" height="11" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+      </summary>
+      {% if alerts_unavailable %}
+      <p class="muted alerts__off">Email alerts could not be loaded. Please try again later.</p>
+      {% else %}
+      <form class="about" method="post" action="/profile/alerts"
+            hx-post="/profile/alerts" hx-target="#alerts-status" hx-swap="innerHTML">
+        <p class="muted alerts__lede">We email {{ account.email }} only for what you tick, and only
+          when something new has opened since the last email. Every email has a link to stop them.</p>
+        <div class="about__block about__switches alerts__kinds">
+          <label class="switch">
+            <input type="checkbox" name="internships" value="1" {% if alerts.internships %}checked{% endif %}>
+            <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+            New internships
+          </label>
+          <label class="switch">
+            <input type="checkbox" name="graduate" value="1" {% if alerts.graduate %}checked{% endif %}>
+            <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+            New graduate programmes
+          </label>
+          <label class="switch{% if not me.fields %} switch--off{% endif %}">
+            <input type="checkbox" name="jobs" value="1" {% if alerts.jobs %}checked{% endif %}{% if not me.fields %} disabled{% endif %}>
+            <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+            <span>New jobs in your {{ me.fields|length if me.fields else "" }} kind{{ "" if me.fields|length == 1 else "s" }} of work
+              {%- if me.years is not none %}, asking {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }} or fewer{% endif %}
+              {%- if not me.fields %} <em class="alerts__need">(save your Search preferences first)</em>{% endif %}</span>
+          </label>
+        </div>
+        <div class="about__block">
+          <span class="fieldname" id="freq-label">How often</span>
+          <div class="seg alerts__freq" role="radiogroup" aria-labelledby="freq-label">
+            <label class="seg__opt"><input type="radio" name="frequency" value="daily" {% if alerts.frequency != "weekly" %}checked{% endif %}><span>Daily</span></label>
+            <label class="seg__opt"><input type="radio" name="frequency" value="weekly" {% if alerts.frequency == "weekly" %}checked{% endif %}><span>Weekly</span></label>
+          </div>
+        </div>
+        <div class="about__foot">
+          <span id="alerts-status" class="about__status" aria-live="polite"></span>
+          <button type="submit">Save alerts</button>
+        </div>
+      </form>
+      {% endif %}
+    </details>
+  </section>
 
 {# Drag a file anywhere over the page and it can be dropped anywhere, not only on the
    drop zone. #}
@@ -264,6 +325,18 @@
 {% endif %}
 
 <style>
+  .alerts__lede{margin:0 0 4px;font-size:14px;max-width:62ch}
+  .alerts__off{margin:0;padding:0 26px 22px}
+  .alerts__kinds{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
+  .alerts__need{font-style:normal;color:var(--ink-3);font-weight:400}
+  .switch--off{cursor:default;color:var(--ink-3)}
+  .alerts__freq{display:inline-flex;padding:3px;border-radius:999px;background:#e2e5ea;
+    box-shadow:inset 0 1px 2px rgba(20,24,33,.1)}
+  .alerts__freq .seg__opt{position:relative;display:flex;cursor:pointer}
+  .alerts__freq .seg__opt span{padding:6px 16px;border-radius:999px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
+  .alerts__freq .seg__opt input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
+  .alerts__freq .seg__opt input:checked + span{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .alerts__freq .seg__opt input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
   .me{display:flex;align-items:center;justify-content:space-between;gap:20px 28px;flex-wrap:wrap;
     padding:56px 0 30px}
   .me__id{display:flex;align-items:center;gap:22px;min-width:0}

@@ -190,6 +190,27 @@ jobs:
           fi
           npx --yes vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"
 
+      - name: Send email alerts
+        env:
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
+          JOBFINDER_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          JOBFINDER_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          # Reads every subscriber's alert settings. Lives here and nowhere else: the
+          # website never has it (core/config.py).
+          JOBFINDER_SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          JOBFINDER_SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          JOBFINDER_SMTP_PORT: ${{ secrets.SMTP_PORT || '587' }}
+          JOBFINDER_SMTP_USER: ${{ secrets.SMTP_USER }}
+          JOBFINDER_SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          JOBFINDER_SMTP_FROM: ${{ secrets.SMTP_FROM }}
+        # After the deploy, so every job an email links to already has its page live.
+        # Each subscriber gets at most one email a day (or week), and only when something
+        # new has opened for what they ticked (alerts/digest.py). Never fails the run:
+        # with the secrets missing it says what is missing and sends nothing.
+        continue-on-error: true
+        timeout-minutes: 10
+        run: jobfinder send-alerts
+
       - name: Summary
         env:
           JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}

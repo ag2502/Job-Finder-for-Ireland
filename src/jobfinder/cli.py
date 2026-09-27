@@ -383,6 +383,15 @@ def cmd_summarise(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_send_alerts(args: argparse.Namespace) -> int:
+    """Email every subscriber whose alert is due and has something new in it."""
+    from jobfinder.alerts.digest import run
+
+    init_db()
+    print(run(dry_run=args.dry_run))
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -491,6 +500,10 @@ def main(argv: list[str] | None = None) -> int:
     p_summarise.add_argument("--limit", type=int, default=150, help="adverts at most")
     p_summarise.add_argument("--minutes", type=float, default=8.0, help="time budget")
     p_summarise.set_defaults(func=cmd_summarise)
+
+    p_alerts = sub.add_parser("send-alerts", help="email the alerts that are due")
+    p_alerts.add_argument("--dry-run", action="store_true", help="report, send nothing")
+    p_alerts.set_defaults(func=cmd_send_alerts)
 
     p_serve = sub.add_parser("serve", help="run the web portal")
     p_serve.add_argument("--host", default="127.0.0.1")

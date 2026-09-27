@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{# Where "stop all alerts" in an email lands. It asks for one press rather than acting on
+   arrival: mail scanners open every link in a message, and would unsubscribe people
+   who never asked to be. #}
+{% from "_macros.html" import titlebar %}
+{% block title %}Email alerts | Sorted Place{% endblock %}
+{% block railcount %}{% endblock %}
+{% block content %}
+<section class="pagehead">
+  {% if done %}
+  <h1>Alerts <span class="hl">stopped.</span></h1>
+  <p class="lede">We will not email you again unless you turn alerts back on from your profile.</p>
+  {% else %}
+  <h1>Stop email alerts?</h1>
+  <p class="lede">This turns off every alert for the account the email was sent to. You can
+    turn them back on from your profile at any time.</p>
+  {% endif %}
+</section>
+
+<div class="win unsubwin">
+  {{ titlebar("email-alerts") }}
+  <div class="win__body">
+    {% if failed %}
+    <p class="err" role="alert">That link did not work. Sign in and turn alerts off from your profile instead.</p>
+    {% endif %}
+    {% if done %}
+    <div class="row">
+      <a class="btn" href="/#find">Find jobs <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a class="btn btn--ghost" href="/profile#alerts">Your alerts</a>
+    </div>
+    {% elif token %}
+    <form method="post" action="/alerts/unsubscribe" class="row">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="submit">Stop all alerts</button>
+      <a class="btn btn--ghost" href="/profile#alerts">Change them instead</a>
+    </form>
+    {% else %}
+    <p class="muted">This link is missing its code. Sign in and turn alerts off from your profile.</p>
+    {% endif %}
+  </div>
+</div>
+<style>.unsubwin{max-width:640px;box-shadow:var(--shadow-lift)}</style>
+{% endblock %}

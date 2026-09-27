@@ -42,6 +42,8 @@ class FakeSupabase:
         self.tailored: dict[str, dict] = {}
         self.fail_with: Exception | None = None
         self.profile_fails_with: Exception | None = None
+        self.alerts: dict | None = None
+        self.unsubscribed: list[str] = []
 
     def install(self, monkeypatch: pytest.MonkeyPatch) -> FakeSupabase:
         monkeypatch.setattr(supabase, "configured", lambda: True)
@@ -68,8 +70,14 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "count_tailored_since", lambda a, since: len(self.tailored))
         monkeypatch.setattr(supabase, "purge_stale_drafts", lambda a, older_than: None)
         monkeypatch.setattr(supabase, "providers", lambda: {"google": True})
+        monkeypatch.setattr(supabase, "get_alerts", lambda account: dict(self.alerts) if self.alerts else None)
+        monkeypatch.setattr(supabase, "save_alerts", self._save_alerts)
+        monkeypatch.setattr(supabase, "unsubscribe", self.unsubscribed.append)
         monkeypatch.setattr(supabase.settings, "supabase_url", "https://proj.supabase.co")
         return self
+
+    def _save_alerts(self, account, **columns):
+        self.alerts = {**(self.alerts or {}), "email": account.email, **columns}
 
     def _list(self, account):
         if self.fail_with:
@@ -1721,3 +1729,43 @@ def test_the_offer_includes_a_cover_letter_when_tailoring_is_on(client: TestClie
                                                 "job_id": "", "url": ""}).text
     # The advert text is unknown for an empty job id, so only tailoring (with a paste box) shows.
     assert "Draft a cover letter" not in offer
+
+
+# -------------------------------------------------------------------- email alerts
+
+
+def test_alerts_are_off_until_ticked_and_saved_to_the_accounts_own_address(client: TestClient, fake):
+    _signed_in(client)
+    page = client.get("/profile").text
+    assert 'id="alerts"' in page and "Off. Get new internships" in page
+    response = client.post("/profile/alerts", data={"internships": "1", "frequency": "weekly"},
+                           headers={"HX-Request": "true"})
+    assert "Saved. We will email jane@example.com" in response.text
+    assert fake.alerts["internships"] is True and fake.alerts["graduate"] is False
+    assert fake.alerts["jobs"] is False and fake.alerts["frequency"] == "weekly"
+    assert fake.alerts["email"] == "jane@example.com"
+    assert "On: internships, weekly" in client.get("/profile").text
+
+
+def test_a_jobs_alert_needs_saved_preferences(client: TestClient, fake):
+    _signed_in(client)
+    response = client.post("/profile/alerts", data={"jobs": "1"}, headers={"HX-Request": "true"})
+    assert "Search preferences first" in response.text and fake.alerts is None
+    client.post("/profile/details", data={"chosen_fields": ["backend"]}, headers={"HX-Request": "true"})
+    response = client.post("/profile/alerts", data={"jobs": "1"}, headers={"HX-Request": "true"})
+    assert "Saved" in response.text and fake.alerts["jobs"] is True
+
+
+def test_the_unsubscribe_link_asks_first_then_stops_everything(client: TestClient, fake):
+    import uuid
+
+    token = str(uuid.uuid4())
+    landing = client.get(f"/alerts/unsubscribe?token={token}")
+    assert landing.status_code == 200 and "Stop all alerts" in landing.text
+    assert fake.unsubscribed == [], "opening the link alone must not unsubscribe"
+    done = client.post("/alerts/unsubscribe", data={"token": token})
+    assert done.status_code == 200 and "stopped" in done.text and fake.unsubscribed == [token]
+    # A mail app's one-click button posts the token in the address.
+    client.post(f"/alerts/unsubscribe?token={token}", data={"List-Unsubscribe": "One-Click"})
+    assert fake.unsubscribed == [token, token]
+    assert client.post("/alerts/unsubscribe", data={"token": "not-a-token"}).status_code == 400

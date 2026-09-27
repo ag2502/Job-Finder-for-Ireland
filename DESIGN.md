@@ -182,7 +182,7 @@ The site is a light computer desktop. A cool grey ground with a faint dotted gri
 
 The light ground is chosen for how the site is actually used. Someone arrives mid-hunt on a laptop with twenty careers tabs open, or on a phone on a bus, and both need to read a long list in daylight. The desktop metaphor is literal enough to explain the product without copy ("close the other nineteen tabs"), and it stays out of the way once the visitor is working: from the first result onward the page is a plain white list inside a window.
 
-Play lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing here signals alerts or notifications. The red badge is a count, not something unread.
+Play lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing on the page signals alerts or notifications (the opt-in email alerts live on the profile and in the inbox, not in the interface). The red badge is a count, not something unread.
 
 **Key Characteristics:**
 - Light desktop ground (#eceef2, 22px dotted grid) under white windows; no dark surfaces except the dock tooltip.
@@ -334,6 +334,9 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), the
 ### New since your last visit
 Beside the results heading, a green pill counts what is new ("12 new since your last visit", or "12 new" for the last day when signed out) with an aqua underlined "show only these" beside it; ticked, the pill fills solid green and the list keeps only those. Each such row carries the small green "new" pill. It stays out of the address, since new means new to this person.
 
+### Email alerts
+On the profile, an **Email alerts** window folds like Search preferences: a line saying what is on ("On: internships, graduate programmes, daily, to name@example.com") or "Off", and behind it three switches (New internships, New graduate programmes, New jobs in your N kinds of work, the last disabled with a note until preferences are saved), a Daily | Weekly segmented control, and Save alerts. The email itself is a plain white card on the desk grey: the wordmark, a section per alert with its count, up to twelve jobs as aqua titles over a grey line of employer, pay, work mode and level, "See all N on Sorted Place", and a footer saying why it came with links to change or stop alerts. The unsubscribe link lands on a page asking for one press ("Stop all alerts"), never acting on arrival.
+
 ### The address bar
 A search writes itself into the address (`/?f=backend&y=2&sort=newest`, plus `field`, `co` and `view` for the filter bar), so Refresh, Back and a shared link all reopen it: the page opens straight onto the results, past the desk and the story. A plain `/` is still the blank form. Back reloads the address rather than restoring a snapshot.
 
@@ -386,7 +389,7 @@ The By company view lays the same ranked, filtered rows out as white cards (12px
 ### Don't:
 - **Don't** switch to a dark ground or a dark "serious" register; the desktop is light.
 - **Don't** add a second action colour, or use aqua, green or tag colours as decoration.
-- **Don't** use the red badge or any bell, envelope or "unread" treatment to suggest alerts; the badge is a count and the site sends nothing.
+- **Don't** use the red badge or any bell, envelope or "unread" treatment to suggest alerts; the badge is a count, and the only thing the site sends is the email alerts a person ticked on their profile.
 - **Don't** set headlines in all lowercase or all caps, or in the mono or hand face.
 - **Don't** put information only in Gochi Hand; scribbles are asides.
 - **Don't** add a fifth shadow height or blur anything that doesn't float over scrolling content.

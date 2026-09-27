@@ -94,9 +94,13 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
 
 **Does not have, and must not be claimed:**
 
-- **No email alerts, no subscriptions, no notifications of any kind.** Nothing in the
-  codebase sends mail. "Everything in one place" means the complete live list, not
-  push notifications. Copy must never imply otherwise.
+- **No notifications beyond the opt-in email alerts.** Changed 2026-09-27 at the owner's
+  request: a signed-in searcher may tick, on their profile, email alerts for new
+  internships, new graduate programmes, or new jobs in the fields and years they saved,
+  daily or weekly. Nothing is sent for anything not ticked, an email is sent only when
+  something new has opened, and every email has a one-click unsubscribe. There are no
+  push notifications, no in-app bell or unread counts, and no marketing email; copy must
+  never imply otherwise.
 - No applications taken on-site, no employer accounts, no pricing or payments.
 
 **Hard constraints:**

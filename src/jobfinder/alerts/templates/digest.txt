@@ -1,0 +1,20 @@
+Sorted Place
+{% for section in sections %}
+
+{{ section.heading }} ({{ section.count }})
+
+{% for item in section.items[:shown] %}
+{{ item.job.title }}
+{{ item.company }}{% if item.salary %}, {{ item.salary.chip }}{% endif %}{% if item.mode %}, {{ item.mode.label }}{% endif %}{% if item.experience %}, {{ item.experience }}{% endif %}
+
+{{ site }}/jobs/{{ item.job.id }}
+
+{% endfor %}
+{% if section.count > shown %}
+See all {{ section.count }}: {{ section.more_url }}
+{% endif %}
+{% endfor %}
+
+You get this {{ "daily" if frequency == "daily" else "weekly" }} email because you turned on alerts on your Sorted Place profile, and only when something new has opened.
+Change your alerts: {{ manage }}
+Stop all alerts: {{ unsubscribe }}

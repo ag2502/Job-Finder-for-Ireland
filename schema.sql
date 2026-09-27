@@ -291,3 +291,69 @@ create policy "update own tailored cvs"
 create policy "delete own tailored cvs"
     on public.tailored_cvs for delete
     using (auth.uid() = user_id);
+
+
+-- -------------------------------------------------------------------- alerts
+--
+-- Email alerts the searcher asked for (added 2026-09-27), one row per account. Nothing
+-- is sent for anything not ticked here: new internships, new graduate programmes, or
+-- new jobs in the fields and years saved on the profile. Sent after a crawl by
+-- `jobfinder send-alerts` in GitHub Actions, the only place the service role key lives.
+--
+-- `email` must be the account's own sign-in address (the policies check it against the
+-- signed-in token), so nobody can sign someone else up. `token` is the one-click
+-- unsubscribe link's secret; `unsubscribe_alerts` below is the only way in with it.
+
+create table if not exists public.alerts (
+    user_id      uuid primary key references auth.users (id) on delete cascade,
+    email        text not null,
+    internships  boolean not null default false,
+    graduate     boolean not null default false,
+    jobs         boolean not null default false,
+    frequency    text not null default 'daily' check (frequency in ('daily', 'weekly')),
+    token        uuid not null default gen_random_uuid(),
+    last_sent_at timestamptz,
+    created_at   timestamptz not null default now(),
+    updated_at   timestamptz not null default now()
+);
+
+alter table public.alerts enable row level security;
+
+drop policy if exists "read own alerts"   on public.alerts;
+drop policy if exists "insert own alerts" on public.alerts;
+drop policy if exists "update own alerts" on public.alerts;
+drop policy if exists "delete own alerts" on public.alerts;
+
+create policy "read own alerts"
+    on public.alerts for select
+    using (auth.uid() = user_id);
+
+create policy "insert own alerts"
+    on public.alerts for insert
+    with check (auth.uid() = user_id and email = (auth.jwt() ->> 'email'));
+
+create policy "update own alerts"
+    on public.alerts for update
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id and email = (auth.jwt() ->> 'email'));
+
+create policy "delete own alerts"
+    on public.alerts for delete
+    using (auth.uid() = user_id);
+
+-- The unsubscribe link in every email. It works without signing in, so it cannot use
+-- the policies above: this function runs as its owner, and does exactly one thing with
+-- the token it is given. It reveals nothing, whether or not the token matches.
+create or replace function public.unsubscribe_alerts(p_token uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+    update public.alerts
+       set internships = false, graduate = false, jobs = false, updated_at = now()
+     where token = p_token;
+$$;
+
+revoke all on function public.unsubscribe_alerts(uuid) from public;
+grant execute on function public.unsubscribe_alerts(uuid) to anon, authenticated;

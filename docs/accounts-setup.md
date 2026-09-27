@@ -177,6 +177,44 @@ each, which keeps the free quotas from being spent by one person.
 
 ---
 
+## Step 6c: Turn on email alerts and advert summaries
+
+Both run in GitHub Actions after each crawl (`crawl.yml`), so their keys are **Actions
+secrets**, not Vercel variables. Each step says what is missing in the run log and does
+nothing until it is set; neither can fail a crawl.
+
+**Advert summaries** ("In short" in the job panel): add the same model keys as step 6a
+as repository secrets named `JOBFINDER_GEMINI_API_KEY` and `JOBFINDER_GROQ_API_KEY`.
+The first few runs catch up 150 adverts at a time.
+
+**Email alerts** (the profile's Email alerts section):
+
+1. Re-run `schema.sql` (step 2). It adds the `alerts` table, its policies (an alert can
+   only go to the account's own sign-in address) and the `unsubscribe_alerts` function
+   the link in every email calls.
+2. Supabase -> **Project Settings -> API keys** -> copy the **service_role** secret. Add
+   it as the Actions secret `SUPABASE_SERVICE_ROLE_KEY`. It reads every subscriber's
+   settings, so it goes here and **never** into Vercel.
+3. A mailbox to send from. The simplest with no domain of your own is a Gmail account:
+   turn on 2-Step Verification, then create an **App password** at
+   <https://myaccount.google.com/apppasswords>. Gmail allows about 500 emails a day.
+   (Brevo's free SMTP relay, 300 a day, works the same way with its own host and login.)
+4. Add these Actions secrets:
+
+   | Name | Value (Gmail) |
+   |---|---|
+   | `SMTP_HOST` | `smtp.gmail.com` |
+   | `SMTP_PORT` | `587` (optional; 587 is the default) |
+   | `SMTP_USER` | the Gmail address |
+   | `SMTP_PASSWORD` | the 16-character app password |
+   | `SMTP_FROM` | `Sorted Place <that address>` |
+
+5. Run **Actions -> Crawl -> Run workflow**. The "Send email alerts" step's log says how
+   many subscribers were due and how many were sent. To see what would go out without
+   sending, run `jobfinder send-alerts --dry-run` with the same variables set locally.
+
+---
+
 ## Step 6b: Turn on "Continue with Google"
 
 Google is the main way in: the sign-in page leads with a **Continue with Google** button
