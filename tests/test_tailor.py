@@ -275,6 +275,40 @@ def test_a_boost_never_brings_figures_of_its_own(monkeypatch):
     assert bullet.id not in result.edits
 
 
+def test_a_tool_the_cv_never_names_is_refused_until_the_candidate_states_it(monkeypatch):
+    doc = _load("cv.pdf")
+    bullet = _by_text(doc, "Wrote SQL and dbt")
+    stakeholders = _by_text(doc, "Designed and analysed A/B tests")
+    monkeypatch.setattr(llm, "ask", lambda *a, **k: (_answer([
+        {"id": bullet.id, "text": bullet.text.replace("SQL and dbt", "dbt on Kubernetes"),
+         "reason": "x"},
+        {"id": stakeholders.id, "text": stakeholders.text.replace("presented", "used stakeholder "
+                                                                  "management to present"),
+         "reason": "x"},
+    ], reply="Done."), "stub"))
+    first = rewrite.tailor(doc, JOB)
+    assert bullet.id not in first.edits
+    assert any("kubernetes" in d["why"] for d in first.report["dropped"])
+    assert stakeholders.id in first.edits, "a way of working may be put in the advert's words"
+
+    revised = rewrite.revise(doc, JOB, first.edits, first.reasons,
+                             "I ran those pipelines on Kubernetes.", first.report["keywords"])
+    assert "Kubernetes" in revised.edits[bullet.id]
+
+
+def test_a_word_limiting_a_claim_is_never_dropped(monkeypatch):
+    doc = _load("cv.txt")
+    target = next(p for p in doc.paragraphs if not p.locked and p.kind != "heading")
+    original = target.text
+    target.text = original.rstrip(".") + ", with a First Class Honours equivalent degree."
+    monkeypatch.setattr(llm, "ask", lambda *a, **k: (_answer([
+        {"id": target.id, "text": target.text.replace(" equivalent", ""), "reason": "x"}]), "stub"))
+    result = rewrite.tailor(doc, JOB)
+    target.text = original
+    assert target.id not in result.edits
+    assert any("equivalent" in d["why"] for d in result.report["dropped"])
+
+
 def test_keyword_matching_forgives_word_forms_not_meaning():
     assert ats._has("A/B testing", "ran a/b tests every week")
     assert ats._has("optimisation", "optimized the models")

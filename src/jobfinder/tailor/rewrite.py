@@ -10,6 +10,9 @@ Its answer is then checked rather than trusted:
 * edits to locked or unknown paragraphs are discarded;
 * an edit that introduces a figure the CV never stated is discarded - no invented
   percentages, team sizes or years - unless the candidate gave that figure themselves;
+* so is one that names a tool, language or certificate the CV never mentions, unless
+  the candidate said they have it, and one that drops a word limiting a claim, such as
+  the "equivalent" in "First Class Honours equivalent";
 * every surviving sentence is linted and proofread;
 * the file is rebuilt and read back, and the score is taken from what an ATS would read,
   not from what the model says it wrote.
@@ -22,6 +25,7 @@ import time
 from dataclasses import dataclass, field
 
 from jobfinder.core.config import settings
+from jobfinder.normalize.taxonomy import extract_skills
 from jobfinder.tailor import ats, llm, proofread
 from jobfinder.tailor.document import CvDocument, bold_phrases, mark, plain, text_of
 
@@ -157,6 +161,24 @@ _REQUIREMENTS = re.compile(
     re.I,
 )
 
+# Known skills that name a way of working rather than a tool, so the advert's word for
+# one may describe experience the CV shows in other words. Any other known skill in an
+# edit - a language, a framework, a certificate - must be in the CV already.
+_DESCRIBED = {
+    "agile", "assessment", "benchmarking", "budgeting", "business case", "change management",
+    "copywriting", "customer service", "data modelling", "editing", "experimental design",
+    "experimentation", "forecasting", "gap analysis", "hiring", "interviewing", "interviews",
+    "kpi", "market research", "mentoring", "negotiation", "onboarding", "optimisation",
+    "pipeline", "prioritisation", "process mapping", "prototyping", "regression",
+    "report writing", "reporting", "requirements gathering", "risk assessment", "roadmap",
+    "root cause analysis", "simulation", "stakeholder engagement", "stakeholder management",
+    "statistics", "storytelling", "surveys", "test automation", "time series",
+    "training delivery", "triage", "troubleshooting", "user stories", "validation",
+} | ats._AMBIGUOUS
+# Words that limit a claim. A rewrite that loses one claims more than the CV does.
+_QUALIFIERS = re.compile(r"\b(equivalent|expected|predicted|provisional|anticipated|pending|"
+                         r"ongoing|in progress|partial)\b", re.I)
+
 
 class TailorError(RuntimeError):
     """Tailoring could not be done; the message is for the candidate."""
@@ -231,10 +253,14 @@ def _relabels(text: str, title: str, cv_text: str) -> bool:
 
 
 def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str],
-              title: str = "") -> tuple[dict, dict, list]:
-    """Keep the edits that follow the rules; say why the others were dropped."""
+              title: str = "", stated: str = "") -> tuple[dict, dict, list]:
+    """Keep the edits that follow the rules; say why the others were dropped.
+
+    `stated` is what the candidate has told us themselves: tools named there may be used.
+    """
     by_id = document.by_id
     cv_text = document.text()
+    known = extract_skills(cv_text + "\n" + stated) | _DESCRIBED
     kept, reasons, dropped, removals = {}, {}, [], []
     for edit in answer.get("edits") or []:
         pid = str(edit.get("id", "")).strip().strip("[]")
@@ -257,6 +283,17 @@ def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str],
         if invented:
             dropped.append({"id": pid, "why": "it added a figure your CV does not state ("
                             + ", ".join(sorted(invented)) + ")"})
+            continue
+        new_skills = extract_skills(plain(text)) - known
+        if new_skills:
+            dropped.append({"id": pid, "why": "it named something your CV does not mention ("
+                            + ", ".join(sorted(new_skills)) + "); tell us if you have used it"})
+            continue
+        lost = {q.lower() for q in _QUALIFIERS.findall(paragraph.text)} \
+            - {q.lower() for q in _QUALIFIERS.findall(plain(text))}
+        if lost:
+            dropped.append({"id": pid, "why": "it dropped \"" + '", "'.join(sorted(lost))
+                            + "\", which limits what that line claims"})
             continue
         if paragraph.kind != "bullet" and _relabels(plain(text), title, cv_text):
             dropped.append({"id": pid, "why": "it opened with the advert's job title, "
@@ -387,7 +424,9 @@ def revise(document: CvDocument, job: Job, current: dict[str, str], reasons: dic
             "The free writing service is busy right now. Please try again in a minute."
         ) from exc
     allowed = _numbers(document.text()) | _numbers(request) | _numbers(" ".join(earlier_requests or []))
-    changed, new_reasons, dropped = _validate(document, answer, allowed, job.title)
+    # Earlier edits passed these checks already, so what they name counts as stated.
+    stated = "\n".join([request, *(earlier_requests or []), *current.values()])
+    changed, new_reasons, dropped = _validate(document, answer, allowed, job.title, stated)
     merged = {**current, **changed}
     merged_reasons = {**reasons, **new_reasons}
     # A paragraph returned to its original wording is no longer an edit.
@@ -440,7 +479,8 @@ def boost(document: CvDocument, job: Job, current: dict[str, str], reasons: dict
             "The free writing service is busy right now. Please try again in a minute."
         ) from exc
     # A boost never brings its own facts: only figures the CV already states.
-    changed, new_reasons, dropped = _validate(document, answer, _numbers(document.text()), job.title)
+    changed, new_reasons, dropped = _validate(document, answer, _numbers(document.text()), job.title,
+                                              "\n".join(current.values()))
     merged = {**current, **changed}
     merged = {pid: text for pid, text in merged.items() if plain(text) != document.by_id[pid].text}
     return _finish(document, job, merged, {**reasons, **new_reasons}, answer,
