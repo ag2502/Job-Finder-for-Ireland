@@ -31,7 +31,7 @@
       <label class="newonly" title="{{ 'Jobs we found after your last visit ' ~ since_label if since else 'Jobs we found in the last day' }}">
         <input type="checkbox" name="new_only" value="1" {% if new_only %}checked{% endif %}
                hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
-               hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+               hx-swap="innerHTML transition:true" hx-trigger="change" hx-indicator="#search-loading, #results .resultswin">
         <span class="stamp">{{ new_count }} new{% if since %} since your last visit{% endif %}</span>
         <span class="newonly__do">{{ "show all" if new_only else "show only these" }}</span>
       </label>
@@ -41,7 +41,7 @@
              title="{{ applied_count }} job{{ '' if applied_count == 1 else 's' }} you have applied to">
         <input type="checkbox" name="show_applied" value="1" {% if show_applied %}checked{% endif %}
                hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
-               hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+               hx-swap="innerHTML transition:true" hx-trigger="change" hx-indicator="#search-loading, #results .resultswin">
         show applied
       </label>
       {% endif %}
@@ -54,7 +54,7 @@
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
-              hx-swap="innerHTML" hx-indicator="#search-loading, #results">Show all</button>
+              hx-swap="innerHTML transition:true" hx-indicator="#search-loading, #results .resultswin">Show all</button>
       <br>
     {% endif %}
     {% if candidate_years is not none and not early_only %}
@@ -103,7 +103,7 @@
     <span class="rstick__sortlabel">Sort</span>
     <select name="sort" aria-label="Sort results"
             hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
-            hx-swap="innerHTML show:#results:top" hx-trigger="change" hx-indicator="#search-loading, #results">
+            hx-swap="innerHTML transition:true" hx-trigger="change" hx-indicator="#search-loading, #results .resultswin">
       {% for key, label in sorts.items() %}
       <option value="{{ key }}" {% if (profile.sort if profile else "relevance") == key %}selected{% endif %}>{{ label }}</option>
       {% endfor %}
@@ -126,8 +126,8 @@
    sheet layout applies; `apply` is what Show jobs fires. #}
 <div class="rbar" id="rbar" role="group" aria-labelledby="rbar-title"
      hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
-     hx-swap="innerHTML show:#results:top" hx-trigger="change[!rbarHeld], apply"
-     hx-indicator="#search-loading, #results">
+     hx-swap="innerHTML transition:true" hx-trigger="change[!rbarHeld], apply"
+     hx-indicator="#search-loading, #results .resultswin">
   <div class="rbar__head">
     <h2 class="rbar__title" id="rbar-title">Filters</h2>
     <button type="button" class="rbar__close" data-filters-close aria-label="Close filters">

@@ -334,6 +334,9 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), the
 ### Loading
 While a search or a filter change runs, the results window gives way to a skeleton of itself: the same window titled "results: sorting", a grey heading bar, and seven rows of rounded grey shapes where the logo, employer, title, chips and Apply will be, with a soft sheen passing down them a row at a time (no sheen with reduced motion). The beach-ball pill still floats above. Show more keeps the list and spins its own ball.
 
+### Moving rows
+Changing a list already on screen (a field tab, the company, a picker, Sort, List or By company, show applied, only new) keeps the list, dimmed to 62% while it works, then moves each row still in the list from where it was to where it now is over 0.42s (view transitions), with arriving rows fading in and leaving ones fading out. Switching List to By company carries each role into its employer's card. Deep in a long list the page first jumps to the top of the results, so the move happens where it can be seen. Only rows near the screen take part. A new search from the form is a new list and gets the skeleton instead. Browsers without view transitions, and reduced motion, swap instantly.
+
 ### New since your last visit
 Beside the results heading, a green pill counts what is new ("12 new since your last visit", or "12 new" for the last day when signed out) with an aqua underlined "show only these" beside it; ticked, the pill fills solid green and the list keeps only those. Each such row carries the small green "new" pill. It stays out of the address, since new means new to this person.
 

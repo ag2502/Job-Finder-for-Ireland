@@ -749,6 +749,20 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
    way (finder.html), so the page says "results are coming" rather than dimming what is
    about to be replaced. Show more has its own indicator and never hides the list. */
 #results.htmx-request{display:none}
+/* A change to a list already on screen (a filter, the order, the layout) keeps it, dimmed,
+   and then moves the rows to where they belong: see the view transitions in finder.html. */
+#results .resultswin{transition:opacity .2s var(--ease)}
+#results .resultswin.htmx-request{opacity:.62;pointer-events:none}
+.js .filing.filed-now{opacity:1;transform:none;transition:none}
+
+/* The rows' own moves. Each row on screen carries its job's name for the change, so the
+   same job glides from where it was to where it now is; rows arriving fade in, leaving
+   ones fade out, and everything else cross-fades. */
+::view-transition-group(*){animation-duration:.42s;animation-timing-function:cubic-bezier(.2,.9,.25,1)}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.22s}
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none!important}
+}
 .skel{display:none}
 #results.htmx-request + .skel{display:block}
 

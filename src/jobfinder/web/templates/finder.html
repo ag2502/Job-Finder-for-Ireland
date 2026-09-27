@@ -1131,6 +1131,45 @@
     });
   })();
 
+  // Changing a list already on screen moves its rows rather than redrawing it. The
+  // results swaps carry `transition:true`; this names the rows on screen before and
+  // after, by job, so the browser can match each one to itself. Only rows near the
+  // screen are named: a list that has loaded several hundred would otherwise have every
+  // one of them captured for an animation nobody can see.
+  (function () {
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var morphing = false;
+    function nameOnScreen() {
+      var h = window.innerHeight;
+      Array.prototype.forEach.call(document.querySelectorAll('#result-list [data-job]'), function (el) {
+        var r = el.getBoundingClientRect();
+        el.style.viewTransitionName = r.bottom > -80 && r.top < h + 80 ? 'j' + el.getAttribute('data-job') : '';
+      });
+    }
+    // Deep in the list, go to its top first, so the move happens where it can be seen.
+    document.body.addEventListener('htmx:beforeSwap', function (e) {
+      if (!e.detail.target || e.detail.target.id !== 'results') return;
+      var win = document.querySelector('#results .resultswin');
+      if (!win) return;
+      var top = win.getBoundingClientRect().top;
+      if (top < 0) window.scrollTo({ top: top + window.scrollY - 60, behavior: 'instant' });
+    });
+    document.body.addEventListener('htmx:beforeTransition', function (e) {
+      if (reduced.matches) { e.preventDefault(); return; }
+      morphing = true;
+      nameOnScreen();
+    });
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (!morphing || !e.detail.target || e.detail.target.id !== 'results') return;
+      morphing = false;
+      // Rows arrive already in place: the transition is their entrance, not the fade.
+      Array.prototype.forEach.call(document.querySelectorAll('#results .filing'), function (el) {
+        el.classList.add('filed-in', 'filed-now');
+      });
+      nameOnScreen();
+    });
+  })();
+
   // Counts roll from the old total to the new one when a search or filter changes it,
   // so "268" becoming "82" reads as the same list narrowing rather than a new page.
   (function () {

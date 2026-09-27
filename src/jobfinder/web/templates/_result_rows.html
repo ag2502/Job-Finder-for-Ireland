@@ -26,7 +26,7 @@
       {% if loop.index == 2 %}<details class="cocard__more"><summary>{{ part|length }} more role{{ "" if part|length == 1 else "s" }}</summary>{% endif %}
       <ul class="cocard__roles">
         {% for row in part %}
-        <li class="corole">
+        <li class="corole" data-job="{{ row.job.id }}">
           <div class="corole__main">
             <a class="corole__title" href="{{ row.job.url }}" target="_blank" rel="noopener">{{ row.job.title }}</a>
             <span class="corole__meta">
