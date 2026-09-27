@@ -3,7 +3,7 @@
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar %}
-{% set filtered = facet or company or mode %}
+{% set filtered = facet or company or mode or paid %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 
@@ -39,7 +39,7 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}</strong>,
+      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}</strong>,
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
@@ -82,11 +82,11 @@
 {# The bar that stays: how many, the order, and a way back to the filters from anywhere
    down the list. It sticks under the menu bar for as long as the results are on screen.
    Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
-{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) %}
+{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) %}
 <div class="rstick">
   <p class="rstick__count">
     <b>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -169,6 +169,11 @@
         <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
         {% endfor %}
       </select>
+    </label>
+    <label class="switch switch--sm rbar__paid">
+      <input type="checkbox" name="paid" value="1" {% if paid %}checked{% endif %}>
+      <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+      States a salary
     </label>
   </div>
 
@@ -261,7 +266,8 @@
   .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
-  .rbar__stated{display:flex;align-items:center;gap:12px;flex:1 1 100%;flex-wrap:wrap}
+  .rbar__stated{display:flex;align-items:center;gap:12px 22px;flex:1 1 100%;flex-wrap:wrap}
+  .rbar__paid{margin:0;font-size:13.5px;font-weight:600;color:var(--ink-2)}
   /* The sheet's own heading and buttons, for phones only. */
   .rbar__head,.rbar__foot{display:none}
 
@@ -365,6 +371,8 @@
   .chip--skill{background:var(--aqua-wash);border-color:#d6e4ff;color:var(--aqua-deep)}
   .chip--more{font-family:var(--mono);font-weight:500}
   .chip--level{color:var(--ink);font-weight:600}
+  /* Pay, as the advert states it: the one figure people scan for, so it reads first. */
+  .chip--pay{color:var(--ink);font-weight:650;background:#fff;border-color:var(--line-strong)}
   .chips .stamp{padding:2px 9px;font-size:11.5px}
 
   /* How high the job ranks in this search: three bars, like signal strength. */

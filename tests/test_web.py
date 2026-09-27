@@ -1046,3 +1046,21 @@ def test_the_work_mode_picker_narrows_to_what_adverts_state(client):
     bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "mode": "moon"},
                         headers={"HX-Request": "true"})
     assert total(bogus) == total(everything)
+
+
+def test_states_a_salary_keeps_only_adverts_that_give_one(client):
+    paid = client.post("/search", data={"chosen_fields": ["software-engineering"], "paid": "1"},
+                       headers={"HX-Request": "true"})
+    rows = re.findall(r'<article class="record.*?</article>', paid.text, re.S)
+    assert all("chip--pay" in row for row in rows)
+    assert "paid=1" in paid.headers["HX-Push-Url"]
+
+
+def test_the_job_panel_says_when_pay_is_not_stated(client):
+    from jobfinder.normalize.facts import salary
+
+    job_id = _a_live_job_id()
+    if job_id is None:
+        pytest.skip("no live job in this database")
+    panel = client.get(f"/jobs/{job_id}", headers={"HX-Request": "true"}).text
+    assert "<dt>Salary</dt>" in panel and "<dt>Work mode</dt>" in panel

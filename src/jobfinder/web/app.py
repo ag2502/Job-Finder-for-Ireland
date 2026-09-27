@@ -247,7 +247,8 @@ RERUN_BASE = (
 # The filter bar rides along with paging and re-sorting, but a new search from the form
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
-    ", #results input[name=facet], #results select[name=company], #results select[name=mode]"
+    ", #results input[name=facet], #results select[name=company], #results select[name=mode],"
+    " #results input[name=paid]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
@@ -753,7 +754,7 @@ URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
     "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
-    "view": "view", "mode": "mode",
+    "view": "view", "mode": "mode", "paid": "paid",
 }
 
 
@@ -783,6 +784,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("view", context["view"]))
     if context.get("mode"):
         pairs.append(("mode", context["mode"]))
+    if context.get("paid"):
+        pairs.append(("paid", "1"))
     return "/?" + urlencode(pairs)
 
 
@@ -836,6 +839,7 @@ async def search(
     company: str | None = Form(default=None),
     view: str | None = Form(default=None),
     mode: str | None = Form(default=None),
+    paid: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -843,7 +847,7 @@ async def search(
         "internships_only": internships_only, "graduate_only": graduate_only,
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
-        "mode": mode,
+        "mode": mode, "paid": paid,
     }
     return _search(request, form, page=page, more=bool(more))
 
@@ -948,6 +952,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             company=form.get("company") or None,
             view=form.get("view"),
             mode=form.get("mode") or None,
+            paid=bool(form.get("paid")),
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -991,6 +996,7 @@ def _job_view(session, job: JobPosting) -> dict:
         "place": _short_place(job.location_raw),
         "experience": _experience_label(job),
         "mode": _facts_for(job)["mode"],
+        "salary": _facts_for(job)["salary"],
         "blocks": advert.blocks(job.description),
     }
 
@@ -1351,6 +1357,7 @@ def _facts_for(job: JobPosting) -> dict:
         return hit[1]
     found = {
         "mode": advert_facts.work_mode(text, is_remote=job.is_remote),
+        "salary": advert_facts.salary(text),
     }
     _FACTS[job.id] = (key, found)
     return found
@@ -1376,6 +1383,7 @@ def _search_results(
     company: str | None = None,
     view: str | None = None,
     mode: str | None = None,
+    paid: bool = False,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1492,6 +1500,8 @@ def _search_results(
                     "job": job,
                     # How the advert says the work is done, or None where it does not.
                     "mode": stated["mode"],
+                    # The pay the advert states, or None: never an estimate.
+                    "salary": stated["salary"],
                     "company": companies.get(job.company_id, "Unknown"),
                     "domain": domains.get(job.company_id, ""),
                     "score": entry.score,
@@ -1560,6 +1570,8 @@ def _search_results(
         total_search = len(items)
         if mode:
             items = [i for i in items if i["mode"] and i["mode"].kind == mode]
+        if paid:
+            items = [i for i in items if i["salary"]]
 
         total_all = len(items)
         known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}
@@ -1688,6 +1700,7 @@ def _search_results(
         "facet": facet,
         "company": company,
         "mode": mode,
+        "paid": paid,
         "work_modes": WORK_MODES,
         "page": page,
         "pages": max(1, (len(units) + per_page - 1) // per_page),

@@ -32,6 +32,7 @@
             <span class="corole__meta">
               {{- row.age -}}
               {%- if row.experience %} &middot; {{ row.experience }}{% endif -%}
+              {%- if row.salary %} &middot; {{ row.salary.chip }}{% endif -%}
               {%- if row.mode %} &middot; {{ row.mode.label }}{% endif -%}
               {%- if row.also %} &middot; {{ row.also|length + 1 }} openings{% endif -%}
             </span>
@@ -85,6 +86,7 @@
           {% if item.skills|length > 3 %}
           <li class="chip chip--skill chip--more" title="{{ item.skills[3:]|join(', ') }}">+{{ item.skills|length - 3 }}</li>
           {% endif %}
+          {% if item.salary %}<li class="chip chip--pay" title="{{ item.salary.text() }}, as the advert states it">{{ item.salary.chip }}</li>{% endif %}
           {% if item.experience %}<li class="chip chip--level">{{ item.experience }}</li>{% endif %}
           {% if item.mode %}<li class="chip chip--mode">{{ item.mode.label }}</li>{% endif %}
           {% if item.place %}<li class="chip chip--place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ item.place }}</li>{% endif %}

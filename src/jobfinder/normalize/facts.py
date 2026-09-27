@@ -89,3 +89,121 @@ def work_mode(description: str | None, *, is_remote: bool = False) -> WorkMode |
     if _ONSITE.search(text):
         return WorkMode(ONSITE)
     return None
+
+
+# ------------------------------------------------------------------------ salary
+
+# One amount in euro: "€55,000", "€76.000" (a European thousands point), "€71,440.00",
+# "€55k", "EUR 55,000", "55,000 EUR". Pounds and dollars are not read: every job here is
+# in Ireland, and a sterling figure in a Dublin advert is for somewhere else.
+_AMOUNT = (
+    r"(?:€|EUR)\s?(?P<{n}>\d{{1,3}}(?:[.,  ]\d{{3}})+(?:[.,]\d{{2}})?|\d+(?:[.,]\d+)?)\s?(?P<{n}k>[kK]\b)?"
+)
+_BARE = r"(?P<{n}>\d{{1,3}}(?:[.,  ]\d{{3}})+(?:[.,]\d{{2}})?|\d+(?:[.,]\d+)?)\s?(?P<{n}k>[kK]\b)?\s?(?:EUR\b)?"
+_RANGE = re.compile(
+    _AMOUNT.format(n="lo") + r"(?:\s?EUR\b)?"
+    + r"(?:\s*(?:-|–|—|to|and)\s*(?:" + _AMOUNT.format(n="hi") + r"(?:\s?EUR\b)?|"
+    + _BARE.format(n="hi2") + r"))?",
+)
+_AFTER_EUR = re.compile(
+    r"\b(?P<lo>\d{1,3}(?:[.,]\d{3})+)\s*(?:-|–|—|to)\s*(?P<hi>\d{1,3}(?:[.,]\d{3})+)\s*EUR\b"
+)
+# The sign after the figure, French style: "93 280,00 € - 139 920,00 €".
+_SIGN_AFTER = re.compile(
+    r"(?P<lo>\d{1,3}(?:[.\u202f\u00a0 ]\d{3})+(?:,\d{2})?)\s?\u20ac"
+    r"(?:\s*(?:-|\u2013|\u2014|to)\s*(?P<hi>\d{1,3}(?:[.\u202f\u00a0 ]\d{3})+(?:,\d{2})?)\s?\u20ac)?"
+)
+# Words that make a nearby figure a salary, and ones that make it anything but.
+_PAY_WORDS = re.compile(
+    r"salary|pay\b|pay range|compensation|remuneration|\bOTE\b|per annum|p\.a\.|annual|"
+    r"base\b|package|daily rate|hourly rate|day rate|wage|earn",
+    re.IGNORECASE,
+)
+_NOT_PAY = re.compile(
+    r"^\s*(?:/\s*£?\d+\s*)?(?:m\b|bn\b|million|billion|revenue|turnover|in funding|funding|raised|"
+    r"investment|assets|of revenue)",
+    re.IGNORECASE,
+)
+_ELSEWHERE = re.compile(
+    r"^[\s,.;:)(-]*(?:EUR\s*)?(?:germany|france|spain|netherlands|poland|portugal|italy|"
+    r"belgium|austria|switzerland|sweden|denmark|finland|norway|czech|romania|"
+    r"united kingdom|\buk\b|london|berlin|munich|amsterdam|paris|madrid|barcelona|lisbon|"
+    r"warsaw|prague|united states|\bus\b|usa|canada|singapore|india)",
+    re.IGNORECASE,
+)
+
+YEAR, DAY, HOUR = "year", "day", "hour"
+_PLAUSIBLE = {YEAR: (15_000, 600_000), DAY: (80, 3_000), HOUR: (10, 300)}
+
+
+@dataclass(frozen=True)
+class Salary:
+    low: int
+    high: int
+    period: str = YEAR
+    ote: bool = False
+
+    def _money(self, value: int, short: bool) -> str:
+        if short and self.period == YEAR and value >= 1000:
+            return f"€{value / 1000:.0f}k" if value % 1000 == 0 or value >= 100_000 else f"€{value / 1000:.1f}k"
+        return f"€{value:,}"
+
+    def text(self, short: bool = False) -> str:
+        """"€55,000 to €75,000 a year", or "€55k to €75k" for a chip."""
+        amount = self._money(self.low, short)
+        if self.high != self.low:
+            amount += " to " + self._money(self.high, short)
+        if not short or self.period != YEAR:
+            amount += " an hour" if self.period == HOUR else f" a {self.period}"
+        return amount + (" OTE" if self.ote else "")
+
+    @property
+    def chip(self) -> str:
+        return self.text(short=True)
+
+
+def _euros(number: str, thousands: str | None) -> float:
+    if re.fullmatch(r"\d{1,3}(?:[.,  ]\d{3})+(?:[.,]\d{2})?", number):
+        if re.search(r"[.,]\d{2}$", number) and not re.search(r"[.,]\d{3}$", number):
+            number = number[:-3]  # drop the cents: "71,440.00"
+        value = float(re.sub(r"[.,  ]", "", number))
+    else:
+        value = float(number.replace(",", "."))
+    return value * 1000 if thousands else value
+
+
+def salary(description: str | None) -> Salary | None:
+    """The pay the advert states for this job in Ireland, or None when it states none.
+
+    A figure only counts with a pay word near it (salary, pay range, OTE, per annum...),
+    so revenue, funding and fees quoted in an employer's blurb are never read as pay. A
+    range labelled for another country is passed over for the one labelled Ireland, or
+    for nothing.
+    """
+    text = " ".join((description or "").split())
+    if "€" not in text and "EUR" not in text:
+        return None
+    candidates = [(m.start(), m.end(), m.group("lo"), m.group("lok"), m.group("hi") or m.group("hi2"),
+                   m.group("hik") or m.group("hi2k")) for m in _RANGE.finditer(text)]
+    candidates += [(m.start(), m.end(), m.group("lo"), None, m.group("hi"), None)
+                   for pattern in (_AFTER_EUR, _SIGN_AFTER) for m in pattern.finditer(text)]
+    for start, end, lo, lok, hi, hik in sorted(candidates):
+        after = text[end:end + 60]
+        before = text[max(0, start - 120):start]
+        if _NOT_PAY.match(after) or _ELSEWHERE.match(after):
+            continue
+        if not (_PAY_WORDS.search(before) or re.match(r"\s*(?:OTE|per|a year|an hour|a day|p\.a\.)", after, re.I)):
+            continue
+        low = _euros(lo, lok)
+        high = _euros(hi, hik or lok) if hi else low
+        if high < low:
+            low, high = high, low
+        window = (after[:40]).lower()
+        period = HOUR if re.search(r"\b(?:per|an|a|/)\s?hour|hourly", window + before[-30:].lower()) else (
+            DAY if re.search(r"\b(?:per|a|/)\s?day\b|daily|day rate", window + before[-30:].lower()) else YEAR)
+        floor, ceiling = _PLAUSIBLE[period]
+        if not (floor <= low <= ceiling and floor <= high <= ceiling) or high > low * 4:
+            continue
+        ote = bool(re.search(r"\bOTE\b|on[- ]target", before[-80:] + after[:30], re.IGNORECASE))
+        return Salary(round(low), round(high), period, ote)
+    return None

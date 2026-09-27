@@ -70,6 +70,10 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   report, and a suggestion loop; kept versions live under Tailored CVs, apart from the CV
   searches rank on. Free models only (Gemini, Groq), and the project is AGPL for PyMuPDF.
 - Ranking against a vocabulary learned from the job corpus, not a hardcoded skill list.
+- What an advert states in its own prose (2026-09-27): the salary (146 of 1,048 Dublin
+  adverts) and the work mode (311), read by rules that need a pay word or a working
+  pattern word beside the figure, so revenue, funding and "hybrid cloud" never count.
+  Unstated reads "Not stated"; nothing is estimated.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
 - An employer directory covering the whole registry, including employers that cannot be

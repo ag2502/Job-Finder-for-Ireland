@@ -908,6 +908,7 @@
         var all = b.querySelector('input[name="facet"][value=""]'); if (all) all.checked = true;
         var list = b.querySelector('input[name="view"][value="list"]'); if (list) list.checked = true;
         Array.prototype.forEach.call(b.querySelectorAll('select'), function (sel) { sel.value = ''; });
+        Array.prototype.forEach.call(b.querySelectorAll('input[type=checkbox]'), function (c) { c.checked = false; });
       }
     });
     document.addEventListener('keydown', function (e) {
