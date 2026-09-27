@@ -1,34 +1,11 @@
 {# The results window: one row per opening, company logo first.
    Rendered standalone for HTMX swaps and inlined on a full page load. #}
-{#
-  What the sort and paging controls re-submit. File inputs are left out on purpose:
-  these controls sit outside the form, so htmx url-encodes them and a selected file
-  would go up as the string "[object File]", which the server rejects with a 422 that
-  htmx then silently declines to swap. The form has none today, since the CV lives on
-  the profile, and the exclusion keeps it that way if one returns.
-  The sort select is named explicitly because it sits outside the form, and without it
-  paging would quietly revert to "Best match". Selects inside the form are listed too:
-  when years of experience became a list, paging stopped sending it, and page two of a
-  "0 years" search silently became a search of every level (81 jobs, then 244).
-#}
+{# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
+   web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar %}
-{% set rerun_base = "#finder-form input:not([type=file]), #finder-form select, #results select[name=sort], #results input[name=show_applied], #results input[name=view]" %}
-{# The filter bar rides along with paging and re-sorting, but a new search from the form
-   starts unfiltered, since the form does not include it. #}
-{% set rerun_include = rerun_base ~ ", #results input[name=facet], #results select[name=company]" %}
 {% set filtered = facet or company %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
-{# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
-{% set tier_bands = {
-     0: "In the fields you picked",
-     1: "Where your CV points",
-     2: "Closely related roles",
-     3: "A sideways move into another field",
-     4: ("Every other " ~ ("internship and graduate job" if internships_only and graduate_only
-          else ("internship" if internships_only else "graduate job")) ~ " open now")
-        if early_only else "Matched on your skills, not your fields",
-   } %}
 
 <div class="win resultswin">
 {{ titlebar("results: " ~ ("{:,}".format(total_all|default(total))) ~ " found") }}
@@ -154,136 +131,14 @@
 </div>
 
 {% if view == "company" and groups %}
-{# A card per employer, in the order its best role ranks. Three roles show; the rest
-   fold away, so a company with fifty openings takes no more room than one with five. #}
+{# A card per employer, in the order its best role ranks. #}
 <div class="cogrid" id="result-list">
-  {% for card in groups %}
-  <section class="cocard filing" aria-label="{{ card.company }}">
-    <header class="cocard__head">
-      {{ logo(card.company, card.domain) }}
-      <div class="cocard__who">
-        <h3 class="cocard__name">{{ card.company }}</h3>
-        <span class="cocard__count">{{ card.openings }} job{{ "" if card.openings == 1 else "s" }}</span>
-      </div>
-      <span class="meter" data-level="{{ card.strength }}" title="Best role here: {{ card.strength_label|lower }}">
-        <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
-      </span>
-    </header>
-    {% for part in [card.rows[:3], card.rows[3:]] if part %}
-      {% if loop.index == 2 %}<details class="cocard__more"><summary>{{ part|length }} more role{{ "" if part|length == 1 else "s" }}</summary>{% endif %}
-      <ul class="cocard__roles">
-        {% for row in part %}
-        <li class="corole">
-          <div class="corole__main">
-            <a class="corole__title" href="{{ row.job.url }}" target="_blank" rel="noopener">{{ row.job.title }}</a>
-            <span class="corole__meta">
-              {{- row.age -}}
-              {%- if row.experience %} &middot; {{ row.experience }}{% endif -%}
-              {%- if row.job.is_remote %} &middot; remote{% endif -%}
-              {%- if row.also %} &middot; {{ row.also|length + 1 }} openings{% endif -%}
-            </span>
-          </div>
-          <span class="corole__act">{% with it = row %}{% include "_apply_control.html" %}{% endwith %}</span>
-        </li>
-        {% endfor %}
-      </ul>
-      {% if loop.index == 2 %}</details>{% endif %}
-    {% endfor %}
-  </section>
-  {% endfor %}
+  {% include "_result_rows.html" %}
 </div>
 
 {% elif items %}
 <div class="filed" id="result-list">
-  {% for item in items %}
-    {% if tiered and band_counts|length > 1 and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
-    {# Everything above sits in a field that was actually pulled. Below are one hop
-       away - worth offering, never worth ranking above what was asked for - and the
-       hop itself is graded, because Data Science is next door to Machine Learning
-       and a graduate developer job is not. #}
-    <div class="guide">{{ tier_bands[item.tier] }}{% if loop.first and page > 1 %}, continued{% endif %}
-      <span class="guide__count">{{ "{:,}".format(band_counts[item.tier]) }}</span></div>
-    {% endif %}
-
-    <article class="record filing">
-      {{ logo(item.company, item.domain) }}
-      <div class="record__main">
-        <p class="record__top">
-          <span class="record__employer">{{ item.company }}</span>
-          {%- if item.age %}
-          <span class="record__age" title="{{ ('Posted ' ~ item.posted) if item.posted else 'This company does not publish a posting date, so this is when we first saw it' }}">
-            {{- item.age if item.posted else "seen " ~ item.age }}</span>
-          {%- endif %}
-        </p>
-        <h3 class="record__title">
-          <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
-        </h3>
-        {# Why it is here, as chips: the field (when more than one was in play), the
-           searcher's own skills the advert asks for, then the facts that decide
-           whether to open it at all. The full sentence stays on the meter. #}
-        <ul class="chips" aria-label="About this job">
-          {% if item.field and (show_field or item.tier > 0) %}
-          <li class="chip chip--field" style="--g:var(--g-{{ item.field.group }})">{{ item.field.label }}</li>
-          {% endif %}
-          {% for skill in item.skills[:3] %}<li class="chip chip--skill">{{ skill }}</li>{% endfor %}
-          {% if item.skills|length > 3 %}
-          <li class="chip chip--skill chip--more" title="{{ item.skills[3:]|join(', ') }}">+{{ item.skills|length - 3 }}</li>
-          {% endif %}
-          {% if item.experience %}<li class="chip chip--level">{{ item.experience }}</li>{% endif %}
-          {% if item.job.is_remote %}<li class="chip">remote</li>{% endif %}
-          {% if item.place %}<li class="chip chip--place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ item.place }}</li>{% endif %}
-          {% if item.is_new %}<li class="stamp">new</li>{% endif %}
-          {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
-        </ul>
-
-        {% if item.also %}
-        {# The same title at the same employer, folded under this row. Each is still its
-           own advert with its own Apply, since they are separate openings. #}
-        <details class="also">
-          <summary>{{ item.also|length + 1 }} openings with this title</summary>
-          <ul class="also__list">
-            {% for other in item.also %}
-            <li class="also__row">
-              <a href="{{ other.job.url }}" target="_blank" rel="noopener" class="also__what">
-                Opening {{ loop.index + 1 }}{% if other.place %}, {{ other.place }}{% endif -%}
-              </a>
-              <span class="record__age">{{ other.age }}</span>
-              <span class="also__act">
-                {% with it = other %}{% include "_apply_control.html" %}{% endwith %}
-              </span>
-            </li>
-            {% endfor %}
-          </ul>
-        </details>
-        {% endif %}
-      </div>
-
-      <div class="record__side">
-        <span class="meter" data-level="{{ item.strength }}" title="{{ item.strength_label }}: {{ item.why }}">
-          <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
-          <span class="meter__label">{{ item.strength_label }}</span>
-        </span>
-
-        <div class="record__actions">
-          {% if accounts_enabled %}
-            {% if account %}
-              {% with advert_key = item.advert_key, saved = item.saved,
-                      title = item.job.title, company = item.company, url = item.job.url %}
-                {% include "_saved_tag.html" %}
-              {% endwith %}
-            {% else %}
-              {# No account yet: Save is the same offer, it just needs one first. #}
-              <a class="savebtn" href="/login?next=/&amp;why=save" title="Sign in to save this for later">
-                <svg aria-hidden="true"><use href="#i-save"/></svg><span class="savebtn__label">Save</span>
-              </a>
-            {% endif %}
-          {% endif %}
-
-          {% with it = item %}{% include "_apply_control.html" %}{% endwith %}
-        </div>
-      </div>
-    </article>
-  {% endfor %}
+  {% include "_result_rows.html" %}
 </div>
 
 {% else %}
@@ -307,19 +162,6 @@
 </div>
 {% endif %}
 
-{% if pages > 1 and (items or groups) %}
-<div class="paging">
-  {% if page > 1 %}
-    <button class="secondary" hx-post="/search?page={{ page - 1 }}" hx-include="{{ rerun_include }}"
-       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Back</button>
-  {% else %}<span></span>{% endif %}
-  <span class="accession">Page {{ page }} of {{ pages }}</span>
-  {% if page < pages %}
-    <button class="secondary" hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
-       hx-target="#results" hx-swap="innerHTML" hx-indicator="#search-loading, #results">Next</button>
-  {% else %}<span></span>{% endif %}
-</div>
-{% endif %}
 </div>
 
 <style>
@@ -423,12 +265,16 @@
   .pick select{width:auto;max-width:220px;font-size:13.5px;padding:6px 30px 6px 11px}
   .filed{border-radius:0 0 var(--r-win) var(--r-win)}
   .filed .record:last-child{border-radius:0 0 var(--r-win) var(--r-win)}
-  .paging{
-    display:flex;align-items:center;justify-content:space-between;gap:18px;
-    padding:16px 22px;border-top:1px solid var(--line);background:var(--win-bar);
-    border-radius:0 0 var(--r-win) var(--r-win);
-  }
-  .paging button{padding:8px 18px;font-size:14px}
+  /* The end of what is loaded: fetches the next page as it comes into view. */
+  .more{display:flex;justify-content:center;align-items:center;padding:18px 16px 22px;
+    background:var(--win-bar);border-top:1px solid var(--line);border-radius:0 0 var(--r-win) var(--r-win)}
+  .cogrid .more{grid-column:1 / -1;background:none;border:0;padding:6px 0 0}
+  .more__btn{gap:12px;padding:9px 20px;font-size:14px}
+  .more__btn .accession{font-size:12px}
+  .more__busy{display:none;align-items:center;gap:10px;font-size:14px;font-weight:600;color:var(--ink-2)}
+  .more__busy .beachball{width:20px;height:20px}
+  .more.htmx-request .more__btn{display:none}
+  .more.htmx-request .more__busy{display:inline-flex}
   /* A row: who and when on one quiet line, the title, then why as chips. */
   .record__top{display:flex;align-items:baseline;gap:8px;margin:0 0 2px;min-width:0}
   .record__top .record__employer{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -505,8 +351,6 @@
   @media (max-width:860px){
     .drawerhead{padding:18px 16px 16px}
     .drawerhead .spread{gap:12px}
-    .paging{padding:12px 16px}
-    .paging button{flex:1}
     .cogrid{padding:12px;gap:12px}
     .corole{padding:11px 14px}
     .rbar{padding:12px 16px}

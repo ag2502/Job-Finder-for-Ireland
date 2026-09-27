@@ -228,6 +228,25 @@ def _no_em_dashes(value):
 
 templates.env.finalize = _no_em_dashes
 
+# What the results' own controls (filter bar, sort, Show more) re-submit to /search.
+# File inputs are left out on purpose: these controls sit outside the form, so htmx
+# url-encodes them and a selected file would go up as the string "[object File]", which
+# the server rejects with a 422 that htmx then silently declines to swap. The form has
+# none today, since the CV lives on the profile, and the exclusion keeps it that way.
+# The sort select is named explicitly because it sits outside the form, and without it
+# paging would quietly revert to "Best match". Selects inside the form are listed too:
+# when years of experience became a list, paging stopped sending it, and page two of a
+# "0 years" search silently became a search of every level (81 jobs, then 244).
+RERUN_BASE = (
+    "#finder-form input:not([type=file]), #finder-form select, "
+    "#results select[name=sort], #results input[name=show_applied], "
+    "#results input[name=view]"
+)
+# The filter bar rides along with paging and re-sorting, but a new search from the form
+# starts unfiltered, since the form does not include it.
+RERUN_INCLUDE = RERUN_BASE + ", #results input[name=facet], #results select[name=company]"
+templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
+
 
 def _profile(request: Request) -> dict | None:
     raw = request.session.get("profile")
@@ -709,6 +728,7 @@ async def search(
     facet: str | None = Form(default=None),
     company: str | None = Form(default=None),
     view: str | None = Form(default=None),
+    more: str | None = Form(default=None),
 ):
     previous_profile = _profile(request) or {}
 
@@ -804,9 +824,11 @@ async def search(
         )
     )
 
-    # HTMX asks for the table alone; a normal form post gets the whole page back.
+    # HTMX asks for the table alone; a normal form post gets the whole page back. Show
+    # more asks for less again: only the next page of rows, to go under the ones shown.
     if request.headers.get("HX-Request"):
-        return templates.TemplateResponse(request, "_results.html", context)
+        partial = "_result_rows.html" if more else "_results.html"
+        return templates.TemplateResponse(request, partial, context)
 
     context.update(_finder_context(request, stored))
     return templates.TemplateResponse(request, "finder.html", context)
@@ -1404,8 +1426,27 @@ def _search_results(
         page_groups = groups[start : start + per_page]
         shown = page_items or [row for card in page_groups for row in card["rows"]]
 
+    both = bool(profile.get("internships_only") and profile.get("graduate_only"))
     return {
         "items": page_items,
+        # Headings for the bands below what the searcher actually ticked. See
+        # ScoredJob.tier. The last page's final band, so a page fetched by Show more
+        # only opens a heading where the band really changes.
+        "tier_bands": {
+            rank.TIER_CHOSEN: "In the fields you picked",
+            rank.TIER_CV: "Where your CV points",
+            rank.TIER_NEAR: "Closely related roles",
+            rank.TIER_FAR: "A sideways move into another field",
+            rank.TIER_SKILLS: (
+                "Every other " + (
+                    "internship and graduate job" if both
+                    else "internship" if profile.get("internships_only") else "graduate job"
+                ) + " open now"
+            ) if early else "Matched on your skills, not your fields",
+        },
+        "prev_tier": rows_out[start - 1]["tier"] if view == "list" and 0 < start <= len(rows_out) else None,
+        "shown": min(start + per_page, len(units)),
+        "units_total": len(units),
         "total": total,
         "total_all": total_all,
         "facet_all": facet_all,

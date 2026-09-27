@@ -1048,7 +1048,9 @@ document.addEventListener('click', function (event) {
     });
   }
   fileIn(document);
-  document.body.addEventListener('htmx:afterSwap', function (e) { fileIn(e.target); opens(e.target); });
+  // The whole document, not the swap's target: Show more swaps its button out for the rows,
+  // so the target it reports has already left the page.
+  document.body.addEventListener('htmx:afterSwap', function () { fileIn(document); opens(document); });
 
   // Windows open as they scroll into view.
   var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {

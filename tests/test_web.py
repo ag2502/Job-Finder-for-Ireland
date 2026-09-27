@@ -836,3 +836,57 @@ def test_an_early_career_search_hides_no_graduate_job(client):
     assert len(set(totals.values())) == 1, totals
     page = client.post("/search", data={"chosen_fields": ["pharma"], "graduate_only": "1"}).text
     assert "in or near the fields you picked" in page
+
+
+# ------------------------------------------------------------------ show more
+
+
+def _record_titles(html: str) -> list[str]:
+    return re.findall(r'<h3 class="record__title">\s*<a [^>]*>([^<]+)</a>', html)
+
+
+def test_show_more_returns_the_next_rows_alone(client):
+    """The pager is gone: the rows end with Show more, which fetches the next page and
+    answers with those rows only, so nothing already on screen is sent again."""
+    first = client.post(
+        "/search", data={"chosen_fields": ["backend", "frontend", "data-engineering"]},
+        headers={"HX-Request": "true"},
+    )
+    if 'class="more"' not in first.text:
+        pytest.skip("one page of results in this database")
+    assert "Page 1 of" not in first.text
+    assert 'hx-trigger="click, intersect once"' in first.text
+
+    more = client.post(
+        "/search?page=2",
+        data={"chosen_fields": ["backend", "frontend", "data-engineering"], "more": "1"},
+        headers={"HX-Request": "true"},
+    )
+    assert more.status_code == 200
+    assert 'class="record' in more.text
+    # Rows only: no heading, filter bar or window around them.
+    assert "resultswin" not in more.text and 'class="rbar"' not in more.text
+    assert _record_titles(more.text) and _record_titles(more.text) != _record_titles(first.text)
+
+
+def test_a_band_heading_is_not_repeated_on_the_next_page():
+    """A page fetched by Show more opens a heading only where the band changes, so the
+    band the last page ended in does not get a second heading."""
+    from jobfinder.web.app import templates
+
+    item = {
+        "tier": 0, "company": "Acme", "domain": "", "age": "", "posted": None, "place": "",
+        "experience": None, "field": None, "skills": [], "is_new": False, "stretch": False,
+        "also": [], "strength": 3, "strength_label": "Strong match", "why": "",
+        "advert_key": "k", "applied": False, "saved": False,
+        "job": {"id": 1, "title": "Engineer", "url": "https://example.com", "is_remote": False},
+    }
+    context = dict(
+        view="list", items=[item], tiered=True, band_counts={0: 30, 1: 4},
+        tier_bands={0: "In the fields you picked", 1: "Where your CV points"},
+        page=2, pages=2, show_field=False, accounts_enabled=False, account=None,
+    )
+    continued = templates.get_template("_result_rows.html").render(prev_tier=0, **context)
+    assert "In the fields you picked" not in continued
+    changed = templates.get_template("_result_rows.html").render(prev_tier=None, **context)
+    assert "In the fields you picked" in changed

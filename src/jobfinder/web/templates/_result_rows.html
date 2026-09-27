@@ -1,0 +1,158 @@
+{# One page of results: rows in the list, or cards in the company view, then a Show more
+   that fetches the next page and replaces itself with it.
+
+   Rendered inside _results.html for the first page, and on its own for every page after:
+   Show more posts `more=1`, and the server answers with this template alone, so the
+   rows already on screen, and where the reader has scrolled to, are left alone.
+   The Back and Next pager it replaced sent the reader back to the top of a fresh page
+   every 25 jobs, which on a phone meant scrolling past the filter bar each time. #}
+{% from "_macros.html" import logo %}
+{% if view == "company" %}
+  {% for card in groups %}
+  <section class="cocard filing" aria-label="{{ card.company }}">
+    <header class="cocard__head">
+      {{ logo(card.company, card.domain) }}
+      <div class="cocard__who">
+        <h3 class="cocard__name">{{ card.company }}</h3>
+        <span class="cocard__count">{{ card.openings }} job{{ "" if card.openings == 1 else "s" }}</span>
+      </div>
+      <span class="meter" data-level="{{ card.strength }}" title="Best role here: {{ card.strength_label|lower }}">
+        <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+      </span>
+    </header>
+    {# Three roles show; the rest fold away, so a company with fifty openings takes no
+       more room than one with five. #}
+    {% for part in [card.rows[:3], card.rows[3:]] if part %}
+      {% if loop.index == 2 %}<details class="cocard__more"><summary>{{ part|length }} more role{{ "" if part|length == 1 else "s" }}</summary>{% endif %}
+      <ul class="cocard__roles">
+        {% for row in part %}
+        <li class="corole">
+          <div class="corole__main">
+            <a class="corole__title" href="{{ row.job.url }}" target="_blank" rel="noopener">{{ row.job.title }}</a>
+            <span class="corole__meta">
+              {{- row.age -}}
+              {%- if row.experience %} &middot; {{ row.experience }}{% endif -%}
+              {%- if row.job.is_remote %} &middot; remote{% endif -%}
+              {%- if row.also %} &middot; {{ row.also|length + 1 }} openings{% endif -%}
+            </span>
+          </div>
+          <span class="corole__act">{% with it = row %}{% include "_apply_control.html" %}{% endwith %}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% if loop.index == 2 %}</details>{% endif %}
+    {% endfor %}
+  </section>
+  {% endfor %}
+
+{% else %}
+  {% for item in items %}
+    {# A band heading wherever the band changes, including across a Show more: the
+       page before tells this one which band it ended in. #}
+    {% set before = items[loop.index0 - 1].tier if not loop.first else prev_tier %}
+    {% if tiered and band_counts|length > 1 and item.tier in tier_bands and item.tier != before %}
+    {# Everything above sits in a field that was actually pulled. Below are one hop
+       away - worth offering, never worth ranking above what was asked for - and the
+       hop itself is graded, because Data Science is next door to Machine Learning
+       and a graduate developer job is not. #}
+    <div class="guide">{{ tier_bands[item.tier] }}
+      <span class="guide__count">{{ "{:,}".format(band_counts[item.tier]) }}</span></div>
+    {% endif %}
+
+    <article class="record filing">
+      {{ logo(item.company, item.domain) }}
+      <div class="record__main">
+        <p class="record__top">
+          <span class="record__employer">{{ item.company }}</span>
+          {%- if item.age %}
+          <span class="record__age" title="{{ ('Posted ' ~ item.posted) if item.posted else 'This company does not publish a posting date, so this is when we first saw it' }}">
+            {{- item.age if item.posted else "seen " ~ item.age }}</span>
+          {%- endif %}
+        </p>
+        <h3 class="record__title">
+          <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
+        </h3>
+        {# Why it is here, as chips: the field (when more than one was in play), the
+           searcher's own skills the advert asks for, then the facts that decide
+           whether to open it at all. The full sentence stays on the meter. #}
+        <ul class="chips" aria-label="About this job">
+          {% if item.field and (show_field or item.tier > 0) %}
+          <li class="chip chip--field" style="--g:var(--g-{{ item.field.group }})">{{ item.field.label }}</li>
+          {% endif %}
+          {% for skill in item.skills[:3] %}<li class="chip chip--skill">{{ skill }}</li>{% endfor %}
+          {% if item.skills|length > 3 %}
+          <li class="chip chip--skill chip--more" title="{{ item.skills[3:]|join(', ') }}">+{{ item.skills|length - 3 }}</li>
+          {% endif %}
+          {% if item.experience %}<li class="chip chip--level">{{ item.experience }}</li>{% endif %}
+          {% if item.job.is_remote %}<li class="chip">remote</li>{% endif %}
+          {% if item.place %}<li class="chip chip--place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ item.place }}</li>{% endif %}
+          {% if item.is_new %}<li class="stamp">new</li>{% endif %}
+          {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
+        </ul>
+
+        {% if item.also %}
+        {# The same title at the same employer, folded under this row. Each is still its
+           own advert with its own Apply, since they are separate openings. #}
+        <details class="also">
+          <summary>{{ item.also|length + 1 }} openings with this title</summary>
+          <ul class="also__list">
+            {% for other in item.also %}
+            <li class="also__row">
+              <a href="{{ other.job.url }}" target="_blank" rel="noopener" class="also__what">
+                Opening {{ loop.index + 1 }}{% if other.place %}, {{ other.place }}{% endif -%}
+              </a>
+              <span class="record__age">{{ other.age }}</span>
+              <span class="also__act">
+                {% with it = other %}{% include "_apply_control.html" %}{% endwith %}
+              </span>
+            </li>
+            {% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
+
+      <div class="record__side">
+        <span class="meter" data-level="{{ item.strength }}" title="{{ item.strength_label }}: {{ item.why }}">
+          <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="meter__label">{{ item.strength_label }}</span>
+        </span>
+
+        <div class="record__actions">
+          {% if accounts_enabled %}
+            {% if account %}
+              {% with advert_key = item.advert_key, saved = item.saved,
+                      title = item.job.title, company = item.company, url = item.job.url %}
+                {% include "_saved_tag.html" %}
+              {% endwith %}
+            {% else %}
+              {# No account yet: Save is the same offer, it just needs one first. #}
+              <a class="savebtn" href="/login?next=/&amp;why=save" title="Sign in to save this for later">
+                <svg aria-hidden="true"><use href="#i-save"/></svg><span class="savebtn__label">Save</span>
+              </a>
+            {% endif %}
+          {% endif %}
+
+          {% with it = item %}{% include "_apply_control.html" %}{% endwith %}
+        </div>
+      </div>
+    </article>
+  {% endfor %}
+{% endif %}
+
+{% if page < pages %}
+{# Fetched as soon as it scrolls into view, and a plain button for anyone who reaches it
+   first by keyboard. "intersect", not "revealed": htmx 1.9 only watches elements whose
+   trigger is exactly "revealed", so paired with click it never fired. It carries the whole search, filter bar included, so the next
+   page is the next page of exactly what is on screen. #}
+<div class="more">
+  <button type="button" class="secondary more__btn"
+          hx-post="/search?page={{ page + 1 }}" hx-include="{{ rerun_include }}"
+          hx-vals='{"more": "1"}' hx-target="closest .more" hx-swap="outerHTML"
+          hx-trigger="click, intersect once" hx-indicator="closest .more">
+    Show more
+    <span class="accession">{{ "{:,}".format(shown) }} of {{ "{:,}".format(units_total) }}</span>
+  </button>
+  <span class="more__busy" role="status"><span class="beachball" aria-hidden="true"></span>Loading more jobs</span>
+</div>
+{% endif %}
