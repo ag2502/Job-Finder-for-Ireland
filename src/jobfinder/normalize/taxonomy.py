@@ -99,7 +99,9 @@ _add(Field(
     terms=("software engineer", "developer", "programmer", "swe", "full stack",
            "backend", "back end", "frontend", "front end", "engineer ii",
            "software development", "software dev", "sde", "dev engineer",
-           "applications engineer", "api engineer"),
+           "applications engineer", "api engineer", "full-stack", "sw engineer",
+           "product engineer", "forward deployed engineer", "systems development engineer",
+           "kernel engineer", "- software "),
     related=_near("backend", "frontend", "mobile", "engineering-management")
             + _far("devops", "qa", "embedded", "data-engineering", "security-engineering"),
     skills=("python", "java", "javascript", "typescript", "go", "golang", "rust",
@@ -163,7 +165,7 @@ _add(Field(
     key="devops",
     group="engineering",
     label="DevOps & SRE",
-    terms=("devops", "site reliability", "sre", "platform engineer",
+    terms=("devops", "dev ops", "site reliability", "sre", "platform engineer",
            "infrastructure engineer", "build engineer", "release engineer",
            "systems engineer"),
     related=_near("cloud")
@@ -178,7 +180,8 @@ _add(Field(
     group="engineering",
     label="Cloud Engineering & Architecture",
     terms=("cloud engineer", "cloud architect", "aws", "azure", "gcp",
-           "solutions architect", "cloud consultant"),
+           "solutions architect", "cloud consultant", "google cloud", "cloud platform",
+           "cloud infrastructure", "cloud support"),
     related=_near("devops") + _far("backend", "security-engineering", "network-engineering"),
     skills=("aws", "azure", "gcp", "terraform", "kubernetes", "serverless",
             "lambda", "cloudformation", "docker", "iam", "vpc", "well-architected",
@@ -189,7 +192,8 @@ _add(Field(
     group="engineering",
     label="Networks & Telecoms",
     terms=("network engineer", "network architect", "telecom", "voip",
-           "noc engineer", "wireless engineer", "rf engineer", "datacenter"),
+           "noc engineer", "wireless engineer", "rf engineer", "datacenter",
+           "network development"),
     related=_near("it-support", "cloud") + _far("devops", "security-engineering"),
     skills=("cisco", "ccna", "ccnp", "bgp", "ospf", "mpls", "juniper", "tcp/ip",
             "dns", "vpn", "sd-wan", "firewall", "wireshark", "5g", "lte"),
@@ -200,7 +204,10 @@ _add(Field(
     label="Security & Cybersecurity",
     terms=("security engineer", "cybersecurity", "infosec", "application security",
            "penetration test", "security analyst", "soc analyst", "security architect",
-           "threat intelligence", "incident response", "cyber security"),
+           "threat intelligence", "incident response", "cyber security",
+           "identity & access management", "iam engineer", "pki engineer",
+           # With the right side closed, since "siem" also heads "Siemens".
+           "siem ", "siem,", "siem)"),
     related=_near("devops", "cloud") + _far("network-engineering", "compliance", "backend"),
     skills=("siem", "splunk", "burp", "nmap", "owasp", "iso 27001", "soc 2",
             "penetration testing", "crowdstrike", "kali", "metasploit", "nessus",
@@ -255,7 +262,8 @@ _add(Field(
            # Graduate Programme". A bare "ai" would also catch "AI Sales Manager".
            "ai & data", "data & ai", "ai and data", "data and ai", "ai/ml",
            "applied ai", "ai automation", "ai architect", "ai specialist",
-           "ai scientist", "ai developer"),
+           "ai scientist", "ai developer", "genai", "ml science", "ai native sw",
+           "ai infrastructure engineer", "ai infrastructure architect", "(ai)"),
     related=_near("data-science", "data-engineering", "research-science")
             + _far("software-engineering"),
     skills=("pytorch", "tensorflow", "scikit-learn", "hugging face", "transformers",
@@ -531,7 +539,12 @@ _add(Field(
            "financial controller", "corporate finance", "portfolio analyst",
            # The bare word, for graduate schemes titled by area ("Finance Graduate
            # Pathways"). It cannot reach "financial", which is spelt differently.
-           "finance"),
+           "finance", "fund administ", "fund services", "investor services",
+           "equity analyst", "securities", "private equity", "capital markets",
+           # Never bare "investment": "Audio Investment" is a record label, and
+           # "Fidelity Investments" names the employer on its technology programme.
+           "investment associate", "investment management", "investment fund",
+           "investment bank", "investment product", "investment operations"),
     related=_near("accounting", "business-intelligence")
             + _far("audit-risk", "compliance", "operations", "quantitative-finance"),
     skills=("excel", "sap", "oracle financials", "netsuite", "hyperion", "vba",
@@ -544,7 +557,9 @@ _add(Field(
     label="Accounting & Tax",
     terms=("accountant", "accounts payable", "accounts receivable", "bookkeeper",
            "tax advisor", "tax manager", "payroll", "management accountant",
-           "financial reporting", "part qualified"),
+           "financial reporting", "part qualified",
+           # Bare "tax" for "Tax Graduate Programme"; the space keeps "taxi" out.
+           "tax ", "tax,"),
     related=_near("finance", "audit-risk") + _far("compliance", "operations"),
     skills=("acca", "aca", "cima", "cpa", "sage", "xero", "quickbooks", "excel",
             "ifrs", "gaap", "vat", "revenue online", "reconciliation",
@@ -556,7 +571,7 @@ _add(Field(
     label="Audit & Risk",
     terms=("auditor", "internal audit", "external audit", "risk analyst",
            "risk manager", "audit assurance", "operational risk", "credit risk",
-           "financial crime", "anti money laundering"),
+           "financial crime", "anti money laundering", "audit"),
     related=_near("accounting", "compliance") + _far("finance", "security-engineering"),
     skills=("acca", "aca", "iia", "coso", "sox", "risk register", "aml", "kyc",
             "internal controls", "audit planning", "basel", "actimize", "excel"),

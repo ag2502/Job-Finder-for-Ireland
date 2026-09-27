@@ -196,6 +196,11 @@ def test_a_far_match_is_described_as_a_sideways_move():
         ("AI Business Solution Sales Manager", "machine-learning"),
         ("AI Recruiter", "machine-learning"),
         ("Financial Services Graduate Programme", "finance"),  # "finance" is not "financial"
+        ("PLM Developer-Siemens Teamcenter", "security-engineering"),  # "siem"
+        ("Growth Account Executive, AI Native", "machine-learning"),
+        ("Negotiator, Audio Investment", "finance"),
+        ("Fidelity Investments - Technology Graduate Program - Dublin", "finance"),
+        ("Taxi Driver", "accounting"),
     ],
 )
 def test_broad_terms_do_not_capture_unrelated_titles(title, must_not_be):
@@ -224,6 +229,22 @@ def test_broad_terms_do_not_capture_unrelated_titles(title, must_not_be):
         ("Finance Graduate Pathways", "finance"),
         ("Accountancy/Finance Graduate Development Programme 2027", "finance"),
         ("Cyber Security Graduate Programme FY28", "security-engineering"),
+        # Unclassified on the live Dublin set, each in a field it plainly belongs to.
+        ("Full-Stack Engineer", "software-engineering"),
+        ("AI Native SW Engineer", "software-engineering"),
+        ("IT Graduate Development Programme 2027 - Software", "software-engineering"),
+        ("Staff Product Engineer, AI", "software-engineering"),
+        ("Senior ML Science Manager", "machine-learning"),
+        ("Forward Deployed Engineer, Google Cloud, GenAI", "machine-learning"),
+        ("Customer Engineer, Platform, Google Cloud, Ireland", "cloud"),
+        ("Network Development Engineer, Direct Connect", "network-engineering"),
+        ("Identity & Access Management (IAM) Engineer", "security-engineering"),
+        ("Senior Services Architect, Security-Cloud SIEM", "security-engineering"),
+        ("OmniPay Dev Ops Engineer", "devops"),
+        ("Tax Graduate Programme 2027", "accounting"),
+        ("2027 Audit Graduate Programme - Dublin", "audit-risk"),
+        ("Private Equity Fund Administration Analyst", "finance"),
+        ("Capital Markets Graduate Programme 2027", "finance"),
     ],
 )
 def test_the_new_fields_classify_the_titles_they_were_added_for(title, expected):
