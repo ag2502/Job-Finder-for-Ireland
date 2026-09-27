@@ -110,12 +110,12 @@
   <div class="facets" role="radiogroup" aria-label="Show one field">
     <label class="facet facet--all">
       <input type="radio" name="facet" value="" {% if not facet %}checked{% endif %}>
-      All <b>{{ "{:,}".format(facet_all) }}</b>
+      <span class="facet__face">All <b>{{ "{:,}".format(facet_all) }}</b></span>
     </label>
     {% for f in facets %}
     <label class="facet" style="--g:var(--g-{{ f.group }})">
       <input type="radio" name="facet" value="{{ f.key }}" {% if facet == f.key %}checked{% endif %}>
-      {{ f.label }} <b>{{ "{:,}".format(f.count) }}</b>
+      <span class="facet__face">{{ f.label }} <b>{{ "{:,}".format(f.count) }}</b></span>
     </label>
     {% endfor %}
   </div>
@@ -123,14 +123,14 @@
 
   <div class="rbar__picks">
     <div class="seg" role="radiogroup" aria-label="Lay out results">
-      <label class="seg__opt"><input type="radio" name="view" value="list" {% if view != "company" %}checked{% endif %}>List</label>
-      <label class="seg__opt"><input type="radio" name="view" value="company" {% if view == "company" %}checked{% endif %}>By company</label>
+      <label class="seg__opt"><input type="radio" name="view" value="list" {% if view != "company" %}checked{% endif %}><span>List</span></label>
+      <label class="seg__opt"><input type="radio" name="view" value="company" {% if view == "company" %}checked{% endif %}><span>By company</span></label>
     </div>
     {% if companies and companies|length > 1 %}
     <label class="pick">
       <span>Company</span>
       <select name="company">
-        <option value="">All {{ companies|length }} companies</option>
+        <option value="">All companies</option>
         {% for name, count in companies %}
         <option value="{{ name }}" {% if company == name %}selected{% endif %}>{{ name }} ({{ count }})</option>
         {% endfor %}
@@ -340,36 +340,41 @@
             mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
   }
   .facets::-webkit-scrollbar{display:none}
-  .facets:has(.facet:last-child:hover){-webkit-mask-image:none;mask-image:none}
-  .facet{
-    --g:var(--ink-3);
-    position:relative;flex:none;display:inline-flex;align-items:center;gap:7px;
+  /* State is read from the radio beside each face rather than with :has(), which
+     Firefox only gained in 121, and ESR 115 is still common on work machines. */
+  .facet{--g:var(--ink-3);position:relative;flex:none;display:inline-flex;cursor:pointer}
+  .facet__face{
+    display:inline-flex;align-items:center;gap:7px;
     padding:6px 12px;border-radius:999px;background:#fff;border:1px solid var(--line-strong);
-    font-size:13px;font-weight:550;color:var(--ink);white-space:nowrap;cursor:pointer;
+    font-size:13px;font-weight:550;color:var(--ink);white-space:nowrap;
     box-shadow:0 1px 2px rgba(20,24,33,.05);
     transition:transform .3s var(--spring),background .2s,border-color .2s,color .2s;
   }
-  .facet::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g)}
-  .facet--all::before{content:none}
+  .facet__face::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--g)}
+  .facet--all .facet__face::before{content:none}
   .facet b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
   .facet input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
-  .facet:hover{transform:translateY(-1px);border-color:#9aa2ae}
-  .facet:has(input:checked){background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:650}
-  .facet--all:has(input:checked){background:var(--ink);border-color:var(--ink);color:#fff}
-  .facet--all:has(input:checked) b{color:rgba(255,255,255,.72)}
-  .facet:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+  .facet:hover .facet__face{transform:translateY(-1px);border-color:#9aa2ae}
+  .facet input:checked + .facet__face{
+    background:#eef1f5;background:color-mix(in srgb,var(--g) 11%,#fff);
+    border-color:var(--g);font-weight:650;
+  }
+  .facet--all input:checked + .facet__face{background:var(--ink);border-color:var(--ink);color:#fff}
+  .facet--all input:checked + .facet__face b{color:rgba(255,255,255,.72)}
+  .facet input:focus-visible + .facet__face{outline:2.5px solid var(--aqua);outline-offset:2px}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
 
   /* List or cards: a segmented control, the white thumb on the one in use. */
   .seg{display:inline-flex;padding:3px;border-radius:999px;background:#e2e5ea;
     box-shadow:inset 0 1px 2px rgba(20,24,33,.1)}
-  .seg__opt{position:relative;padding:5px 13px;border-radius:999px;font-size:13px;font-weight:600;
-    color:var(--ink-2);cursor:pointer;white-space:nowrap;transition:background .2s,color .2s,box-shadow .25s var(--ease)}
+  .seg__opt{position:relative;display:flex;cursor:pointer}
+  .seg__opt span{flex:1;padding:5px 13px;border-radius:999px;font-size:13px;font-weight:600;text-align:center;
+    color:var(--ink-2);white-space:nowrap;transition:background .2s,color .2s,box-shadow .25s var(--ease)}
   .seg__opt input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
-  .seg__opt:hover{color:var(--ink)}
-  .seg__opt:has(input:checked){background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
-  .seg__opt:has(input:focus-visible){outline:2.5px solid var(--aqua);outline-offset:2px}
+  .seg__opt:hover span{color:var(--ink)}
+  .seg__opt input:checked + span{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .seg__opt input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
 
   /* By company: a card per employer on the grey of the window, three roles showing. */
   .cogrid{
@@ -428,10 +433,11 @@
     display:inline-flex;align-items:center;gap:5px;
     font-size:12px;font-weight:550;line-height:1.3;color:var(--ink-2);
     background:var(--win-bar);border:1px solid var(--line);border-radius:999px;padding:2px 9px;
-    white-space:nowrap;
+    white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis;
   }
   .chip svg{width:12px;height:12px;color:var(--ink-3)}
-  .chip--field{background:color-mix(in srgb,var(--g) 11%,#fff);border-color:color-mix(in srgb,var(--g) 35%,#fff);color:var(--ink)}
+  .chip--field{background:#f1f3f6;border-color:var(--line-strong);color:var(--ink);
+    background:color-mix(in srgb,var(--g) 11%,#fff);border-color:color-mix(in srgb,var(--g) 35%,#fff)}
   .chip--field::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--g)}
   .chip--skill{background:var(--aqua-wash);border-color:#d6e4ff;color:var(--aqua-deep)}
   .chip--more{font-family:var(--mono);font-weight:500}
@@ -469,6 +475,21 @@
   .also__act{margin-left:auto;flex:none}
   .also__act .btn--apply{padding:4px 12px;font-size:12.5px}
 
+  /* Fingers, on phones and Windows touch screens, need taller targets. */
+  @media (pointer:coarse){
+    .facet__face{padding:9px 14px}
+    .seg__opt span{padding:9px 15px}
+    .also summary,.cocard__more summary{min-height:40px}
+    .also__act .btn--apply,.corole__act .btn--apply{min-height:36px}
+  }
+  /* Windows High Contrast replaces fills, so the chosen tab and view need a real edge. */
+  @media (forced-colors:active){
+    .facet input:checked + .facet__face,.seg__opt input:checked + span{outline:2px solid Highlight;outline-offset:1px}
+    .meter__bars i{background:GrayText}
+    .meter[data-level="1"] i:nth-child(-n+1),.meter[data-level="2"] i:nth-child(-n+2),.meter[data-level="3"] i{background:CanvasText}
+    .facets{-webkit-mask-image:none;mask-image:none}
+  }
+
   .guide__count{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
 
   .empty{padding:48px 24px 52px;text-align:center}
@@ -493,6 +514,11 @@
     .pick select{max-width:none;width:100%}
     .rbar__picks .seg{grid-column:1/-1;display:flex;margin-right:0}
     .pick:only-of-type{grid-column:1/-1}
-    .seg__opt{flex:1;text-align:center;padding:7px 13px}
+    .seg__opt{flex:1}
+    .seg__opt span{padding:7px 13px}
+  }
+  /* The smallest phones: one picker per line, so neither is cut short. */
+  @media (max-width:359px){
+    .rbar__picks{grid-template-columns:1fr}
   }
 </style>
