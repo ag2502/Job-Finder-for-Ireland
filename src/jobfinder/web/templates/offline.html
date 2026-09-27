@@ -2,11 +2,12 @@
 {# Shown by the service worker (sw.js) for a page it has not kept, when there is no
    network. Kept once when the site is installed, so nothing on it may be personal or
    dated: the list of what is still readable is built on the phone, from its own cache. #}
-{% from "_macros.html" import titlebar %}
+{% from "_macros.html" import titlebar, mascot %}
 {% block title %}You are offline | Sorted Place{% endblock %}
 {% block railcount %}{% endblock %}
 {% block content %}
 <section class="pagehead">
+  {{ mascot("sleepy", "mascot--big mascot--left") }}
   <h1>No connection <span class="hl">right now.</span></h1>
   <p class="lede">Jobs open and close all day, so the list needs the internet to be current.
     Pages you opened recently are kept on this device and still open below.</p>
@@ -24,6 +25,7 @@
 </div>
 
 <style>
+  .mascot--left{margin:0 0 18px}
   .offwin{max-width:720px;margin:0 auto;box-shadow:var(--shadow-lift)}
   .offlist{list-style:none;margin:0 0 18px;padding:0}
   .offlist li{border-bottom:1px solid var(--line)}

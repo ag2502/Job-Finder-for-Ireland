@@ -2,7 +2,7 @@
    Rendered standalone for HTMX swaps and inlined on a full page load. #}
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
-{% from "_macros.html" import logo, titlebar %}
+{% from "_macros.html" import logo, titlebar, mascot %}
 {% set filtered = facet or company or mode or paid or within %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
@@ -217,9 +217,9 @@
 
 {% else %}
 <div class="empty">
-  <span class="beachball beachball--still" aria-hidden="true"></span>
+  {{ mascot("surprised", "mascot--big") }}
   <h3 style="margin-bottom:8px">No jobs matched</h3>
-  <p class="muted" style="margin:0">
+  <p class="muted" style="margin:0 auto">
     {% if graduate_only and not internships_only %}
       There are no graduate programmes open in those areas right now. Graduate intakes
       are seasonal, so this changes a lot through the year. Try more areas, or

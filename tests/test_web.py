@@ -1131,3 +1131,11 @@ def test_the_home_page_shows_the_pulse_with_a_table(client):
     if "activity-monitor: hiring" not in page:
         pytest.skip("no dated jobs in this database")
     assert page.count('class="pulse__col') == 30 and "Show as a table" in page
+
+
+def test_the_mascot_is_the_logo_and_is_surprised_at_nothing(client):
+    home = client.get("/").text
+    assert 'data-mascot' in home.split("</header>", 1)[0], "the menu bar logo is the mascot"
+    empty = client.post("/search", data={"chosen_fields": ["backend"], "q": "zzzqqqnothing"},
+                        headers={"HX-Request": "true"}).text
+    assert "mascot--surprised" in empty and "No jobs matched" in empty

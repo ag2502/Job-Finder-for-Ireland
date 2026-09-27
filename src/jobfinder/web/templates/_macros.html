@@ -81,3 +81,21 @@
   {{- "CV added" if has_cv else "Add your CV" -}}
 </a>
 {%- endmacro %}
+
+{# The mascot: the two-window mark, whose front window's dots are eyes. It blinks, its
+   eyes follow the pointer, and it takes a mood (happy, surprised, sleepy, searching)
+   from a class, set here or by the script in base.html (window.SortedMood). Colours
+   come from the stylesheet, so it follows the night desk. #}
+{% macro mascot(mood="", cls="") -%}
+<svg class="mascot{% if mood %} mascot--{{ mood }}{% endif %} {{ cls }}" viewBox="0 0 32 32" aria-hidden="true" data-mascot>
+  <rect class="mascot__back" x="3" y="9" width="20" height="16" rx="4"/>
+  <rect class="mascot__win" x="9" y="5" width="20" height="16" rx="4"/>
+  <g class="mascot__eyes">
+    <circle class="mascot__eye" cx="13" cy="9" r="1.4"/>
+    <circle class="mascot__eye" cx="17" cy="9" r="1.4"/>
+    <path class="mascot__happy" d="M11.7 9.6q1.3-1.9 2.6 0M15.7 9.6q1.3-1.9 2.6 0"/>
+    <path class="mascot__sleep" d="M11.8 9.3h2.4M15.8 9.3h2.4"/>
+  </g>
+  <ellipse class="mascot__mouth" cx="15" cy="14.8" rx="1.05" ry="1.3"/>
+</svg>
+{%- endmacro %}

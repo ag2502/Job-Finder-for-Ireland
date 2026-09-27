@@ -388,6 +388,39 @@ p{margin:0 0 14px;max-width:var(--measure)}
 .fieldname{display:block;margin-bottom:8px;font-size:13.5px;font-weight:600;color:var(--ink)}
 .fieldname em{font-style:normal;font-weight:400;color:var(--ink-3)}
 
+/* --------------------------------------------------------------- mascot --- */
+/* The logo, alive: see the mascot macro in _macros.html. Moods are classes; the eyes'
+   drift toward the pointer is a transform the script in this file sets. */
+.mascot{overflow:visible}
+.mascot__back{fill:var(--line-strong)}
+.mascot__win{fill:#2b74f0}
+.mascot__eye{fill:#fff;transform-box:fill-box;transform-origin:center}
+.mascot__eyes{transition:transform .25s var(--ease)}
+.mascot__happy,.mascot__sleep{fill:none;stroke:#fff;stroke-width:1.3;stroke-linecap:round;display:none}
+.mascot__mouth{fill:none;stroke:#fff;stroke-width:1.1;display:none}
+.mascot--happy .mascot__eye,.mascot--sleepy .mascot__eye{display:none}
+.mascot--happy .mascot__happy{display:inline}
+.mascot--sleepy .mascot__sleep{display:inline}
+.mascot--surprised .mascot__eye{transform:scale(1.35)}
+.mascot--surprised .mascot__mouth{display:inline}
+@media (prefers-reduced-motion:no-preference){
+  .mascot:not(.mascot--happy):not(.mascot--sleepy) .mascot__eye{animation:blink 5.2s infinite}
+  .mascot:not(.mascot--happy):not(.mascot--sleepy) .mascot__eye + .mascot__eye{animation-delay:.02s}
+  .mascot--happy{animation:mascot-hop .6s var(--spring)}
+  .mascot--searching .mascot__eyes{animation:glance 1.1s ease-in-out infinite}
+  .mascot--sleepy .mascot__win{animation:doze 3.6s ease-in-out infinite;transform-box:fill-box;transform-origin:50% 100%}
+}
+@keyframes blink{0%,94%,100%{transform:none}96.5%{transform:scaleY(.12)}}
+@keyframes glance{0%,100%{transform:translateX(-.9px)}50%{transform:translateX(.9px)}}
+@keyframes mascot-hop{0%{transform:none}35%{transform:translateY(-2.5px) rotate(-6deg)}70%{transform:translateY(0) rotate(3deg)}100%{transform:none}}
+@keyframes doze{0%,100%{transform:none}50%{transform:scaleY(.94)}}
+/* A bigger one for the moments that deserve a face: no results, offline. */
+.mascot--big{display:block;width:76px;height:76px;margin:0 auto 14px}
+@media (forced-colors:active){
+  .mascot__win{fill:Highlight} .mascot__back{fill:GrayText}
+  .mascot__eye{fill:Canvas} .mascot__mouth,.mascot__happy,.mascot__sleep{stroke:Canvas}
+}
+
 /* ------------------------------------------------------------ app icons --- */
 .logo{
   --size:44px;
@@ -1028,13 +1061,13 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   </symbol>
 </svg>
 
-{% from "_macros.html" import avatar %}
+{% from "_macros.html" import avatar, mascot %}
 {% set display_name = (account.name.split(" ")[0] if account and account.name else (account.email.split("@")[0] if account else "")) %}
 {% set rail %}{% block railcount %}{% endblock %}{% endset %}
 
 <header class="menubar">
   <a href="/" class="brand" aria-label="Sorted Place, home">
-    <svg aria-hidden="true"><use href="#i-mark"/></svg>
+    {{ mascot() }}
     <span><b style="color:var(--ink)">sorted</b><span class="tld">.place</span></span>
   </a>
   <nav class="menubar__nav" aria-label="Sections">
@@ -1150,7 +1183,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 
 <footer class="foot">
   <div class="wrap">
-    <a href="/" class="brand"><svg aria-hidden="true"><use href="#i-mark"/></svg><span><b>sorted</b><span>.place</span></span></a>
+    <a href="/" class="brand">{{ mascot() }}<span><b>sorted</b><span>.place</span></span></a>
     <nav aria-label="More">
       <a href="/companies">Companies</a>
       <a href="/privacy">Your CV &amp; privacy</a>
@@ -1225,6 +1258,58 @@ document.addEventListener('submit', function (e) {
       offer = null;
       Array.prototype.forEach.call(document.querySelectorAll('[data-install]'), function (b) { b.hidden = true; });
     });
+  });
+})();
+
+// The mascot. Its eyes drift toward the pointer (a pointer that hovers: a mouse or a
+// pen, not a finger), and it takes moods for a moment: window.SortedMood('happy').
+(function () {
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var hovers = window.matchMedia('(hover: hover) and (pointer: fine)');
+  var queued = false, px = 0, py = 0;
+  function look() {
+    queued = false;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mascot]'), function (m) {
+      var r = m.getBoundingClientRect();
+      if (!r.width || r.bottom < 0 || r.top > window.innerHeight) return;
+      var dx = px - (r.left + r.width * 0.47), dy = py - (r.top + r.height * 0.28);
+      var d = Math.sqrt(dx * dx + dy * dy) || 1, pull = Math.min(1, d / 260);
+      var eyes = m.querySelector('.mascot__eyes');
+      if (eyes) eyes.style.transform = 'translate(' + (dx / d * 0.9 * pull).toFixed(2) + 'px,' + (dy / d * 0.7 * pull).toFixed(2) + 'px)';
+    });
+  }
+  window.addEventListener('pointermove', function (e) {
+    if (reduced.matches || !hovers.matches || e.pointerType === 'touch') return;
+    px = e.clientX; py = e.clientY;
+    if (!queued) { queued = true; requestAnimationFrame(look); }
+  }, { passive: true });
+
+  var timer = null;
+  window.SortedMood = function (mood, ms) {
+    var marks = document.querySelectorAll('.menubar [data-mascot], .foot [data-mascot]');
+    clearTimeout(timer);
+    Array.prototype.forEach.call(marks, function (m) {
+      m.classList.remove('mascot--happy', 'mascot--surprised', 'mascot--searching');
+      if (mood) { void m.getBoundingClientRect(); m.classList.add('mascot--' + mood); }
+    });
+    if (mood && ms) timer = setTimeout(function () { window.SortedMood(null); }, ms);
+  };
+  // A search in progress: it glances about. Done: back to itself, or surprised at nothing.
+  document.body.addEventListener('htmx:beforeRequest', function (e) {
+    if (e.detail.target && e.detail.target.id === 'results') window.SortedMood('searching');
+  });
+  document.body.addEventListener('htmx:afterSwap', function (e) {
+    if (!e.detail.target || e.detail.target.id !== 'results') return;
+    var empty = !document.querySelector('#result-list');
+    window.SortedMood(empty ? 'surprised' : null, empty ? 2400 : 0);
+  });
+  document.body.addEventListener('htmx:afterRequest', function (e) {
+    if (e.detail.failed && e.detail.target && e.detail.target.id === 'results') window.SortedMood(null);
+  });
+  // Saving or applying makes it happy.
+  document.body.addEventListener('htmx:afterRequest', function (e) {
+    var path = e.detail.requestConfig && e.detail.requestConfig.path;
+    if (!e.detail.failed && (path === '/saved' || path === '/applications')) window.SortedMood('happy', 1500);
   });
 })();
 
