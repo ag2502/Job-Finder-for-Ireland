@@ -334,6 +334,9 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), the
 ### Loading
 While a search or a filter change runs, the results window gives way to a skeleton of itself: the same window titled "results: sorting", a grey heading bar, and seven rows of rounded grey shapes where the logo, employer, title, chips and Apply will be, with a soft sheen passing down them a row at a time (no sheen with reduced motion). The beach-ball pill still floats above. Show more keeps the list and spins its own ball.
 
+### Fingers on the sheets
+On phones (860px and under) the job panel and the filter sheet follow a finger. Dragged down from the handle, or from content already scrolled to its top, a sheet slides after the finger with the page behind brightening, and closes past 110px or on a flick; short of that it springs back. In the job panel a sideways swipe sends the advert off one side and brings the next (or previous) job in from the other, and the list scrolls to keep that row in view; at either end of the list the swipe gives a quarter as much and springs back. The direction is settled in the first 8px, so scrolling an advert is never taken over.
+
 ### Moving rows
 Changing a list already on screen (a field tab, the company, a picker, Sort, List or By company, show applied, only new) keeps the list, dimmed to 62% while it works, then moves each row still in the list from where it was to where it now is over 0.42s (view transitions), with arriving rows fading in and leaving ones fading out. Switching List to By company carries each role into its employer's card. Deep in a long list the page first jumps to the top of the results, so the move happens where it can be seen. Only rows near the screen take part. A new search from the form is a new list and gets the skeleton instead. Browsers without view transitions, and reduced motion, swap instantly.
 

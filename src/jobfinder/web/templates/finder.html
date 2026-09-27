@@ -964,6 +964,7 @@
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') shut(true, true);
     });
+    window.SortedFilters = { close: function () { shut(false, true); } };
   })();
 
   // One advert, over the results. A row opens it (a plain click anywhere on it that is
@@ -1260,6 +1261,108 @@
         });
       }, 700);
     });
+  })();
+
+  // Fingers on the sheets (phones only). Dragging a sheet down, from its top or from
+  // content already scrolled to the top, pulls it after the finger and closes it past a
+  // point or on a flick; short of that it springs back. In the job panel a sideways
+  // swipe moves to the next or previous job, and resists where there is none. The axis
+  // is settled in the first few pixels, so ordinary scrolling is never taken over.
+  (function () {
+    var narrow = window.matchMedia('(max-width: 860px)');
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    var drag = null;
+
+    function jobRows() { return Array.prototype.slice.call(document.querySelectorAll('#result-list .record[data-job]')); }
+    function neighbour(step) {
+      var job = window.SortedJob && window.SortedJob.current();
+      var rows = jobRows(), i = rows.indexOf(job);
+      return i === -1 ? null : rows[i + step] || null;
+    }
+
+    function target(el) {
+      var job = el.closest('.jobsheet.is-open .jobsheet__win');
+      if (job) return { panel: job, scroller: document.getElementById('jobsheet-body'),
+                        scrim: document.querySelector('.jobsheet__scrim'), sideways: true,
+                        close: function () { window.SortedJob.close(); } };
+      var filters = el.closest('#rbar.is-open');
+      if (filters) return { panel: filters, scroller: filters, scrim: document.querySelector('.rscrim'),
+                            sideways: false, close: function () { window.SortedFilters.close(); } };
+      return null;
+    }
+
+    document.addEventListener('touchstart', function (e) {
+      drag = null;
+      if (!narrow.matches || e.touches.length !== 1) return;
+      var t = target(e.target);
+      if (!t) return;
+      var touch = e.touches[0];
+      t.x0 = touch.clientX; t.y0 = touch.clientY; t.t0 = Date.now(); t.dx = 0; t.dy = 0; t.axis = null;
+      // From the content, only once it is scrolled to its top; from the handle, always.
+      t.fromTop = !t.scroller.contains(e.target) || t.scroller.scrollTop <= 0;
+      drag = t;
+    }, { passive: true });
+
+    document.addEventListener('touchmove', function (e) {
+      if (!drag) return;
+      var touch = e.touches[0];
+      drag.dx = touch.clientX - drag.x0;
+      drag.dy = touch.clientY - drag.y0;
+      if (!drag.axis) {
+        if (Math.abs(drag.dx) < 8 && Math.abs(drag.dy) < 8) return;
+        if (Math.abs(drag.dy) >= Math.abs(drag.dx)) drag.axis = drag.dy > 0 && drag.fromTop ? 'down' : 'none';
+        else drag.axis = drag.sideways ? 'side' : 'none';
+        if (drag.axis === 'none') { drag = null; return; }
+        (drag.axis === 'down' ? drag.panel : drag.scroller).style.transition = 'none';
+      }
+      e.preventDefault();
+      if (drag.axis === 'down') {
+        var dy = Math.max(0, drag.dy);
+        drag.panel.style.transform = 'translateY(' + dy + 'px)';
+        if (drag.scrim) drag.scrim.style.opacity = Math.max(0.15, 1 - dy / drag.panel.offsetHeight);
+      } else {
+        var dx = drag.dx, there = neighbour(dx < 0 ? 1 : -1);
+        if (!there) dx *= 0.25;   // nothing that way: it gives a little, then springs back
+        drag.scroller.style.transform = 'translateX(' + dx + 'px)';
+        drag.scroller.style.opacity = String(1 - Math.min(0.6, Math.abs(dx) / (window.innerWidth * 1.1)));
+      }
+    }, { passive: false });
+
+    function release() {
+      var d = drag;
+      drag = null;
+      if (!d || !d.axis) return;
+      var speed = Math.max(Math.abs(d.dx), Math.abs(d.dy)) / Math.max(1, Date.now() - d.t0);
+      if (d.axis === 'down') {
+        d.panel.style.transition = '';
+        if (d.scrim) d.scrim.style.opacity = '';
+        if (d.dy > 110 || (speed > 0.55 && d.dy > 30)) d.close();
+        d.panel.style.transform = '';   // closing: from here to shut; otherwise back up
+        return;
+      }
+      var step = d.dx < 0 ? 1 : -1, there = neighbour(step), body = d.scroller;
+      if (!there || !(Math.abs(d.dx) > 80 || (speed > 0.5 && Math.abs(d.dx) > 30))) {
+        body.style.transition = 'transform .35s var(--spring), opacity .25s';
+        body.style.transform = ''; body.style.opacity = '';
+        return;
+      }
+      // Off it goes one way, and the next job comes in from the other.
+      var out = reduced.matches ? 0 : 200;
+      body.style.transition = 'transform .2s ease-in, opacity .2s ease-in';
+      body.style.transform = 'translateX(' + (step > 0 ? '-55%' : '55%') + ')';
+      body.style.opacity = '0';
+      setTimeout(function () {
+        window.SortedJob.open(there);
+        there.scrollIntoView({ block: 'nearest' });
+        body.style.transition = 'none';
+        body.style.transform = 'translateX(' + (step > 0 ? '35%' : '-35%') + ')';
+        void body.offsetWidth;
+        body.style.transition = 'transform .32s var(--ease), opacity .25s';
+        body.style.transform = ''; body.style.opacity = '';
+      }, out);
+    }
+    document.addEventListener('touchend', release);
+    document.addEventListener('touchcancel', release);
   })();
 
   // Counts roll from the old total to the new one when a search or filter changes it,
