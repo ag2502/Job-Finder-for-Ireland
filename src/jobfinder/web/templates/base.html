@@ -8,6 +8,9 @@
 <title>{% block title %}Sorted Place: every job in Dublin, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Dublin right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="apple-touch-icon" href="/static/apple-touch-icon-1.png">
+<meta name="apple-mobile-web-app-title" content="Sorted">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://www.google.com">
@@ -238,6 +241,8 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .sheet__who > div > b{display:block;font-size:16px;letter-spacing:-.01em}
 .sheet__who > div > span{display:block;font-size:13px;color:var(--ink-3);overflow-wrap:anywhere}
 .sheet__label{margin:20px 4px 2px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+.sheet__install{margin:16px 0 0;width:100%;justify-content:space-between;min-height:48px;font-size:16px}
+.sheet__install[hidden]{display:none}
 .sheet .signin{margin:16px 0 0;justify-content:center;min-height:48px;font-size:16px;width:100%}
 html.sheet-open,html.sheet-open body{overflow:hidden}
 
@@ -964,6 +969,11 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
       </form>
       {% endif %}
     </nav>
+    {# Shown only where the browser offers to install the site (Chrome and Edge on
+       Android and desktop). Safari has no such offer; there it is Share, Add to Home
+       Screen. #}
+    <button type="button" class="sheet__install" data-install hidden>Install the app
+      <svg aria-hidden="true"><use href="#i-down"/></svg></button>
     {% if accounts_enabled and not account %}
     <a class="signin" href="/login"><svg aria-hidden="true"><use href="#i-google"/></svg>Sign in</a>
     {% endif %}
@@ -1017,6 +1027,34 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 </footer>
 
 <script>
+// Installable, and readable offline: see sw.js. Registered after the page has loaded, so
+// it never competes with the first paint for the network.
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('/sw.js'); });
+}
+// Signing out empties the pages kept for offline, so the next person on this phone does
+// not find the last one's saved list there.
+document.addEventListener('submit', function (e) {
+  if (window.caches && /\/logout$/.test(e.target.action || '')) caches.delete('sp-pages-1');
+});
+// The browser's own install offer, held until someone asks for it from the menu.
+(function () {
+  var offer = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    offer = e;
+    Array.prototype.forEach.call(document.querySelectorAll('[data-install]'), function (b) { b.hidden = false; });
+  });
+  document.addEventListener('click', function (e) {
+    if (!offer || !e.target.closest || !e.target.closest('[data-install]')) return;
+    offer.prompt();
+    offer.userChoice.then(function () {
+      offer = null;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-install]'), function (b) { b.hidden = true; });
+    });
+  });
+})();
+
 // htmx cancels the default action on any <a> it drives, so an Apply link carrying
 // hx-post recorded the application and never opened the employer's posting, the one
 // thing the visitor actually clicked for. This listener runs in the capture phase, so

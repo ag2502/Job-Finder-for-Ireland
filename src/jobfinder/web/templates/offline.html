@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{# Shown by the service worker (sw.js) for a page it has not kept, when there is no
+   network. Kept once when the site is installed, so nothing on it may be personal or
+   dated: the list of what is still readable is built on the phone, from its own cache. #}
+{% from "_macros.html" import titlebar %}
+{% block title %}You are offline | Sorted Place{% endblock %}
+{% block railcount %}{% endblock %}
+{% block content %}
+<section class="pagehead">
+  <h1>No connection <span class="hl">right now.</span></h1>
+  <p class="lede">Jobs open and close all day, so the list needs the internet to be current.
+    Pages you opened recently are kept on this device and still open below.</p>
+</section>
+
+<div class="win offwin">
+  {{ titlebar("kept-on-this-device") }}
+  <div class="win__body">
+    <ul class="offlist" id="offlist"></ul>
+    <p class="muted" id="offnone">Nothing is kept yet. Searches, jobs and your saved list are
+      kept here as you open them.</p>
+    <button type="button" onclick="location.reload()">Try again
+      <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></button>
+  </div>
+</div>
+
+<style>
+  .offwin{max-width:720px;margin:0 auto;box-shadow:var(--shadow-lift)}
+  .offlist{list-style:none;margin:0 0 18px;padding:0}
+  .offlist li{border-bottom:1px solid var(--line)}
+  .offlist a{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:12px 2px;
+    text-decoration:none;font-weight:600;color:var(--ink)}
+  .offlist a:hover{color:var(--aqua-deep)}
+  .offlist small{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--ink-3);white-space:nowrap}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // What the service worker kept, newest first, named by each page's own title.
+  (function () {
+    var list = document.getElementById('offlist'), none = document.getElementById('offnone');
+    if (!window.caches) return;
+    caches.open('sp-pages-1').then(function (cache) {
+      return cache.keys().then(function (keys) {
+        return Promise.all(keys.reverse().map(function (req) {
+          return cache.match(req).then(function (res) { return res.text(); }).then(function (html) {
+            var m = html.match(/<title>([^<]*)<\/title>/);
+            return { url: req.url, title: m ? m[1].replace(/ \| Sorted Place$/, '') : req.url };
+          });
+        }));
+      });
+    }).then(function (pages) {
+      pages = pages.filter(function (p) { return new URL(p.url).pathname !== '/offline'; });
+      pages.forEach(function (p) {
+        var u = new URL(p.url), kind = u.pathname.indexOf('/jobs/') === 0 ? 'job'
+          : u.pathname === '/profile' ? 'your profile' : u.search ? 'search' : 'page';
+        var li = document.createElement('li'), a = document.createElement('a'), s = document.createElement('small');
+        var d = document.createElement('span');
+        a.href = u.pathname + u.search;
+        d.textContent = p.title;
+        s.textContent = kind;
+        a.appendChild(d); a.appendChild(s); li.appendChild(a); list.appendChild(li);
+      });
+      none.hidden = pages.length > 0;
+    });
+  })();
+</script>
+{% endblock %}

@@ -680,6 +680,59 @@ def static_file(name: str):
     )
 
 
+WEB = Path(__file__).parent
+
+# What makes the site installable: a phone adds it to the home screen as an app that
+# opens on the finder, without the browser's bars.
+MANIFEST = {
+    "name": "Sorted Place: every job in Dublin",
+    "short_name": "Sorted",
+    "description": "Every job open in Dublin right now, from companies' own careers pages.",
+    "start_url": "/?source=app",
+    "scope": "/",
+    "display": "standalone",
+    "background_color": "#eceef2",
+    "theme_color": "#eceef2",
+    "icons": [
+        {"src": "/static/icon-192-1.png", "sizes": "192x192", "type": "image/png"},
+        {"src": "/static/icon-512-1.png", "sizes": "512x512", "type": "image/png"},
+        {"src": "/static/icon-maskable-512-1.png", "sizes": "512x512", "type": "image/png",
+         "purpose": "maskable"},
+    ],
+}
+
+
+@app.get("/manifest.webmanifest", include_in_schema=False)
+def manifest():
+    return Response(
+        json.dumps(MANIFEST),
+        media_type="application/manifest+json",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
+
+
+@app.get("/sw.js", include_in_schema=False)
+def service_worker():
+    """The service worker, from the site's root so it may look after every page.
+
+    Never cached by the browser: a worker can only replace itself if the browser asks
+    for the new one, and a year-long cache would pin a broken one for a year.
+    """
+    return FileResponse(
+        WEB / "sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache"},
+    )
+
+
+@app.get("/offline", response_class=HTMLResponse, include_in_schema=False)
+def offline(request: Request):
+    """What the service worker shows for a page it has not kept, with no network."""
+    context = _base_context(request)
+    context["account"] = None  # kept once, shown to whoever is offline later
+    return templates.TemplateResponse(request, "offline.html", context)
+
+
 def _finder_context(request: Request, stored: dict | None = None) -> dict:
     """The home page context plus the signed-in searcher's saved profile, which the form
     uses to say whose CV will rank the results and to offer their saved details."""
@@ -890,6 +943,9 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
         )
     )
     context["search_url"] = _search_url(profile, context)
+    # What a search link's page is called, in a tab, a bookmark or the offline list.
+    labels = [FIELDS[f].label for f in effective_fields if f in FIELDS]
+    context["search_title"] = ", ".join(labels[:2]) + (f" and {len(labels) - 2} more" if len(labels) > 2 else "")
 
     # HTMX asks for the table alone; a normal form post gets the whole page back. Show
     # more asks for less again: only the next page of rows, to go under the ones shown,

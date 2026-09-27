@@ -990,3 +990,31 @@ def test_the_address_leaves_out_what_the_search_ignored(client):
     )
     url = response.headers["HX-Push-Url"]
     assert "sort=" not in url and "co=" not in url
+
+
+# ------------------------------------------------------------------ installable
+
+
+def test_the_site_is_installable(client):
+    manifest = client.get("/manifest.webmanifest")
+    assert manifest.status_code == 200
+    data = manifest.json()
+    assert data["display"] == "standalone" and data["start_url"].startswith("/")
+    for icon in data["icons"]:
+        assert client.get(icon["src"]).status_code == 200
+    home = client.get("/").text
+    assert 'rel="manifest"' in home and "serviceWorker" in home
+
+
+def test_the_service_worker_is_served_from_the_root_and_never_pinned(client):
+    worker = client.get("/sw.js")
+    assert worker.status_code == 200
+    assert "javascript" in worker.headers["content-type"]
+    assert worker.headers["cache-control"] == "no-cache"
+    # It keeps pages only as a fallback, and never touches a POST.
+    assert "request.method !== 'GET'" in worker.text
+
+
+def test_the_offline_page_is_not_personal(client):
+    page = client.get("/offline")
+    assert page.status_code == 200 and "kept-on-this-device" in page.text

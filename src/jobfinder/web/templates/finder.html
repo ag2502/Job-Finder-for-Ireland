@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% from "_macros.html" import logo, titlebar, years_slider, field_tag %}
 {% set nav = 'finder' %}
+{% block title %}{% if landing and search_title %}{{ search_title }} jobs in Dublin | Sorted Place{% else %}Sorted Place: every job in Dublin, in one place{% endif %}{% endblock %}
 {% block railcount %}{{ "{:,}".format(dublin_count) }} open<span class="rail-long"> in Dublin</span>{% endblock %}
 
 {% block wide %}

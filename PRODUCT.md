@@ -63,7 +63,8 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   removes it, and saves what they are looking for. The finder ranks against the stored
   CV (switchable per search), lists the fields the CV points to in their own band below
   the chosen ones, and offers the saved details with one "Use my profile" button rather
-  than filling the form in: every visit to the finder still starts blank.
+  than filling the form in: a plain visit to the finder still starts blank, while a
+  search link (the address a search writes, 2026-09-27) reopens that search.
 - CV tailoring (2026-09-25): Apply offers to rewrite the CV for that advert in a copy of
   the person's own file (layout kept, facts locked), with a deterministic ATS score, a
   report, and a suggestion loop; kept versions live under Tailored CVs, apart from the CV
