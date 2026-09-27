@@ -6,7 +6,8 @@ from datetime import datetime, timezone
 
 import pytest
 
-from jobfinder.web.app import _age, _short_place, _strength
+from jobfinder.matching import rank
+from jobfinder.web.app import STRENGTH_CAPS, _age, _short_place, _strength
 
 
 @pytest.mark.parametrize(
@@ -42,3 +43,13 @@ def test_age_reads_the_way_people_say_it():
 def test_strength_splits_a_list_into_fifths():
     levels = [_strength(i, 10) for i in range(10)]
     assert levels == [3, 3, 2, 2, 2, 2, 1, 1, 1, 1]
+
+
+def test_a_band_caps_how_strong_its_jobs_can_read():
+    """Position alone made the top fifth "Strong" even deep into every other graduate
+    job open now, which is no match for the fields picked at all."""
+    assert _strength(0, 10, cap=STRENGTH_CAPS[rank.TIER_SKILLS]) == 1
+    assert _strength(0, 10, cap=STRENGTH_CAPS[rank.TIER_CV]) == 2
+    assert _strength(0, 10, cap=STRENGTH_CAPS[rank.TIER_CHOSEN]) == 3
+    # A cap never lifts a job above where it ranks.
+    assert _strength(9, 10, cap=3) == 1

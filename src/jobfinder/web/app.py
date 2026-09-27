@@ -857,9 +857,25 @@ def _age(when: datetime | None, now: datetime) -> str:
 STRENGTH_LABELS = {3: "Strong match", 2: "Good match", 1: "Loose match"}
 
 
-def _strength(position: int, total: int) -> int:
+# The filter-bar tab for rows whose title places them in no field this search uses.
+OTHER_FACET = "other"
+
+# Position alone let a job read as a stronger match than the band it sits in: the top
+# fifth of a 238-job graduate search was "Strong" well into "every other graduate job
+# open now". So each band caps the label. A field the CV points to is evidence about the
+# person but not what they asked for, and a role outside every field is loose at best.
+STRENGTH_CAPS = {
+    rank.TIER_CHOSEN: 3,
+    rank.TIER_CV: 2,
+    rank.TIER_NEAR: 2,
+    rank.TIER_FAR: 1,
+    rank.TIER_SKILLS: 1,
+}
+
+
+def _strength(position: int, total: int, cap: int = 3) -> int:
     share = position / max(total, 1)
-    return 3 if share < 0.2 else (2 if share < 0.6 else 1)
+    return min(3 if share < 0.2 else (2 if share < 0.6 else 1), cap)
 
 
 def _is_offerable():
@@ -1119,7 +1135,11 @@ def _search_results(
             if first_seen and first_seen.tzinfo is None:
                 first_seen = first_seen.replace(tzinfo=timezone.utc)
             field_key = entry.field_matches[0] if entry.field_matches else None
-            strength = _strength(position, len(scored))
+            # With no fields ticked, the fields the CV points to are the whole search.
+            cap = 3 if entry.tier == rank.TIER_CV and not candidate.fields else (
+                STRENGTH_CAPS.get(entry.tier, 1)
+            )
+            strength = _strength(position, len(scored), 1 if entry.fallback else cap)
             items.append(
                 {
                     "job": job,
