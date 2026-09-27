@@ -29,6 +29,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import quote, urlencode, urlparse
+from zoneinfo import ZoneInfo
 
 from fastapi import FastAPI, Form, HTTPException, Request, UploadFile
 from fastapi.responses import (
@@ -78,6 +79,7 @@ from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills, is_tech
 logger = logging.getLogger(__name__)
 
 TEMPLATES = Path(__file__).parent / "templates"
+DUBLIN = ZoneInfo("Europe/Dublin")
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
 
 # Result orderings offered in the form. Relevance is the default: it is the only one
@@ -248,7 +250,7 @@ RERUN_BASE = (
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
     ", #results input[name=facet], #results select[name=company], #results select[name=mode],"
-    " #results input[name=paid], #results select[name=within]"
+    " #results input[name=paid], #results select[name=within], #results input[name=new_only]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
@@ -843,6 +845,7 @@ async def search(
     mode: str | None = Form(default=None),
     paid: str | None = Form(default=None),
     within: str | None = Form(default=None),
+    new_only: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -850,9 +853,59 @@ async def search(
         "internships_only": internships_only, "graduate_only": graduate_only,
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
-        "mode": mode, "paid": paid, "within": within,
+        "mode": mode, "paid": paid, "within": within, "new_only": new_only,
     }
     return _search(request, form, page=page, more=bool(more))
+
+
+# A gap this long between two searches starts a new visit. Within a visit the marker
+# holds still, so re-sorting or paging does not quietly clear "new" from what was new.
+VISIT_GAP = timedelta(hours=1)
+# How often a visit in progress is extended: one write per visit and then at most one
+# every ten minutes, rather than one per search.
+VISIT_TICK = timedelta(minutes=10)
+
+
+def _parse_time(value) -> datetime | None:
+    if not value:
+        return None
+    try:
+        return _as_utc(datetime.fromisoformat(str(value).replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
+def _last_visit(account: supabase.Account | None, stored: dict | None) -> datetime | None:
+    """When this searcher's previous visit ended, moving the record on as visits pass.
+
+    None for a first visit (nothing is new to someone who has seen nothing) and for
+    anyone signed out. Fails open: if the profile cannot be written, or the columns do
+    not exist yet because `schema.sql` has not been re-run, searching carries on and the
+    24-hour "new" applies as before.
+    """
+    if account is None:
+        return None
+    stored = stored or {}
+    now = datetime.now(timezone.utc)
+    seen, prev = _parse_time(stored.get("seen_at")), _parse_time(stored.get("prev_seen_at"))
+    write: dict = {}
+    if seen is None:
+        if "seen_at" in stored or not stored:
+            write = {"seen_at": now.isoformat()}
+        marker = None
+    elif now - seen > VISIT_GAP:
+        write = {"seen_at": now.isoformat(), "prev_seen_at": seen.isoformat()}
+        marker = seen
+    else:
+        marker = prev
+        if now - seen > VISIT_TICK:
+            write = {"seen_at": now.isoformat()}
+    if write:
+        try:
+            supabase.save_profile(account, **write)
+        except (supabase.SupabaseError, httpx.HTTPError):
+            logger.info("could not record the visit; is schema.sql up to date?", exc_info=True)
+    return marker
 
 
 def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
@@ -922,6 +975,8 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     account = _account(request)
     applied, saved_keys, stored = _account_marks(account)
     cv = (stored or {}).get("cv") if use_cv else None
+    # Show more is part of the search on screen, not a new look at the list.
+    last_visit = None if more else _last_visit(account, stored)
 
     # The CV's reading joins the search here and goes no further than this request.
     search_profile = dict(profile)
@@ -957,6 +1012,8 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             mode=form.get("mode") or None,
             paid=bool(form.get("paid")),
             within=form.get("within"),
+            since=last_visit,
+            new_only=bool(form.get("new_only")),
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -1399,6 +1456,20 @@ def _facts_for(job: JobPosting) -> dict:
     return found
 
 
+def _visit_label(when: datetime) -> str:
+    """When a last visit was, as someone would say it: "this morning", "on Tuesday"."""
+    local = when.astimezone(DUBLIN)
+    today = datetime.now(DUBLIN).date()
+    days = (today - local.date()).days
+    if days <= 0:
+        return "earlier today"
+    if days == 1:
+        return "yesterday"
+    if days < 7:
+        return "on " + local.strftime("%A")
+    return "on " + local.strftime("%-d %B")
+
+
 # How recently a job was posted, for the filter bar's Posted picker: days, and its name.
 WITHIN = {1: "Last 24 hours", 3: "Last 3 days", 7: "Last week", 30: "Last month"}
 # From this long open, a row says so. A quarter of Dublin's adverts have been up three
@@ -1447,6 +1518,8 @@ def _search_results(
     mode: str | None = None,
     paid: bool = False,
     within: str | int | None = None,
+    since: datetime | None = None,
+    new_only: bool = False,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1570,7 +1643,11 @@ def _search_results(
                     "domain": domains.get(job.company_id, ""),
                     "score": entry.score,
                     "why": entry.explain(),
-                    "is_new": has_history and bool(first_seen and first_seen >= cutoff),
+                    # New since the searcher's last visit, where we know when that was;
+                    # otherwise new in the last day.
+                    "is_new": bool(first_seen and first_seen > since) if since else (
+                        has_history and bool(first_seen and first_seen >= cutoff)
+                    ),
                     # Not every employer publishes a posting date - Google, for one,
                     # does not - so the date we first saw it is offered as a fallback
                     # and labelled as such rather than passed off as the posting date.
@@ -1636,6 +1713,8 @@ def _search_results(
             items = [i for i in items if i["mode"] and i["mode"].kind == mode]
         if paid:
             items = [i for i in items if i["salary"]]
+        if new_only:
+            items = [i for i in items if i["is_new"]]
         try:
             within = int(within) if within else None
         except (TypeError, ValueError):
@@ -1775,6 +1854,9 @@ def _search_results(
         "paid": paid,
         "within": within,
         "within_choices": WITHIN,
+        "since": since,
+        "since_label": _visit_label(since) if since else "",
+        "new_only": new_only,
         "work_modes": WORK_MODES,
         "page": page,
         "pages": max(1, (len(units) + per_page - 1) // per_page),

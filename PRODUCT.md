@@ -80,6 +80,9 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   text are dropped, and the panel labels the summary as written by a model. Dormant
   until `JOBFINDER_GEMINI_API_KEY` (or `JOBFINDER_GROQ_API_KEY`) is added as a GitHub
   Actions secret; until then the panel shows the skills the advert names.
+- New since your last visit (2026-09-27): for a signed-in searcher, "new" means found
+  after their previous visit (a gap of an hour starts a new one), with a "show only
+  these" toggle; signed out, it still means found in the last day.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
 - An employer directory covering the whole registry, including employers that cannot be

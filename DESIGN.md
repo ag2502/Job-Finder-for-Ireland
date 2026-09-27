@@ -331,6 +331,9 @@ Rows in a white list inside the results window: logo (44px, 36px on mobile), the
 - **Show more:** the list and the cards load 25 rows (12 cards) at a time. The end of what is loaded is a ghost pill, "Show more" with a mono "25 of 242", that fetches the next page as it scrolls into view and swaps itself for a spinning beach ball while it does. There is no Back and Next pager.
 - **Bands:** sticky group headers, like Finder groups, sit under the menu bar in `win-bar` with a disclosure triangle and a mono count on the right: In the fields you picked, Where your CV points, Closely related roles, A sideways move. They show only for Best match, and only when there is more than one band.
 
+### New since your last visit
+Beside the results heading, a green pill counts what is new ("12 new since your last visit", or "12 new" for the last day when signed out) with an aqua underlined "show only these" beside it; ticked, the pill fills solid green and the list keeps only those. Each such row carries the small green "new" pill. It stays out of the address, since new means new to this person.
+
 ### The address bar
 A search writes itself into the address (`/?f=backend&y=2&sort=newest`, plus `field`, `co` and `view` for the filter bar), so Refresh, Back and a shared link all reopen it: the page opens straight onto the results, past the desk and the story. A plain `/` is still the blank form. Back reloads the address rather than restoring a snapshot.
 

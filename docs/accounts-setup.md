@@ -36,7 +36,9 @@ showing RLS is enabled.
 It is safe to run this file again; every statement is guarded. **Run it again whenever
 `schema.sql` changes.** The `profiles` table (the searcher's details and the reading of
 their CV) was added after the others, and until it exists the profile says it could not
-load, and adding a CV says it could not be saved.
+load, and adding a CV says it could not be saved. The `seen_at` and `prev_seen_at`
+columns (2026-09-27) power "new since your last visit"; until they exist, results mark
+jobs new in the last day instead, and nothing else changes.
 
 ---
 

@@ -147,6 +147,12 @@ create table if not exists public.profiles (
     updated_at       timestamptz not null default now()
 );
 
+-- When the searcher was last here, so a search can mark what is new since (added
+-- 2026-09-27). `seen_at` moves on while a visit lasts; `prev_seen_at` is where the visit
+-- before this one ended, and what "new since your last visit" is measured from.
+alter table public.profiles add column if not exists seen_at      timestamptz;
+alter table public.profiles add column if not exists prev_seen_at timestamptz;
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "read own profile"   on public.profiles;

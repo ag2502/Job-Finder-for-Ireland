@@ -24,7 +24,18 @@
     </h2>
 
     <div class="row" style="gap:16px">
-      {% if new_count %}<span class="stamp">{{ new_count }} new</span>{% endif %}
+      {% if new_count or new_only %}
+      {# New since the searcher was last here, when we know (signed in); otherwise new
+         today. Ticking it narrows the list to those, and it stays with this visit
+         rather than going into the address, since "new" means new to this person. #}
+      <label class="newonly" title="{{ 'Jobs we found after your last visit ' ~ since_label if since else 'Jobs we found in the last day' }}">
+        <input type="checkbox" name="new_only" value="1" {% if new_only %}checked{% endif %}
+               hx-post="/search" hx-include="{{ rerun_include }}" hx-target="#results"
+               hx-swap="innerHTML" hx-trigger="change" hx-indicator="#search-loading, #results">
+        <span class="stamp">{{ new_count }} new{% if since %} since your last visit{% endif %}</span>
+        <span class="newonly__do">{{ "show all" if new_only else "show only these" }}</span>
+      </label>
+      {% endif %}
       {% if account and applied_count %}
       <label class="rsummary" style="display:flex;align-items:center;gap:7px;cursor:pointer"
              title="{{ applied_count }} job{{ '' if applied_count == 1 else 's' }} you have applied to">
@@ -275,6 +286,12 @@
   .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
   .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
   .rbar__picks .seg{margin-right:auto}
+  .newonly{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin:0}
+  .newonly input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
+  .newonly__do{font-size:13px;font-weight:600;color:var(--aqua-deep);text-decoration:underline;text-underline-offset:3px}
+  .newonly:hover .newonly__do{color:var(--ink)}
+  .newonly input:checked + .stamp{background:var(--sorted);color:#fff}
+  .newonly input:focus-visible ~ .newonly__do{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:4px}
   .rbar__stated{display:flex;align-items:center;gap:12px 22px;flex:1 1 100%;flex-wrap:wrap}
   .rbar__paid{margin:0;font-size:13.5px;font-weight:600;color:var(--ink-2)}
   /* The sheet's own heading and buttons, for phones only. */

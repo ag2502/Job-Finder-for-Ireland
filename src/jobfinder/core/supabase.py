@@ -524,7 +524,10 @@ def get_profile(account: Account) -> dict | None:
             f"{base}/rest/v1/profiles",
             headers=_auth_headers(account.access_token),
             params={
-                "select": "fields,years,include_remote,internships_only,graduate_only,cv,updated_at",
+                # Every column, rather than a list: a column added to `schema.sql` then
+                # arrives the moment the owner re-runs it, and one not added yet cannot
+                # fail the whole read.
+                "select": "*",
                 "user_id": f"eq.{account.user_id}",
                 "limit": "1",
             },

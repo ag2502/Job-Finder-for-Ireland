@@ -1597,3 +1597,58 @@ def test_a_review_under_85_raises_itself_and_keeps_only_gains(client: TestClient
         assert f'hx-post="/tailor/{row_id}/boost"' not in final
     else:
         assert "Above 85" in boosted
+
+
+# ------------------------------------------------------------ new since last visit
+
+
+def test_the_last_visit_moves_on_only_between_visits(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+
+    from jobfinder.web import app as web
+
+    writes = []
+    monkeypatch.setattr(web.supabase, "save_profile", lambda account, **cols: writes.append(cols))
+    account = object()
+    now = datetime.now(timezone.utc)
+
+    # First ever visit: nothing is new, and the visit starts.
+    assert web._last_visit(account, None) is None and "seen_at" in writes[-1]
+
+    # Back after two days: the marker is where the last visit ended.
+    writes.clear()
+    stored = {"seen_at": (now - timedelta(days=2)).isoformat(), "prev_seen_at": None}
+    marker = web._last_visit(account, stored)
+    assert marker and abs((now - marker) - timedelta(days=2)) < timedelta(seconds=5)
+    assert "prev_seen_at" in writes[-1]
+
+    # Searching again a minute later: same visit, same marker, no write.
+    writes.clear()
+    stored = {"seen_at": (now - timedelta(minutes=1)).isoformat(),
+              "prev_seen_at": (now - timedelta(days=2)).isoformat()}
+    assert web._last_visit(account, stored) is not None and writes == []
+
+
+def test_the_last_visit_fails_open_before_schema_is_rerun(monkeypatch):
+    from jobfinder.web import app as web
+
+    def refuse(account, **cols):
+        raise web.supabase.SupabaseError("column profiles.seen_at does not exist")
+
+    monkeypatch.setattr(web.supabase, "save_profile", refuse)
+    # A profile read before the columns exist carries no seen_at: nothing is written.
+    assert web._last_visit(object(), {"fields": ["backend"]}) is None
+    # No profile at all: the write is tried, refused, and the search carries on.
+    assert web._last_visit(object(), None) is None
+    assert web._last_visit(None, {"seen_at": "2026-09-01T00:00:00+00:00"}) is None
+
+
+def test_a_visit_label_reads_like_speech():
+    from datetime import datetime, timedelta, timezone
+
+    from jobfinder.web.app import _visit_label
+
+    now = datetime.now(timezone.utc)
+    assert _visit_label(now - timedelta(minutes=5)) == "earlier today"
+    assert _visit_label(now - timedelta(days=1, hours=1)) in ("yesterday", "on " + (now - timedelta(days=1, hours=1)).strftime("%A"))
+    assert _visit_label(now - timedelta(days=30)).startswith("on ")
