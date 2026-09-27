@@ -1,0 +1,54 @@
+{# One advert, laid out to read: who, what, the facts that decide whether to apply, then
+   the employer's own words. The panel over the results and the job page both show it.
+   Save and Apply are not here: the panel borrows the row's own, so the two stay one
+   control, and the page carries a plain link. #}
+{% from "_macros.html" import logo %}
+<article class="jobx" data-job-id="{{ job.id }}">
+  <header class="jobx__head">
+    {{ logo(company, domain, "logo--lg") }}
+    <div class="jobx__who">
+      <p class="jobx__employer">{{ company }}</p>
+      <h2 class="jobx__title" id="jobx-title">{{ job.title }}</h2>
+    </div>
+  </header>
+
+  {# Facts as the advert states them. An unstated one says so rather than being left
+     out, since "not stated" is itself worth knowing before an application. #}
+  <dl class="jobx__facts">
+    <div class="jobx__fact">
+      <dt>{{ "Posted" if posted else "First seen" }}</dt>
+      <dd>{{ posted or first_seen }}{% if age %} <span class="jobx__age">({{ age }})</span>{% endif %}</dd>
+    </div>
+    <div class="jobx__fact">
+      <dt>Where</dt>
+      <dd>{{ "Dublin" if job.is_dublin else "Outside Dublin" }}{% if place %}, {{ place }}{% endif %}{% if job.is_remote %}, remote{% endif %}</dd>
+    </div>
+    <div class="jobx__fact">
+      <dt>Experience</dt>
+      <dd>{{ experience or "Not stated" }}</dd>
+    </div>
+  </dl>
+
+  {# Filled from the row that opened the panel: why it is in this search. #}
+  <div class="jobx__match" data-jobx-match></div>
+
+  <div class="jobx__advert">
+    {% for b in blocks %}
+      {% if b.kind == "li" %}
+        {% if loop.first or loop.previtem.kind != "li" %}<ul>{% endif %}
+        <li>{{ b.text }}</li>
+        {% if loop.last or loop.nextitem.kind != "li" %}</ul>{% endif %}
+      {% elif b.kind == "h" %}
+        <h3>{{ b.text }}</h3>
+      {% else %}
+        <p>{{ b.text }}</p>
+      {% endif %}
+    {% else %}
+      <p class="jobx__none">{{ company }}'s system does not share the advert's text, so the
+        full description is on their own posting.</p>
+    {% endfor %}
+  </div>
+
+  <p class="jobx__source">This is {{ company }}'s own advert, as their careers site lists it.
+    Apply opens their posting in a new tab.</p>
+</article>

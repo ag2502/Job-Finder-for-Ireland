@@ -902,3 +902,46 @@ def test_the_filters_wait_for_show_jobs_on_a_phone(client):
     assert "data-filters-apply" in page and "data-filters-open" in page
     # Sort sits on the bar that stays, once, so paging never sends two orders.
     assert page.count('name="sort"') == 1
+
+
+# ------------------------------------------------------------------ one advert
+
+
+def _a_live_job_id() -> int | None:
+    from sqlalchemy import select
+
+    from jobfinder.core.db import session_scope
+    from jobfinder.core.models import JobPosting
+    from jobfinder.web.app import _is_offerable
+
+    with session_scope() as session:
+        return session.scalar(
+            select(JobPosting.id).where(_is_offerable(), JobPosting.is_dublin.is_(True),
+                                        JobPosting.description.is_not(None)).limit(1)
+        )
+
+
+def test_a_job_opens_as_a_panel_for_htmx_and_a_page_otherwise(client):
+    job_id = _a_live_job_id()
+    if job_id is None:
+        pytest.skip("no live job in this database")
+    panel = client.get(f"/jobs/{job_id}", headers={"HX-Request": "true"})
+    assert panel.status_code == 200
+    assert 'class="jobx"' in panel.text and "<!doctype html>" not in panel.text.lower()
+    page = client.get(f"/jobs/{job_id}")
+    assert page.status_code == 200
+    assert "<!doctype html>" in page.text.lower() and 'class="jobx"' in page.text
+    assert "Apply on" in page.text
+
+
+def test_a_closed_or_unknown_job_says_so(client):
+    assert client.get("/jobs/999999999").status_code == 404
+    assert "has closed" in client.get("/jobs/999999999").text
+
+
+def test_a_row_title_leads_to_the_job_on_this_site(client):
+    """The row opens the advert here; Apply is what goes to the employer."""
+    page = client.post("/search", data={"chosen_fields": ["backend"]},
+                       headers={"HX-Request": "true"}).text
+    titles = re.findall(r'<h3 class="record__title">\s*<a href="([^"]+)"', page)
+    assert titles and all(t.startswith("/jobs/") for t in titles)

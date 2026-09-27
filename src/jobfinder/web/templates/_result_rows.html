@@ -59,7 +59,9 @@
       <span class="guide__count">{{ "{:,}".format(band_counts[item.tier]) }}</span></div>
     {% endif %}
 
-    <article class="record filing">
+    {# The whole row opens the advert in a panel over the list (finder.html); the title
+       is a real link to the job's own page, for new tabs and for no JavaScript. #}
+    <article class="record filing" data-job="{{ item.job.id }}">
       {{ logo(item.company, item.domain) }}
       <div class="record__main">
         <p class="record__top">
@@ -70,7 +72,7 @@
           {%- endif %}
         </p>
         <h3 class="record__title">
-          <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
+          <a href="/jobs/{{ item.job.id }}">{{ item.job.title }}</a>
         </h3>
         {# Why it is here, as chips: the field (when more than one was in play), the
            searcher's own skills the advert asks for, then the facts that decide

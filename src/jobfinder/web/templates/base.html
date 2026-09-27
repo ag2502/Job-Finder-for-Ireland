@@ -578,6 +578,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 }
 .record:last-child{border-bottom:0}
 .record:hover{background:#f7f9fd}
+.record[data-job]{cursor:pointer}
 .record .logo{margin-top:2px}
 .record__main{flex:1;min-width:0}
 .record__head{display:flex;align-items:baseline;gap:12px}
@@ -604,6 +605,37 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:#eef0f3;border-color
 }
 .guide::before{content:"";width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;
   border-top:6px solid var(--ink-3)}
+
+/* ---------------------------------------------------------- one advert --- */
+/* _job_detail.html: the panel over the results and the job page both show it. */
+.jobx__head{display:flex;align-items:center;gap:16px}
+.jobx__head .logo{--size:56px}
+.jobx__who{min-width:0}
+.jobx__employer{margin:0 0 3px;font-size:14px;font-weight:600;color:var(--ink-3)}
+.jobx__title{margin:0;font-size:clamp(1.3rem,2.4vw,1.6rem);line-height:1.18;letter-spacing:-.025em}
+/* Flex, not grid, so a fact left alone on a row stretches across it instead of leaving
+   a grey hole where a fourth would sit. */
+.jobx__facts{display:flex;flex-wrap:wrap;gap:1px;margin:22px 0 0;
+  background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.jobx__fact{flex:1 1 150px;background:#fff;padding:10px 14px;min-width:0}
+.jobx__fact dt{font-size:12px;font-weight:600;color:var(--ink-3)}
+.jobx__fact dd{margin:2px 0 0;font-size:14px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
+.jobx__age{font-weight:400;color:var(--ink-3)}
+.jobx__match{margin:14px 0 0;padding:12px 14px;border-radius:12px;background:var(--win-bar);border:1px solid var(--line)}
+.jobx__match:empty{display:none}
+.jobx__match .meter{cursor:default}
+.jobx__match p{margin:6px 0 0;font-size:13.5px;line-height:1.5;color:var(--ink-2)}
+.jobx__match .chips{margin-top:10px}
+.jobx__advert{margin:24px 0 0;font-size:15px;line-height:1.65;color:var(--ink-2)}
+.jobx__advert h3{margin:22px 0 8px;font-size:1rem;color:var(--ink)}
+.jobx__advert h3:first-child{margin-top:0}
+.jobx__advert p{margin:0 0 12px;max-width:none}
+.jobx__advert ul{margin:0 0 14px;padding-left:20px}
+.jobx__advert li{margin:0 0 6px;padding-left:2px}
+.jobx__advert li::marker{color:var(--ink-3)}
+.jobx__none{color:var(--ink-3)}
+.jobx__source{margin:24px 0 0;padding-top:14px;border-top:1px solid var(--line);font-size:13px;color:var(--ink-3)}
+.jobx__gone{margin:0;padding:40px 8px;text-align:center;color:var(--ink-2);font-weight:600}
 
 /* ------------------------------------------------------------ save ------- */
 .savebtn{

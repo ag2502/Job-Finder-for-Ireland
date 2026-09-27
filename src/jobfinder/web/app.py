@@ -63,6 +63,7 @@ from jobfinder.matching import vocabulary
 from jobfinder.matching import llm_profile
 from jobfinder.matching.resume import own_skills, parse_resume
 from jobfinder.tailor import document as tailor_document
+from jobfinder.web import advert
 from jobfinder.normalize.dedup import (
     canonical_title,
     key_for,
@@ -838,6 +839,55 @@ async def search(
 def results(request: Request):
     """Superseded by the single-page finder; kept so old links still work."""
     return RedirectResponse("/", status_code=303)
+
+
+def _job_view(session, job: JobPosting) -> dict:
+    """One advert as the job panel and the job page show it."""
+    company = session.get(Company, job.company_id)
+    name = company.name if company else "Unknown"
+    first_seen = _as_utc(job.first_seen_at)
+    return {
+        "job": job,
+        "company": name,
+        "domain": _logo_domain(name, company.website if company else None),
+        "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
+        "first_seen": first_seen.strftime("%d %b %Y") if first_seen else "",
+        "age": _age(_as_utc(job.posted_at) or first_seen, datetime.now(timezone.utc)),
+        "place": _short_place(job.location_raw),
+        "experience": _experience_label(job),
+        "blocks": advert.blocks(job.description),
+    }
+
+
+@app.get("/jobs/{job_id}", response_class=HTMLResponse)
+def job_page(request: Request, job_id: int):
+    """One advert, read on this site before going to the employer's.
+
+    htmx asks for the panel that slides over the results; anything else gets a page of
+    its own, which is what a shared or bookmarked link to a job opens. Only jobs a
+    search would offer are shown: one the employer has taken down is gone here too,
+    rather than a page that leads to their "job not found".
+    """
+    with session_scope() as session:
+        job = session.scalar(
+            select(JobPosting).where(JobPosting.id == job_id, _is_offerable())
+        )
+        if job is None:
+            if request.headers.get("HX-Request"):
+                return HTMLResponse(
+                    '<p class="jobx__gone">This job has closed since the list was loaded.</p>',
+                    status_code=404,
+                )
+            context = _base_context(request)
+            context["gone"] = True
+            return templates.TemplateResponse(request, "job.html", context, status_code=404)
+        view = _job_view(session, job)
+
+    context = _base_context(request)
+    context.update(view)
+    if request.headers.get("HX-Request"):
+        return templates.TemplateResponse(request, "_job_detail.html", context)
+    return templates.TemplateResponse(request, "job.html", context)
 
 
 def _as_utc(value: datetime | None) -> datetime | None:

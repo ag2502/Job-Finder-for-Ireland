@@ -282,6 +282,29 @@
 </div>
 </section>
 
+{# One advert, opened from its row: a panel down the right on a wide screen, a sheet
+   from the bottom on a phone. Outside #results, so a new search does not take it away.
+   The body comes from /jobs/<id>; Save and Apply are the row's own, copied in. #}
+<div class="jobsheet" id="jobsheet" hidden>
+  <div class="jobsheet__scrim" data-job-close></div>
+  <section class="jobsheet__win" role="dialog" aria-modal="true" aria-labelledby="jobx-title">
+    <div class="win__bar jobsheet__bar">
+      <span class="lights">
+        <button type="button" class="jobsheet__light" data-job-close aria-label="Close"><i></i></button><i></i><i></i>
+      </span>
+      <span class="win__title" data-jobsheet-name>job</span>
+      <button type="button" class="jobsheet__x" data-job-close aria-label="Close">
+        <svg width="18" height="18" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="jobsheet__body" id="jobsheet-body" tabindex="-1"></div>
+    <div class="jobsheet__foot">
+      <a class="jobsheet__link" data-jobsheet-page href="#">Job page</a>
+      <div class="jobsheet__acts" data-jobsheet-acts></div>
+    </div>
+  </section>
+</div>
+
 <style>
   /* ------------------------------------------------------------ the desk */
   /* The first screen: the desk and the dock together fill the window, so the dock of
@@ -579,6 +602,65 @@
   @keyframes gulp{0%{transform:scale(1)}40%{transform:scale(1.14)}100%{transform:none}}
   @keyframes receive{0%{transform:scale(.97)}50%{transform:scale(1.012)}100%{transform:none}}
 
+  /* --------------------------------------------------------- one advert */
+  html.job-open,html.job-open body{overflow:hidden}
+  .jobsheet{position:fixed;inset:0;z-index:150}
+  .jobsheet[hidden]{display:none}
+  .jobsheet__scrim{position:absolute;inset:0;background:rgba(20,24,33,.26);opacity:0;transition:opacity .25s var(--ease)}
+  .jobsheet.is-open .jobsheet__scrim{opacity:1}
+  .jobsheet__win{
+    position:absolute;top:calc(48px + env(safe-area-inset-top) + 12px);right:12px;bottom:12px;
+    width:min(600px,calc(100vw - 24px));display:flex;flex-direction:column;
+    background:#fff;border:1px solid rgba(20,24,33,.14);border-radius:var(--r-win);overflow:hidden;
+    box-shadow:0 3px 8px rgba(20,24,33,.12),0 50px 90px -24px rgba(20,24,33,.5);
+    transform:translateX(calc(100% + 24px));transition:transform .42s var(--ease);
+  }
+  .jobsheet.is-open .jobsheet__win{transform:none}
+  .jobsheet__bar{flex:none}
+  .jobsheet__bar .win__title{margin-right:0}
+  .jobsheet__light{all:unset;box-sizing:border-box;display:grid;place-items:center;width:12px;height:12px;
+    border-radius:50%;background:var(--tl-red);cursor:pointer;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+  .jobsheet__light i{width:6px;height:6px;opacity:0;background:
+    linear-gradient(45deg,transparent 42%,#7a1d17 42% 58%,transparent 58%),
+    linear-gradient(-45deg,transparent 42%,#7a1d17 42% 58%,transparent 58%)}
+  .jobsheet__light:hover i,.jobsheet__light:focus-visible i{opacity:1}
+  .jobsheet__light:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .jobsheet__x{display:none}
+  .jobsheet__body{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:26px 28px 22px;outline:none}
+  .jobsheet__foot{flex:none;display:flex;align-items:center;gap:10px;padding:12px 16px 12px 22px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));background:var(--win-bar);border-top:1px solid var(--line)}
+  .jobsheet__link{font-size:13.5px;font-weight:600;color:var(--aqua-deep);margin-right:auto}
+  .jobsheet__acts{display:flex;align-items:center;gap:8px}
+  .jobsheet__acts .btn--apply{font-size:15px;padding:10px 22px}
+  .jobsheet__acts .savebtn{font-size:14.5px;padding:9px 16px}
+  .jobsheet__acts .savebtn__label{position:static;width:auto;height:auto;clip:auto}
+  /* While the advert loads: a few grey lines where it will be. */
+  .jobsheet__skel i{display:block;height:12px;border-radius:6px;background:#eceef2;margin:0 0 12px}
+  .jobsheet__skel i:first-child{height:22px;width:70%;margin-bottom:22px}
+  .jobsheet__skel i:nth-child(3n){width:84%}
+  @media (prefers-reduced-motion:no-preference){
+    .jobsheet__skel i{animation:skel 1.2s ease-in-out infinite alternate}
+  }
+  @keyframes skel{to{opacity:.45}}
+  @media (prefers-reduced-motion:reduce){ .jobsheet__win,.jobsheet__scrim{transition:none} }
+  /* A phone: a sheet from the bottom, nearly the whole screen, with its own close. */
+  @media (max-width:860px){
+    .jobsheet__win{top:auto;left:0;right:0;bottom:0;width:auto;height:calc(100dvh - 44px);
+      border-radius:18px 18px 0 0;border-bottom:0;transform:translateY(102%)}
+    .jobsheet__bar .lights,.jobsheet__bar .win__title{visibility:hidden}
+    .jobsheet__bar{position:relative;height:44px;background:#fff;border-bottom:1px solid var(--line)}
+    .jobsheet__bar::before{content:"";position:absolute;top:7px;left:50%;width:36px;height:4px;margin-left:-18px;
+      border-radius:2px;background:#d5dae1}
+    .jobsheet__x{display:grid;place-items:center;position:absolute;right:8px;top:4px;width:36px;height:36px;
+      min-height:0;padding:0;border-radius:50%;color:var(--ink-2);background:var(--win-bar);border:0;box-shadow:none;text-shadow:none}
+    .jobsheet__x:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
+    .jobsheet__x svg{transform:none!important}
+    .jobsheet__body{padding:20px 18px 18px}
+    .jobsheet__foot{padding-left:16px}
+    .jobsheet__acts{flex:1;justify-content:flex-end}
+    .jobsheet__acts .btn--apply{flex:1;max-width:260px}
+  }
+
   /* ------------------------------------------------------------- smaller */
   /* Extras that need height to spare above and below the headline. */
   @media (max-height:939px){
@@ -787,6 +869,96 @@
     });
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') shut(true, true);
+    });
+  })();
+
+  // One advert, over the results. A row opens it (a plain click anywhere on it that is
+  // not one of its own buttons); the title is a real link, so a new tab or a middle
+  // click still goes to the job's own page. Save and Apply are the row's own controls,
+  // copied in, and whatever they become is copied back, so the row and the panel never
+  // disagree about whether a job was saved or applied to.
+  (function () {
+    var sheet = document.getElementById('jobsheet');
+    if (!sheet) return;
+    var body = document.getElementById('jobsheet-body');
+    var acts = sheet.querySelector('[data-jobsheet-acts]');
+    var page = sheet.querySelector('[data-jobsheet-page]');
+    var name = sheet.querySelector('[data-jobsheet-name]');
+    var current = null, lastFocus = null, closing = null;
+    var skeleton = '<div class="jobsheet__skel" aria-hidden="true">' + new Array(10).join('<i></i>') + '</div>';
+
+    function open(card) {
+      clearTimeout(closing);
+      current = card;
+      lastFocus = document.activeElement;
+      var id = card.getAttribute('data-job');
+      var who = card.querySelector('.record__employer');
+      name.textContent = (who ? who.textContent.trim() : 'job') + ': advert';
+      page.href = '/jobs/' + id;
+      body.innerHTML = skeleton;
+      body.scrollTop = 0;
+      acts.innerHTML = '';
+      var own = card.querySelector('.record__actions');
+      if (own) { acts.innerHTML = own.innerHTML; htmx.process(acts); }
+      watch.takeRecords();   // copying the row in is not a change to copy back
+      sheet.hidden = false;
+      document.documentElement.classList.add('job-open');
+      requestAnimationFrame(function () { sheet.classList.add('is-open'); });
+      htmx.ajax('GET', '/jobs/' + id, { target: body, swap: 'innerHTML' });
+      body.focus({ preventScroll: true });
+    }
+
+    function close() {
+      if (sheet.hidden) return;
+      sheet.classList.remove('is-open');
+      document.documentElement.classList.remove('job-open');
+      closing = setTimeout(function () {
+        sheet.hidden = true; body.innerHTML = ''; acts.innerHTML = ''; watch.takeRecords();
+      }, 420);
+      if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true });
+      current = null;
+    }
+    window.SortedJob = { open: open, close: close, current: function () { return current; } };
+
+    // Why this job is in the search: the row's meter and chips, said in full.
+    document.body.addEventListener('htmx:afterSwap', function (e) {
+      if (e.detail.target === body && current) {
+        var slot = body.querySelector('[data-jobx-match]');
+        var meter = current.querySelector('.meter'), chips = current.querySelector('.chips');
+        if (slot && meter) {
+          var m = meter.cloneNode(true);
+          var why = (meter.getAttribute('title') || '').split(': ').slice(1).join(': ');
+          m.removeAttribute('title');
+          slot.appendChild(m);
+          if (why) { var p = document.createElement('p'); p.textContent = why; slot.appendChild(p); }
+          if (chips && chips.children.length) slot.appendChild(chips.cloneNode(true));
+        }
+      }
+    });
+
+    // Save or Apply changed in the panel: the row takes the same state. Watched rather
+    // than caught from htmx's events, because both swap themselves out whole and the
+    // element an event names has already left the page by then.
+    var watch = new MutationObserver(function () {
+      var own = current && current.querySelector('.record__actions');
+      if (own) { own.innerHTML = acts.innerHTML; htmx.process(own); }
+    });
+    watch.observe(acts, { childList: true, subtree: true });
+
+    document.addEventListener('click', function (e) {
+      var t = e.target;
+      if (!t.closest) return;
+      if (t.closest('[data-job-close]')) { close(); return; }
+      var card = t.closest('#result-list .record[data-job]');
+      if (!card || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var link = t.closest('a');
+      if (link && !link.closest('.record__title')) return;
+      if (t.closest('button, .btn, .savebtn, details, input, select, label')) return;
+      e.preventDefault();
+      open(card);
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !sheet.hidden && !document.documentElement.classList.contains('tailor-open')) close();
     });
   })();
 
