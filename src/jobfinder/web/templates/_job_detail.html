@@ -39,6 +39,30 @@
     </div>
   </dl>
 
+  {# Three lines to decide whether to read on: written after the crawl by a language
+     model from this advert alone, and labelled as such, with the advert itself below.
+     Without one, the skills the advert names still show. #}
+  {% if summary %}
+  <section class="jobx__short" aria-labelledby="jobx-short">
+    <h3 id="jobx-short">In short</h3>
+    <p><b>The job</b>{{ summary.does }}</p>
+    <p><b>They ask for</b>{{ summary.needs }}</p>
+    {% if summary.tools %}
+    <ul class="chips" aria-label="Tools the advert names">
+      {% for tool in summary.tools %}<li class="chip chip--skill">{{ tool }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+    <p class="jobx__by">Summarised from the advert by a language model. The advert below is what counts.</p>
+  </section>
+  {% elif named %}
+  <section class="jobx__short jobx__short--named" aria-label="Skills the advert names">
+    <h3>Skills it names</h3>
+    <ul class="chips">
+      {% for tool in named %}<li class="chip chip--skill">{{ tool }}</li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+
   {# Filled from the row that opened the panel: why it is in this search. #}
   <div class="jobx__match" data-jobx-match></div>
 

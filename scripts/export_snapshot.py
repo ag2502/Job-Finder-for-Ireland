@@ -69,6 +69,28 @@ def _precompute_skills(target) -> int:
     return len(found) - 1
 
 
+def _keep_summaries_in_use(target) -> int:
+    """Drop the summaries of adverts the snapshot does not carry.
+
+    The crawler's table keeps every summary it has ever written, closed adverts and all,
+    so that one reopening costs nothing. The site needs only the live ones.
+    """
+    from jobfinder.matching.rank import advert_hash
+
+    with target.begin() as dst:
+        live = {
+            advert_hash(f"{title}\n{description or ''}")
+            for title, description in dst.exec_driver_sql(
+                "select title, description from job_postings"
+            ).all()
+        }
+        stored = [h for (h,) in dst.exec_driver_sql("select advert_hash from advert_summaries").all()]
+        gone = [(h,) for h in stored if h not in live]
+        if gone:
+            dst.exec_driver_sql("delete from advert_summaries where advert_hash = ?", gone)
+    return len(stored) - len(gone)
+
+
 def export(destination: Path) -> Path:
     """Copy the servable rows from the configured database into a fresh SQLite file."""
     if destination.exists():
@@ -90,12 +112,21 @@ def export(destination: Path) -> Path:
                     table.c.is_dublin.is_(True) | table.c.is_remote.is_(True),
                 )
 
-            rows = [dict(row._mapping) for row in src.execute(stmt)]
+            try:
+                rows = [dict(row._mapping) for row in src.execute(stmt)]
+            except Exception:  # noqa: BLE001 - a table newer than the database
+                if table.name != "advert_summaries":
+                    raise
+                # A database no crawl has opened since summaries existed has no table
+                # yet; the site then shows adverts without summaries.
+                src.rollback()
+                rows = []
             totals[table.name] = len(rows)
             for start in range(0, len(rows), CHUNK_ROWS):
                 dst.execute(insert(table), rows[start : start + CHUNK_ROWS])
 
     totals["advert_skills"] = _precompute_skills(target)
+    totals["advert_summaries"] = _keep_summaries_in_use(target)
 
     # Reclaim the pages freed by everything that was not copied; without this the file
     # keeps the source's footprint and the size win disappears.

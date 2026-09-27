@@ -104,6 +104,23 @@ jobs:
           fi
           jobfinder crawl $args
 
+      - name: Summarise new adverts
+        env:
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
+          JOBFINDER_GEMINI_API_KEY: ${{ secrets.JOBFINDER_GEMINI_API_KEY }}
+          JOBFINDER_GROQ_API_KEY: ${{ secrets.JOBFINDER_GROQ_API_KEY }}
+        # Three short lines per advert for the job panel (pipeline/summarise.py), written
+        # by the free models CV tailoring uses and kept in the crawler state, so each
+        # advert costs one request ever. Up to 150 a run, newest Dublin ones first: a cold
+        # start catches up over a few runs without touching a free tier's daily limit.
+        #
+        # Never fails the crawl, and runs after it has been saved: summaries are a
+        # convenience, and a model being busy is not a reason to skip a day's postings.
+        # With neither key set it says so and does nothing.
+        continue-on-error: true
+        timeout-minutes: 10
+        run: jobfinder summarise --limit 150 --minutes 8
+
       - name: Publish the crawler state
         # Only on success. A run that failed part-way through has a database that reflects
         # neither the previous state nor a complete crawl, and overwriting the release with

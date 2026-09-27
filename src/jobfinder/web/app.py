@@ -985,6 +985,30 @@ def results(request: Request):
     return RedirectResponse("/", status_code=303)
 
 
+_summaries: dict[str, dict] | None = None
+_summaries_lock = threading.Lock()
+
+
+def _summary_for(job: JobPosting) -> dict | None:
+    """The short summary written for this advert after a crawl, or None.
+
+    Read from the snapshot once per process: it is replaced by a deploy, never in place.
+    A database without the table (a local crawl database, an older snapshot) has none.
+    """
+    global _summaries
+    with _summaries_lock:
+        if _summaries is None:
+            try:
+                with engine.connect() as conn:
+                    rows = conn.exec_driver_sql(
+                        "select advert_hash, summary from advert_summaries"
+                    ).all()
+                _summaries = {key: json.loads(value) for key, value in rows}
+            except Exception:  # noqa: BLE001 - no table, or not SQLite
+                _summaries = {}
+    return _summaries.get(rank.advert_hash(f"{job.title}\n{job.description or ''}"))
+
+
 def _job_view(session, job: JobPosting) -> dict:
     """One advert as the job panel and the job page show it."""
     company = session.get(Company, job.company_id)
@@ -1003,6 +1027,13 @@ def _job_view(session, job: JobPosting) -> dict:
         "mode": _facts_for(job)["mode"],
         "salary": _facts_for(job)["salary"],
         "blocks": advert.blocks(job.description),
+        "summary": _summary_for(job),
+        # The tools and skills the advert names, found by the same rules ranking uses.
+        # Shown on their own when no summary has been written yet.
+        "named": sorted(
+            skill for skill in rank.advert_skills(f"{job.title}\n{job.description or ''}")
+            if is_technical(skill)
+        )[:8],
     }
 
 

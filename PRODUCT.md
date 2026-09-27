@@ -74,6 +74,12 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   adverts) and the work mode (311), read by rules that need a pay word or a working
   pattern word beside the figure, so revenue, funding and "hybrid cloud" never count.
   Unstated reads "Not stated"; nothing is estimated.
+- Short advert summaries (2026-09-27): after each crawl, `jobfinder summarise` has the
+  free models (Gemini, then Groq) write what the job is, what it asks for and the tools
+  it names, once per advert, kept in the crawler state. Tools not in the advert's own
+  text are dropped, and the panel labels the summary as written by a model. Dormant
+  until `JOBFINDER_GEMINI_API_KEY` (or `JOBFINDER_GROQ_API_KEY`) is added as a GitHub
+  Actions secret; until then the panel shows the skills the advert names.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
 - An employer directory covering the whole registry, including employers that cannot be

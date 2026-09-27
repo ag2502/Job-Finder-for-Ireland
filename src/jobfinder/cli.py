@@ -372,6 +372,17 @@ def cmd_coverage(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_summarise(args: argparse.Namespace) -> int:
+    """Summarise adverts that have none yet. Never fails a crawl: see pipeline/summarise."""
+    from jobfinder.pipeline.summarise import summarise
+
+    init_db()
+    with session_scope() as session:
+        result = summarise(session, limit=args.limit, minutes=args.minutes)
+    print(result)
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -473,6 +484,13 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_coverage.add_argument("--limit", type=int, default=15, help="rows of work queue to show")
     p_coverage.set_defaults(func=cmd_coverage)
+
+    p_summarise = sub.add_parser(
+        "summarise", help="write short summaries of adverts that have none yet"
+    )
+    p_summarise.add_argument("--limit", type=int, default=150, help="adverts at most")
+    p_summarise.add_argument("--minutes", type=float, default=8.0, help="time budget")
+    p_summarise.set_defaults(func=cmd_summarise)
 
     p_serve = sub.add_parser("serve", help="run the web portal")
     p_serve.add_argument("--host", default="127.0.0.1")
