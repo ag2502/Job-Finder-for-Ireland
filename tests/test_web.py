@@ -1107,3 +1107,27 @@ def test_the_night_desk_is_chosen_before_the_page_paints(client):
     assert "localStorage.getItem('sp-theme')" in head, "the theme must be set in <head>"
     assert ':root[data-theme="dark"]' in head and "prefers-color-scheme:dark" in head
     assert "data-theme-cycle" in page
+
+
+# ------------------------------------------------------------------ hiring pulse
+
+
+def test_the_pulse_counts_only_stated_posting_dates():
+    from jobfinder.core.db import session_scope
+    from jobfinder.web.app import PULSE_DAYS, _hiring_pulse
+
+    with session_scope() as session:
+        pulse = _hiring_pulse(session)
+    if pulse is None:
+        pytest.skip("no dated jobs in this database")
+    assert len(pulse["days"]) == PULSE_DAYS and pulse["days"][-1]["long"] == "Today"
+    assert pulse["total"] == sum(d["n"] for d in pulse["days"])
+    assert sum(d["peak"] for d in pulse["days"]) == 1, "one busiest day is labelled"
+    assert max(d["h"] for d in pulse["days"]) == 1
+
+
+def test_the_home_page_shows_the_pulse_with_a_table(client):
+    page = client.get("/").text
+    if "activity-monitor: hiring" not in page:
+        pytest.skip("no dated jobs in this database")
+    assert page.count('class="pulse__col') == 30 and "Show as a table" in page

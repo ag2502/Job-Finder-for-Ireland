@@ -1,0 +1,46 @@
+{# The hiring pulse: open Dublin jobs by the day they were posted, over the last 30
+   days (web/app.py: _hiring_pulse). An Activity Monitor window on the desk. One series,
+   so no legend: the title says what is plotted. Every bar answers on hover and focus,
+   and the same figures are in the table under it. #}
+{% from "_macros.html" import titlebar %}
+<section class="pulse" aria-labelledby="pulse-title">
+  <div class="win pulsewin opens">
+    {{ titlebar("activity-monitor: hiring") }}
+    <div class="pulse__body">
+      <div class="pulse__head">
+        <div>
+          <p class="pulse__label" id="pulse-title">Dublin jobs posted in the last {{ pulse.days|length }} days, still open</p>
+          <p class="pulse__value">{{ "{:,}".format(pulse.total) }}</p>
+        </div>
+        <p class="pulse__note">Busiest day: <b>{{ pulse.peak.long }}</b>, {{ "{:,}".format(pulse.peak.n) }} jobs.
+          {% if pulse.undated %}{{ "{:,}".format(pulse.undated) }} open jobs give no posting date, so they are not counted here.{% endif %}</p>
+      </div>
+
+      <div class="pulse__plot" data-pulse>
+        <div class="pulse__bars">
+          {% for d in pulse.days %}
+          <span class="pulse__col{% if loop.last %} is-today{% endif %}{% if d.peak %} is-peak{% endif %}" tabindex="0"
+                style="--h:{{ d.h }};--i:{{ loop.index0 }}"
+                data-tip="{{ d.long }}: {{ '{:,}'.format(d.n) }} job{{ '' if d.n == 1 else 's' }}"
+                aria-label="{{ d.long }}, {{ d.n }} job{{ '' if d.n == 1 else 's' }} posted">
+            {% if d.peak %}<span class="pulse__peak" aria-hidden="true">{{ "{:,}".format(d.n) }}</span>{% endif %}
+            <i class="pulse__bar" aria-hidden="true"></i>
+          </span>
+          {% endfor %}
+        </div>
+        <div class="pulse__axis" aria-hidden="true"><span>{{ pulse.days[0].short }}</span><span>Today</span></div>
+        <div class="pulse__tip" aria-hidden="true" hidden></div>
+      </div>
+
+      <details class="pulse__table">
+        <summary>Show as a table</summary>
+        <table>
+          <thead><tr><th scope="col">Day</th><th scope="col">Jobs posted</th></tr></thead>
+          <tbody>
+            {% for d in pulse.days|reverse %}<tr><td>{{ d.long }}</td><td>{{ "{:,}".format(d.n) }}</td></tr>{% endfor %}
+          </tbody>
+        </table>
+      </details>
+    </div>
+  </div>
+</section>

@@ -624,6 +624,56 @@ def _hiring_employers(session) -> list[dict]:
     return sorted(employers.values(), key=lambda e: (-e["jobs"], e["name"].lower()))
 
 
+PULSE_DAYS = 30
+
+
+def _hiring_pulse(session) -> dict | None:
+    """Open Dublin jobs by the day their employer says they were posted, last 30 days.
+
+    Only a stated posting date counts. Jobs without one are dated by when we first saw
+    them elsewhere on the site, but here that would pile every one of them onto the day
+    a source was first crawled and draw a spike that never happened; they are counted
+    and said instead. The days run back from the last crawl, not from the clock, so an
+    old snapshot draws its own month rather than a row of empty days. Counts are of
+    jobs still open: one posted and filled in the same week is not in this list at all.
+    """
+    anchor = _as_utc(session.scalar(select(func.max(JobPosting.last_seen_at))))
+    if anchor is None:
+        return None
+    today = anchor.astimezone(DUBLIN).date()
+    start = today - timedelta(days=PULSE_DAYS - 1)
+    posted = session.scalars(
+        select(JobPosting.posted_at).where(_is_offerable(), JobPosting.is_dublin.is_(True))
+    ).all()
+    counts: dict = {}
+    undated = 0
+    for when in posted:
+        if when is None:
+            undated += 1
+            continue
+        day = _as_utc(when).astimezone(DUBLIN).date()
+        if start <= day <= today:
+            counts[day] = counts.get(day, 0) + 1
+    total = sum(counts.values())
+    if not total:
+        return None
+    top = max(counts.values())
+    peak_day = min(d for d, n in counts.items() if n == top)   # the first, if days tie
+    days = []
+    for offset in range(PULSE_DAYS):
+        day = start + timedelta(days=offset)
+        n = counts.get(day, 0)
+        days.append({
+            "n": n,
+            "h": round(n / top, 4),
+            "long": "Today" if day == today else day.strftime("%a %-d %b"),
+            "short": day.strftime("%-d %b"),
+            "peak": day == peak_day,
+        })
+    peak = next(d for d in days if d["peak"])
+    return {"days": days, "total": total, "undated": undated, "top": top, "peak": peak}
+
+
 def _index_context(request: Request) -> dict:
     """Home page context. Shared with the upload error path, which renders the same
     template and would otherwise be missing the counts it interpolates."""
@@ -642,6 +692,7 @@ def _index_context(request: Request) -> dict:
         # as open windows, each carrying real titles from that company, and links the
         # rest to /companies.
         hiring_employers = _hiring_employers(session)
+        pulse = _hiring_pulse(session)
         showcase = [e for e in hiring_employers if e["domain"]][:8]
         for employer in showcase:
             employer["titles"] = session.scalars(
@@ -664,6 +715,7 @@ def _index_context(request: Request) -> dict:
         employers_hiring=len(hiring_employers),
         hiring_employers=hiring_employers,
         showcase=showcase,
+        pulse=pulse,
     )
     return context
 

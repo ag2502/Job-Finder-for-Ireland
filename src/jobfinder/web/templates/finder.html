@@ -94,6 +94,8 @@
 {% endif %}
 </div>
 
+{% if pulse %}{% include "_pulse.html" %}{% endif %}
+
 {# How it works, acted out. The section pins while it scrolls, the steps on the left
    advance, and the window on the right does each one: real fields tick themselves, an
    example CV is read, and real jobs from real companies sort into a list. #}
@@ -451,6 +453,58 @@
   .dockrow__link:hover{text-decoration:underline}
   .dockrow__link svg{transition:transform .35s var(--spring)}
   .dockrow__link:hover svg{transform:translateX(4px)}
+
+  /* ------------------------------------------------------ hiring pulse */
+  .pulse{padding:8px 24px 40px}
+  .pulsewin{max-width:880px;margin:0 auto;box-shadow:var(--shadow-lift)}
+  .pulse__body{padding:22px 26px 18px}
+  .pulse__head{display:flex;align-items:flex-end;justify-content:space-between;gap:10px 28px;flex-wrap:wrap;margin-bottom:18px}
+  .pulse__label{margin:0 0 2px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
+  .pulse__value{margin:0;font-size:clamp(2.2rem,4.4vw,3rem);font-weight:750;letter-spacing:-.04em;line-height:1;
+    font-variant-numeric:proportional-nums}
+  .pulse__note{margin:0;max-width:44ch;font-size:13px;line-height:1.5;color:var(--ink-3)}
+  .pulse__note b{color:var(--ink);font-weight:650}
+  .pulse__plot{position:relative}
+  /* Columns share the width with a 2px surface gap; each is its own hit target, full
+     height, so a short bar is as easy to point at as a tall one. */
+  /* The top 34px of the plot is kept clear: the busiest day's figure and the hover
+     readout sit there, never over the bars or the note. */
+  .pulse__bars{display:flex;align-items:stretch;gap:2px;height:150px;padding-top:34px;
+    border-bottom:1px solid var(--line-strong)}
+  .pulse__col{position:relative;flex:1 1 0;min-width:0;display:flex;flex-direction:column;justify-content:flex-end;
+    align-items:center;cursor:default;outline:none;border-radius:4px 4px 0 0}
+  .pulse__bar{display:block;width:100%;max-width:24px;height:max(2px,calc(var(--h) * 100%));
+    border-radius:4px 4px 0 0;background:var(--aqua);opacity:.42;transform-origin:50% 100%;
+    transition:opacity .15s var(--ease)}
+  .pulse__col.is-today .pulse__bar,.pulse__col:hover .pulse__bar,.pulse__col:focus-visible .pulse__bar{opacity:1}
+  .pulse__col:focus-visible{box-shadow:0 0 0 2px var(--aqua)}
+  .pulse__peak{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(var(--h) * 100% + 4px);
+    font-family:var(--mono);font-size:11.5px;color:var(--ink-2);white-space:nowrap}
+  .pulse__axis{display:flex;justify-content:space-between;margin-top:6px;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .pulse__tip{position:absolute;top:0;z-index:2;transform:translateX(-50%);pointer-events:none;white-space:nowrap;
+    padding:5px 10px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--ink);background:var(--pane);
+    border:1px solid var(--edge);box-shadow:var(--shadow-sm)}
+  .pulse__table{margin-top:14px}
+  .pulse__table summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--aqua-deep);width:fit-content}
+  .pulse__table table{margin-top:10px;max-width:360px}
+  .pulse__table td:last-child,.pulse__table th:last-child{text-align:right;font-variant-numeric:tabular-nums}
+  /* The bars grow up from the baseline as the window opens, a few at a time. */
+  @media (prefers-reduced-motion:no-preference){
+    .js .pulsewin .pulse__bar{transform:scaleY(0)}
+    .js .pulsewin.is-open .pulse__bar{transform:none;transition:transform .7s var(--spring) calc(var(--i) * 18ms + 250ms),opacity .15s var(--ease)}
+  }
+  /* Windows High Contrast drops background colours, which would erase the bars: there
+     they are drawn in the system's text colour, today's in its highlight. */
+  @media (forced-colors:active){
+    .pulse__bar{forced-color-adjust:none;background:CanvasText;opacity:.5}
+    .pulse__col.is-today .pulse__bar,.pulse__col:hover .pulse__bar,.pulse__col:focus-visible .pulse__bar{background:Highlight;opacity:1}
+  }
+  @media (max-width:860px){
+    .pulse{padding:4px 16px 32px}
+    .pulse__body{padding:18px 16px 14px}
+    .pulse__bars{height:132px;gap:1px}
+    .pulse__bar{border-radius:3px 3px 0 0}
+  }
 
   /* ------------------------------------------------------- how it works */
   .story{position:relative;height:250vh}
@@ -1363,6 +1417,26 @@
     }
     document.addEventListener('touchend', release);
     document.addEventListener('touchcancel', release);
+  })();
+
+  // The hiring pulse: each column says its day and count on hover or focus, in one
+  // readout above the plot (the aria-label says the same to a screen reader).
+  (function () {
+    var plot = document.querySelector('[data-pulse]');
+    if (!plot) return;
+    var tip = plot.querySelector('.pulse__tip');
+    function show(col) {
+      var p = plot.getBoundingClientRect(), c = col.getBoundingClientRect();
+      tip.textContent = col.getAttribute('data-tip');
+      tip.hidden = false;
+      var x = c.left + c.width / 2 - p.left, half = tip.offsetWidth / 2;
+      tip.style.left = Math.max(half, Math.min(p.width - half, x)) + 'px';
+    }
+    function hide() { tip.hidden = true; }
+    plot.addEventListener('pointerover', function (e) { var c = e.target.closest('.pulse__col'); if (c) show(c); });
+    plot.addEventListener('pointerleave', hide);
+    plot.addEventListener('focusin', function (e) { var c = e.target.closest('.pulse__col'); if (c) show(c); });
+    plot.addEventListener('focusout', hide);
   })();
 
   // Counts roll from the old total to the new one when a search or filter changes it,
