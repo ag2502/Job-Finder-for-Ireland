@@ -243,12 +243,27 @@ def test_the_first_pass_is_told_to_aim_for_85(monkeypatch):
 
 
 def test_a_boost_asks_for_exactly_what_is_costing_points():
-    report = {"ats_after": 70, "missing": ["Spark", "causal inference"],
-              "checks": [{"label": "Job title", "points": 0, "max": 10,
-                          "detail": '"payments analyst" does not appear anywhere in the CV.'}]}
-    ask = rewrite.boost_request(report)
-    assert "Spark; causal inference" in ask and "payments analyst" in ask and "85" in ask
-    assert rewrite.boost_request({"ats_after": 80, "missing": [], "checks": []}) is None
+    title = {"label": "Job title", "points": 0, "max": 10,
+             "detail": '"payments analyst" does not appear anywhere in the CV.'}
+    ask = rewrite.boost_request({"ats_after": 70, "missing": ["Spark", "causal inference"],
+                                 "checks": [title]})
+    assert "Spark; causal inference" in ask and "85" in ask
+    assert "payments analyst" not in ask, "the advert's title is never pushed onto the CV"
+    assert rewrite.boost_request({"ats_after": 80, "missing": [], "checks": [title]}) is None
+
+
+def test_the_profile_is_not_relabelled_with_the_adverts_title(monkeypatch):
+    doc = _load("cv.pdf")
+    profile = _by_text(doc, "Data scientist with five years")
+    job = rewrite.Job("Graduate Machine Learning Engineer", "Acme", JOB.text)
+    for text, kept in (("Machine learning engineer and " + profile.text[:1].lower() + profile.text[1:], False),
+                       (profile.text.rstrip(".") + ", seeking machine learning engineer roles.", True)):
+        monkeypatch.setattr(llm, "ask", lambda *a, **k: (_answer(
+            [{"id": profile.id, "text": text, "reason": "x"}]), "stub"))
+        result = rewrite.tailor(doc, job)
+        assert (profile.id in result.edits) is kept, text
+        if not kept:
+            assert any("job title" in d["why"] for d in result.report["dropped"])
 
 
 def test_a_boost_never_brings_figures_of_its_own(monkeypatch):

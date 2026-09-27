@@ -28,8 +28,8 @@ from jobfinder.tailor.document import CvDocument, bold_phrases, mark, plain, tex
 MAX_JOB_CHARS = 7000
 
 # The ATS score a tailoring aims for. Reached by truthful means only: the advert's own
-# words for experience the CV shows, its job title in the profile when the experience
-# fits it. What the CV cannot support stays a gap, for the candidate to confirm.
+# words for experience the CV shows. The candidate is never relabelled with the advert's
+# job title. What the CV cannot support stays a gap, for the candidate to confirm.
 TARGET_SCORE = 85
 
 _RULES = """\
@@ -42,17 +42,19 @@ changed. Any other paragraph may be rewritten. You cannot add, remove, merge, sp
 reorder paragraphs: the CV's structure and layout stay exactly as they are.
 
 Goal: an ATS match score of {target} or more, reached truthfully. The score counts how
-many of the advert's requirements appear in the CV in the advert's own words, and
-whether the CV uses the advert's job title.
+many of the advert's requirements appear in the CV in the advert's own words.
 
 How to tailor:
-- When the candidate's experience fits the role, use the advert's job title (without
-  its seniority or team) in the profile or summary, as a description of what they do.
+- Never relabel the candidate with the advert's job title. The profile describes who
+  they are in their own terms: the titles they have actually held, their degree, their
+  field. Do not open the profile with the advert's title or bolt it on ("Software
+  Engineer and ..."). Only a sentence that already says what the candidate is seeking
+  may name this kind of role.
 - Mirror the advert's own words for skills, tools and duties wherever the CV already
   shows that experience, so an ATS keyword match finds them. Prefer the advert's exact
   phrasing ("stakeholder management", "A/B testing") over a synonym.
-- Make the profile or summary speak to this role: its title, its core requirements and
-  the candidate's most relevant strengths.
+- Make the profile or summary speak to this role: its core requirements and the
+  candidate's most relevant strengths.
 - In a skills line, put the most relevant items first. A skills line may gain an item
   only if the CV's own experience clearly shows it.
 - Rewrite the most relevant bullets to lead with a strong verb and the outcome, keeping
@@ -218,9 +220,21 @@ def _paragraph_lines(document: CvDocument, current: dict[str, str], show_origina
     return "\n".join(lines)
 
 
-def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str]) -> tuple[dict, dict, list]:
+def _relabels(text: str, title: str, cv_text: str) -> bool:
+    """Whether a rewrite opens by calling the candidate the advert's job title, when the
+    CV never used that title: "Software Engineer and AI/ML engineer with ...". A sentence
+    saying the candidate seeks such a role further on is not caught."""
+    core = ats.core_title(title)
+    if not core or ats._has(core, ats._norm(cv_text)):
+        return False
+    return ats._has(core, ats._norm(" ".join(text.split()[:8])))
+
+
+def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str],
+              title: str = "") -> tuple[dict, dict, list]:
     """Keep the edits that follow the rules; say why the others were dropped."""
     by_id = document.by_id
+    cv_text = document.text()
     kept, reasons, dropped, removals = {}, {}, [], []
     for edit in answer.get("edits") or []:
         pid = str(edit.get("id", "")).strip().strip("[]")
@@ -243,6 +257,10 @@ def _validate(document: CvDocument, answer: dict, allowed_numbers: set[str]) -> 
         if invented:
             dropped.append({"id": pid, "why": "it added a figure your CV does not state ("
                             + ", ".join(sorted(invented)) + ")"})
+            continue
+        if paragraph.kind != "bullet" and _relabels(plain(text), title, cv_text):
+            dropped.append({"id": pid, "why": "it opened with the advert's job title, "
+                            f'"{ats.core_title(title)}", which your CV does not use'})
             continue
         if len(plain(text)) > max(paragraph.limit * 1.6, len(paragraph.text) + 60) and document.kind != "pdf":
             dropped.append({"id": pid, "why": "it grew far longer than the original"})
@@ -339,7 +357,7 @@ def tailor(document: CvDocument, job: Job, *, deadline: float | None = None) -> 
         raise TailorError(
             "The free writing service is busy right now. Please try again in a minute."
         ) from exc
-    edits, reasons, dropped = _validate(document, answer, _numbers(document.text()))
+    edits, reasons, dropped = _validate(document, answer, _numbers(document.text()), job.title)
     keywords = [str(k).strip() for k in (answer.get("keywords") or []) if str(k).strip()][:25]
     return _finish(document, job, edits, reasons, answer, keywords, dropped, model, language)
 
@@ -369,7 +387,7 @@ def revise(document: CvDocument, job: Job, current: dict[str, str], reasons: dic
             "The free writing service is busy right now. Please try again in a minute."
         ) from exc
     allowed = _numbers(document.text()) | _numbers(request) | _numbers(" ".join(earlier_requests or []))
-    changed, new_reasons, dropped = _validate(document, answer, allowed)
+    changed, new_reasons, dropped = _validate(document, answer, allowed, job.title)
     merged = {**current, **changed}
     merged_reasons = {**reasons, **new_reasons}
     # A paragraph returned to its original wording is no longer an edit.
@@ -384,27 +402,18 @@ def boost_request(report: dict) -> str | None:
     things only the candidate can supply, or in the file itself.
     """
     missing = report.get("missing") or []
-    title = next((c for c in report.get("checks") or [] if c["label"] == "Job title"), None)
-    asks = []
-    if missing:
-        asks.append(
-            "These requirements from the advert are not yet in the CV in the advert's own "
-            "words: " + "; ".join(missing[:15]) + ". For each one the CV's existing "
-            "experience genuinely shows - the same skill in other words, a tool named in "
-            "one role but not in the skills line, a duty implied by a bullet - work the "
-            "advert's exact phrase into the paragraph where that experience is. Skip any "
-            "the CV does not support; they stay gaps."
-        )
-    if title and title["points"] < title["max"]:
-        asks.append(
-            "The CV does not yet use the advert's job title. " + title["detail"] + " If the "
-            "candidate's experience fits that role, describe them with it in the profile."
-        )
-    if not asks:
+    if not missing:
         return None
+    # The job title check is left alone on purpose: putting the advert's title on the
+    # candidate is a relabelling, not a tailoring.
     return (
         f"Raise the ATS match score from {report.get('ats_after')} to {TARGET_SCORE} or more, "
-        "truthfully. " + " ".join(asks) + " Keep every earlier change that still helps."
+        "truthfully. These requirements from the advert are not yet in the CV in the "
+        "advert's own words: " + "; ".join(missing[:15]) + ". For each one the CV's existing "
+        "experience genuinely shows - the same skill in other words, a tool named in one "
+        "role but not in the skills line, a duty implied by a bullet - work the advert's "
+        "exact phrase into the paragraph where that experience is. Skip any the CV does not "
+        "support; they stay gaps. Keep every earlier change that still helps."
     )
 
 
@@ -431,7 +440,7 @@ def boost(document: CvDocument, job: Job, current: dict[str, str], reasons: dict
             "The free writing service is busy right now. Please try again in a minute."
         ) from exc
     # A boost never brings its own facts: only figures the CV already states.
-    changed, new_reasons, dropped = _validate(document, answer, _numbers(document.text()))
+    changed, new_reasons, dropped = _validate(document, answer, _numbers(document.text()), job.title)
     merged = {**current, **changed}
     merged = {pid: text for pid, text in merged.items() if plain(text) != document.by_id[pid].text}
     return _finish(document, job, merged, {**reasons, **new_reasons}, answer,
