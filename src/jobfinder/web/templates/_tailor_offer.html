@@ -36,11 +36,18 @@
         <span>From <span class="typed">{{ cv_name }}</span>, with an ATS score and a report on why it
           fits. Usually ready in under a minute.</span>
         {% if needs_text %}
-        <label class="toffer__paste">
-          <span class="fieldname">This advert's full text is not in our copy. Paste the job description:</span>
-          <textarea name="job_text" rows="5" required minlength="300"
+        {# Opening the posting here is only to copy from it: the window stays open and
+           nothing is recorded as applied, unlike "No thanks" below. #}
+        <span class="toffer__paste">
+          <label class="fieldname" for="tailor-job-text">This advert's full text is not in our copy.
+            {% if job.url %}Open the posting, copy the job description and paste it below:{% else %}Paste the job description:{% endif %}</label>
+          {% if job.url %}
+          <a class="btn btn--ghost toffer__open" href="{{ job.url }}" target="_blank" rel="noopener">Open the posting
+            <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+          {% endif %}
+          <textarea id="tailor-job-text" name="job_text" rows="5" required minlength="300"
                     placeholder="Paste the whole advert: responsibilities, requirements, nice to haves"></textarea>
-        </label>
+        </span>
         {% endif %}
         <button type="submit" class="toffer__go">Tailor my CV
           <svg width="15" height="15" aria-hidden="true"><use href="#i-arrow"/></svg></button>

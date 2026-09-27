@@ -74,7 +74,8 @@ html.tailor-open,html.tailor-open body{overflow:hidden}
 .tchoice__text > b{font-size:1.12rem;font-weight:700;letter-spacing:-.015em}
 .tchoice__text > span{color:var(--ink-2);font-size:14.5px;line-height:1.5}
 .toffer__go{align-self:flex-start;margin-top:12px}
-.toffer__paste{margin-top:12px}
+.toffer__paste{display:flex;flex-direction:column;align-items:flex-start;gap:10px;margin-top:12px}
+.toffer__open{font-size:13.5px;padding:7px 15px;min-height:0}
 .toffer__paste textarea,.tws__suggest textarea{width:100%;font:inherit;font-size:14.5px;color:var(--ink);background:#fff;
   border:1px solid var(--line-strong);border-radius:var(--r-ctl);padding:10px 13px;resize:vertical;
   box-shadow:inset 0 1px 1.5px rgba(20,24,33,.05)}

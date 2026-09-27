@@ -1427,6 +1427,9 @@ def test_the_offer_says_what_is_needed_first(client: TestClient, fake, tailoring
     offer = client.get("/tailor/offer", params={"title": "Analyst", "url": "https://x"}).text
     assert "Yes, tailor my CV" in offer and "aoife-cv.docx" in offer
     assert 'name="job_text"' in offer, "an advert not in the snapshot has to be pasted"
+    # ...and the posting it is pasted from is one click away, without applying.
+    opener = offer.split('class="btn btn--ghost toffer__open"')[1].split("</a>")[0]
+    assert 'href="https://x"' in opener and "data-tailor-go" not in opener
 
 
 def test_tailor_review_revise_accept_save(client: TestClient, fake, tailoring):
