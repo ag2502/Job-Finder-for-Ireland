@@ -796,6 +796,60 @@ def _experience_label(job: JobPosting) -> str | None:
     return f"{job.min_years_required}{suffix}"
 
 
+# Parts of a location string that say nothing on a site that only lists Dublin. Every
+# employer spells the same place differently ("Dublin, IRL", "Ireland, Dublin", "Dublin,
+# County Dublin, IE"), and printing all of them made identical jobs look different.
+_PLACE_NOISE = {"dublin", "ireland", "irl", "ie", "county", "co", "co.", "leinster",
+                "republic", "of"}
+_PLACE_SPLIT = re.compile(r"\s*(?:[;,|>:]|\s-\s|\bOR\b)\s*")
+
+
+def _short_place(raw: str | None) -> str:
+    """What a location adds beyond "Dublin", or "" when it adds nothing.
+
+    "Dublin 2, Ireland" keeps "Dublin 2", "Cork, Ireland; Dublin, Ireland" keeps
+    "Cork", and "Dublin, IRL" is dropped entirely, since the whole list is Dublin.
+    """
+    if not raw:
+        return ""
+    text = re.sub(r"\([^)]*\)", " ", raw)
+    parts = []
+    for part in _PLACE_SPLIT.split(text):
+        part = " ".join(part.split())
+        # Judged word by word, so "Dublin  Ireland" and "County Dublin" go too.
+        if part and not set(part.casefold().split()) <= _PLACE_NOISE and part not in parts:
+            parts.append(part)
+    return ", ".join(parts)
+
+
+def _age(when: datetime | None, now: datetime) -> str:
+    """How long ago, the way people say it: "today", "3 days ago", "Mar 2023"."""
+    if when is None:
+        return ""
+    days = (now.date() - when.date()).days
+    if days <= 0:
+        return "today"
+    if days == 1:
+        return "yesterday"
+    if days < 14:
+        return f"{days} days ago"
+    if days < 60:
+        return f"{days // 7} weeks ago"
+    return when.strftime("%b %Y")
+
+
+# How high a job ranks among this search's own results, as a share of the list. The top
+# fifth reads as a strong match, the next two fifths as good, the rest as a loose one.
+# Ranked by position rather than raw score because scores are not comparable across
+# searches: a search with a CV tops out lower than one without.
+STRENGTH_LABELS = {3: "Strong match", 2: "Good match", 1: "Loose match"}
+
+
+def _strength(position: int, total: int) -> int:
+    share = position / max(total, 1)
+    return 3 if share < 0.2 else (2 if share < 0.6 else 1)
+
+
 def _is_offerable():
     """Only openings the last successful crawl of their source actually returned.
 
@@ -1035,12 +1089,15 @@ def _search_results(
             oldest_run = oldest_run.replace(tzinfo=timezone.utc)
         has_history = bool(oldest_run and oldest_run < cutoff)
 
+        now = datetime.now(timezone.utc)
         items = []
-        for entry in scored:
+        for position, entry in enumerate(scored):
             job = by_id[entry.job_id]
             first_seen = job.first_seen_at
             if first_seen and first_seen.tzinfo is None:
                 first_seen = first_seen.replace(tzinfo=timezone.utc)
+            field_key = entry.field_matches[0] if entry.field_matches else None
+            strength = _strength(position, len(scored))
             items.append(
                 {
                     "job": job,
@@ -1054,7 +1111,19 @@ def _search_results(
                     # and labelled as such rather than passed off as the posting date.
                     "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
                     "first_seen": first_seen.strftime("%d %b") if first_seen else "",
+                    "age": _age(_as_utc(job.posted_at) or first_seen, now),
+                    "place": _short_place(job.location_raw),
                     "experience": _experience_label(job),
+                    # The row says why it is here in chips rather than a sentence: the
+                    # field it sits in and the searcher's skills the advert asks for.
+                    "field": (
+                        {"key": field_key, "label": FIELDS[field_key].label,
+                         "group": FIELDS[field_key].group}
+                        if field_key in FIELDS else None
+                    ),
+                    "skills": sorted(entry.skill_matches),
+                    "strength": strength,
+                    "strength_label": STRENGTH_LABELS[strength],
                     # Which band the job falls in: a field the searcher ticked, one
                     # their CV points to, or one hop away. See ScoredJob.tier. The
                     # template rules off between them so adjacent work is offered
@@ -1104,6 +1173,14 @@ def _search_results(
         "query": query or "",
         "new_count": sum(1 for i in items if i["is_new"]),
         "tiered": tiered,
+        # How many of the whole result set sit in each band, for the band headings.
+        "band_counts": {
+            tier: sum(1 for i in items if i["tier"] == tier)
+            for tier in {i["tier"] for i in items}
+        },
+        # A field chip on every row only tells the searcher something when more than
+        # one field could be the answer.
+        "show_field": len(profile.get("fields") or []) + len(profile.get("cv_fields") or []) > 1,
         "fallback": bool(page_items and all(i["fallback"] for i in page_items)),
         "show_applied": show_applied,
         "applied_count": len(applied_keys or set()),

@@ -17,6 +17,7 @@
 {% set early_only = internships_only or graduate_only %}
 {# Headings for the bands below what the searcher actually ticked. See ScoredJob.tier. #}
 {% set tier_bands = {
+     0: "In the fields you picked",
      1: "Where your CV points",
      2: "Closely related roles",
      3: "A sideways move into another field",
@@ -104,42 +105,51 @@
 {% if items %}
 <div class="filed" id="result-list">
   {% for item in items %}
-    {% if tiered and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
+    {% if tiered and band_counts|length > 1 and item.tier in tier_bands and (loop.first or items[loop.index0 - 1].tier != item.tier) %}
     {# Everything above sits in a field that was actually pulled. Below are one hop
        away - worth offering, never worth ranking above what was asked for - and the
        hop itself is graded, because Data Science is next door to Machine Learning
        and a graduate developer job is not. #}
-    <div class="guide">{{ tier_bands[item.tier] }}{% if loop.first and page > 1 %} &middot; continued{% endif %}</div>
+    <div class="guide">{{ tier_bands[item.tier] }}{% if loop.first and page > 1 %}, continued{% endif %}
+      <span class="guide__count">{{ "{:,}".format(band_counts[item.tier]) }}</span></div>
     {% endif %}
 
     <article class="record filing">
       {{ logo(item.company, item.domain) }}
       <div class="record__main">
-        <span class="record__employer">{{ item.company }}</span>
+        <p class="record__top">
+          <span class="record__employer">{{ item.company }}</span>
+          {%- if item.age %}
+          <span class="record__age" title="{{ ('Posted ' ~ item.posted) if item.posted else 'This company does not publish a posting date, so this is when we first saw it' }}">
+            {{- item.age if item.posted else "seen " ~ item.age }}</span>
+          {%- endif %}
+        </p>
         <h3 class="record__title">
           <a href="{{ item.job.url }}" target="_blank" rel="noopener">{{ item.job.title }}</a>
         </h3>
-        <p class="record__meta">
-          {{ item.job.location_raw or "Dublin" }}
-          {%- if item.job.is_remote %} &middot; remote{% endif %}
-          {%- if item.experience %} &middot; <span class="exp">{{ item.experience }}</span>{% endif %}
-          &middot; {{ item.why }}
-        </p>
-        {% if item.is_new or item.stretch %}
-        <div class="marks">
-          {% if item.is_new %}<span class="stamp">new</span>{% endif %}
-          {% if item.stretch %}<span class="stamp stamp--brass" title="A level above the experience you stated">stretch</span>{% endif %}
-        </div>
-        {% endif %}
+        {# Why it is here, as chips: the field (when more than one was in play), the
+           searcher's own skills the advert asks for, then the facts that decide
+           whether to open it at all. The full sentence stays on the meter. #}
+        <ul class="chips" aria-label="About this job">
+          {% if item.field and (show_field or item.tier > 0) %}
+          <li class="chip chip--field" style="--g:var(--g-{{ item.field.group }})">{{ item.field.label }}</li>
+          {% endif %}
+          {% for skill in item.skills[:3] %}<li class="chip chip--skill">{{ skill }}</li>{% endfor %}
+          {% if item.skills|length > 3 %}
+          <li class="chip chip--skill chip--more" title="{{ item.skills[3:]|join(', ') }}">+{{ item.skills|length - 3 }}</li>
+          {% endif %}
+          {% if item.experience %}<li class="chip chip--level">{{ item.experience }}</li>{% endif %}
+          {% if item.job.is_remote %}<li class="chip">remote</li>{% endif %}
+          {% if item.place %}<li class="chip chip--place"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ item.place }}</li>{% endif %}
+          {% if item.is_new %}<li class="stamp">new</li>{% endif %}
+          {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
+        </ul>
       </div>
 
       <div class="record__side">
-        <span class="accession">
-          {% if item.posted %}
-            {{ item.posted }}
-          {% else %}
-            <span title="This company does not publish a posting date">seen {{ item.first_seen }}</span>
-          {% endif %}
+        <span class="meter" data-level="{{ item.strength }}" title="{{ item.strength_label }}: {{ item.why }}">
+          <span class="meter__bars" aria-hidden="true"><i></i><i></i><i></i></span>
+          {{ item.strength_label }}
         </span>
 
         <div class="record__actions">
@@ -231,6 +241,40 @@
     border-radius:0 0 var(--r-win) var(--r-win);
   }
   .paging button{padding:8px 18px;font-size:14px}
+  /* A row: who and when on one quiet line, the title, then why as chips. */
+  .record__top{display:flex;align-items:baseline;gap:8px;margin:0 0 2px;min-width:0}
+  .record__top .record__employer{margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .record__age{font-family:var(--mono);font-size:12px;color:var(--ink-3);white-space:nowrap}
+  .record__age::before{content:"\00b7";margin-right:8px;font-family:inherit}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;margin:9px 0 0;padding:0;list-style:none}
+  .chip{
+    display:inline-flex;align-items:center;gap:5px;
+    font-size:12px;font-weight:550;line-height:1.3;color:var(--ink-2);
+    background:var(--win-bar);border:1px solid var(--line);border-radius:999px;padding:2px 9px;
+    white-space:nowrap;
+  }
+  .chip svg{width:12px;height:12px;color:var(--ink-3)}
+  .chip--field{background:color-mix(in srgb,var(--g) 11%,#fff);border-color:color-mix(in srgb,var(--g) 35%,#fff);color:var(--ink)}
+  .chip--field::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--g)}
+  .chip--skill{background:var(--aqua-wash);border-color:#d6e4ff;color:var(--aqua-deep)}
+  .chip--more{font-family:var(--mono);font-weight:500}
+  .chip--level{color:var(--ink);font-weight:600}
+  .chips .stamp{padding:2px 9px;font-size:11.5px}
+
+  /* How high the job ranks in this search: three bars, like signal strength. */
+  .meter{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--ink-3);white-space:nowrap;cursor:help}
+  .meter__bars{display:inline-flex;align-items:flex-end;gap:2px;height:12px}
+  .meter__bars i{width:4px;border-radius:1.5px;background:var(--line-strong)}
+  .meter__bars i:nth-child(1){height:5px}
+  .meter__bars i:nth-child(2){height:8.5px}
+  .meter__bars i:nth-child(3){height:12px}
+  .meter[data-level="1"] i:nth-child(-n+1),
+  .meter[data-level="2"] i:nth-child(-n+2),
+  .meter[data-level="3"] i{background:var(--ink)}
+  .meter[data-level="3"]{color:var(--ink)}
+
+  .guide__count{margin-left:auto;font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
+
   .empty{padding:48px 24px 52px;text-align:center}
   .empty p{margin:0 auto}
   .empty .beachball{width:40px;height:40px;margin:0 auto 16px;display:block}
