@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from jobfinder.normalize.location import normalize_location
+from jobfinder.normalize.location import dublin_in_advert, normalize_location
 
 # Every distinct spelling of Dublin found on one company's board.
 REAL_DUBLIN_SPELLINGS = [
@@ -157,3 +157,36 @@ def test_conflicting_us_signal_is_flagged_for_review() -> None:
 def test_company_hint_resolves_ambiguity() -> None:
     result = normalize_location("Dublin, USA", company_is_irish=True)
     assert not result.needs_review
+
+
+# --------------------------------------------------------------------------
+# A posting with no location field, placed by its advert
+# --------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "advert",
+    [
+        "Graduate Software Engineer\nJoin our programme in Sandyford, Dublin (3 days onsite).",
+        "Location: Dublin, Ireland - Hybrid",
+        "LOCATION:\n\nBallsbridge, Dublin 4",
+        "We are expanding our Dublin-based team.",
+    ],
+)
+def test_an_advert_can_place_a_job_in_dublin(advert):
+    assert dublin_in_advert(advert)
+
+
+@pytest.mark.parametrize(
+    "advert",
+    [
+        "Based in our Columbus office. Dublin, Ohio is a short drive away.",
+        "Headquartered in Dublin, Enterprise Ireland has offices worldwide. Role in Tokyo.",
+        "We have offices in Seattle, Dublin and Poland. This role is in Chicago.",
+        "Occasionally travel to our Dublin HQ. Role based in Auckland.",
+        "You will hold a degree from Trinity College Dublin or similar.",
+        None,
+    ],
+)
+def test_a_passing_mention_of_dublin_does_not(advert):
+    assert not dublin_in_advert(advert)

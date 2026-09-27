@@ -247,3 +247,15 @@ def test_hse_read_well_short_of_the_stated_total_fails():
     respx.get(hse.LIST_URL).mock(side_effect=lambda r: httpx.Response(200, text=pages[r.url.params["page"]]))
 
     assert hse.HSEAdapter().fetch("all").status is CrawlStatus.FAILED
+
+
+def test_a_posting_with_no_location_is_placed_by_its_advert():
+    """Blank location fields hid 39 Dublin jobs, among them graduate software roles."""
+    from jobfinder.sources.base import RawJob
+
+    job = RawJob(source_job_id="1", title="Graduate Software Engineer", url="https://x")
+    assert not resolve_location(job).is_dublin
+    assert resolve_location(job, description="Location: Dublin, Ireland").is_dublin
+    # A location the board did give is never second-guessed by the advert.
+    placed = RawJob(source_job_id="2", title="Engineer", url="https://x", location_raw="Cork")
+    assert not resolve_location(placed, description="Location: Dublin, Ireland").is_dublin

@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from jobfinder.core.db import engine
 from jobfinder.core.models import JobPosting
 from jobfinder.normalize.experience import analyze as analyze_experience
-from jobfinder.normalize.location import normalize_location
+from jobfinder.normalize.location import dublin_in_advert, normalize_location
 from jobfinder.normalize.text import html_to_text
 
 logger = logging.getLogger(__name__)
@@ -67,6 +67,8 @@ def recompute_derived(session: Session, *, batch: int = 500) -> int:
         job.is_graduate = experience.is_graduate
 
         location = normalize_location(job.location_raw)
+        if not (job.location_raw or "").strip():
+            location.is_dublin = dublin_in_advert(f"{job.title}\n{job.description or ''}")
         job.is_dublin = location.is_dublin
         job.is_remote = location.is_remote or job.is_remote
         job.needs_location_review = location.needs_review

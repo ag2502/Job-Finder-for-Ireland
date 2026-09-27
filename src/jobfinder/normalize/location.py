@@ -237,6 +237,55 @@ def normalize_location(
     return result
 
 
+# A college in the advert says where someone studied, not where the job is.
+_DUBLIN_INSTITUTION = re.compile(
+    r"\b(?:university|trinity) college dublin\b|\bdublin city university\b|"
+    r"\b(?:technological university|tu) dublin\b|\bdublin (?:institute of technology|business school)\b",
+    re.IGNORECASE,
+)
+
+
+# Where the company sits, not the job: "headquartered in Dublin", "offices in Seattle,
+# Dublin and Poland", "our Dublin HQ".
+_COMPANY_BOILERPLATE_BEFORE = re.compile(
+    r"(?:headquartered in|head office in|offices in|offices across)[^.\n]*$", re.IGNORECASE
+)
+_WORDS_AFTER = re.compile(r"[\s,\-–]*([A-Za-z]+)(?:\s+([A-Za-z]+))?")
+_COMPANY_BOILERPLATE_AFTER = re.compile(r"\s*(?:hq|headquarters)\b", re.IGNORECASE)
+
+
+def dublin_in_advert(text: str | None) -> bool:
+    """Does the advert itself place a job with no location field in Dublin?
+
+    Some boards leave the location blank and write it into the advert ("based in our
+    Dublin 2 office"), and those jobs were never offered to anyone: 60 of them on one
+    crawl, among them graduate software roles. Each mention of Dublin is judged in its
+    own few words, so "Dublin, Ohio" is still a US Dublin.
+    """
+    if not text:
+        return False
+    text = _DUBLIN_INSTITUTION.sub(" ", text)
+    for match in _DUBLIN_WORD.finditer(text):
+        if _COMPANY_BOILERPLATE_BEFORE.search(text[max(0, match.start() - 30) : match.start()]) or (
+            _COMPANY_BOILERPLATE_AFTER.match(text, match.end())
+        ):
+            continue
+        # In prose a state is followed by more words ("Dublin, Ohio is a short drive
+        # away"), which the entry-by-entry check above cannot see, so read one or two.
+        after = _WORDS_AFTER.match(text, match.end())
+        if after:
+            first = after.group(1)
+            pair = f"{first} {after.group(2)}".lower() if after.group(2) else ""
+            if first.lower() in _US_STATE_NAMES or pair in _US_STATE_NAMES or (
+                len(first) == 2 and first.isupper() and first.lower() in _SAFE_STATE_CODES
+            ):
+                continue
+        window = text[max(0, match.start() - 60) : match.end() + 60]
+        if normalize_location(window).is_dublin:
+            return True
+    return False
+
+
 def is_dublin(raw: str | None) -> bool:
     """Convenience wrapper for call sites that only need the boolean."""
     return normalize_location(raw).is_dublin

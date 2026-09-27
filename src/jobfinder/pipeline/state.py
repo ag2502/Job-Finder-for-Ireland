@@ -45,7 +45,7 @@ from jobfinder.core.models import (
 )
 from jobfinder.normalize.dedup import compute_dedup_key, normalize_company_name
 from jobfinder.normalize.experience import analyze as analyze_experience
-from jobfinder.normalize.location import LocationResult, normalize_location
+from jobfinder.normalize.location import LocationResult, dublin_in_advert, normalize_location
 from jobfinder.normalize.text import html_to_text
 from jobfinder.sources.base import FetchResult, RawJob
 
@@ -63,11 +63,14 @@ class ReconcileStats:
     error: str | None = None
 
 
-def resolve_location(job: RawJob, *, company_is_irish: bool | None = None) -> LocationResult:
+def resolve_location(
+    job: RawJob, *, company_is_irish: bool | None = None, description: str | None = None
+) -> LocationResult:
     """Resolve a posting's location across its primary and secondary offices.
 
     A role listed against several offices is a Dublin role if *any* of them is Dublin.
-    Checking only the primary field under-counts silently.
+    Checking only the primary field under-counts silently. A posting with no location
+    at all is judged from its title and advert instead (see `dublin_in_advert`).
     """
     primary = normalize_location(job.location_raw, company_is_irish=company_is_irish)
     if primary.is_dublin:
@@ -80,6 +83,12 @@ def resolve_location(job: RawJob, *, company_is_irish: bool | None = None) -> Lo
             candidate.raw = job.location_raw
             candidate.is_remote = candidate.is_remote or primary.is_remote
             return candidate
+
+    if not (job.location_raw or "").strip() and not job.extra_locations:
+        if dublin_in_advert(f"{job.title}\n{description or ''}"):
+            return LocationResult(
+                raw=job.location_raw, is_dublin=True, location_norm="Dublin, Ireland"
+            )
 
     return primary
 
@@ -210,8 +219,8 @@ def _upsert_jobs(
         # property of the posting rather than of the source.
         job_company = _company_for(session, company, raw, company_cache)
 
-        location = resolve_location(raw)
         description = html_to_text(raw.description)
+        location = resolve_location(raw, description=description)
         experience = analyze_experience(raw.title, description)
         dedup_key = compute_dedup_key(
             job_company.name,
