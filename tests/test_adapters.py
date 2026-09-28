@@ -730,6 +730,35 @@ def test_successfactors_tenant_on_the_json_search_app_is_read_through_it():
 
 
 @respx.mock
+def test_successfactors_board_published_only_in_british_english_is_still_read():
+    """Murphy's board answers "no jobs" in en_US and 355 in en_GB."""
+    import json as _json
+
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    respx.get(url__startswith="https://careers.acme.co.uk/search/").mock(
+        return_value=httpx.Response(200, text="<div id='rmk-jobs-search'></div>")
+    )
+
+    def serve(request: httpx.Request) -> httpx.Response:
+        if _json.loads(request.content)["locale"] != "en_GB":
+            return httpx.Response(200, json={"totalJobs": 0, "jobSearchResult": []})
+        return httpx.Response(200, json={"totalJobs": 1, "jobSearchResult": [
+            {"response": {"id": "7", "unifiedStandardTitle": "Site Engineer",
+                          "unifiedUrlTitle": "Site-Engineer",
+                          "jobLocationShort": ["Dublin, Ireland"]}}
+        ]})
+
+    respx.post("https://careers.acme.co.uk/services/recruiting/v1/jobs").mock(side_effect=serve)
+
+    result = SuccessFactorsAdapter().fetch("careers.acme.co.uk|Ireland")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.title for j in result.jobs] == ["Site Engineer"]
+    assert result.jobs[0].url == "https://careers.acme.co.uk/job/Site-Engineer/7-en_GB/"
+
+
+@respx.mock
 def test_successfactors_classic_tenant_with_no_rows_still_fails():
     from jobfinder.sources.successfactors import SuccessFactorsAdapter
 

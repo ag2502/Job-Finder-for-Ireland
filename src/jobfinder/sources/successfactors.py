@@ -186,15 +186,22 @@ class SuccessFactorsAdapter(BaseAdapter):
         POST /services/recruiting/v1/jobs takes the same location search as the classic
         page, answers ten roles a page with the board's `totalJobs`, and names every
         office a role is open in. CRH's board is read this way.
+
+        A board only answers in the languages it is published in, and one published in
+        British English alone (Murphy's) reports no jobs at all in American English, so
+        that is asked next when the first answer is empty.
         """
         jobs: dict[str, RawJob] = {}
         total: int | None = None
+        locales = ["en_US", "en_GB"]
+        locale = locales.pop(0)
 
-        for page_number in range(MAX_PAGES):
+        page_number = 0
+        while page_number < MAX_PAGES:
             response = client.post(
                 f"https://{host}/services/recruiting/v1/jobs",
                 json={
-                    "locale": "en_US", "pageNumber": page_number, "sortBy": "",
+                    "locale": locale, "pageNumber": page_number, "sortBy": "",
                     "keywords": "", "location": place, "facetFilters": {}, "brand": "",
                     "skills": [], "categoryId": 0, "alertId": "", "rcmCandidateId": "",
                 },
@@ -204,6 +211,9 @@ class SuccessFactorsAdapter(BaseAdapter):
                 return None
             response.raise_for_status()
             payload = response.json()
+            if page_number == 0 and not payload.get("totalJobs") and locales:
+                locale = locales.pop(0)
+                continue
             if total is None:
                 total = int(payload.get("totalJobs") or 0)
 
@@ -219,12 +229,13 @@ class SuccessFactorsAdapter(BaseAdapter):
                 jobs.setdefault(job_id, RawJob(
                     source_job_id=job_id,
                     title=html.unescape(title),
-                    url=f"https://{host}/job/{slug}/{job_id}-en_US/",
+                    url=f"https://{host}/job/{slug}/{job_id}-{locale}/",
                     location_raw=places[0] if places else None,
                     extra_locations=places[1:],
                 ))
             if not rows or len(jobs) >= total:
                 break
+            page_number += 1
             self.polite_pause()
         else:
             return PartialJobs(jobs.values())
