@@ -211,22 +211,3 @@ class SourceCrawl(Base):
     error: Mapped[str | None] = mapped_column(Text)
 
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
-
-
-class AdvertSummary(Base):
-    """A short summary of one advert's text, written once by a language model.
-
-    Keyed by a hash of the advert's title and description (`rank.advert_hash`), not by
-    the posting: the same advert on two boards is summarised once, and an employer who
-    rewrites an advert gets a new summary rather than a stale one. Kept in the crawler's
-    database so each advert costs one request ever, and copied into the snapshot the
-    site reads (scripts/export_snapshot.py).
-    """
-
-    __tablename__ = "advert_summaries"
-
-    advert_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
-    # JSON: {"does": str, "needs": str, "tools": [str]}
-    summary: Mapped[str] = mapped_column(Text)
-    model: Mapped[str] = mapped_column(String(128))
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

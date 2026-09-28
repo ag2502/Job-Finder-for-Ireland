@@ -1,14 +1,8 @@
 {# Apply for one advert. Opens the employer's posting in a new tab, and for a signed-in
-   searcher records the click, swapping itself for the "applied / Undo" control.
-
-   With tailoring switched on, a signed-in click first asks whether they want a CV
-   written for this job (see static/tailor-2.js); the posting opens either way, after
-   the tailoring or straight away, and the click is recorded the same way. #}
+   searcher records the click, swapping itself for the "applied / Undo" control. #}
 <span class="applied-mark">
   <a class="btn btn--apply" href="{{ url }}" target="_blank" rel="noopener"
-     {% if account and tailor_on() %}
-     data-tailor='{{ {"advert_key": advert_key, "title": title, "company": company, "url": url, "job_id": job_id|default("")}|tojson }}'
-     {% elif account %}
+     {% if account %}
      data-open-external
      hx-post="/applications"
      hx-vals='{{ {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson }}'

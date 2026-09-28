@@ -372,17 +372,6 @@ def cmd_coverage(args: argparse.Namespace) -> int:
     return 0
 
 
-def cmd_summarise(args: argparse.Namespace) -> int:
-    """Summarise adverts that have none yet. Never fails a crawl: see pipeline/summarise."""
-    from jobfinder.pipeline.summarise import summarise
-
-    init_db()
-    with session_scope() as session:
-        result = summarise(session, limit=args.limit, minutes=args.minutes)
-    print(result)
-    return 0
-
-
 def cmd_send_alerts(args: argparse.Namespace) -> int:
     """Email every subscriber whose alert is due and has something new in it."""
     from jobfinder.alerts.digest import run
@@ -493,13 +482,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_coverage.add_argument("--limit", type=int, default=15, help="rows of work queue to show")
     p_coverage.set_defaults(func=cmd_coverage)
-
-    p_summarise = sub.add_parser(
-        "summarise", help="write short summaries of adverts that have none yet"
-    )
-    p_summarise.add_argument("--limit", type=int, default=150, help="adverts at most")
-    p_summarise.add_argument("--minutes", type=float, default=8.0, help="time budget")
-    p_summarise.set_defaults(func=cmd_summarise)
 
     p_alerts = sub.add_parser("send-alerts", help="email the alerts that are due")
     p_alerts.add_argument("--dry-run", action="store_true", help="report, send nothing")

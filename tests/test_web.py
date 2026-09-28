@@ -90,10 +90,11 @@ def test_privacy_page_renders(client):
     response = client.get("/privacy")
     assert response.status_code == 200
     text = response.text.lower()
-    # The CV file is kept now, for tailoring; the page must say so, and say what else sees it.
+    # The CV file is kept; the page must say so. Nothing is sent to a writing model any
+    # more, so no such service is named.
     assert "never stored" not in text
     assert "only you can read it" in text
-    assert "gemini" in text and "languagetool" in text
+    assert "gemini" not in text and "groq" not in text and "tailor" not in text
 
 
 def test_old_results_url_still_redirects_home(client):

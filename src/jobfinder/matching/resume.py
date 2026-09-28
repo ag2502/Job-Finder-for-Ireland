@@ -31,6 +31,19 @@ logger = logging.getLogger(__name__)
 
 MAX_TEXT_CHARS = 200_000
 
+# The CV files kept in the account's private storage, by extension, with the type they
+# are stored as. A .doc is read but not kept: nothing here can read it again later.
+CV_FILE_TYPES = {
+    ".pdf": "application/pdf",
+    ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ".txt": "text/plain",
+}
+
+
+def cv_file_type(filename: str) -> str | None:
+    """The type a CV file is kept as, or None when it is not a kind that is kept."""
+    return CV_FILE_TYPES.get(Path(filename or "").suffix.lower())
+
 SENIORITY_ORDER = ["intern", "junior", "mid", "senior", "lead", "principal", "director"]
 
 # Ordered most-senior-first; the first hit wins. "mid" sits below "senior" so

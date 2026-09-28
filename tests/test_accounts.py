@@ -39,7 +39,6 @@ class FakeSupabase:
         self.saved_rows: list[dict] = []
         self.profile: dict | None = None
         self.files: dict[str, bytes] = {}
-        self.tailored: dict[str, dict] = {}
         self.fail_with: Exception | None = None
         self.profile_fails_with: Exception | None = None
         self.alerts: dict | None = None
@@ -61,14 +60,6 @@ class FakeSupabase:
         monkeypatch.setattr(supabase, "upload_file", self._upload)
         monkeypatch.setattr(supabase, "download_file", self._download)
         monkeypatch.setattr(supabase, "delete_files", self._delete_files)
-        monkeypatch.setattr(supabase, "create_tailored", self._create_tailored)
-        monkeypatch.setattr(supabase, "get_tailored", lambda a, i: dict(self.tailored[i]) if i in self.tailored else None)
-        monkeypatch.setattr(supabase, "update_tailored", self._update_tailored)
-        monkeypatch.setattr(supabase, "delete_tailored", lambda a, i: self.tailored.pop(i, None))
-        monkeypatch.setattr(supabase, "list_tailored", lambda a, status="saved": [
-            dict(r) for r in self.tailored.values() if r["status"] == status])
-        monkeypatch.setattr(supabase, "count_tailored_since", lambda a, since: len(self.tailored))
-        monkeypatch.setattr(supabase, "purge_stale_drafts", lambda a, older_than: None)
         monkeypatch.setattr(supabase, "providers", lambda: {"google": True})
         monkeypatch.setattr(supabase, "get_alerts", lambda account: dict(self.alerts) if self.alerts else None)
         monkeypatch.setattr(supabase, "save_alerts", self._save_alerts)
@@ -143,17 +134,6 @@ class FakeSupabase:
     def _delete_files(self, account, paths):
         for path in paths:
             self.files.pop(path, None)
-
-    def _create_tailored(self, account, **columns):
-        row_id = f"t{len(self.tailored) + 1}"
-        row = {"id": row_id, "status": "draft", "rounds": 0, "file_path": None,
-               "file_name": None, "created_at": datetime.now(timezone.utc).isoformat(),
-               "updated_at": datetime.now(timezone.utc).isoformat(), **columns}
-        self.tailored[row_id] = row
-        return dict(row)
-
-    def _update_tailored(self, account, row_id, **columns):
-        self.tailored[row_id].update(columns)
 
     def _get_profile(self, account):
         if self.profile_fails_with:
@@ -1044,7 +1024,7 @@ def test_a_cv_is_read_into_the_profile_and_its_file_kept_privately(
 ):
     _with_cv(client)
     cv = fake.profile["cv"]
-    # The file itself goes to the account's own folder, for tailoring to keep its layout.
+    # The file itself goes to the account's own folder, so it can be read again later.
     assert cv["file"].startswith("user-1/original/") and cv["file"].endswith(".txt")
     assert fake.files[cv["file"]] == CV_BYTES
     assert cv["name"] == "jane-doe-cv.txt"
@@ -1397,171 +1377,7 @@ def test_the_profile_still_loads_when_the_profile_row_cannot(client: TestClient,
     assert "could not be loaded just now" in page.text
 
 
-# ------------------------------------------------------------------ tailoring
-#
-# The model is stubbed; the CV is the synthetic Word fixture, uploaded as a person would.
-
-from pathlib import Path  # noqa: E402
-
-from jobfinder.tailor import llm as tailor_llm  # noqa: E402
-from jobfinder.tailor import proofread as tailor_proofread  # noqa: E402
-
-FIXTURE_DOCX = (Path(__file__).parent / "fixtures" / "cv.docx").read_bytes()
-ADVERT = ("Senior Data Scientist, Payments. You will build machine learning models, run "
-          "A/B testing programmes and work in Python, SQL and Spark with product teams. " * 5)
-
-
-@pytest.fixture
-def tailoring(monkeypatch: pytest.MonkeyPatch, fake):
-    monkeypatch.setattr(tailor_llm, "available", lambda: True)
-    monkeypatch.setattr(tailor_proofread.settings, "languagetool_url", "")
-    calls = []
-
-    def answer(system, user, schema, **kwargs):
-        calls.append(user)
-        edit = {"id": "p7", "reason": "Mirrors the advert.",
-                "text": "Built and deployed churn prediction models in Python with "
-                        "scikit-learn and XGBoost, cutting monthly churn by 12% across "
-                        "40,000 customers."}
-        reply = {"reply": "Moved Python forward."} if "revised_cv" in kwargs.get("name", "") else {}
-        return ({"keywords": ["machine learning", "A/B testing", "Python", "Spark"],
-                 "edits": [edit], "fit_summary": "Your CV now leads with modelling.",
-                 "strengths": ["Churn models in production"], "gaps": ["Spark"], **reply},
-                "stub-model")
-
-    monkeypatch.setattr(tailor_llm, "ask", answer)
-    return calls
-
-
-def _with_docx_cv(client: TestClient) -> None:
-    _signed_in(client)
-    client.post("/profile/cv", files={"resume": ("aoife-cv.docx", FIXTURE_DOCX,
-                "application/vnd.openxmlformats-officedocument.wordprocessingml.document")},
-                headers={"HX-Request": "true"})
-
-
-def _start(client: TestClient, **extra) -> str:
-    response = client.post("/tailor/start", data={
-        "title": "Senior Data Scientist, Payments", "company": "Stripe",
-        "url": "https://stripe.example/jobs/1", "advert_key": "a" * 32,
-        "job_text": ADVERT, **extra})
-    assert response.status_code == 200
-    return response.text
-
-
-def test_apply_asks_about_tailoring_only_when_it_is_on(client: TestClient, fake, monkeypatch):
-    _signed_in(client)
-    plain_page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
-    assert "data-tailor=" not in plain_page and "data-open-external" in plain_page
-    monkeypatch.setattr(tailor_llm, "available", lambda: True)
-    page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
-    assert "data-tailor=" in page and 'id="tailor"' in page
-    assert "/static/tailor-2.js" in page
-
-
-def test_the_offer_says_what_is_needed_first(client: TestClient, fake, tailoring):
-    _signed_in(client)
-    offer = client.get("/tailor/offer", params={"title": "Analyst", "url": "https://x"}).text
-    assert "Add your CV first" in offer and "take me to the job" in offer
-    _with_docx_cv(client)
-    offer = client.get("/tailor/offer", params={"title": "Analyst", "url": "https://x"}).text
-    assert "Yes, tailor my CV" in offer and "aoife-cv.docx" in offer
-    assert 'name="job_text"' in offer, "an advert not in the snapshot has to be pasted"
-    # ...and the posting it is pasted from is one click away, without applying.
-    opener = offer.split('class="btn btn--ghost toffer__open"')[1].split("</a>")[0]
-    assert 'href="https://x"' in opener and "data-tailor-go" not in opener
-
-
-def test_tailor_review_revise_accept_save(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    review = _start(client)
-    assert "ATS score" in review and "Why it fits" in review
-    assert "Built and deployed" in review and "<ins>" in review
-    assert "Spark" in review, "a gap is named, not invented"
-    (row_id,) = fake.tailored
-    row = fake.tailored[row_id]
-    assert row["status"] == "draft" and row["edits"] == {"p7": row["edits"]["p7"]}
-    assert row["ats_after"] >= row["ats_before"]
-
-    revised = client.post(f"/tailor/{row_id}/revise", data={"suggestion": "Put Python first."})
-    assert "Moved Python forward." in revised.text
-    assert fake.tailored[row_id]["rounds"] == 1
-    assert "Put Python first." in tailoring[-1]
-
-    accepted = client.post(f"/tailor/{row_id}/accept").text
-    assert "Save to my profile" in accepted and "Continue to the application" in accepted
-
-    saved = client.post(f"/tailor/{row_id}/save").text
-    assert "Saved to your profile" in saved
-    row = fake.tailored[row_id]
-    assert row["status"] == "saved"
-    assert row["file_path"] == f"user-1/tailored/{row_id}.docx"
-    assert row["file_name"] == "CV for Senior Data Scientist, Payments at Stripe.docx"
-    assert row["file_path"] in fake.files
-
-    profile = client.get("/profile").text
-    assert 'id="tailored"' in profile and "Senior Data Scientist, Payments" in profile
-    assert "ATS " in profile
-
-    download = client.get(f"/tailor/{row_id}/download")
-    assert download.status_code == 200
-    assert download.content == fake.files[row["file_path"]]
-    assert "attachment" in download.headers["content-disposition"]
-
-
-def test_searching_still_uses_the_original_cv(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    before = dict(fake.profile["cv"])
-    row_id = (_start(client), next(iter(fake.tailored)))[1]
-    client.post(f"/tailor/{row_id}/save")
-    assert fake.profile["cv"] == before, "tailoring never touches the CV searches rank on"
-
-
-def test_cancel_discards_a_draft_but_never_a_saved_cv(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    _start(client)
-    (draft,) = fake.tailored
-    client.post(f"/tailor/{draft}/cancel")
-    assert draft not in fake.tailored
-    _start(client)
-    saved = next(iter(fake.tailored))
-    client.post(f"/tailor/{saved}/save")
-    client.post(f"/tailor/{saved}/cancel")
-    assert saved in fake.tailored
-
-
-def test_deleting_a_saved_cv_removes_its_file(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    _start(client)
-    row_id = next(iter(fake.tailored))
-    client.post(f"/tailor/{row_id}/save")
-    path = fake.tailored[row_id]["file_path"]
-    client.post(f"/tailor/{row_id}/delete", headers={"HX-Request": "true"})
-    assert row_id not in fake.tailored and path not in fake.files
-
-
-def test_the_daily_limit_is_kept(client: TestClient, fake, tailoring, monkeypatch):
-    from jobfinder.web import app as web_app
-
-    _with_docx_cv(client)
-    monkeypatch.setattr(supabase, "count_tailored_since", lambda a, since: web_app.TAILOR_DAILY_LIMIT)
-    assert "daily limit" in _start(client)
-    assert fake.tailored == {}
-
-
-def test_an_advert_too_short_to_tailor_against_is_asked_for(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    assert "Paste its" in _start(client, job_text="Great role.", url="https://nowhere")
-
-
-def test_tailoring_needs_an_account(client: TestClient, tailoring):
-    response = client.post("/tailor/start", data={"title": "x"}, headers={"HX-Request": "true"})
-    assert response.status_code == 401
-
-
-def test_someone_elses_draft_is_not_found(client: TestClient, fake, tailoring):
-    _signed_in(client)
-    assert client.post("/tailor/not-mine/revise", data={"suggestion": "x"}).status_code == 404
+# ------------------------------------------------------------------ setup check
 
 
 def test_the_setup_check_names_a_missing_table(client: TestClient, monkeypatch):
@@ -1569,42 +1385,8 @@ def test_the_setup_check_names_a_missing_table(client: TestClient, monkeypatch):
         t: ("missing: run schema.sql" if t == "profiles" else "ok") for t in tables})
     info = client.get("/healthz/accounts").json()
     assert info["tables"]["profiles"] == "missing: run schema.sql"
-    assert info["tailoring_on"] is False and info["tailoring_models"] == []
+    assert "alerts" in info["tables"] and "tailored_cvs" not in info["tables"]
     assert "key" not in str(info).lower()
-
-
-def test_a_review_under_85_raises_itself_and_keeps_only_gains(client: TestClient, fake, tailoring, monkeypatch):
-    _with_docx_cv(client)
-    review = _start(client)
-    (row_id,) = fake.tailored
-    before = fake.tailored[row_id]["ats_after"]
-    assert before < 85
-    assert f'hx-post="/tailor/{row_id}/boost"' in review, "under the target, the review raises itself"
-
-    # A round that adds the advert's title and keywords the CV supports: kept.
-    def better(system, user, schema, **kwargs):
-        assert "Raise the ATS match score" in user
-        return ({"reply": "", "edits": [{"id": "p3", "reason": "title and terms",
-                 "text": "Senior data scientist with five years of experience in machine learning, "
-                         "A/B testing and Python, turning messy product and payments data into "
-                         "models and analysis that teams act on."}],
-                 "fit_summary": "Closer.", "strengths": [], "gaps": ["Spark"]}, "stub")
-    monkeypatch.setattr(tailor_llm, "ask", better)
-    boosted = client.post(f"/tailor/{row_id}/boost").text
-    after = fake.tailored[row_id]["ats_after"]
-    assert after > before
-    assert fake.tailored[row_id]["report"]["boosts"] == 1
-
-    # A round that cannot raise it further is thrown away, and the review says why.
-    monkeypatch.setattr(tailor_llm, "ask", lambda *a, **k: (
-        {"reply": "", "edits": [], "fit_summary": "", "strengths": [], "gaps": []}, "stub"))
-    if after < 85:
-        final = client.post(f"/tailor/{row_id}/boost").text
-        assert fake.tailored[row_id]["ats_after"] == after
-        assert "What stands between this CV and 85" in final
-        assert f'hx-post="/tailor/{row_id}/boost"' not in final
-    else:
-        assert "Above 85" in boosted
 
 
 # ------------------------------------------------------------ new since last visit
@@ -1662,75 +1444,6 @@ def test_a_visit_label_reads_like_speech():
     assert _visit_label(now - timedelta(days=1), now) == "yesterday"
     assert _visit_label(now - timedelta(days=3), now) == "on Monday"   # 24 Sep 2026 is a Thursday
     assert _visit_label(now - timedelta(days=30), now) == "on 25 August"
-
-
-# ------------------------------------------------------------------ cover letters
-
-from jobfinder.tailor import letter as tailor_letter  # noqa: E402
-
-LETTER = {
-    "greeting": "Dear Hiring Team,",
-    "name": "Aoife Byrne",
-    "paragraphs": [
-        "I would like to apply for the Senior Data Scientist role in Payments. My churn "
-        "models in Python are close to the modelling work the advert describes.",
-        "At my current employer I built and deployed churn prediction models with "
-        "scikit-learn and XGBoost. I also ran experiments with product teams, and "
-        "worked in Python and SQL every day to prepare the data those models learned from.",
-        "I led a team of 45 analysts across Europe.",
-        "I am passionate about payments and thrilled by this chance.",
-        "I would be glad to talk about how this experience fits the team.",
-    ],
-}
-
-
-def test_a_letter_loses_sentences_with_invented_figures_or_stock_phrases():
-    cv = "Aoife Byrne. Data Scientist. Built churn prediction models in Python with scikit-learn and XGBoost. " * 3
-    letter = tailor_letter.check(LETTER, cv, ADVERT)
-    body = " ".join(letter.paragraphs)
-    assert "45 analysts" not in body, "45 appears in neither the CV nor the advert"
-    assert "passionate" not in body and "thrilled" not in body
-    assert "churn prediction models" in body
-    assert len(letter.removed) == 2
-    assert letter.text.startswith("Dear Hiring Team,") and letter.text.endswith("Aoife Byrne")
-    assert "—" not in letter.text
-
-
-def test_a_letter_is_drafted_from_the_cv_and_never_stored(client: TestClient, fake, monkeypatch):
-    monkeypatch.setattr(tailor_llm, "available", lambda: True)
-    monkeypatch.setattr(tailor_proofread.settings, "languagetool_url", "")
-    sent = []
-
-    def answer(system, user, schema, **kwargs):
-        sent.append(user)
-        return LETTER, "stub-model"
-
-    monkeypatch.setattr(tailor_llm, "ask", answer)
-    _with_docx_cv(client)
-    before = dict(fake.tailored)
-    response = client.post("/letter/start", data={
-        "title": "Senior Data Scientist, Payments", "company": "Stripe",
-        "url": "https://stripe.example/jobs/1", "job_text": ADVERT},
-        headers={"HX-Request": "true"})
-    assert response.status_code == 200
-    assert 'class="letter__text"' in response.text and "Dear Hiring Team," in response.text
-    assert "ADVERT:" in sent[0] and "CV:" in sent[0]
-    assert fake.tailored == before, "a letter is not kept"
-
-    word = client.post("/letter/download", data={"text": "Dear Hiring Team,\n\nHello.",
-                                                  "title": "Data Scientist", "company": "Stripe"})
-    assert word.status_code == 200 and word.content[:2] == b"PK"
-    assert "Cover letter for Data Scientist at Stripe.docx" in word.headers["content-disposition"]
-    text = client.post("/letter/download", data={"text": "Hello.", "title": "X", "kind": "txt"})
-    assert text.text == "Hello."
-
-
-def test_the_offer_includes_a_cover_letter_when_tailoring_is_on(client: TestClient, fake, tailoring):
-    _with_docx_cv(client)
-    offer = client.get("/tailor/offer", params={"title": "Data Scientist", "company": "Stripe",
-                                                "job_id": "", "url": ""}).text
-    # The advert text is unknown for an empty job id, so only tailoring (with a paste box) shows.
-    assert "Draft a cover letter" not in offer
 
 
 # -------------------------------------------------------------------- email alerts

@@ -111,7 +111,7 @@
         </li>
         <li class="step" data-i="1">
           <button type="button" class="step__btn"><span class="step__n">2</span>Add your CV to your profile, once</button>
-          <p>Every search then puts the closest jobs first, and when you apply we can write a version of it for that job, in your own layout. It stays private to your account.</p>
+          <p>Every search then puts the closest jobs first, and your profile shows how many open jobs ask for each of your skills. It stays private to your account.</p>
           <span class="step__bar" aria-hidden="true"><i></i></span>
         </li>
         <li class="step" data-i="2">
@@ -1186,7 +1186,7 @@
       open(card);
     });
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && !sheet.hidden && !document.documentElement.classList.contains('tailor-open')) close();
+      if (e.key === 'Escape' && !sheet.hidden) close();
     });
   })();
 
@@ -1242,7 +1242,6 @@
       var t = e.target;
       if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
       if (!keys.hidden) { if (e.key === 'Escape') showKeys(false); return; }
-      if (document.documentElement.classList.contains('tailor-open')) return;
       var act = function (sel) {
         var el = cursor && cursor.isConnected && cursor.querySelector(sel);
         if (el) el.click();

@@ -63,8 +63,7 @@ from jobfinder.matching import rank
 from jobfinder.matching.rank import Candidate, rank_jobs
 from jobfinder.matching import vocabulary
 from jobfinder.matching import llm_profile
-from jobfinder.matching.resume import own_skills, parse_resume
-from jobfinder.tailor import document as tailor_document
+from jobfinder.matching.resume import cv_file_type, own_skills, parse_resume
 from jobfinder.web import advert
 from jobfinder.normalize.dedup import (
     canonical_title,
@@ -433,7 +432,7 @@ def _reread_cv(account: supabase.Account, stored: dict | None) -> dict | None:
     """The profile with its CV read again by the current reader, if an older one read it.
 
     Only possible where the file was kept, which it is for every CV added since
-    tailoring. Anything that fails leaves the old reading in place for next time: a
+    2026-09-25. Anything that fails leaves the old reading in place for next time: a
     stale skill list is worse than a fresh one, but far better than a profile page that
     will not load.
     """
@@ -1100,30 +1099,6 @@ def results(request: Request):
     return RedirectResponse("/", status_code=303)
 
 
-_summaries: dict[str, dict] | None = None
-_summaries_lock = threading.Lock()
-
-
-def _summary_for(job: JobPosting) -> dict | None:
-    """The short summary written for this advert after a crawl, or None.
-
-    Read from the snapshot once per process: it is replaced by a deploy, never in place.
-    A database without the table (a local crawl database, an older snapshot) has none.
-    """
-    global _summaries
-    with _summaries_lock:
-        if _summaries is None:
-            try:
-                with engine.connect() as conn:
-                    rows = conn.exec_driver_sql(
-                        "select advert_hash, summary from advert_summaries"
-                    ).all()
-                _summaries = {key: json.loads(value) for key, value in rows}
-            except Exception:  # noqa: BLE001 - no table, or not SQLite
-                _summaries = {}
-    return _summaries.get(rank.advert_hash(f"{job.title}\n{job.description or ''}"))
-
-
 def _job_view(session, job: JobPosting) -> dict:
     """One advert as the job panel and the job page show it."""
     company = session.get(Company, job.company_id)
@@ -1142,9 +1117,7 @@ def _job_view(session, job: JobPosting) -> dict:
         "mode": _facts_for(job)["mode"],
         "salary": _facts_for(job)["salary"],
         "blocks": advert.blocks(job.description),
-        "summary": _summary_for(job),
         # The tools and skills the advert names, found by the same rules ranking uses.
-        # Shown on their own when no summary has been written yet.
         "named": sorted(
             skill for skill in rank.advert_skills(f"{job.title}\n{job.description or ''}")
             if is_technical(skill)
@@ -2226,20 +2199,16 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
             logger.warning("could not load part of the profile", exc_info=True)
             return empty, exc
 
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         saved_job = pool.submit(fetch, supabase.list_saved, [])
         applied_job = pool.submit(fetch, supabase.list_applications, [])
         stored_job = pool.submit(fetch, supabase.get_profile, None)
-        tailored_job = pool.submit(fetch, supabase.list_tailored, [])
         alerts_job = pool.submit(fetch, supabase.get_alerts, None)
         saved_rows, saved_error = saved_job.result()
         applied_rows, applied_error = applied_job.result()
         stored, stored_error = stored_job.result()
-        tailored_rows, _tailored_error = tailored_job.result()
         alerts_row, alerts_error = alerts_job.result()
     stored = _reread_cv(account, stored)
-    for row in tailored_rows:
-        row["saved_on"] = _format_applied_at(row.get("updated_at") or row.get("created_at"))
 
     if saved_error or applied_error:
         context["error"] = f"Some of your lists could not be loaded: {saved_error or applied_error}"
@@ -2259,7 +2228,6 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
         applications=applied_rows,
         me=_me(stored),
         me_unavailable=stored_error is not None,
-        tailored=tailored_rows,
         cv_error=CV_ERRORS.get(cv_error, ""),
         alerts=_alerts_view(alerts_row),
         # The table not existing yet (schema.sql not re-run) reads as an error here: the
@@ -2380,10 +2348,10 @@ async def upload_cv(request: Request, resume: UploadFile | None = None):
     """Read a CV, keep the reading on the profile and the file in the account's own
     private storage.
 
-    The file is kept so a CV tailored to a job can keep its layout (see `tailor/`). If
-    storage is unavailable the reading is still saved, so searches rank against it;
-    tailoring then asks for the CV again. A new upload replaces whatever was there,
-    file included, so "replace my CV" is simply this again.
+    The file is kept so that when the reader improves, the CV is read again without
+    being asked for (see `_reread_cv`). If storage is unavailable the reading is still
+    saved, so searches rank against it. A new upload replaces whatever was there, file
+    included, so "replace my CV" is simply this again.
     """
     account = _account(request)
     if account is None:
@@ -2403,12 +2371,11 @@ async def upload_cv(request: Request, resume: UploadFile | None = None):
     if cv is None:
         return _cv_failure(request, account, "no-text", current_cv)
 
-    kind = tailor_document.kind_of(resume.filename)
-    if kind is not None:
+    mime = cv_file_type(resume.filename)
+    if mime is not None:
         path = supabase.cv_path(account, "original", f"{uuid.uuid4().hex}{Path(cv['name']).suffix.lower()}")
         try:
-            await run_in_threadpool(supabase.upload_file, account, path, data,
-                                    tailor_document.MIME[kind])
+            await run_in_threadpool(supabase.upload_file, account, path, data, mime)
             cv["file"] = path
         except (supabase.SupabaseError, httpx.HTTPError):
             logger.warning("could not store a CV file; keeping the reading only", exc_info=True)
@@ -2760,522 +2727,9 @@ def company_jobs(request: Request, company_id: int):
     )
 
 
-# ------------------------------------------------------------------ tailoring
-#
-# A CV rewritten for one job, offered when Apply is pressed. The flow is a small window
-# over the page: offer -> the tailored CV with its report -> as many rounds of the
-# searcher's own suggestions as they like -> accept, save, download, and on to the
-# employer's posting. Cancel is there at every step. See `tailor/` for the rewriting.
-#
-# Tailored CVs live in their own table and folder. Searching never reads them: results
-# are ranked against the CV the person uploaded, not a version bent toward one advert.
-
-from jobfinder.tailor import llm as tailor_llm  # noqa: E402
-from jobfinder.tailor import rewrite as tailor_rewrite  # noqa: E402
-from jobfinder.tailor import letter as tailor_letter  # noqa: E402
-
-TAILOR_DAILY_LIMIT = 10
-TAILOR_MAX_ROUNDS = 8
-TAILOR_MIN_JOB_CHARS = 300
-TAILOR_DRAFT_DAYS = 7
-# Rounds run on their own after each change, while the score is under the target.
-TAILOR_MAX_BOOSTS = 2
-
-
-def _tailoring_on() -> bool:
-    return supabase.configured() and tailor_llm.available()
-
-
-templates.env.globals["tailor_on"] = _tailoring_on
-
-
-def _job_text(job_id: str, url: str) -> str:
-    """The advert's text from the snapshot, by posting id or failing that by its link."""
-    with session_scope() as session:
-        job = session.get(JobPosting, int(job_id)) if str(job_id).isdigit() else None
-        if job is None and url:
-            job = session.scalar(select(JobPosting).where(JobPosting.url == url).limit(1))
-        return (job.description or "").strip() if job is not None else ""
-
-
-def _tailored_filename(title: str, company: str, kind: str) -> str:
-    name = f"CV for {title} at {company}" if company else f"CV for {title}"
-    name = re.sub(r'[\\/:*?"<>|\n\r\t]+', " ", name)
-    return re.sub(r"\s+", " ", name).strip()[:120] + "." + kind
-
-
-def _word_diff(before: str, after: str) -> Markup:
-    """The change in one paragraph, word by word: removals struck, additions marked."""
-    import difflib
-
-    from markupsafe import escape
-
-    a, b = before.split(" "), after.split(" ")
-    out = []
-    for op, i1, i2, j1, j2 in difflib.SequenceMatcher(a=a, b=b, autojunk=False).get_opcodes():
-        if op == "equal":
-            out.append(escape(" ".join(a[i1:i2])))
-            continue
-        if op in ("replace", "delete"):
-            out.append(Markup("<del>%s</del>") % " ".join(a[i1:i2]))
-        if op in ("replace", "insert"):
-            out.append(Markup("<ins>%s</ins>") % " ".join(b[j1:j2]))
-    return Markup(" ").join(out)
-
-
-def _tailor_error(request: Request, message: str, *, job: dict | None = None):
-    return templates.TemplateResponse(
-        request, "_tailor_error.html", _base_context(request) | {"message": message, "job": job or {}},
-    )
-
-
-def _source_document(account: supabase.Account, path: str, name: str):
-    data = supabase.download_file(account, path)
-    return tailor_document.load(data, name)
-
-
-def _workspace(request: Request, row: dict, document=None, rendered: bytes | None = None, *,
-               error: str = "", fresh: bool = False, read_only: bool = False):
-    report = row.get("report") or {}
-    edits = row.get("edits") or {}
-    changes = [dict(c, diff=_word_diff(c["before"], c["after"])) for c in report.get("changes", [])]
-    previews, paper = [], []
-    if document is not None:
-        if rendered is not None:
-            previews = document.previews(rendered, list(edits))
-        if not previews:
-            paper = [
-                {"text": edits.get(p.id, p.text), "kind": p.kind, "changed": p.id in edits}
-                for p in document.paragraphs
-            ]
-    context = _base_context(request) | {
-        "row": row, "report": report, "changes": changes, "previews": previews,
-        "paper": paper, "error": error, "fresh": fresh, "read_only": read_only,
-        "rounds_left": max(0, TAILOR_MAX_ROUNDS - int(row.get("rounds") or 0)),
-        "kind": tailor_document.kind_of(row.get("source_name") or "") or "pdf",
-        "target": tailor_rewrite.TARGET_SCORE,
-    }
-    return templates.TemplateResponse(request, "_tailor_workspace.html", context)
-
-
-def _tailor_account(request: Request) -> supabase.Account:
-    account = _account(request)
-    if account is None:
-        raise HTTPException(status_code=401, detail="Sign in to tailor your CV.")
-    if not _tailoring_on():
-        raise HTTPException(status_code=404)
-    return account
-
-
-def _draft(account: supabase.Account, tailored_id: str) -> dict:
-    try:
-        row = supabase.get_tailored(account, tailored_id)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not load a tailored CV", exc_info=True)
-        row = None
-    if row is None:
-        raise HTTPException(status_code=404)
-    return row
-
-
-@app.get("/tailor/offer", response_class=HTMLResponse)
-def tailor_offer(request: Request, advert_key: str = "", title: str = "", company: str = "",
-                 url: str = "", job_id: str = ""):
-    """The question Apply asks first: a CV written for this job, or straight there?"""
-    account = _tailor_account(request)
-    cv = (_stored_profile(account) or {}).get("cv") or {}
-    job = {"advert_key": advert_key, "title": title, "company": company, "url": url,
-           "job_id": job_id}
-    text = _job_text(job_id, url)
-    context = _base_context(request) | {
-        "job": job, "has_cv": bool(cv), "has_file": bool(cv.get("file")),
-        "cv_name": cv.get("name", ""), "needs_text": len(text) < TAILOR_MIN_JOB_CHARS,
-    }
-    return templates.TemplateResponse(request, "_tailor_offer.html", context)
-
-
-@app.post("/tailor/start", response_class=HTMLResponse)
-def tailor_start(
-    request: Request,
-    title: str = Form(...),
-    company: str = Form(""),
-    url: str = Form(""),
-    advert_key: str = Form(""),
-    job_id: str = Form(""),
-    job_text: str = Form(""),
-):
-    account = _tailor_account(request)
-    job = {"advert_key": advert_key, "title": title, "company": company, "url": url,
-           "job_id": job_id}
-    cv = (_stored_profile(account) or {}).get("cv") or {}
-    if not cv.get("file"):
-        return _tailor_error(request, "Add your CV to your profile first; tailoring starts "
-                             "from the file you upload there.", job=job)
-
-    text = job_text.strip() or _job_text(job_id, url)
-    if len(text) < TAILOR_MIN_JOB_CHARS:
-        return _tailor_error(request, "We need the job advert to tailor against. Paste its "
-                             "description in and try again.", job=job)
-
-    since = datetime.now(timezone.utc) - timedelta(days=1)
-    try:
-        if supabase.count_tailored_since(account, since) >= TAILOR_DAILY_LIMIT:
-            return _tailor_error(request, f"That is {TAILOR_DAILY_LIMIT} tailored CVs today, the "
-                                 "daily limit that keeps this free. You can make more tomorrow.",
-                                 job=job)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not count tailorings", exc_info=True)
-    supabase.purge_stale_drafts(
-        account, datetime.now(timezone.utc) - timedelta(days=TAILOR_DRAFT_DAYS)
-    )
-
-    try:
-        document = _source_document(account, cv["file"], cv.get("name") or "cv.pdf")
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not fetch the CV file", exc_info=True)
-        return _tailor_error(request, "Your CV file could not be fetched just now. Please try "
-                             "again in a moment.", job=job)
-    except tailor_document.DocumentError as exc:
-        return _tailor_error(request, str(exc), job=job)
-
-    try:
-        result = tailor_rewrite.tailor(
-            document, tailor_rewrite.Job(title, company, text),
-            deadline=tailor_rewrite.deadline(),
-        )
-    except tailor_rewrite.TailorError as exc:
-        return _tailor_error(request, str(exc), job=job)
-
-    report = result.report | {"reasons": result.reasons, "changes": result.changes, "thread": []}
-    try:
-        row = supabase.create_tailored(
-            account, advert_key=advert_key, job_title=title[:300], company=company[:200],
-            job_url=url[:1000], job_text=text[:20000], source_path=cv["file"],
-            source_name=cv.get("name") or "cv.pdf", edits=result.edits, report=report,
-            ats_before=report["ats_before"], ats_after=report["ats_after"],
-        )
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not save a tailoring draft", exc_info=True)
-        return _tailor_error(request, "Your tailored CV was written but could not be kept just "
-                             "now. Please try again in a moment.", job=job)
-    return _workspace(request, row, document, result.data, fresh=True)
-
-
-@app.post("/tailor/{tailored_id}/revise", response_class=HTMLResponse)
-def tailor_revise(request: Request, tailored_id: str, suggestion: str = Form("")):
-    """Apply the searcher's suggestion and report again."""
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    if row["status"] != "draft":
-        return _workspace(request, row, read_only=True)
-    try:
-        document = _source_document(account, row["source_path"], row["source_name"])
-    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-        logger.warning("could not reopen the source CV", exc_info=True)
-        return _workspace(request, row, error="Your original CV could not be opened, so this "
-                          "version cannot be changed any further. You can still save or "
-                          "download it.")
-    if int(row.get("rounds") or 0) >= TAILOR_MAX_ROUNDS:
-        return _workspace(request, row, document, document.render(row["edits"]).data,
-                          error="That is as many rounds as one tailoring can take. Accept this "
-                          "version, or cancel and start again.")
-    report = row.get("report") or {}
-    thread = list(report.get("thread") or [])
-    try:
-        result = tailor_rewrite.revise(
-            document, tailor_rewrite.Job(row["job_title"], row["company"], row["job_text"]),
-            row.get("edits") or {}, report.get("reasons") or {}, suggestion,
-            report.get("keywords") or [],
-            earlier_requests=[t["request"] for t in thread],
-            deadline=tailor_rewrite.deadline(),
-        )
-    except tailor_rewrite.TailorError as exc:
-        return _workspace(request, row, document, document.render(row.get("edits") or {}).data,
-                          error=str(exc))
-    thread.append({"request": suggestion.strip()[:1500], "reply": result.report.get("reply", "")})
-    # A change of theirs is a new starting point, so the rounds toward the target begin again.
-    new_report = result.report | {"reasons": result.reasons, "changes": result.changes,
-                                  "thread": thread, "boosts": 0, "boost_done": False}
-    columns = {"edits": result.edits, "report": new_report, "rounds": len(thread),
-               "ats_after": new_report["ats_after"]}
-    try:
-        supabase.update_tailored(account, tailored_id, **columns)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not save a revision", exc_info=True)
-        return _workspace(request, row, document, document.render(row.get("edits") or {}).data,
-                          error="That change could not be kept just now. Please try again.")
-    return _workspace(request, row | columns, document, result.data, fresh=True)
-
-
-@app.post("/tailor/{tailored_id}/boost", response_class=HTMLResponse)
-def tailor_boost(request: Request, tailored_id: str):
-    """One round aimed at the target score, run by the review itself while it is under.
-
-    Kept only if the score rose. When a round cannot raise it - what is missing is
-    something only the candidate can confirm - the rounds stop and the review says what
-    stands between the CV and the target.
-    """
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    if row["status"] != "draft":
-        return _workspace(request, row, read_only=True)
-    report = dict(row.get("report") or {})
-    try:
-        document = _source_document(account, row["source_path"], row["source_name"])
-    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-        logger.warning("could not reopen the source CV", exc_info=True)
-        return _workspace(request, row | {"report": report | {"boost_done": True}})
-    edits = row.get("edits") or {}
-    boosts = int(report.get("boosts") or 0)
-    if report.get("ats_after", 0) >= tailor_rewrite.TARGET_SCORE or boosts >= TAILOR_MAX_BOOSTS:
-        report["boost_done"] = True
-        return _workspace(request, row | {"report": report}, document, document.render(edits).data)
-
-    error = ""
-    try:
-        result = tailor_rewrite.boost(
-            document, tailor_rewrite.Job(row["job_title"], row["company"], row["job_text"]),
-            edits, report.get("reasons") or {}, report, deadline=tailor_rewrite.deadline(),
-        )
-    except tailor_rewrite.TailorError as exc:
-        result, error = None, str(exc)
-    boosts += 1
-    if result is None or result.report["ats_after"] <= report.get("ats_after", 0):
-        report |= {"boosts": boosts, "boost_done": True}
-        columns = {"report": report}
-        rendered = document.render(edits).data
-    else:
-        report = result.report | {
-            "reasons": result.reasons, "changes": result.changes,
-            "thread": report.get("thread") or [], "boosts": boosts,
-            "boost_done": result.report["ats_after"] >= tailor_rewrite.TARGET_SCORE
-            or boosts >= TAILOR_MAX_BOOSTS,
-            "boosted_from": report.get("ats_after"),
-        }
-        columns = {"edits": result.edits, "report": report, "ats_after": report["ats_after"]}
-        rendered = result.data
-    try:
-        supabase.update_tailored(account, tailored_id, **columns)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not save a boost round", exc_info=True)
-    return _workspace(request, row | columns, document, rendered, error=error,
-                      fresh="edits" in columns)
-
-
-@app.post("/tailor/{tailored_id}/accept", response_class=HTMLResponse)
-def tailor_accept(request: Request, tailored_id: str):
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    return templates.TemplateResponse(
-        request, "_tailor_done.html", _base_context(request) | {"row": row, "saved": row["status"] == "saved"}
-    )
-
-
-def _finished_file(account: supabase.Account, row: dict) -> tuple[bytes, str]:
-    kind = tailor_document.kind_of(row["source_name"]) or "pdf"
-    if row.get("file_path"):
-        return supabase.download_file(account, row["file_path"]), kind
-    document = _source_document(account, row["source_path"], row["source_name"])
-    return tailor_rewrite.rebuild(document, row.get("edits") or {}), kind
-
-
-@app.post("/tailor/{tailored_id}/save", response_class=HTMLResponse)
-def tailor_save(request: Request, tailored_id: str):
-    """Keep the finished file under the profile's tailored CVs, apart from the original."""
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    if row["status"] != "saved":
-        try:
-            data, kind = _finished_file(account, row)
-            path = supabase.cv_path(account, "tailored", f"{tailored_id}.{kind}")
-            supabase.upload_file(account, path, data, tailor_document.MIME[kind])
-            name = _tailored_filename(row["job_title"], row["company"], kind)
-            supabase.update_tailored(account, tailored_id, status="saved", file_path=path,
-                                     file_name=name)
-            row |= {"status": "saved", "file_path": path, "file_name": name}
-        except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-            logger.warning("could not save a tailored CV", exc_info=True)
-            return templates.TemplateResponse(
-                request, "_tailor_done.html",
-                _base_context(request) | {"row": row, "saved": False,
-                                          "error": "It could not be saved just now. Please try again."},
-            )
-    return templates.TemplateResponse(
-        request, "_tailor_done.html", _base_context(request) | {"row": row, "saved": True}
-    )
-
-
-@app.post("/tailor/{tailored_id}/cancel", response_class=HTMLResponse)
-def tailor_cancel(request: Request, tailored_id: str):
-    """Throw a draft away. A saved one is left alone: cancelling never deletes those."""
-    account = _tailor_account(request)
-    try:
-        row = supabase.get_tailored(account, tailored_id)
-        if row is not None and row["status"] == "draft":
-            supabase.delete_tailored(account, tailored_id)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not discard a draft", exc_info=True)
-    return HTMLResponse("")
-
-
-@app.get("/tailor/{tailored_id}/download")
-def tailor_download(request: Request, tailored_id: str):
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    try:
-        data, kind = _finished_file(account, row)
-    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-        logger.warning("could not build a tailored CV for download", exc_info=True)
-        raise HTTPException(status_code=502, detail="The file could not be fetched just now.")
-    name = row.get("file_name") or _tailored_filename(row["job_title"], row["company"], kind)
-    ascii_name = re.sub(r"[^\w. ,&()-]", "", name) or f"tailored-cv.{kind}"
-    return Response(
-        data, media_type=tailor_document.MIME[kind],
-        headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; "
-                                        f"filename*=UTF-8''{quote(name)}",
-                 "Cache-Control": "private, no-store"},
-    )
-
-
-# Cover letters a day, per browser session. Drafts are not stored, so this is counted in
-# the session cookie: a soft cap on the free models, not a security boundary.
-LETTER_DAILY_LIMIT = 15
-
-
-def _letter_allowance(request: Request) -> int:
-    """How many letters this session has written today, resetting at midnight UTC."""
-    today = datetime.now(timezone.utc).date().isoformat()
-    used = request.session.get("letters") or {}
-    return used.get("n", 0) if used.get("day") == today else 0
-
-
-@app.post("/letter/start", response_class=HTMLResponse)
-def letter_start(
-    request: Request,
-    title: str = Form(...),
-    company: str = Form(""),
-    url: str = Form(""),
-    advert_key: str = Form(""),
-    job_id: str = Form(""),
-    job_text: str = Form(""),
-    note: str = Form(""),
-):
-    """Draft a cover letter for one job from the CV on the profile.
-
-    Shown in the tailoring window for the person to read, change, copy or download.
-    Nothing is stored: the letter exists in the page and in whatever they save.
-    """
-    account = _tailor_account(request)
-    job = {"advert_key": advert_key, "title": title, "company": company, "url": url,
-           "job_id": job_id}
-    cv = (_stored_profile(account) or {}).get("cv") or {}
-    if not cv.get("file"):
-        return _tailor_error(request, "Add your CV to your profile first; the letter is "
-                             "written from it.", job=job)
-    text = job_text.strip() or _job_text(job_id, url)
-    if len(text) < TAILOR_MIN_JOB_CHARS:
-        return _tailor_error(request, "We need the job advert to write the letter for. Paste "
-                             "its description in and try again.", job=job)
-    used = _letter_allowance(request)
-    if used >= LETTER_DAILY_LIMIT:
-        return _tailor_error(request, f"That is {LETTER_DAILY_LIMIT} cover letters today, the "
-                             "daily limit that keeps this free. You can write more tomorrow.",
-                             job=job)
-    try:
-        document = _source_document(account, cv["file"], cv.get("name") or "cv.pdf")
-        letter = tailor_letter.write(document.text(), title, company, text, note=note)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not fetch the CV file for a letter", exc_info=True)
-        return _tailor_error(request, "Your CV file could not be fetched just now. Please try "
-                             "again in a moment.", job=job)
-    except (tailor_document.DocumentError, tailor_letter.LetterError) as exc:
-        return _tailor_error(request, str(exc), job=job)
-    request.session["letters"] = {
-        "day": datetime.now(timezone.utc).date().isoformat(), "n": used + 1,
-    }
-    context = _base_context(request) | {
-        "job": job, "letter": letter, "job_text": job_text,
-        "left": LETTER_DAILY_LIMIT - used - 1,
-    }
-    return templates.TemplateResponse(request, "_letter.html", context)
-
-
-@app.post("/letter/download")
-def letter_download(
-    request: Request,
-    text: str = Form(...),
-    title: str = Form(""),
-    company: str = Form(""),
-    kind: str = Form("docx"),
-):
-    """The letter as edited on the page, as a Word document or plain text."""
-    _tailor_account(request)
-    text = text.strip()[:12000]
-    name = re.sub(r'[\\/:*?"<>|\n\r\t]+', " ", f"Cover letter for {title} at {company}"
-                  if company else f"Cover letter for {title}")
-    name = re.sub(r"\s+", " ", name).strip()[:120]
-    if kind == "txt":
-        data, media, name = text.encode("utf-8"), "text/plain; charset=utf-8", name + ".txt"
-    else:
-        data, media, name = tailor_letter.docx(text), tailor_document.MIME["docx"], name + ".docx"
-    ascii_name = re.sub(r"[^\w. ,&()-]", "", name) or "cover-letter"
-    return Response(
-        data, media_type=media,
-        headers={"Content-Disposition": f"attachment; filename=\"{ascii_name}\"; "
-                                        f"filename*=UTF-8''{quote(name)}",
-                 "Cache-Control": "private, no-store"},
-    )
-
-
-@app.get("/tailor/{tailored_id}", response_class=HTMLResponse)
-def tailor_view(request: Request, tailored_id: str):
-    """A saved tailored CV and its report, as a page of its own."""
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    document = rendered = None
-    try:
-        rendered, kind = _finished_file(account, row)
-        document = _source_document(account, row["source_path"], row["source_name"])
-    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-        # The original has since been replaced; the report still stands on its own.
-        document = None
-    context = _base_context(request) | {"row": row}
-    inner = _workspace(request, row, document, rendered, read_only=True)
-    context["workspace"] = Markup(inner.body.decode())
-    return templates.TemplateResponse(request, "tailored.html", context)
-
-
-@app.post("/tailor/{tailored_id}/delete", response_class=HTMLResponse)
-def tailor_delete(request: Request, tailored_id: str):
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    try:
-        supabase.delete_tailored(account, tailored_id)
-    except (supabase.SupabaseError, httpx.HTTPError):
-        logger.warning("could not delete a tailored CV", exc_info=True)
-        return HTMLResponse('<p class="error">It could not be deleted just now.</p>', status_code=200)
-    _forget_files(account, [row.get("file_path")])
-    if request.headers.get("HX-Request"):
-        return HTMLResponse("")
-    return RedirectResponse("/profile#tailored", status_code=303)
-
-
-@app.get("/tailor/{tailored_id}/review", response_class=HTMLResponse)
-def tailor_review(request: Request, tailored_id: str):
-    """The review again, for someone who accepted and then wanted another look."""
-    account = _tailor_account(request)
-    row = _draft(account, tailored_id)
-    try:
-        document = _source_document(account, row["source_path"], row["source_name"])
-        rendered = document.render(row.get("edits") or {}).data
-    except (supabase.SupabaseError, httpx.HTTPError, tailor_document.DocumentError):
-        document = rendered = None
-    return _workspace(request, row, document, rendered, read_only=row["status"] == "saved")
-
-
 @app.get("/healthz/accounts", include_in_schema=False)
 def healthz_accounts():
-    """Is the accounts side set up? Which tables exist, and whether tailoring has a model.
+    """Is the accounts side set up? Which tables exist.
 
     Names only, never keys. Added because "could not be saved" on the profile could mean
     a missing table, a paused project or a bad key, and only this can tell them apart
@@ -3284,8 +2738,6 @@ def healthz_accounts():
     info: dict = {"supabase_configured": supabase.configured()}
     if supabase.configured():
         info["tables"] = supabase.table_status(
-            ("applications", "saved_jobs", "profiles", "tailored_cvs")
+            ("applications", "saved_jobs", "profiles", "alerts")
         )
-    info["tailoring_models"] = [m.name for m in tailor_llm.models()]
-    info["tailoring_on"] = _tailoring_on()
     return info
