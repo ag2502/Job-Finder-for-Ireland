@@ -564,6 +564,7 @@ PLATFORMS = {
     "adzuna": ("Adzuna", "adzuna.ie"),
     "phenom": ("Phenom", "phenom.com"),
     "corehr": ("CoreHR", "corehr.com"),
+    "hrcloud": ("CoreHR", "corehr.com"),
     "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
     "rezoomo": ("Rezoomo", "rezoomo.com"),
     "hrmanager": ("HR Manager", "hrmanager.ie"),
@@ -584,6 +585,8 @@ OWN_SITE_ADAPTERS = frozenset({
 # Job boards: the posting is theirs, not the employer's or its hiring system's.
 BOARD_ADAPTERS = frozenset({"gradireland", "publicjobs", "adzuna"})
 CAREERS_SITE = "careers"
+# Adapters reading two products of one platform, filtered as one.
+SAME_PLATFORM = {"hrcloud": "corehr"}
 _SECOND_LEVEL = {"co", "com", "org", "gov", "ac", "net"}
 
 
@@ -608,7 +611,7 @@ def _via(adapter: str, url: str, company_domain: str) -> dict:
         return {"key": CAREERS_SITE, "label": _site(host) if host else "careers site",
                 "host": host, "kind": "careers"}
     label = PLATFORMS.get(adapter, (adapter.replace("_", " ").title(), ""))[0]
-    return {"key": adapter, "label": label, "host": host,
+    return {"key": SAME_PLATFORM.get(adapter, adapter), "label": label, "host": host,
             "kind": "board" if adapter in BOARD_ADAPTERS else "platform"}
 
 # Names used in the companies page's description. Only the ones actually hiring today

@@ -36,6 +36,7 @@ def load_adapters() -> None:
         greenhouse,
         hibob,
         hirehive,
+        hrcloud,
         hrmanager,
         icims,
         jsonld,

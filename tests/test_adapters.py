@@ -1260,3 +1260,64 @@ def test_hibob_reads_jobs_with_the_tenant_header():
     assert (job.location_raw, job.department) == ("Dublin, Ireland", "Finance")
     assert job.url == "https://acme.careers.hibob.com/jobs/c078"
     assert job.description == "<p>Buy things</p>"
+
+
+# ---------------------------------------------------------------------------
+# HR Cloud (CoreHR's newer boards)
+# ---------------------------------------------------------------------------
+
+
+def _hrcloud_openings(total: int):
+    def serve(request: httpx.Request) -> httpx.Response:
+        assert request.url.params["tenantCode"] == "ACME"
+        page = int(request.url.params["page"])
+        ids = list(range(total))[(page - 1) * 10:page * 10]
+        return httpx.Response(200, json={
+            "TotalCount": total, "TotalPages": (total + 9) // 10,
+            "FoundJobs": [{"Id": f"id{i}", "JobTitle": f"Site Engineer {i}",
+                           "Location": "Dublin, Ireland", "Department": "Projects"} for i in ids],
+        })
+    return serve
+
+
+@respx.mock
+def test_hrcloud_reads_every_page_and_each_advert(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.hrcloud import HrCloudAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    host = "https://acme.corehr.hrcloud.hr"
+    respx.get(f"{host}/api/job/GetJobOpenings").mock(side_effect=_hrcloud_openings(12))
+    respx.get(f"{host}/api/job/GetJobDetail").mock(side_effect=lambda request: httpx.Response(
+        200, json={"JobDetailDto": {
+            "Description": "<p>Set out works on site.</p>",
+            "Location": "D02 X285, Dublin 2, County Dublin, Ireland",
+            "LastPublishedDate": "2026-09-25T14:36:18.7Z",
+        }},
+    ))
+
+    result = HrCloudAdapter().fetch("acme.corehr.hrcloud.hr")
+
+    assert result.status is CrawlStatus.OK
+    assert len(result.jobs) == 12
+    job = result.jobs[0]
+    assert job.url == "https://acme.corehr.hrcloud.hr/acme/job/id0"
+    assert job.location_raw == "D02 X285, Dublin 2, County Dublin, Ireland"
+    assert "Set out works" in job.description
+    assert job.posted_at.year == 2026 and job.department == "Projects"
+
+
+@respx.mock
+def test_hrcloud_keeps_the_listing_when_an_advert_will_not_load(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.hrcloud import HrCloudAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    host = "https://careers.acme.ie"
+    respx.get(f"{host}/api/job/GetJobOpenings").mock(side_effect=_hrcloud_openings(3))
+    respx.get(f"{host}/api/job/GetJobDetail").mock(return_value=httpx.Response(500))
+
+    result = HrCloudAdapter().fetch("careers.acme.ie|ACME")
+
+    assert result.status is CrawlStatus.OK
+    assert [j.location_raw for j in result.jobs] == ["Dublin, Ireland"] * 3

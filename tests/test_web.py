@@ -1191,6 +1191,9 @@ def test_where_apply_goes_is_judged_by_the_link():
     # Sources that are always the employer's own site, and job boards.
     assert _via("amazon", "https://www.amazon.jobs/en/jobs/1", "amazon.com")["key"] == "careers"
     assert _via("gradireland", "https://gradireland.com/x", "rws.com")["kind"] == "board"
+    # CoreHR's two products are one platform in the picker.
+    newer = _via("hrcloud", "https://hmveng.corehr.hrcloud.hr/hmveng/job/1", "hmvengineering.com")
+    assert (newer["key"], newer["label"]) == ("corehr", "CoreHR")
 
 
 def test_the_platform_picker_narrows_and_is_written_into_the_address(client):
