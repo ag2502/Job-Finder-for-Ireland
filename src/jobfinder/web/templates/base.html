@@ -1428,13 +1428,17 @@ document.addEventListener('submit', function (e) {
     var btn = t.closest('[data-answer]');
     if (btn) answer(btn.closest('.askapply__item'), btn.getAttribute('data-answer') === 'yes');
   });
-  // Back after a while away (the employer's tab, most often), or a new visit.
-  var away = 0;
+  // Asked the moment they are back: returning to this tab from the employer's, to this
+  // window from another one (a posting opened as a window never hides this tab), or
+  // coming back to this page from the browser's history. And straight away on a new
+  // visit with an answer still owed.
+  function back() { if (card.hidden && load().length) show(); }
   document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') { away = Date.now(); return; }
-    if (away && Date.now() - away > 3000) show();
+    if (document.visibilityState === 'visible') back();
   });
-  if (load().length) setTimeout(show, 1200);
+  window.addEventListener('focus', back);
+  window.addEventListener('pageshow', back);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', back); else back();
 })();
 
 // Applying: a sticker is slapped on the row, and Undo peels it off. From the row the
