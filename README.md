@@ -310,44 +310,13 @@ not fit the free tiers this targets, and job matching is dominated by exact tech
 and title tokens where lexical scoring is strongest. `rank_jobs` takes rows and returns
 scores, so swapping in embeddings later changes nothing else.
 
-## Tailoring a CV to a job
-
-Pressing **Apply** can first write a version of the searcher's CV for that advert. The
-code is in `src/jobfinder/tailor/`:
-
-- `document.py` reads the CV into paragraphs and writes new wording back into **a copy of
-  the original file**, so every CV keeps its own layout. Word files are edited run by
-  run; PDFs are edited in place with PyMuPDF, in the CV's own embedded fonts, with inline
-  bold kept, columns detected, and the new text spliced into the page's content where the
-  old text was so parsers read it in order. Name, contact details, job titles, dates,
-  education and certificates are locked in code. A PDF line that would not fit is left as
-  it was; Word and text CVs may drop an irrelevant bullet, since they reflow.
-- `rewrite.py` asks a model for edits and then checks them: no figure the CV never stated,
-  no edits to locked lines, at most a third of bullets removed. Every changed sentence is
-  linted and proofread (`proofread.py`, LanguageTool).
-- `llm.py` tries free models in order: Gemini Flash, Gemini Flash-Lite, then Groq.
-- `ats.py` scores the finished file the way an applicant tracking system reads one:
-  advert keywords, job title, standard sections, contact details, readability, measurable
-  results and length. Deterministic, and every point has a stated reason.
-
-The searcher reviews every change, suggests more in their own words as many times as they
-like, then accepts, saves (under **Tailored CVs** on their profile, apart from the CV
-searches use) and downloads it, and goes on to the posting. Setup: step 6a of
-`docs/accounts-setup.md`. Tested against the layouts in `tests/fixtures/`.
-
-This project is licensed AGPL-3.0 (see `LICENSE`), because PyMuPDF is.
-
 ## Privacy
 
 A signed-in searcher adds their CV once, on their profile. The reading of it (skills, the
 fields it points to, seniority, years, a one-line summary) is kept in the `profiles`
 table and ranks every search; the file itself is kept in a private Supabase storage
-bucket so tailoring can keep its layout. Both sit behind row level security that lets an
+bucket so it can be read again when the reader improves. Both sit behind row level security that lets an
 account reach only its own rows and its own folder, and **Remove** deletes both outright.
-
-Tailoring sends the CV's text and the advert to the free model chain above, and the
-changed sentences to LanguageTool. A Gemini key from an EU account keeps Google's
-paid-service data terms on the free tier. The privacy page says all of this to searchers.
 
 **Configuring a model endpoint changes this, and it is the one thing here that does.**
 With `JOBFINDER_LLM_API_KEY` set, up to 24,000 characters of the CV are sent to that

@@ -143,51 +143,15 @@ If you skip this the site still works; the project will just pause when traffic 
 
 ---
 
-## Step 6a: Turn on CV tailoring (free keys)
+## Step 6c: Turn on email alerts
 
-When someone presses **Apply**, the site can offer to rewrite their CV for that job, keep
-its layout, and score it the way applicant tracking systems read CVs. It runs on free
-models only, and is simply not offered until at least one key is set.
+Alerts are sent from GitHub Actions after each crawl (`crawl.yml`), so their keys are
+**Actions secrets**, not Vercel variables. The step says what is missing in the run log
+and sends nothing until it is set; it can never fail a crawl.
 
-1. **Gemini** (the main writer). Go to [Google AI Studio](https://aistudio.google.com/apikey),
-   sign in with a Google account **registered in Ireland or elsewhere in the EU**, and create
-   an API key. Free, no card. An EU account matters: Google then applies its paid-service
-   data terms to the free tier, so CVs sent to it are not used for training or read by
-   reviewers.
-2. **Groq** (the backstop when Gemini's free quota is spent). Sign up at
-   [console.groq.com](https://console.groq.com/keys) and create a key. Free, no card.
-3. In Vercel -> the project -> **Settings -> Environment Variables**, add:
-
-   | Name | Value |
-   |---|---|
-   | `JOBFINDER_GEMINI_API_KEY` | the AI Studio key |
-   | `JOBFINDER_GROQ_API_KEY` | the Groq key |
-
-   Optional: `JOBFINDER_TAILOR_MODELS` (default `gemini-3.8-flash,gemini-3.5-flash-lite`)
-   if Google renames its models; your live free limits per model are on the
-   [AI Studio rate-limit page](https://aistudio.google.com/rate-limit).
-4. Make sure `schema.sql` has been run again (step 2): tailoring needs the private `cvs`
-   storage bucket and the `tailored_cvs` table it creates. Supabase's free tier includes
-   1 GB of file storage, which is thousands of CVs.
-5. Redeploy. Anyone who uploaded a CV before this needs to upload it once more, since
-   earlier uploads kept only the reading, not the file; the Apply window tells them so.
-
-Each account can start 10 tailorings a day, with up to 8 rounds of their own suggestions
-each, which keeps the free quotas from being spent by one person.
-
----
-
-## Step 6c: Turn on email alerts and advert summaries
-
-Both run in GitHub Actions after each crawl (`crawl.yml`), so their keys are **Actions
-secrets**, not Vercel variables. Each step says what is missing in the run log and does
-nothing until it is set; neither can fail a crawl.
-
-**Advert summaries** ("In short" in the job panel): add the same model keys as step 6a
-as repository secrets named `JOBFINDER_GEMINI_API_KEY` and `JOBFINDER_GROQ_API_KEY`.
-The first few runs catch up 150 adverts at a time.
-
-**Email alerts** (the profile's Email alerts section):
+(CV tailoring, cover letters and advert summaries were removed on 2026-09-28, so no
+Gemini or Groq key is needed anywhere. Any `JOBFINDER_GEMINI_API_KEY` or
+`JOBFINDER_GROQ_API_KEY` left in Vercel or in the repository's secrets can be deleted.)
 
 1. Re-run `schema.sql` (step 2). It adds the `alerts` table, its policies (an alert can
    only go to the account's own sign-in address) and the `unsubscribe_alerts` function
@@ -297,8 +261,6 @@ function is serving the snapshot as expected.
 | Sign-up works, sign-in says invalid credentials | Email confirmation is on and the link was not clicked |
 | No confirmation email arrives | Built-in sender rate limit — set up custom SMTP (step 3) |
 | Applying says "could not save" | `schema.sql` was not run, or the RLS policies are missing |
-| Apply never offers to tailor | Neither `JOBFINDER_GEMINI_API_KEY` nor `JOBFINDER_GROQ_API_KEY` is set in Vercel |
-| Tailoring says the writing service is busy | Both free quotas are spent for now; they reset daily (Gemini) and per minute (Groq) |
 | "Your CV file could not be fetched" | The `cvs` bucket or its policies are missing: run `schema.sql` again |
 | Adding a CV says it "could not be saved just now" | The `profiles` table is missing: run `schema.sql` again |
 | Applied jobs still show | Sign-in is not actually active; check the header shows your name |

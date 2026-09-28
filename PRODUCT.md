@@ -65,34 +65,25 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   the chosen ones, and offers the saved details with one "Use my profile" button rather
   than filling the form in: a plain visit to the finder still starts blank, while a
   search link (the address a search writes, 2026-09-27) reopens that search.
-- CV tailoring (2026-09-25): Apply offers to rewrite the CV for that advert in a copy of
-  the person's own file (layout kept, facts locked), with a deterministic ATS score, a
-  report, and a suggestion loop; kept versions live under Tailored CVs, apart from the CV
-  searches rank on. Free models only (Gemini, Groq), and the project is AGPL for PyMuPDF.
 - Ranking against a vocabulary learned from the job corpus, not a hardcoded skill list.
 - What an advert states in its own prose (2026-09-27): the salary (146 of 1,048 Dublin
   adverts) and the work mode (311), read by rules that need a pay word or a working
   pattern word beside the figure, so revenue, funding and "hybrid cloud" never count.
   Unstated reads "Not stated"; nothing is estimated.
-- Short advert summaries (2026-09-27): after each crawl, `jobfinder summarise` has the
-  free models (Gemini, then Groq) write what the job is, what it asks for and the tools
-  it names, once per advert, kept in the crawler state. Tools not in the advert's own
-  text are dropped, and the panel labels the summary as written by a model. Dormant
-  until `JOBFINDER_GEMINI_API_KEY` (or `JOBFINDER_GROQ_API_KEY`) is added as a GitHub
-  Actions secret; until then the panel shows the skills the advert names.
 - New since your last visit (2026-09-27): for a signed-in searcher, "new" means found
   after their previous visit (a gap of an hour starts a new one), with a "show only
   these" toggle; signed out, it still means found in the last day.
-- Cover letter drafts (2026-09-27): Apply's window offers a letter written from the CV
-  on the profile for that advert, 180 to 260 words. Sentences with a figure found in
-  neither the CV nor the advert, or with a stock phrase, are removed before it is shown.
-  Editable, copied or downloaded as Word or text, and never stored; 15 a day.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
   future results.
 - An employer directory covering the whole registry, including employers that cannot be
   crawled — those link out to their own careers page rather than being hidden.
 
 **Does not have, and must not be claimed:**
+
+- **No AI writing: no CV tailoring, no cover letters, no advert summaries.** All three
+  were built (2026-09-25 to 27) and removed on 2026-09-28 at the owner's request, and
+  nothing on the site sends a CV or an advert to Gemini, Groq or any writing model. Apply
+  goes straight to the employer. Copy must never promise a tailored CV or a letter.
 
 - **No notifications beyond the opt-in email alerts.** Changed 2026-09-27 at the owner's
   request: a signed-in searcher may tick, on their profile, email alerts for new
@@ -113,10 +104,11 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   2026-09-25 at the owner's request: the *reading* of it (skills, fields, seniority,
   years, a one-line summary, file name and size) is now kept on the searcher's profile
   in Supabase so they upload once, and Remove deletes it. The document itself staying
-  unstored held until CV tailoring (same day), when the owner asked for tailored CVs that
-  keep each person's layout: the file is now kept in a private per-account bucket, and
-  Remove deletes it. What is still not negotiable: nothing is shared with employers,
-  every stored item is deletable by its owner, and search never ranks on a tailored CV.
+  unstored held until CV tailoring (same day), when the file began to be kept in a
+  private per-account bucket. Tailoring is gone (2026-09-28) but the file is still kept,
+  so a CV can be read again when the reader improves, and Remove deletes it. What is
+  still not negotiable: nothing is shared with employers, and every stored item is
+  deletable by its owner.
 
 ## Brand Commitments
 
