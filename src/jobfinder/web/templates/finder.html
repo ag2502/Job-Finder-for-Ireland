@@ -952,26 +952,51 @@
 
   })();
 
-  // The filters. On a wide screen they sit inline above the list, and the bar that
-  // stays brings them back into view. On a phone they are a sheet: changes wait there
-  // until Show jobs (rbarHeld stops the bar re-running on every tap), and closing it any
-  // other way puts every control back as it was, so nothing half-chosen lingers.
+  // The filters. The tabs and layout sit inline above the list; everything else is
+  // behind the Filters button. On a wide screen that opens a panel under the button, on
+  // a phone the whole bar becomes a sheet. Either way changes wait until Show jobs
+  // (rbarHeld stops the bar re-running on every tap), and closing it any other way puts
+  // every control back as it was, so nothing half-chosen lingers.
   (function () {
     var narrow = window.matchMedia('(max-width: 860px)');
-    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     function hold() { window.rbarHeld = narrow.matches; }
     hold();
-    narrow.addEventListener('change', function () { hold(); shut(false, true); });
+    narrow.addEventListener('change', function () { shut(false, true); hold(); });
 
     function bar() { return document.getElementById('rbar'); }
     function opener() { return document.querySelector('[data-filters-open]'); }
+    function isOpen(b) { return b && (b.classList.contains('is-open') || b.classList.contains('is-more')); }
+
+    // The wide panel hangs from the Filters button, right edges lined up, and never
+    // runs past the bottom of the window.
+    function place() {
+      var b = bar(), o = opener();
+      if (!b || !o || !b.classList.contains('is-more')) return;
+      var more = b.querySelector('.rbar__more'), r = o.getBoundingClientRect();
+      var right = Math.max(16, document.documentElement.clientWidth - r.right);
+      more.style.top = Math.round(r.bottom + 8) + 'px';
+      more.style.right = Math.round(right) + 'px';
+      more.style.maxHeight = Math.max(240, window.innerHeight - r.bottom - 24) + 'px';
+    }
+    var placing = false;
+    function replace() {
+      if (placing) return;
+      placing = true;
+      requestAnimationFrame(function () { placing = false; place(); });
+    }
+    window.addEventListener('resize', replace);
+    window.addEventListener('scroll', replace, { passive: true });
 
     function open() {
       var b = bar();
       if (!b) return;
+      if (isOpen(b)) { shut(true, true); return; }
+      window.rbarHeld = true;
       if (!narrow.matches) {
-        b.scrollIntoView({ block: 'center', behavior: reduced.matches ? 'auto' : 'smooth' });
-        var first = b.querySelector('input:checked, select');
+        b.classList.add('is-more');
+        opener().setAttribute('aria-expanded', 'true');
+        place();
+        var first = b.querySelector('.rbar__more .cpick__btn, .rbar__more select');
         if (first) first.focus({ preventScroll: true });
         return;
       }
@@ -984,40 +1009,177 @@
       b.querySelector('.rbar__close').focus({ preventScroll: true });
     }
 
+    // Put a scope's controls back to how the page arrived. The company is a hidden
+    // input, whose default follows its value, so it keeps its own copy.
+    function reset(scope) {
+      Array.prototype.forEach.call(scope.querySelectorAll('input[type=radio], input[type=checkbox]'), function (i) { i.checked = i.defaultChecked; });
+      Array.prototype.forEach.call(scope.querySelectorAll('option'), function (o) { o.selected = o.defaultSelected; });
+      Array.prototype.forEach.call(scope.querySelectorAll('[data-cpick]'), function (c) {
+        var input = c.querySelector('input[name="company"]');
+        pickCompany(c, input.getAttribute('data-initial') || '', true);
+      });
+    }
+
     function shut(restoreFocus, discard) {
       var b = bar();
-      if (!b || !b.classList.contains('is-open')) return;
-      if (discard) {
-        Array.prototype.forEach.call(b.querySelectorAll('input'), function (i) { i.checked = i.defaultChecked; });
-        Array.prototype.forEach.call(b.querySelectorAll('option'), function (o) { o.selected = o.defaultSelected; });
-      }
-      b.classList.remove('is-open');
+      if (!isOpen(b)) return;
+      var wide = b.classList.contains('is-more');
+      Array.prototype.forEach.call(b.querySelectorAll('[data-cpick]'), closePop);
+      // The wide panel only holds what is inside it; the tabs beside it act at once.
+      if (discard) reset(wide ? b.querySelector('.rbar__more') : b);
+      b.classList.remove('is-open', 'is-more');
       b.setAttribute('role', 'group');
       b.removeAttribute('aria-modal');
       document.querySelector('.rscrim').hidden = true;
       document.documentElement.classList.remove('sheet-open');
+      hold();
       var o = opener();
       o.setAttribute('aria-expanded', 'false');
       if (restoreFocus) o.focus({ preventScroll: true });
     }
 
+    // The company picker: a button that opens a list you can type to narrow, move
+    // through with the arrow keys and pick from with Enter or a tap.
+    function opts(c) { return Array.prototype.slice.call(c.querySelectorAll('.cpick__opt')); }
+    function shown(c) { return opts(c).filter(function (li) { return !li.hidden; }); }
+    function mark(c, li) {
+      opts(c).forEach(function (o) { o.classList.toggle('is-active', o === li); });
+      if (li) {
+        li.scrollIntoView({ block: 'nearest' });
+        c.querySelector('.cpick__search').setAttribute('aria-activedescendant', li.id || '');
+      }
+    }
+    function openPop(c) {
+      var pop = c.querySelector('.cpick__pop'), search = c.querySelector('.cpick__search');
+      pop.hidden = false;
+      c.querySelector('.cpick__btn').setAttribute('aria-expanded', 'true');
+      search.value = '';
+      filter(c);
+      var now = c.querySelector('.cpick__opt[aria-selected="true"]');
+      mark(c, now);
+      search.focus({ preventScroll: true });
+      // Brought fully into view inside the panel or sheet, not the page.
+      var host = c.closest('.rbar__grid, .rbar');
+      if (host) {
+        var pr = pop.getBoundingClientRect(), hr = host.getBoundingClientRect();
+        if (pr.bottom > hr.bottom) host.scrollTop += pr.bottom - hr.bottom + 12;
+      }
+    }
+    function closePop(c) {
+      var pop = c.querySelector('.cpick__pop');
+      if (!pop || pop.hidden) return;
+      pop.hidden = true;
+      c.querySelector('.cpick__btn').setAttribute('aria-expanded', 'false');
+    }
+    function filter(c) {
+      var q = c.querySelector('.cpick__search').value.trim().toLowerCase(), any = false;
+      opts(c).forEach(function (li) {
+        var hit = !q || (li.getAttribute('data-value') !== '' &&
+                         li.querySelector('.cpick__name').textContent.toLowerCase().indexOf(q) !== -1);
+        li.hidden = !hit;
+        if (hit) any = true;
+      });
+      c.querySelector('.cpick__none').hidden = any;
+      var first = shown(c)[0];
+      mark(c, q ? first : c.querySelector('.cpick__opt[aria-selected="true"]'));
+    }
+    function pickCompany(c, value, quiet) {
+      var input = c.querySelector('input[name="company"]'), btn = c.querySelector('.cpick__btn');
+      var li = opts(c).filter(function (o) { return o.getAttribute('data-value') === value; })[0] || opts(c)[0];
+      var changed = input.value !== value;
+      input.value = value;
+      opts(c).forEach(function (o) { o.setAttribute('aria-selected', o === li ? 'true' : 'false'); });
+      var old = btn.querySelector('.logo');
+      if (old) old.remove();
+      var logo = value && li.querySelector('.logo');
+      if (logo) btn.insertBefore(logo.cloneNode(true), btn.firstChild);
+      btn.querySelector('.cpick__now').textContent = value || 'All companies';
+      if (changed && !quiet) input.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    function choose(c, li) {
+      if (!li) return;
+      pickCompany(c, li.getAttribute('data-value'), false);
+      closePop(c);
+      c.querySelector('.cpick__btn').focus({ preventScroll: true });
+    }
+
+    document.addEventListener('input', function (e) {
+      var c = e.target.closest && e.target.closest('[data-cpick]');
+      if (c && e.target.classList.contains('cpick__search')) filter(c);
+    });
+    // Typing in the search box is not a filter change; only picking a name is.
+    document.addEventListener('change', function (e) {
+      if (e.target.classList && e.target.classList.contains('cpick__search')) e.stopPropagation();
+    }, true);
+
     document.addEventListener('click', function (e) {
       var t = e.target;
       if (!t.closest) return;
+      var c = t.closest('[data-cpick]');
+      Array.prototype.forEach.call(document.querySelectorAll('[data-cpick]'), function (other) {
+        if (other !== c) closePop(other);
+      });
+      if (c) {
+        var li = t.closest('.cpick__opt');
+        if (li) { choose(c, li); return; }
+        if (t.closest('.cpick__btn')) {
+          if (c.querySelector('.cpick__pop').hidden) openPop(c); else closePop(c);
+        }
+        return;
+      }
       if (t.closest('[data-filters-open]')) open();
       else if (t.closest('[data-filters-close]')) shut(true, true);
       else if (t.closest('[data-filters-apply]')) { var b = bar(); shut(false, false); htmx.trigger(b, 'apply'); }
       else if (t.closest('[data-filters-clear]')) {
         var b = bar();
-        var all = b.querySelector('input[name="facet"][value=""]'); if (all) all.checked = true;
-        var list = b.querySelector('input[name="view"][value="list"]'); if (list) list.checked = true;
-        Array.prototype.forEach.call(b.querySelectorAll('select'), function (sel) { sel.value = ''; });
-        Array.prototype.forEach.call(b.querySelectorAll('input[type=checkbox]'), function (c) { c.checked = false; });
+        var wide = b.classList.contains('is-more'), scope = wide ? b.querySelector('.rbar__more') : b;
+        if (!wide) {
+          var all = b.querySelector('input[name="facet"][value=""]'); if (all) all.checked = true;
+          var list = b.querySelector('input[name="view"][value="list"]'); if (list) list.checked = true;
+        }
+        Array.prototype.forEach.call(scope.querySelectorAll('select'), function (sel) { sel.value = ''; });
+        Array.prototype.forEach.call(scope.querySelectorAll('input[type=checkbox]'), function (x) { x.checked = false; });
+        Array.prototype.forEach.call(scope.querySelectorAll('[data-cpick]'), function (x) { pickCompany(x, '', true); });
+      }
+      // A click anywhere outside the wide panel closes it, as a menu would.
+      else {
+        var b = bar();
+        if (b && b.classList.contains('is-more') && !t.closest('.rbar__more')) shut(false, true);
       }
     });
+
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') shut(true, true);
+      var c = e.target.closest && e.target.closest('[data-cpick]');
+      if (c && !c.querySelector('.cpick__pop').hidden) {
+        var list = shown(c), now = c.querySelector('.cpick__opt.is-active'), i = list.indexOf(now);
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          e.preventDefault();
+          if (!list.length) return;
+          i = e.key === 'ArrowDown' ? Math.min(list.length - 1, i + 1) : Math.max(0, i - 1);
+          mark(c, list[i]);
+          return;
+        }
+        if (e.key === 'Home' || e.key === 'End') {
+          if (e.target.classList.contains('cpick__search') && e.target.value) return;
+          e.preventDefault();
+          mark(c, e.key === 'Home' ? list[0] : list[list.length - 1]);
+          return;
+        }
+        if (e.key === 'Enter') { e.preventDefault(); choose(c, now || list[0]); return; }
+        if (e.key === 'Escape') {
+          e.preventDefault(); e.stopImmediatePropagation();
+          closePop(c);
+          c.querySelector('.cpick__btn').focus({ preventScroll: true });
+          return;
+        }
+        if (e.key === 'Tab') closePop(c);
+      }
+      if (e.key === 'Escape' && isOpen(bar())) shut(true, true);
     });
+
+    // A fresh set of results brings a fresh bar, closed.
+    document.body.addEventListener('htmx:afterSwap', function () { if (!isOpen(bar())) hold(); });
+
     window.SortedFilters = { close: function () { shut(false, true); } };
   })();
 

@@ -180,9 +180,12 @@ def test_the_filter_bar_narrows_by_company_and_field(client):
     """The tabs and the company picker narrow a search without re-ranking it."""
     fields = {"chosen_fields": ["backend", "cloud", "devops"]}
     everything = client.post("/search", data=fields, headers={"HX-Request": "true"}).text
-    companies = re.findall(r'<option value="([^"]+)"[^>]*>[^<]*\((\d+)\)</option>', everything)
+    companies = re.findall(
+        r'class="cpick__opt"[^>]*data-value="([^"]+)"(?:(?!</li>).)*?<b>(\d+)</b>', everything, re.S
+    )
     assert companies, "the company picker lists who is hiring"
     name, count = companies[0]
+    name = name.replace("&amp;", "&")
 
     narrowed = client.post(
         "/search", data={**fields, "company": name}, headers={"HX-Request": "true"}
@@ -904,6 +907,25 @@ def test_the_filters_wait_for_show_jobs_on_a_phone(client):
     assert "data-filters-apply" in page and "data-filters-open" in page
     # Sort sits on the bar that stays, once, so paging never sends two orders.
     assert page.count('name="sort"') == 1
+
+
+def test_filters_opens_a_panel_with_a_searchable_company_list(client):
+    """Filters used to only scroll to the bar on a wide screen, which looked like it
+    did nothing. It now opens a panel, and the company is picked from a list with
+    logos and a search box, instead of a native dropdown a hundred names long."""
+    page = client.post(
+        "/search", data={"chosen_fields": ["backend", "cloud", "devops"]},
+        headers={"HX-Request": "true"},
+    ).text
+    panel = page[page.index('class="rbar__more"'):]
+    assert "data-filters-apply" in panel and "data-filters-close" in panel
+    assert '<select name="company"' not in page
+    assert re.search(r'<input type="hidden" name="company" value="" data-initial="">', page)
+    assert 'class="cpick__search"' in panel and 'role="listbox"' in panel
+    options = re.findall(r'role="option" class="cpick__opt" id="(cpick-o\d+)"', panel)
+    assert len(options) == len(set(options)) > 2, "every company plus All, each with its own id"
+    # The hidden company input rides along with every re-run.
+    assert "#results input[name=company]" in page
 
 
 # ------------------------------------------------------------------ one advert

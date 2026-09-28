@@ -153,60 +153,91 @@
   </div>
   {% endif %}
 
-  <div class="rbar__picks">
+  <div class="rbar__view">
     <div class="seg" role="radiogroup" aria-label="Lay out results">
       <label class="seg__opt"><input type="radio" name="view" value="list" {% if view != "company" %}checked{% endif %}><span>List</span></label>
       <label class="seg__opt"><input type="radio" name="view" value="company" {% if view == "company" %}checked{% endif %}><span>By company</span></label>
     </div>
-    {% if companies and companies|length > 1 %}
-    <label class="pick">
-      <span>Company</span>
-      <select name="company">
-        <option value="">All companies</option>
-        {% for name, count in companies %}
-        <option value="{{ name }}" {% if company == name %}selected{% endif %}>{{ name }} ({{ count }})</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% endif %}
   </div>
 
-  {# What the adverts themselves state. Narrowing leaves out the ones that do not say. #}
-  <div class="rbar__stated">
-    <label class="pick">
-      <span>Work mode</span>
-      <select name="mode">
-        <option value="">Any</option>
-        {% for key, label in work_modes.items() %}
-        <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    <label class="pick">
-      <span>Posted</span>
-      <select name="within">
-        <option value="">Any time</option>
-        {% for days, label in within_choices.items() %}
-        <option value="{{ days }}" {% if within == days %}selected{% endif %}>{{ label }}</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% if platforms and platforms|length > 1 or via %}
-    <label class="pick">
-      <span>Platform</span>
-      <select name="via">
-        <option value="">Any</option>
-        {% for pl in platforms %}
-        <option value="{{ pl.key }}" {% if via == pl.key %}selected{% endif %}>{{ pl.label }} ({{ pl.count }})</option>
-        {% endfor %}
-      </select>
-    </label>
-    {% endif %}
-    <label class="switch switch--sm rbar__paid">
-      <input type="checkbox" name="paid" value="1" {% if paid %}checked{% endif %}>
-      <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-      States a salary
-    </label>
+  {# Everything past the tabs, behind the Filters button: a panel under it on a wide
+     screen, part of the sheet on a phone. Changes wait here for Show jobs. #}
+  <div class="rbar__more" id="rbar-more">
+    <div class="rbar__morehead">
+      <b>Filters</b>
+      <button type="button" class="rbar__close" data-filters-close aria-label="Close filters">
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-x"/></svg>
+      </button>
+    </div>
+    <div class="rbar__grid">
+      {% if companies and companies|length > 1 or company %}
+      {# Who is hiring: a searchable list with each employer's logo and count, rather
+         than a plain list that runs to a hundred names. #}
+      {% set picked = companies|selectattr("name", "equalto", company)|first if company else none %}
+      <div class="cpick" data-cpick>
+        <span class="cpick__label" id="cpick-label">Company</span>
+        <input type="hidden" name="company" value="{{ company or '' }}" data-initial="{{ company or '' }}">
+        <button type="button" class="cpick__btn" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="cpick-label cpick-now">
+          {% if picked %}{{ logo(picked.name, picked.domain, "logo--sm") }}{% endif %}
+          <span class="cpick__now" id="cpick-now">{{ company or "All companies" }}</span>
+          <svg class="cpick__chev" viewBox="0 0 10 10" width="11" height="11" aria-hidden="true"><path d="M2 3.8l3 3 3-3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <div class="cpick__pop" hidden>
+          <input type="search" class="cpick__search" role="combobox" aria-controls="cpick-list" aria-expanded="true" aria-autocomplete="list" placeholder="Search {{ companies|length }} companies" aria-label="Search companies" autocomplete="off">
+          <ul class="cpick__list" id="cpick-list" role="listbox" aria-labelledby="cpick-label">
+            <li role="option" class="cpick__opt" id="cpick-o0" data-value="" aria-selected="{{ 'false' if company else 'true' }}" tabindex="-1">
+              <span class="cpick__all" aria-hidden="true"><svg width="15" height="15"><use href="#i-search"/></svg></span>
+              <span class="cpick__name">All companies</span><b>{{ "{:,}".format(facet_all) }}</b></li>
+            {% for c in companies %}
+            <li role="option" class="cpick__opt" id="cpick-o{{ loop.index }}" data-value="{{ c.name }}" aria-selected="{{ 'true' if company == c.name else 'false' }}" tabindex="-1">
+              {{ logo(c.name, c.domain, "logo--sm") }}<span class="cpick__name">{{ c.name }}</span><b>{{ c.count }}</b></li>
+            {% endfor %}
+          </ul>
+          <p class="cpick__none" hidden>No company by that name in these results.</p>
+        </div>
+      </div>
+      {% endif %}
+
+      {# What the adverts themselves state. Narrowing leaves out the ones that do not say. #}
+      <label class="pick">
+        <span>Work mode</span>
+        <select name="mode">
+          <option value="">Any</option>
+          {% for key, label in work_modes.items() %}
+          <option value="{{ key }}" {% if mode == key %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="pick">
+        <span>Posted</span>
+        <select name="within">
+          <option value="">Any time</option>
+          {% for days, label in within_choices.items() %}
+          <option value="{{ days }}" {% if within == days %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% if platforms and platforms|length > 1 or via %}
+      <label class="pick pick--wide">
+        <span>Platform</span>
+        <select name="via">
+          <option value="">Any</option>
+          {% for pl in platforms %}
+          <option value="{{ pl.key }}" {% if via == pl.key %}selected{% endif %}>{{ pl.label }} ({{ pl.count }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
+      <label class="switch switch--sm rbar__paid">
+        <input type="checkbox" name="paid" value="1" {% if paid %}checked{% endif %}>
+        <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+        States a salary
+      </label>
+    </div>
+    <div class="rbar__morefoot">
+      <button type="button" class="secondary" data-filters-clear>Clear</button>
+      <button type="button" data-filters-apply>Show jobs</button>
+    </div>
   </div>
 
   <div class="rbar__foot">
@@ -296,15 +327,67 @@
   .facet--empty{cursor:default}
   .facet--empty .facet__face{background:transparent;border-style:dashed;color:var(--ink-3);box-shadow:none}
   .facet--empty:hover .facet__face{transform:none;border-color:var(--line-strong)}
-  .rbar__picks{display:flex;align-items:center;gap:12px;flex:1 1 100%}
-  .rbar__picks .seg{margin-right:auto}
+  .rbar__view{display:flex;align-items:center;flex:1 1 100%}
+
+  /* The panel behind Filters. On a wide screen it drops from under the button (its
+     place is set by the finder's script) and holds its changes until Show jobs. */
+  .rbar__more{display:none}
+  .rbar.is-more .rbar__more{
+    display:flex;flex-direction:column;position:fixed;z-index:140;width:min(460px,calc(100vw - 32px));
+    max-height:calc(100dvh - 140px);background:var(--win);border:1px solid var(--edge);border-radius:var(--r-win);
+    box-shadow:0 3px 8px rgba(20,24,33,.12),0 40px 80px -24px rgba(20,24,33,.5);overflow:hidden;
+    transform-origin:top right;
+  }
+  @media (prefers-reduced-motion:no-preference){ .rbar.is-more .rbar__more{animation:menu-in .22s var(--ease)} }
+  .rbar__morehead{display:flex;align-items:center;justify-content:space-between;padding:12px 12px 10px 18px;
+    border-bottom:1px solid var(--line)}
+  .rbar__morehead b{font-size:15px;letter-spacing:-.01em}
+  .rbar__morehead .rbar__close{width:32px;height:32px;min-height:0;padding:0;border-radius:50%;color:var(--ink-2);
+    background:var(--win-bar);border:0;box-shadow:none;text-shadow:none}
+  .rbar__morehead .rbar__close:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
+  .rbar__morehead .rbar__close svg{transform:none!important}
+  .rbar__grid{display:grid;grid-template-columns:1fr 1fr;gap:14px 16px;padding:16px 18px 18px;overflow-y:auto}
+  .rbar__grid .cpick,.rbar__grid .pick--wide,.rbar__grid .rbar__paid{grid-column:1 / -1}
+  .rbar__grid .pick{flex-direction:column;align-items:stretch;gap:5px}
+  .rbar__grid .pick select{max-width:none;width:100%}
+  .rbar__morefoot{display:flex;gap:10px;padding:12px 18px;border-top:1px solid var(--line);background:var(--win-bar)}
+  .rbar__morefoot button{flex:1;min-height:0;padding:9px 16px;font-size:14px}
+  .rbar__morefoot [data-filters-apply]{flex:2}
+
+  /* The company picker: a button, and under it a searchable list with logos. */
+  .cpick{position:relative}
+  .cpick__label{display:block;margin-bottom:5px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+  .cpick__btn{width:100%;justify-content:flex-start;gap:10px;min-height:0;padding:7px 12px;font-size:14px;font-weight:600;
+    color:var(--ink);background:var(--surface);background-image:none;border:1px solid var(--line-strong);
+    border-radius:var(--r-ctl);box-shadow:inset 0 1px 1.5px rgba(20,24,33,.05);text-shadow:none}
+  .cpick__btn:hover:not(:disabled){transform:none;filter:none;border-color:#9aa2ae;box-shadow:none}
+  .cpick__btn .logo{--size:24px}
+  .cpick__now{flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis}
+  .cpick__chev{flex:none;color:var(--ink-3);transform:none!important;transition:transform .2s var(--ease)!important}
+  .cpick__btn[aria-expanded="true"] .cpick__chev{transform:rotate(180deg)!important}
+  .cpick__pop{margin-top:6px;border:1px solid var(--line-strong);border-radius:var(--r-ctl);background:var(--surface);overflow:hidden}
+  .cpick__search{border:0!important;border-bottom:1px solid var(--line)!important;border-radius:0!important;
+    box-shadow:none!important;font-size:14px;padding:10px 12px}
+  .cpick__list{list-style:none;margin:0;padding:4px;max-height:264px;overflow-y:auto;overscroll-behavior:contain}
+  .cpick__opt{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:8px;cursor:pointer;font-size:14px}
+  .cpick__opt[hidden]{display:none}
+  .cpick__opt .logo{--size:26px}
+  .cpick__name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cpick__opt b{font-family:var(--mono);font-size:12px;font-weight:500;color:var(--ink-3)}
+  .cpick__opt:hover,.cpick__opt.is-active{background:var(--aqua-wash)}
+  .cpick__opt[aria-selected="true"]{font-weight:650}
+  .cpick__opt[aria-selected="true"] b{color:var(--aqua-deep)}
+  .cpick__all{display:grid;place-items:center;width:26px;height:26px;border-radius:24%;background:var(--fill);color:var(--ink-3)}
+  .cpick__none{margin:0;padding:12px;font-size:13px;color:var(--ink-3)}
+  .cpick__none[hidden]{display:none}
+  @media (forced-colors:active){ .cpick__opt:hover,.cpick__opt.is-active{outline:2px solid Highlight;outline-offset:-2px} }
+  .rstick__filters[aria-expanded="true"]{background:var(--aqua-wash);border-color:var(--aqua);color:var(--aqua-deep)}
   .newonly{display:inline-flex;align-items:center;gap:8px;cursor:pointer;margin:0}
   .newonly input{position:absolute;opacity:0;width:1px;height:1px;pointer-events:none}
   .newonly__do{font-size:13px;font-weight:600;color:var(--aqua-deep);text-decoration:underline;text-underline-offset:3px}
   .newonly:hover .newonly__do{color:var(--ink)}
   .newonly input:checked + .stamp{background:var(--sorted);color:#fff}
   .newonly input:focus-visible ~ .newonly__do{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:4px}
-  .rbar__stated{display:flex;align-items:center;gap:12px 22px;flex:1 1 100%;flex-wrap:wrap}
   .rbar__paid{margin:0;font-size:13.5px;font-weight:600;color:var(--ink-2)}
   /* The sheet's own heading and buttons, for phones only. */
   .rbar__head,.rbar__foot{display:none}
@@ -528,11 +611,13 @@
     .rbar__close:hover:not(:disabled){background:var(--win-bar-2);transform:none;filter:none;box-shadow:none}
     .rbar__close svg{transform:none!important}
     .facets{flex-wrap:wrap;overflow:visible;padding:16px 18px 6px;margin:0;-webkit-mask-image:none;mask-image:none}
-    .rbar__picks{display:grid;grid-template-columns:1fr;gap:14px;margin:0;padding:14px 18px 4px}
-    .rbar__stated{display:grid;grid-template-columns:1fr;gap:14px;padding:10px 18px 18px}
-    .pick{flex-direction:column;align-items:stretch;gap:5px}
-    .pick select{max-width:none;width:100%}
-    .rbar__picks .seg{display:flex;margin-right:0}
+    .rbar__view{padding:14px 18px 0}
+    .rbar__view .seg{display:flex;width:100%}
+    /* In the sheet the panel is simply the rest of it: no head or foot of its own. */
+    .rbar__more,.rbar.is-more .rbar__more{display:block;position:static;width:auto;max-height:none;border:0;
+      border-radius:0;box-shadow:none;animation:none;overflow:visible;background:none}
+    .rbar__morehead,.rbar__morefoot{display:none}
+    .rbar__grid{grid-template-columns:1fr;padding:14px 18px 18px;overflow:visible}
     .seg__opt{flex:1}
     .seg__opt span{padding:8px 13px}
     .rbar__foot{display:flex;gap:10px;position:sticky;bottom:0;padding:12px 18px calc(12px + env(safe-area-inset-bottom));

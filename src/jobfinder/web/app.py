@@ -249,7 +249,7 @@ RERUN_BASE = (
 # The filter bar rides along with paging and re-sorting, but a new search from the form
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
-    ", #results input[name=facet], #results select[name=company], #results select[name=mode],"
+    ", #results input[name=facet], #results input[name=company], #results select[name=mode],"
     " #results input[name=paid], #results select[name=within], #results input[name=new_only],"
     " #results select[name=via]"
 )
@@ -1855,6 +1855,7 @@ def _search_results(
                     field_counts[key] = {"key": key, "label": FIELDS[key].label,
                                          "group": FIELDS[key].group, "count": 0, "tier": tier}
         company_counts: dict[str, int] = {}
+        company_domains = {i["company"]: i["domain"] for i in items}
         for item in items:
             if at_company(item):
                 # Rows no field claims get a tab of their own, so the tabs add up to All.
@@ -1953,7 +1954,11 @@ def _search_results(
             field_counts.values(),
             key=lambda f: (f["key"] == OTHER_FACET, f["tier"], -f["count"], f["label"]),
         ),
-        "companies": sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold())),
+        # Each with its logo, for the company picker.
+        "companies": [
+            {"name": name, "count": count, "domain": company_domains.get(name, "")}
+            for name, count in sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold()))
+        ],
         "facet": facet,
         "company": company,
         "mode": mode,
