@@ -31,6 +31,7 @@
             <a class="corole__title" href="{{ row.job.url }}" target="_blank" rel="noopener">{{ row.job.title }}</a>
             <span class="corole__meta">
               {{- row.age -}}
+              {%- if row.via %} &middot; via {{ row.via.label }}{% endif -%}
               {%- if row.experience %} &middot; {{ row.experience }}{% endif -%}
               {%- if row.salary %} &middot; {{ row.salary.chip }}{% endif -%}
               {%- if row.mode %} &middot; {{ row.mode.label }}{% endif -%}
@@ -72,6 +73,10 @@
           <span class="record__age" title="{{ ('Posted ' ~ item.posted) if item.posted else 'This company does not publish a posting date, so this is when we first saw it' }}">
             {{- item.age if item.posted else "seen " ~ item.age }}</span>
           {%- endif %}
+          {#- Where Apply goes: the hiring platform, job board or the employer's own site. #}
+          {%- if item.via %}
+          <span class="record__via" title="Apply opens {{ item.via.host or item.via.label }}">via {{ item.via.label }}</span>
+          {%- endif %}
         </p>
         <h3 class="record__title">
           <a href="/jobs/{{ item.job.id }}">{{ item.job.title }}</a>
@@ -95,6 +100,8 @@
           {% if item.reposted %}<li class="chip chip--flag" title="Listed here since {{ item.listed_since }}; the employer has since given it a new date">reposted</li>
           {% elif item.open_label %}<li class="chip chip--flag" title="First advertised {{ item.open_days }} days ago">{{ item.open_label }}</li>{% endif %}
           {% if item.stretch %}<li class="stamp stamp--brass" title="A level above the experience you stated">stretch</li>{% endif %}
+          {# On a phone the platform moves here, off a top line with no room for it. #}
+          {% if item.via %}<li class="chip chip--via" title="Apply opens {{ item.via.host or item.via.label }}"><svg aria-hidden="true"><use href="#i-arrow"/></svg>{{ item.via.label }}</li>{% endif %}
         </ul>
 
         {% if item.also %}

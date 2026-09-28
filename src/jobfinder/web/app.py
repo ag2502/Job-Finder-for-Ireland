@@ -250,7 +250,8 @@ RERUN_BASE = (
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
     ", #results input[name=facet], #results select[name=company], #results select[name=mode],"
-    " #results input[name=paid], #results select[name=within], #results input[name=new_only]"
+    " #results input[name=paid], #results select[name=within], #results input[name=new_only],"
+    " #results select[name=via]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
@@ -561,7 +562,54 @@ PLATFORMS = {
     "breezy": ("Breezy HR", "breezy.hr"),
     "occupop": ("Occupop", "occupop.com"),
     "adzuna": ("Adzuna", "adzuna.ie"),
+    "phenom": ("Phenom", "phenom.com"),
+    "corehr": ("CoreHR", "corehr.com"),
+    "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
+    "rezoomo": ("Rezoomo", "rezoomo.com"),
+    "hrmanager": ("HR Manager", "hrmanager.ie"),
+    "taleo_tbe": ("Taleo", "oracle.com"),
+    "hibob": ("HiBob", "hibob.com"),
+    "wordpress": ("Company careers sites", ""),
 }
+
+# Where a job's Apply goes, for the row, the job panel and the filter bar's Platform
+# picker. Judged by the link itself: an advert whose link is on the employer's own
+# domain is on their careers site, whatever system serves it (Phenom and SuccessFactors
+# sites usually are). These sources are always the employer's own site: generic reads
+# of a careers page, and the adapters built for one employer's site.
+OWN_SITE_ADAPTERS = frozenset({
+    "jsonld", "careers_html", "wordpress",
+    "amazon", "google", "apple", "tiktok", "ibm", "revolut", "hse",
+})
+# Job boards: the posting is theirs, not the employer's or its hiring system's.
+BOARD_ADAPTERS = frozenset({"gradireland", "publicjobs", "adzuna"})
+CAREERS_SITE = "careers"
+_SECOND_LEVEL = {"co", "com", "org", "gov", "ac", "net"}
+
+
+def _site(host: str) -> str:
+    """The registrable part of a host: careers.toast.com is toast.com, x.co.uk x.co.uk."""
+    parts = [p for p in host.lower().removeprefix("www.").split(".") if p]
+    keep = 3 if len(parts) > 2 and parts[-2] in _SECOND_LEVEL else 2
+    return ".".join(parts[-keep:])
+
+
+def _via(adapter: str, url: str, company_domain: str) -> dict:
+    """Where Apply takes this job: a hiring platform, a job board or a careers site.
+
+    `key` is what the Platform picker filters on (every careers site shares one),
+    `label` what the row says, `host` the address the link opens.
+    """
+    host = (urlparse(url or "").hostname or "").removeprefix("www.")
+    own = adapter in OWN_SITE_ADAPTERS or (
+        company_domain and host and _site(host) == _site(company_domain)
+    )
+    if own:
+        return {"key": CAREERS_SITE, "label": _site(host) if host else "careers site",
+                "host": host, "kind": "careers"}
+    label = PLATFORMS.get(adapter, (adapter.replace("_", " ").title(), ""))[0]
+    return {"key": adapter, "label": label, "host": host,
+            "kind": "board" if adapter in BOARD_ADAPTERS else "platform"}
 
 # Names used in the companies page's description. Only the ones actually hiring today
 # are printed, so the sentence can never name a company that has nothing open.
@@ -808,7 +856,7 @@ URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
     "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
-    "view": "view", "mode": "mode", "paid": "paid", "within": "within",
+    "view": "view", "mode": "mode", "paid": "paid", "within": "within", "via": "via",
 }
 
 
@@ -842,6 +890,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("paid", "1"))
     if context.get("within"):
         pairs.append(("within", str(context["within"])))
+    if context.get("via"):
+        pairs.append(("via", context["via"]))
     return "/?" + urlencode(pairs)
 
 
@@ -903,6 +953,7 @@ async def search(
     paid: str | None = Form(default=None),
     within: str | None = Form(default=None),
     new_only: str | None = Form(default=None),
+    via: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -911,6 +962,7 @@ async def search(
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
         "mode": mode, "paid": paid, "within": within, "new_only": new_only,
+        "via": via,
     }
     return _search(request, form, page=page, more=bool(more))
 
@@ -1071,6 +1123,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             within=form.get("within"),
             since=last_visit,
             new_only=bool(form.get("new_only")),
+            via=form.get("via") or None,
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -1103,12 +1156,15 @@ def _job_view(session, job: JobPosting) -> dict:
     """One advert as the job panel and the job page show it."""
     company = session.get(Company, job.company_id)
     name = company.name if company else "Unknown"
+    source = session.get(Source, job.source_id)
     first_seen = _as_utc(job.first_seen_at)
     return {
         **_freshness(job, datetime.now(timezone.utc)),
         "job": job,
         "company": name,
         "domain": _logo_domain(name, company.website if company else None),
+        "via": _via(source.adapter if source else "", job.url,
+                    _logo_domain(name, company.website if company else None)),
         "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
         "first_seen": first_seen.strftime("%d %b %Y") if first_seen else "",
         "age": _age(_as_utc(job.posted_at) or first_seen, datetime.now(timezone.utc)),
@@ -1552,6 +1608,7 @@ def _search_results(
     since: datetime | None = None,
     new_only: bool = False,
     per_page: int | None = None,
+    via: str | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1627,6 +1684,7 @@ def _search_results(
         company_rows = session.execute(select(Company)).scalars().all()
         companies = {c.id: c.name for c in company_rows}
         domains = {c.id: _logo_domain(c.name, c.website) for c in company_rows}
+        adapters = dict(session.execute(select(Source.id, Source.adapter)).all())
 
         # Rank everything that matched rather than a fixed slice, so the reported
         # total is the real number of open roles and later pages are reachable.
@@ -1666,6 +1724,10 @@ def _search_results(
             items.append(
                 {
                     "job": job,
+                    # Where Apply goes: the hiring platform, the job board, or the
+                    # employer's own careers site.
+                    "via": _via(adapters.get(job.source_id, ""), job.url,
+                                domains.get(job.company_id, "")),
                     # How the advert says the work is done, or None where it does not.
                     "mode": stated["mode"],
                     # The pay the advert states, or None: never an estimate.
@@ -1747,6 +1809,17 @@ def _search_results(
             items = [i for i in items if i["salary"]]
         if new_only:
             items = [i for i in items if i["is_new"]]
+        # The Platform picker counts within everything else the bar has narrowed to.
+        platform_counts: dict[str, dict] = {}
+        for i in items:
+            entry = platform_counts.setdefault(i["via"]["key"], {
+                "key": i["via"]["key"], "count": 0, "kind": i["via"]["kind"],
+                "label": "Company careers sites" if i["via"]["kind"] == "careers" else i["via"]["label"],
+            })
+            entry["count"] += 1
+        via = via if via in platform_counts else None
+        if via:
+            items = [i for i in items if i["via"]["key"] == via]
         try:
             within = int(within) if within else None
         except (TypeError, ValueError):
@@ -1887,6 +1960,10 @@ def _search_results(
         "paid": paid,
         "within": within,
         "within_choices": WITHIN,
+        "via": via,
+        # Careers sites first, then platforms and boards, busiest first.
+        "platforms": sorted(platform_counts.values(),
+                            key=lambda p: (p["kind"] != "careers", -p["count"], p["label"].lower())),
         "since": since,
         "since_label": _visit_label(since) if since else "",
         "new_only": new_only,

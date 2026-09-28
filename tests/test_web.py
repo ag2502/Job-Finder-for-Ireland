@@ -1142,3 +1142,32 @@ def test_the_mascot_is_the_logo_and_is_surprised_at_nothing(client):
     empty = client.post("/search", data={"chosen_fields": ["backend"], "q": "zzzqqqnothing"},
                         headers={"HX-Request": "true"}).text
     assert "mascot--surprised" in empty and "No jobs matched" in empty
+
+
+# ------------------------------------------------------------------ where Apply goes
+
+
+def test_where_apply_goes_is_judged_by_the_link():
+    from jobfinder.web.app import _via
+
+    # A platform's own address: the platform.
+    assert _via("greenhouse", "https://boards.greenhouse.io/acme/jobs/1", "acme.com")["label"] == "Greenhouse"
+    # A Greenhouse job whose link is on the employer's own site: their careers site.
+    own = _via("greenhouse", "https://careers.toasttab.com/jobs?gh_jid=1", "toasttab.com")
+    assert own["key"] == "careers" and own["label"] == "toasttab.com"
+    # Sources that are always the employer's own site, and job boards.
+    assert _via("amazon", "https://www.amazon.jobs/en/jobs/1", "amazon.com")["key"] == "careers"
+    assert _via("gradireland", "https://gradireland.com/x", "rws.com")["kind"] == "board"
+
+
+def test_the_platform_picker_narrows_and_is_written_into_the_address(client):
+    everything = client.post("/search", data={"chosen_fields": ["software-engineering"]},
+                             headers={"HX-Request": "true"})
+    options = re.findall(r'<option value="([a-z_]+)"[^>]*>[^<]+\(\d+\)</option>',
+                         everything.text.split('name="via"', 1)[-1].split("</select>", 1)[0])
+    if not options:
+        pytest.skip("one platform only in this database")
+    narrowed = client.post("/search", data={"chosen_fields": ["software-engineering"], "via": options[0]},
+                           headers={"HX-Request": "true"})
+    assert f"via={options[0]}" in narrowed.headers["HX-Push-Url"]
+    assert narrowed.text.count('class="record__via"') >= 1

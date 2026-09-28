@@ -33,6 +33,13 @@
       <dt>Work mode</dt>
       <dd>{{ mode.label|capitalize if mode else "Not stated" }}</dd>
     </div>
+    {% if via %}
+    <div class="jobx__fact">
+      <dt>Apply on</dt>
+      <dd>{{ "Their own careers site" if via.kind == "careers" else via.label }}
+        {%- if via.host %}<span class="jobx__age jobx__host">{{ via.host }}</span>{% endif %}</dd>
+    </div>
+    {% endif %}
     <div class="jobx__fact">
       <dt>Experience</dt>
       <dd>{{ experience or "Not stated" }}</dd>
