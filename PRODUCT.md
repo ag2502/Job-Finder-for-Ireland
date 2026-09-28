@@ -74,7 +74,9 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   after their previous visit (a gap of an hour starts a new one), with a "show only
   these" toggle; signed out, it still means found in the last day.
 - Optional accounts (Supabase, EU) that record applied-to jobs and exclude them from
-  future results.
+  future results. A job counts as applied to only when the searcher says so (2026-09-28):
+  Apply opens the employer's posting, and the site asks "Did you apply?" when they come
+  back, since pressing Apply is not applying.
 - An employer directory covering the whole registry, including employers that cannot be
   crawled — those link out to their own careers page rather than being hidden.
 

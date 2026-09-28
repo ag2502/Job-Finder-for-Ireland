@@ -2,7 +2,7 @@
    springs in and its tick draws itself. The record stays in the list until
    the next search rather than vanishing under the cursor of someone who just clicked
    it, and Undo swaps the Apply button straight back. #}
-<span class="applied-mark">
+<span class="applied-mark" data-advert="{{ advert_key }}">
   <span class="stamp stamp--filled stamp--applied{% if fresh %} stamp--fresh{% endif %}"><svg class="stamp__tick" viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.4l3.2 3.2L13 4.8"/></svg>applied</span>
   <button class="linkish small" hx-post="/applications/remove"
           hx-vals='{{ {"advert_key": advert_key, "title": title|default(""), "company": company|default(""), "url": url|default("")}|tojson }}'

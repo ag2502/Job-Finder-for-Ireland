@@ -1502,3 +1502,23 @@ def test_applied_rows_shown_again_carry_their_sticker(client: TestClient, fake):
     shown = client.post("/search", data={"chosen_fields": ["software-engineering"], "show_applied": "1"},
                         headers={"HX-Request": "true"}).text
     assert 'class="appsticker"' in shown and "sorted!" in shown
+
+
+# ------------------------------------------------------------------ did you apply?
+
+
+def test_apply_only_opens_the_posting_and_asks_later(client: TestClient, fake):
+    """Pressing Apply is not applying: it opens the employer's posting and is noted on
+    the device, and the site asks on the way back rather than marking it there and then."""
+    _signed_in(client)
+    page = client.post("/search", data={"chosen_fields": ["software-engineering"]}).text
+    buttons = re.findall(r'<a class="btn btn--apply"[^>]*>', page)
+    assert buttons and all("data-apply-later" in b and "hx-post" not in b for b in buttons)
+    assert 'class="applied-mark" data-advert="' in page
+    assert 'id="askapply"' in page and "Did you apply?" in page
+    assert fake.rows == [], "nothing is recorded until the searcher says so"
+
+
+def test_nobody_is_asked_when_signed_out(client: TestClient, fake):
+    page = client.get("/").text
+    assert 'id="askapply"' not in page

@@ -1,12 +1,14 @@
-{# Apply for one advert. Opens the employer's posting in a new tab, and for a signed-in
-   searcher records the click, swapping itself for the "applied / Undo" control. #}
-<span class="applied-mark">
+{# Apply for one advert: opens the employer's posting in a new tab, and nothing more.
+
+   Pressing Apply is not applying, so for a signed-in searcher the click is only noted
+   on this device (data-apply-later, base.html). When they come back to the site, a
+   small card asks whether they did apply; "Yes, applied" records it here, "Not yet"
+   leaves the job as it was. The mark carries the advert's key so an answer can find
+   its row. #}
+<span class="applied-mark" data-advert="{{ advert_key }}">
   <a class="btn btn--apply" href="{{ url }}" target="_blank" rel="noopener"
      {% if account %}
-     data-open-external
-     hx-post="/applications"
-     hx-vals='{{ {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson }}'
-     hx-target="closest .applied-mark" hx-swap="outerHTML"
+     data-apply-later='{{ {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson }}'
      {% endif %}>Apply
     <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>
   </a>

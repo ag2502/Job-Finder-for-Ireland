@@ -811,6 +811,42 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 /* -------------------------------------------------------------- stickers -- */
 .sticker{position:absolute;z-index:3;user-select:none;
   filter:drop-shadow(0 8px 14px rgba(20,24,33,.2))}
+/* "Did you apply?": a small window in the corner on a wide screen, a sheet on a phone. */
+.askapply{position:fixed;z-index:155;right:18px;bottom:18px;width:min(420px,calc(100vw - 36px));
+  background:var(--win);border:1px solid var(--edge);border-radius:var(--r-win);overflow:hidden;
+  box-shadow:0 3px 8px rgba(20,24,33,.12),0 40px 80px -24px rgba(20,24,33,.5);
+  transform:translateY(24px);opacity:0;transition:transform .45s var(--spring),opacity .2s var(--ease)}
+.askapply[hidden]{display:none}
+.askapply.is-open{transform:none;opacity:1}
+.askapply__bar .win__title{margin-right:52px}
+.askapply__close{all:unset;box-sizing:border-box;display:grid;place-items:center;width:12px;height:12px;border-radius:50%;
+  background:var(--tl-red);cursor:pointer;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.18)}
+.askapply__close i{width:6px;height:6px;opacity:0;background:
+  linear-gradient(45deg,transparent 42%,#7a1d17 42% 58%,transparent 58%),
+  linear-gradient(-45deg,transparent 42%,#7a1d17 42% 58%,transparent 58%)}
+.askapply__close:hover i,.askapply__close:focus-visible i{opacity:1}
+.askapply__close:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
+.askapply__body{padding:16px 18px 14px;max-height:min(60vh,520px);overflow-y:auto}
+.askapply__head{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.askapply__mascot{flex:none;width:40px;height:40px}
+.askapply h2{margin:0 0 3px;font-size:1.15rem}
+.askapply__head p{margin:0;font-size:13px;line-height:1.5;color:var(--ink-3)}
+.askapply__list{list-style:none;margin:0;padding:0}
+.askapply__item{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:8px;
+  padding:10px 0;border-top:1px solid var(--line);transition:opacity .2s var(--ease),transform .2s var(--ease)}
+.askapply__item.is-done{opacity:0;transform:translateX(16px)}
+.askapply__item b{display:block;font-size:14px;font-weight:650;line-height:1.3;
+  overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.askapply__item span{display:block;font-size:12.5px;color:var(--ink-3)}
+.askapply__item button{padding:6px 12px;min-height:0;font-size:13px}
+.askapply__later{margin-top:6px;font-size:13px}
+@media (max-width:560px){
+  .askapply{right:10px;left:10px;bottom:10px;width:auto;padding-bottom:env(safe-area-inset-bottom)}
+  .askapply__item{grid-template-columns:1fr 1fr}
+  .askapply__item > div{grid-column:1 / -1}
+}
+@media (prefers-reduced-motion:reduce){ .askapply,.askapply__item{transition:none} }
+
 /* The Applied sticker on a row (_applied_sticker.html): the name tag, smaller. */
 .appsticker{position:absolute;z-index:3;top:10px;right:168px;display:flex;flex-direction:column;width:78px;
   border-radius:7px;overflow:hidden;background:#fff;border:1px solid rgba(20,24,33,.12);text-align:center;
@@ -1146,6 +1182,30 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 <main>{% block wide %}{% endblock %}<div class="wrap">{% block content %}{% endblock %}</div></main>
 
 
+{% if account %}
+{# Asked when someone comes back after pressing Apply: did they actually apply? Filled
+   from what this device noted (see the Apply script below); nothing is recorded until
+   they say so. #}
+<section class="askapply" id="askapply" role="dialog" aria-labelledby="askapply-title" hidden>
+  <div class="win__bar askapply__bar">
+    <span class="lights"><button type="button" class="askapply__close" data-ask-later aria-label="Ask me later"><i></i></button><i></i><i></i></span>
+    <span class="win__title">did-you-apply</span>
+  </div>
+  <div class="askapply__body">
+    <div class="askapply__head">
+      {{ mascot("", "askapply__mascot") }}
+      <div>
+        <h2 id="askapply-title">Did you apply?</h2>
+        <p>You opened these on the employer's own site. Tell us which you applied to and we will
+          keep track, and stop showing them in your searches.</p>
+      </div>
+    </div>
+    <ul class="askapply__list" data-ask-list></ul>
+    <button type="button" class="linkish askapply__later" data-ask-later>Ask me later</button>
+  </div>
+</section>
+{% endif %}
+
 <footer class="foot">
   <div class="wrap">
     <a href="/" class="brand">{{ mascot() }}<span><b>sorted</b><span>.place</span></span></a>
@@ -1273,6 +1333,107 @@ document.addEventListener('submit', function (e) {
   });
 })();
 
+// Apply opens the employer's posting and nothing else: pressing it is not applying.
+// For a signed-in searcher the click is noted on this device, and when they come back
+// to the site (to this tab, or on a later visit) the "Did you apply?" card asks. "Yes,
+// applied" records it; "Not yet" leaves the job as it was and stops asking about it;
+// closing the card asks again next time. Noted jobs are forgotten after 14 days.
+(function () {
+  var KEY = 'sp-apply-pending', KEEP_DAYS = 14;
+  var card = document.getElementById('askapply');
+  function load() {
+    try {
+      var cut = Date.now() - KEEP_DAYS * 864e5;
+      return JSON.parse(localStorage.getItem(KEY) || '[]').filter(function (p) { return p && p.at > cut; });
+    } catch (err) { return []; }
+  }
+  function save(list) {
+    try {
+      if (list.length) localStorage.setItem(KEY, JSON.stringify(list.slice(-20)));
+      else localStorage.removeItem(KEY);
+    } catch (err) {}
+  }
+  function note(e) {
+    var link = e.target.closest && e.target.closest('a[data-apply-later]');
+    if (!link) return;
+    var job = JSON.parse(link.getAttribute('data-apply-later'));
+    var list = load().filter(function (p) { return p.advert_key !== job.advert_key; });
+    job.at = Date.now();
+    list.push(job);
+    save(list);
+  }
+  document.addEventListener('click', note, true);
+  document.addEventListener('auxclick', note, true);   // a middle click opens it too
+  // Signing out forgets them, so the next person on this device is not asked.
+  document.addEventListener('submit', function (e) {
+    if (/\/logout$/.test(e.target.action || '')) save([]);
+  });
+  if (!card) return;
+
+  var list = card.querySelector('[data-ask-list]');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  function render(jobs) {
+    list.innerHTML = '';
+    jobs.slice().reverse().forEach(function (job) {
+      var li = document.createElement('li'), text = document.createElement('div');
+      var title = document.createElement('b'), who = document.createElement('span');
+      var yes = document.createElement('button'), no = document.createElement('button');
+      li.className = 'askapply__item';
+      li.setAttribute('data-key', job.advert_key);
+      title.textContent = job.title; who.textContent = job.company;
+      text.appendChild(title); text.appendChild(who);
+      yes.type = no.type = 'button';
+      yes.className = 'askapply__yes'; yes.textContent = 'Yes, applied';
+      no.className = 'secondary askapply__no'; no.textContent = 'Not yet';
+      yes.setAttribute('data-answer', 'yes'); no.setAttribute('data-answer', 'no');
+      li.appendChild(text); li.appendChild(yes); li.appendChild(no);
+      list.appendChild(li);
+    });
+  }
+  function show() {
+    var jobs = load();
+    if (!jobs.length) { hide(); return; }
+    render(jobs);
+    card.hidden = false;
+    requestAnimationFrame(function () { card.classList.add('is-open'); });
+  }
+  function hide() {
+    card.classList.remove('is-open');
+    setTimeout(function () { card.hidden = true; }, reduced.matches ? 0 : 260);
+  }
+  function answer(li, applied) {
+    var key = li.getAttribute('data-key');
+    var job = load().filter(function (p) { return p.advert_key === key; })[0];
+    save(load().filter(function (p) { return p.advert_key !== key; }));
+    li.classList.add('is-done');
+    setTimeout(function () { li.remove(); if (!list.children.length) hide(); }, reduced.matches ? 0 : 220);
+    if (!applied || !job) return;
+    var values = { advert_key: job.advert_key, title: job.title, company: job.company, url: job.url };
+    var mark = document.querySelector('.applied-mark[data-advert="' + (window.CSS && CSS.escape ? CSS.escape(key) : key) + '"]');
+    // On the page: the row's own Apply turns into the applied stamp (and its sticker).
+    // Elsewhere: recorded all the same, and gone from the next search.
+    if (mark) htmx.ajax('POST', '/applications', { source: mark, target: mark, swap: 'outerHTML', values: values });
+    else fetch('/applications', {
+      method: 'POST', credentials: 'same-origin',
+      headers: { 'HX-Request': 'true', 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(values)
+    });
+  }
+  card.addEventListener('click', function (e) {
+    var t = e.target;
+    if (t.closest('[data-ask-later]')) { hide(); return; }
+    var btn = t.closest('[data-answer]');
+    if (btn) answer(btn.closest('.askapply__item'), btn.getAttribute('data-answer') === 'yes');
+  });
+  // Back after a while away (the employer's tab, most often), or a new visit.
+  var away = 0;
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') { away = Date.now(); return; }
+    if (away && Date.now() - away > 3000) show();
+  });
+  if (load().length) setTimeout(show, 1200);
+})();
+
 // Applying: a sticker is slapped on the row, and Undo peels it off. From the row the
 // Apply was in, or the row the job panel was opened from.
 (function () {
@@ -1342,16 +1503,6 @@ document.addEventListener('submit', function (e) {
   });
 })();
 
-// htmx cancels the default action on any <a> it drives, so an Apply link carrying
-// hx-post recorded the application and never opened the employer's posting, the one
-// thing the visitor actually clicked for. This listener runs in the capture phase, so
-// the tab is opened before htmx's own handler gets the event and preventDefaults it.
-// window.open inside a real click is not blocked by popup blockers.
-document.addEventListener('click', function (event) {
-  var link = event.target.closest && event.target.closest('a[data-open-external]');
-  if (!link || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
-  window.open(link.href, '_blank', 'noopener');
-}, true);
 
 (function () {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
