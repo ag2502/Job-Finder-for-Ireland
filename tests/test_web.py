@@ -122,6 +122,17 @@ def test_no_input_at_all_is_rejected(client):
     assert "at least one role" in response.text
 
 
+def test_a_filter_change_after_the_session_lapsed_reloads_the_page(client):
+    """Sort or a filter posted without fields and without a session used to crash
+    rendering the results (a 500), and htmx showed nothing. The page now reloads from
+    its address, which carries the search."""
+    response = client.post(
+        "/search", data={"sort": "newest", "company": "Google"}, headers={"HX-Request": "true"}
+    )
+    assert response.status_code == 422
+    assert response.headers.get("HX-Refresh") == "true"
+
+
 def test_submit_button_starts_disabled(client):
     """The requirement is explained before the click, not after it."""
     response = client.get("/")

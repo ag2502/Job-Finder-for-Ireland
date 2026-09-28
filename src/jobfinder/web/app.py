@@ -1039,7 +1039,10 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             "what you have done; the roles tell us what you are looking for."
         )
         if request.headers.get("HX-Request"):
-            context.update(items=[], total=0, page=1, pages=1, query="", new_count=0)
+            # A sort or filter change after the session lapsed. htmx would drop a 422
+            # and the control would look dead, so reload the page instead: its address
+            # carries the search (/?f=...), which starts the session again.
+            return Response(status_code=422, headers={"HX-Refresh": "true"})
         return templates.TemplateResponse(
             request, "finder.html", context, status_code=422
         )
