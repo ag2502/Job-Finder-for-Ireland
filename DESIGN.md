@@ -185,7 +185,7 @@ The light ground is the default, chosen for how the site is actually used. Someo
 Play lives at the edges: stickers, a highlighter, handwritten asides, a dock that swells under the pointer, windows that spring open. It never stands between the visitor and a job link. Every number on the desk is a real, live figure from the database, in keeping with PRODUCT.md's literal, checkable voice, and nothing on the page signals alerts or notifications (the opt-in email alerts live on the profile and in the inbox, not in the interface). The red badge is a count, not something unread.
 
 **Key Characteristics:**
-- Light desktop ground (#eceef2, 22px dotted grid) under white windows by default, with a night desk that follows the device or the Appearance control.
+- Light desktop ground (#eceef2, 22px dotted grid) under white windows, the default for everyone; a night desk only when chosen with the Appearance toggle.
 - One action colour: glossy aqua pills. Green reads as "sorted / live". Red is kept to count badges and a few marks (applied, required, errors).
 - Finder tag colours identify the eleven field groups, and that is their only job.
 - Three typefaces with separate jobs: Geist carries the interface, Geist Mono types data, Gochi Hand scribbles asides.
@@ -193,7 +193,7 @@ Play lives at the edges: stickers, a highlighter, handwritten asides, a dock tha
 
 ## Night desk
 
-The dark theme (2026-09-27): the same desktop after dark. It follows the device, or the **Appearance** control (a round button in the menu bar; a row in the phone menu) cycling Follow the device, Dark, Light, remembered on the device and applied before the first paint so a dark page never flashes white.
+The dark theme (2026-09-27): the same desktop after dark. **Light is the default for everyone**, whatever the device is set to (the owner's choice, 2026-09-28); dark is only ever chosen, with the **Appearance** toggle: a round button in the menu bar showing a moon in light mode and a sun in dark, and an Appearance row in the phone menu reading Light or Dark. The choice is remembered on the device and applied before the first paint, so a dark page never flashes white.
 
 | Token | Light | Night |
 |---|---|---|

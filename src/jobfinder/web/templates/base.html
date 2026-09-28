@@ -3,12 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#eceef2" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#101216" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light">
+<meta name="theme-color" content="#eceef2">
 {# The Appearance choice, applied before anything paints, so a dark page never flashes
    white first. See the Appearance control at the end of this file. #}
-<script>try{var t=localStorage.getItem('sp-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t)}catch(e){}</script>
+<script>try{if(localStorage.getItem('sp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
 <title>{% block title %}Sorted Place: every job in Dublin, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Dublin right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
@@ -102,26 +101,9 @@
 /* ------------------------------------------------------------ night desk --- */
 /* The same desktop after dark: a charcoal desk with a faint grid, slate windows, ink
    turned to light, and aqua lifted so its text holds contrast. Stickers, badges and the
-   field tags keep their colours; they read on either ground. Chosen by the device, or
-   by the Appearance control (data-theme on <html>, set before the first paint). */
-@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
-  --desk:#101216; --desk-dot:#272b33; --desk-deep:#0b0c0f;
-  --win:#1a1d22; --win-bar:#22262c; --win-bar-2:#1d2025;
-  --line:#2c3038; --line-strong:#3c414b;
-  --ink:#eceef2; --ink-2:#b6bcc6; --ink-3:#8d939e;
-  --aqua:#3d85f7; --aqua-hi:#7cb0ff; --aqua-deep:#8cb8ff; --aqua-wash:#1b2940;
-  --sorted:#44c97b; --sorted-wash:#15301f;
-  --surface:#20242a; --surface-2:#262b32; --fill:#2b3038; --fill-2:#30353e;
-  --ghost-end:#1c2025; --hi:rgba(255,255,255,.07);
-  --pane:rgba(31,34,40,.97); --pane-soft:rgba(31,34,40,.8); --glass:rgba(20,22,26,.82);
-  --edge:rgba(255,255,255,.09); --skel:#262a31; --skel-hi:#31363e;
-  --hl:rgba(255,216,74,.5); --thumb:#434953;
-  --pad:#3b3522; --pad-2:#332d1b; --pad-edge:#4a4128;
-  --shadow-win:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -10px rgba(0,0,0,.7);
-  --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -18px rgba(0,0,0,.8);
-  --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
-  color-scheme:dark;
-}}
+   field tags keep their colours; they read on either ground. Light is the default for
+   everyone; dark is only ever chosen, with the Appearance control (data-theme on
+   <html>, set before the first paint). */
 :root[data-theme="dark"]{
   --desk:#101216; --desk-dot:#272b33; --desk-deep:#0b0c0f;
   --win:#1a1d22; --win-bar:#22262c; --win-bar-2:#1d2025;
@@ -140,7 +122,6 @@
   --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
   color-scheme:dark;
 }
-:root[data-theme="light"]{color-scheme:light}
 
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;scroll-padding-top:72px}
@@ -1052,10 +1033,6 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   <symbol id="i-moon" viewBox="0 0 16 16">
     <path d="M13.2 10.2A5.6 5.6 0 015.8 2.8a5.6 5.6 0 107.4 7.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
   </symbol>
-  <symbol id="i-auto" viewBox="0 0 16 16">
-    <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.5"/>
-    <path d="M8 2.4a5.6 5.6 0 010 11.2z" fill="currentColor"/>
-  </symbol>
   <symbol id="i-pin" viewBox="0 0 16 16">
     <path d="M8 14.2s4.6-4.3 4.6-7.8a4.6 4.6 0 00-9.2 0c0 3.5 4.6 7.8 4.6 7.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
     <circle cx="8" cy="6.4" r="1.6" fill="currentColor"/>
@@ -1096,8 +1073,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   <div class="status">
     {% if rail|trim %}<span class="live"><i aria-hidden="true"></i><span>{{ rail }}</span></span>{% endif %}
     <span class="clock" id="clock" aria-label="Time in Dublin"></span>
-    <button type="button" class="themebtn" data-theme-cycle title="Appearance" aria-label="Appearance: follow the device">
-      <svg aria-hidden="true"><use href="#i-auto" data-theme-icon/></svg>
+    <button type="button" class="themebtn" data-theme-cycle title="Switch to dark mode" aria-label="Switch to dark mode">
+      <svg aria-hidden="true"><use href="#i-moon" data-theme-icon/></svg>
     </button>
   </div>
   {% if accounts_enabled %}
@@ -1154,8 +1131,8 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
       {% endif %}
     </nav>
     <button type="button" class="sheet__theme" data-theme-cycle>Appearance
-      <span class="sheet__themeval"><span data-theme-label>Follow the device</span>
-        <svg aria-hidden="true"><use href="#i-auto" data-theme-icon/></svg></span></button>
+      <span class="sheet__themeval"><span data-theme-label>Light</span>
+        <svg aria-hidden="true"><use href="#i-moon" data-theme-icon/></svg></span></button>
     {# Shown only where the browser offers to install the site (Chrome and Edge on
        Android and desktop). Safari has no such offer; there it is Share, Add to Home
        Screen. #}
@@ -1214,39 +1191,34 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 </footer>
 
 <script>
-// Appearance: follow the device, dark, or light, remembered on this device. The choice
-// is put on <html> by the script in <head> before anything paints.
+// Appearance: light (the default) or dark, remembered on this device. The choice is put
+// on <html> by the script in <head> before anything paints. The button shows where it
+// will take you: a moon in light mode, a sun in dark.
 (function () {
-  var order = ['auto', 'dark', 'light'];
-  var names = { auto: 'Follow the device', dark: 'Dark', light: 'Light' };
-  var icons = { auto: '#i-auto', dark: '#i-moon', light: '#i-sun' };
   var root = document.documentElement;
-  function current() { return root.getAttribute('data-theme') || 'auto'; }
+  function dark() { return root.getAttribute('data-theme') === 'dark'; }
   function paint() {
-    var t = current();
+    var d = dark(), label = d ? 'Switch to light mode' : 'Switch to dark mode';
     Array.prototype.forEach.call(document.querySelectorAll('[data-theme-cycle]'), function (b) {
-      b.setAttribute('aria-label', 'Appearance: ' + names[t].toLowerCase());
+      b.setAttribute('aria-label', label);
+      if (b.hasAttribute('title')) b.setAttribute('title', label);
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-theme-icon]'), function (u) {
-      u.setAttribute('href', icons[t]);
+      u.setAttribute('href', d ? '#i-sun' : '#i-moon');
     });
     Array.prototype.forEach.call(document.querySelectorAll('[data-theme-label]'), function (l) {
-      l.textContent = names[t];
+      l.textContent = d ? 'Dark' : 'Light';
     });
-    // The browser's own bars follow a chosen theme too, not only the device's.
-    var metas = document.querySelectorAll('meta[name="theme-color"]');
-    Array.prototype.forEach.call(metas, function (m) {
-      if (!m.dataset.media) m.dataset.media = m.getAttribute('media') || '';
-      if (t === 'auto') m.setAttribute('media', m.dataset.media);
-      else if (m.dataset.media.indexOf(t) !== -1) m.removeAttribute('media');
-      else m.setAttribute('media', 'not all');
-    });
+    // The browser's own bars match.
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', d ? '#101216' : '#eceef2');
+    var scheme = document.querySelector('meta[name="color-scheme"]');
+    if (scheme) scheme.setAttribute('content', d ? 'dark' : 'light');
   }
   document.addEventListener('click', function (e) {
     if (!e.target.closest || !e.target.closest('[data-theme-cycle]')) return;
-    var next = order[(order.indexOf(current()) + 1) % order.length];
-    if (next === 'auto') root.removeAttribute('data-theme'); else root.setAttribute('data-theme', next);
-    try { if (next === 'auto') localStorage.removeItem('sp-theme'); else localStorage.setItem('sp-theme', next); } catch (err) {}
+    if (dark()) root.removeAttribute('data-theme'); else root.setAttribute('data-theme', 'dark');
+    try { if (dark()) localStorage.setItem('sp-theme', 'dark'); else localStorage.removeItem('sp-theme'); } catch (err) {}
     paint();
   });
   paint();

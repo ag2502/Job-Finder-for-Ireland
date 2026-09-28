@@ -1105,7 +1105,9 @@ def test_the_night_desk_is_chosen_before_the_page_paints(client):
     page = client.get("/").text
     head = page.split("<body", 1)[0]
     assert "localStorage.getItem('sp-theme')" in head, "the theme must be set in <head>"
-    assert ':root[data-theme="dark"]' in head and "prefers-color-scheme:dark" in head
+    assert ':root[data-theme="dark"]' in head
+    # Light for everyone unless dark is chosen: the device's setting is not followed.
+    assert "prefers-color-scheme" not in head
     assert "data-theme-cycle" in page
 
 
