@@ -1171,3 +1171,14 @@ def test_the_platform_picker_narrows_and_is_written_into_the_address(client):
                            headers={"HX-Request": "true"})
     assert f"via={options[0]}" in narrowed.headers["HX-Push-Url"]
     assert narrowed.text.count('class="record__via"') >= 1
+
+
+def test_no_colour_token_is_defined_by_itself():
+    """A token set to itself (--win-bar:var(--win-bar)) is invalid and resolves to
+    nothing, which made every title bar and sticky band heading see-through."""
+    import pathlib
+
+    root = pathlib.Path(__file__).resolve().parents[1] / "src" / "jobfinder" / "web"
+    for f in [*root.glob("templates/*.html"), *root.glob("static/*.css")]:
+        for name, ref in re.findall(r"--([a-z0-9-]+)\s*:\s*var\(--([a-z0-9-]+)\)", f.read_text()):
+            assert name != ref, f"{f.name}: --{name} is defined as itself"
