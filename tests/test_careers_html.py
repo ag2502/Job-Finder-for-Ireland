@@ -70,6 +70,26 @@ def test_sibling_links_with_role_titles_are_a_vacancy_list():
     ]
 
 
+def test_a_card_with_a_heading_takes_the_heading_as_its_title():
+    """John Paul's cards wrap the location, the title and the department in one link;
+    the whole text read as "Dublin, County Dublin, Ireland Accounts Payable Assistant
+    Finance"."""
+    card = (
+        '<a href="/jobs/{slug}/"><div class="location">Dublin, County Dublin, Ireland</div>'
+        '<h3 class="title">{title}</h3><div class="dept">Finance</div></a>'
+    )
+    html = "<html><body>" + "".join(
+        card.format(slug=slug, title=title)
+        for slug, title in (("accounts-payable", "Accounts Payable Assistant"),
+                            ("site-engineer", "Site Engineer"))
+    ) + "</body></html>"
+    links = page_links(html, "https://acme.ie/careers")
+    assert [link.text for link in job_candidates(links, "https://acme.ie/careers")] == [
+        "Accounts Payable Assistant",
+        "Site Engineer",
+    ]
+
+
 def test_a_careers_menu_is_not_a_vacancy_list():
     """Siblings under /careers/ with descriptive slugs - the shape of every brochure."""
     links = page_links(

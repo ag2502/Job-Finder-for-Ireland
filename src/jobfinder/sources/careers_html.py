@@ -145,7 +145,14 @@ def page_links(html: str, base_url: str) -> list[Link]:
             continue
         if urlsplit(url).path.lower().endswith(SKIP_EXTENSIONS):
             continue
-        text = _clean(anchor.text(separator=" ") or anchor.attributes.get("title") or "")
+        # A card that wraps its title in a heading also wraps the location and the
+        # department ("Dublin | Accounts Payable Assistant | Finance"); the heading alone
+        # is the title.
+        heading = anchor.css_first("h1, h2, h3, h4, h5, h6")
+        text = _clean(
+            (heading.text(separator=" ") if heading is not None else "")
+            or anchor.text(separator=" ") or anchor.attributes.get("title") or ""
+        )
         parent = anchor.parent
         card = _clean(parent.text(separator=" | ")) if parent is not None else text
         links.append(Link(url, text, card[:400]))
