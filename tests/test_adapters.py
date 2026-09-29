@@ -1321,3 +1321,71 @@ def test_hrcloud_keeps_the_listing_when_an_advert_will_not_load(monkeypatch):
 
     assert result.status is CrawlStatus.OK
     assert [j.location_raw for j in result.jobs] == ["Dublin, Ireland"] * 3
+
+
+# ---------------------------------------------------------------------------
+# Avature
+# ---------------------------------------------------------------------------
+
+
+def _avature_search(ids: list[int]) -> str:
+    items = "".join(
+        f'<li class="list__item--hr-bottom list__item--boxed clearfix"><div class="list__item__text">'
+        f'<div class="list__item__text__title"><a href="https://acme.avature.net/hires/FolderDetail/Tax-Manager/{i}">'
+        f'Tax Manager {i}</a></div><div class="list__item__text__subtitle"><span>Dublin - </span></div>'
+        f'</div></li>'
+        for i in ids
+    )
+    return f'<html><body><a href="https://acme.avature.net/hires/SearchJobs">Search</a><ul>{items}</ul></body></html>'
+
+
+@respx.mock
+def test_avature_reads_every_search_page_and_each_advert(monkeypatch):
+    from jobfinder.sources.avature import AvatureAdapter
+    from jobfinder.sources.base import BaseAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    pages = {"0": list(range(10)), "10": [10, 11], "20": []}
+    respx.get(url__startswith="https://acme.avature.net/hires/SearchJobs/").mock(
+        side_effect=lambda request: httpx.Response(
+            200, text=_avature_search(pages[request.url.params["folderOffset"]])
+        )
+    )
+    respx.get(url__startswith="https://acme.avature.net/hires/FolderDetail/").mock(
+        return_value=httpx.Response(200, text=(
+            '<html><body><article><h3>Basic Information</h3></article>'
+            '<article><h3>Description and Requirements</h3><p>Advise clients on tax.</p></article>'
+            '<script type="application/ld+json">{"@type":"JobPosting","title":"Tax Manager",'
+            '"datePosted":"2026-09-01"}</script></body></html>'
+        ))
+    )
+
+    result = AvatureAdapter().fetch("acme.avature.net/hires")
+
+    assert result.status is CrawlStatus.OK
+    assert len(result.jobs) == 12
+    job = result.jobs[0]
+    assert (job.source_job_id, job.title, job.location_raw) == ("0", "Tax Manager 0", "Dublin")
+    assert "Advise clients" in job.description and job.posted_at.month == 9
+
+
+@respx.mock
+def test_avature_page_that_is_not_a_job_search_fails():
+    from jobfinder.sources.avature import AvatureAdapter
+
+    respx.get(url__startswith="https://acme.avature.net/gone/SearchJobs/").mock(
+        return_value=httpx.Response(200, text="<html><body>Page not found</body></html>")
+    )
+
+    assert AvatureAdapter().fetch("acme.avature.net/gone").status is CrawlStatus.FAILED
+
+
+def test_avature_is_detected_with_its_portal():
+    """The adapter needs the portal as well as the host, so detection keeps both."""
+    from jobfinder.registry.detect import detect_in_text
+
+    link = '<a href="https://kpmgireland.avature.net/experiencedhires/SearchJobs/?3_33_3=918">Jobs</a>'
+    assert detect_in_text(link) == ("avature", "kpmgireland.avature.net/experiencedhires")
+    assert detect_in_text('<a href="https://acme.avature.net/en_US/careers">Jobs</a>') == (
+        "avature", "acme.avature.net/en_US/careers"
+    )

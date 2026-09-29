@@ -664,11 +664,11 @@ def test_platforms_without_adapters_are_still_named(markup: str, expected: tuple
 def test_a_named_platform_with_no_adapter_is_not_registered_as_a_source(session: Session):
     from jobfinder.registry.bulk_detect import sweep
 
-    _pending(session, "Avature Shop", "https://ashop.ie")
-    respx.get("https://ashop.ie").mock(
+    _pending(session, "Jobvite Shop", "https://jshop.ie")
+    respx.get("https://jshop.ie").mock(
         return_value=httpx.Response(
             200,
-            html='<a href="https://ashop.avature.net/careers">Careers</a>',
+            html='<a href="https://jobs.jobvite.com/jshop">Careers</a>',
         )
     )
 

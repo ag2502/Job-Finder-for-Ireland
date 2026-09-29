@@ -73,7 +73,9 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("taleo", re.compile(r"([a-z0-9_-]+)\.taleo\.net", re.I)),
     ("eightfold", re.compile(r"([a-z0-9_-]+)\.eightfold\.ai", re.I)),
     ("icims", re.compile(r"([a-z0-9_-]+)\.icims\.com", re.I)),
-    ("avature", re.compile(r"([a-z0-9_-]+)\.avature\.net", re.I)),
+    # An Avature host carries several portals; the slug is host and portal together,
+    # `kpmgireland.avature.net/experiencedhires` (after an optional `en_US/`).
+    ("avature", re.compile(r"([a-z0-9_-]+\.avature\.net/(?:[a-z]{2}_[a-z]{2}/)?[a-z0-9_-]+)", re.I)),
 
     # Found by scanning the careers pages left BLOCKED: each of these is where a real
     # company's "view vacancies" link actually goes. Most are small or Irish systems that

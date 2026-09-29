@@ -565,6 +565,7 @@ PLATFORMS = {
     "phenom": ("Phenom", "phenom.com"),
     "corehr": ("CoreHR", "corehr.com"),
     "hrcloud": ("CoreHR", "corehr.com"),
+    "avature": ("Avature", "avature.com"),
     "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
     "rezoomo": ("Rezoomo", "rezoomo.com"),
     "hrmanager": ("HR Manager", "hrmanager.ie"),
