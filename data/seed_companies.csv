@@ -286,3 +286,20 @@ Daon,bamboohr,daoninc,3,false,curated,BambooHR board linked from daon.com/career
 Teamwork,personio,teamwork,2,false,curated,Personio board,
 TransferMate,teamtailor,clunetech-transfermate,3,false,curated,"Teamtailor site of its parent Clunetech, TransferMate division",
 Emydex,wordpress,www.emydex.com|careers,4,false,curated,WordPress careers post type,
+The ORS Group,bamboohr,ors,3,false,curated,BambooHR board embedded on ors.ie/careers (UCD Careers list),https://ors.ie/careers/
+PJ Hegarty & Sons,bamboohr,pjhegarty,3,false,curated,BambooHR board embedded on pjhegarty.ie (UCD Careers list),https://www.pjhegarty.ie/career-open-position/
+Winthrop Technologies,workable,winthrop-technologies,2,false,curated,Workable board embedded on winthrop.ie/careers (UCD Careers list),https://winthrop.ie/careers/
+Irish Defence Forces,rezoomo,irish-defence-forces,2,false,curated,Rezoomo board linked from military.ie (UCD Careers list),https://irish-defence-forces.rezoomo.com/jobs/
+Amey,successfactors,careers.amey.co.uk|Ireland,3,false,curated,SuccessFactors careers site searched for Ireland (UCD Careers list),https://careers.amey.co.uk/
+Applied Materials,eightfold,appliedmaterials|appliedmaterials.com,3,false,curated,Eightfold board read for Ireland (Leixlip) (UCD Careers list),https://careers.appliedmaterials.com/careers
+Enva,pinpoint,enva,3,false,curated,Pinpoint board behind enva.com/careers/vacancies (UCD Careers list),https://enva.com/careers/vacancies
+Fehily Timoney,careers_html,https://www.fehilytimoney.ie/careers-positions/,4,false,curated,Vacancy list on its own site (UCD Careers list),https://www.fehilytimoney.ie/careers/
+John Paul Construction,careers_html,https://www.johnpaul.ie/working-with-us/current-opportunities/,3,false,curated,Vacancy list on its own site (UCD Careers list),https://www.johnpaul.ie/working-with-us/current-opportunities/
+Infineon,eightfold,infineon|infineon.com,2,false,curated,Eightfold board read for Ireland (Dublin and Cork design centres) (UCD Careers list),https://jobs.infineon.com/careers
+Roughan & O'Donovan,careers_html,https://www.rod.ie/careers/job-vacancies,4,false,curated,Vacancy list on its own site (UCD Careers list),https://www.rod.ie/careers
+Punch Consulting Engineers,careers_html,https://punchconsulting.com/careers/,4,false,curated,Vacancy list on its own site (UCD Careers list),https://punchconsulting.com/careers/
+NeoDyne,occupop,neodyne,3,false,curated,Occupop board behind neodyne.com/current-opportunities (UCD Careers list),https://neodyne.com/current-opportunities/
+Rockwell Engineering,occupop,rockwell,4,false,curated,Occupop board behind rockwell.ie/careers/open-roles (UCD Careers list),https://www.rockwell.ie/careers/open-roles/
+Murphy International,successfactors,careers.murphygroup.com|Ireland,2,false,curated,SuccessFactors site published in en_GB only; searched for Ireland (UCD Careers list),https://careers.murphygroup.com/
+Colas,successfactors,colas.jobs.hr.cloud.sap|Ireland,4,false,curated,Colas group SuccessFactors site searched for Ireland (UCD Careers list),https://colas.ie/careers/
+H&MV Engineering,hrcloud,hmveng.corehr.hrcloud.hr,3,false,curated,CoreHR board on HR Cloud linked from hmvengineering.com/careers (UCD Careers list),https://www.hmvengineering.com/careers/
