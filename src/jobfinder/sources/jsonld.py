@@ -202,9 +202,15 @@ def format_address(place) -> str | None:
     ]
     seen: list[str] = []
     for part in parts:
-        if part and part not in seen:
+        if part and part not in seen and not PLACEHOLDER.match(part):
             seen.append(part)
     return ", ".join(seen) or None
+
+
+# Values a board puts in an address field when it has nothing to put there.
+PLACEHOLDER = re.compile(r"^(?:unavailable|n/?a|none|null|not available|tbc|tbd|-+)$", re.I)
+IRELAND_ONLY = frozenset({"IE", "IRL", "IRELAND"})
+DUBLIN_IN_TITLE = re.compile(r"\bDublin(?: \d{1,2})?\b")
 
 
 def job_locations(obj: dict) -> tuple[str | None, list[str]]:
@@ -249,6 +255,13 @@ def parse_job_posting(obj: dict, page_url: str) -> RawJob | None:
     source_id = source_id or url
 
     primary, extras = job_locations(obj)
+    # An Irish posting whose address stops at the country ("IE", after an iCIMS
+    # "UNAVAILABLE" city is dropped) but whose title names Dublin is in Dublin:
+    # "Graduate Management Trainee - Dublin".
+    if primary is None or primary.strip().upper() in IRELAND_ONLY:
+        in_title = DUBLIN_IN_TITLE.search(title)
+        if in_title:
+            primary = f"{in_title.group(0)}, Ireland"
 
     return RawJob(
         source_job_id=str(source_id),

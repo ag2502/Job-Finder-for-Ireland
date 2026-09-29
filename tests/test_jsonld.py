@@ -163,6 +163,25 @@ def test_remote_posting_with_no_place_is_marked_remote():
     assert primary == "Remote"
 
 
+def test_a_placeholder_city_is_dropped_and_a_dublin_title_places_the_role():
+    """iCIMS writes "UNAVAILABLE" where it has no city. Enterprise's "Graduate
+    Management Trainee - Dublin" came out as Ireland, and was never a Dublin job."""
+    place = {"address": {"addressLocality": "UNAVAILABLE", "addressCountry": "IE"}}
+    assert format_address(place) == "IE"
+
+    def posting(title: str) -> dict:
+        return {"@type": "JobPosting", "title": title, "url": "https://x.ie/j/1",
+                "jobLocation": place}
+
+    assert parse_job_posting(posting("Graduate Trainee - Dublin"), "").location_raw == "Dublin, Ireland"
+    # Elsewhere in Ireland stays Ireland; the title only ever adds Dublin.
+    assert parse_job_posting(posting("Graduate Trainee - Cork"), "").location_raw == "IE"
+    # A posting with a real city keeps it, whatever the title says.
+    london = {**posting("Dublin Desk Analyst"),
+              "jobLocation": {"address": {"addressLocality": "London", "addressCountry": "GB"}}}
+    assert parse_job_posting(london, "").location_raw == "London, GB"
+
+
 # ---------------------------------------------------------------------------
 # Crawling
 # ---------------------------------------------------------------------------
