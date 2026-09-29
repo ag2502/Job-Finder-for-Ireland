@@ -303,3 +303,19 @@ Rockwell Engineering,occupop,rockwell,4,false,curated,Occupop board behind rockw
 Murphy International,successfactors,careers.murphygroup.com|Ireland,2,false,curated,SuccessFactors site published in en_GB only; searched for Ireland (UCD Careers list),https://careers.murphygroup.com/
 Colas,successfactors,colas.jobs.hr.cloud.sap|Ireland,4,false,curated,Colas group SuccessFactors site searched for Ireland (UCD Careers list),https://colas.ie/careers/
 H&MV Engineering,hrcloud,hmveng.corehr.hrcloud.hr,3,false,curated,CoreHR board on HR Cloud linked from hmvengineering.com/careers (UCD Careers list),https://www.hmvengineering.com/careers/
+Deloitte Ireland,workday,deloitteie:wd3:experienced_professionals,1,false,curated,Experienced hires site; only Early_Careers was read before (UCD Careers list),https://www.deloitte.com/ie/en/careers.html
+EY Ireland,successfactors,careers.ey.com|Ireland,1,false,curated,EY's own careers site searched for Ireland; the recruitee board is EY Law Ireland only (UCD Careers list),https://www.ey.com/en_ie/careers
+KPMG Ireland,avature,kpmgireland.avature.net/experiencedhires,1,false,curated,Avature portal for experienced hires (UCD Careers list),https://kpmg.com/ie/en/careers/experienced-professionals.html
+KPMG Ireland,avature,kpmgireland.avature.net/careers,1,false,curated,Avature portal for graduate programmes (UCD Careers list),https://kpmg.com/ie/en/careers.html
+RSM Ireland,candidatemanager,YGTFD|YAZYB,2,false,curated,CandidateManager board embedded on rsm.global/ireland (UCD Careers list),https://www.rsm.global/ireland/careers/experienced-hires
+Crowe Ireland,bamboohr,crowe,3,false,curated,BambooHR board embedded on crowe.com/ie/careers/jobs (UCD Careers list),https://www.crowe.com/ie/careers/jobs
+RBK,careers_html,https://www.rbk.ie/careers/,3,false,curated,Vacancy list on its own site (UCD Careers list),https://www.rbk.ie/careers/
+PIMCO,workday,pimco:wd1:pimco-careers,2,false,curated,Workday board read for Ireland (UCD Careers list),https://www.pimco.com/eu/en/about-us/careers
+Brown & Brown Ireland,workday,bbinsurance:wd1:Careers_Europe,3,false,curated,Brown & Brown's European Workday site read for Ireland (UCD Careers list),https://www.bbrown.ie/
+2K,greenhouse,2k,3,false,curated,Greenhouse board; 2K's Dublin studio posts here (UCD Careers list),https://2k.com/careers/
+Teneo,greenhouse,teneo,3,false,curated,Greenhouse board behind teneo.com/careers (UCD Careers list),https://www.teneo.com/careers/open-positions/
+Brown Brothers Harriman,workday,bbh:wd5:BBH,2,false,curated,Workday board read for Ireland (Dublin and Kilkenny) (UCD Careers list),https://www.bbh.com/us/en/careers.html
+SEI Investments,workday,seic:wd1:SEI_Global_Services,2,false,curated,Workday board read for Ireland (UCD Careers list),https://www.seic.com/careers
+Sysco Ireland,workday,sysco:wd5:syscocareers,3,false,curated,Sysco's Workday site read for Ireland (UCD Careers list),https://sysco.ie/
+Carlyle,workday,carlyle:wd1:Carlyle,3,false,curated,Carlyle's Workday site; its Dublin roles are Carlyle Aviation (UCD Careers list),https://www.carlyle.com/careers
+Enterprise Mobility Ireland,jsonld,https://ire-erac.icims.com/jobs/search?ss=1&in_iframe=1,2,false,curated,Enterprise's Irish iCIMS portal read through its job pages' JSON-LD (UCD Careers list),https://www.enterprisemobility.ie/en/careers.html
