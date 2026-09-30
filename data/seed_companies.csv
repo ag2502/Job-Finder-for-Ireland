@@ -341,3 +341,15 @@ BioMarin,jobvite,biomarin,2,false,curated,Jobvite board behind biomarin.com care
 Collins Aerospace,workday,globalhr:wd5:REC_RTX_Ext_Gateway,3,false,curated,RTX's Workday board read for Ireland; its Irish roles are Collins' Cork research centre,https://careers.rtx.com/
 Carelon Global Solutions,workday,elevancehealth:wd1:IRL,3,false,curated,Elevance Health's Irish Workday site (Limerick); nothing open on 2026-09-30,https://www.carelon.com/
 Sanmina,hrdepartment,sanminacareers.mua.hrdepartment.com,2,false,curated,HRdepartment site read whole; its Irish roles are in Fermoy,https://www.sanmina.com/careers/
+Schneider Electric,icims,careers.se.com,2,false,curated,Jibe careers site read for Ireland (Dublin and Cork),https://careers.se.com/jobs
+Mater Misericordiae University Hospital,rezoomo,mater-hospital,2,false,curated,Rezoomo company page framed on mater.ie,https://www.mater.ie/healthcare-professionals/job-opportunities/
+Siemens,avature,jobs.siemens.com/en_US/externaljobs|42386[]=812128&listFilterMode=1|Ireland,2,false,curated,Avature portal filtered to its Ireland country value,https://jobs.siemens.com/en_US/externaljobs
+Global Payments,workday,tsys:wd1:TSYS,2,false,curated,Global Payments' Workday site (TSYS) read for Ireland,https://jobs.globalpayments.com/
+Bausch + Lomb,successfactors,careers.bauschlomb.com|Ireland,2,false,curated,SuccessFactors site searched for Ireland (Waterford),https://www.bausch.com/careers/
+National Pen,oracle_recruiting,eihb.fa.em3.oraclecloud.com|CX_1,3,false,curated,Oracle Recruiting site behind careers.pens.com (Dundalk),https://careers.pens.com/
+Aptiv,workday,aptiv:wd5:APTIV_CAREERS,3,false,curated,Workday board read for Ireland (Dublin),https://www.aptiv.com/en/careers
+Alkermes,oracle_recruiting,hbap.fa.us1.oraclecloud.com|CX_1,2,false,curated,Oracle Recruiting site behind careers.alkermes.com (Athlone and Dublin),https://careers.alkermes.com/
+Circle Internet Group,workday,circle:wd1:Circle,3,false,curated,Workday board read for Ireland (Dublin remote-first roles),https://www.circle.com/careers
+Fidelity International,workday,fil:wd3:001,3,false,curated,Workday board read for Ireland (Dublin),https://careers.fidelityinternational.com/
+Broadcom,workday,broadcom:wd1:External_Career,3,false,curated,Workday board read for Ireland (VMware's Cork campus); nothing open on 2026-09-30,https://www.broadcom.com/company/careers
+Siemens Healthineers,workday,onehealthineers:wd3:SHSJB,3,false,curated,Workday board read for Ireland; nothing open on 2026-09-30,https://www.siemens-healthineers.com/careers

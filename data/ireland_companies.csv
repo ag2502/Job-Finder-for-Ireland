@@ -279,6 +279,8 @@ Merck Millipore,merckgroup.com,3,false,pharma,Carrigtwohill
 Lonza,lonza.com,3,false,pharma,
 Charles River Laboratories,criver.com,3,false,pharma,Ballina
 Eurofins,eurofins.com,3,false,pharma,Dungarvan
+Waters Corporation,waters.com,2,true,medtech,"Wexford; careers site refuses automated requests (2026-09-30)"
+Freudenberg Medical,freudenbergmedical.com,3,false,medtech,"Galway (formerly Cambus Medical); jobs.freudenberg.com refuses automated requests (2026-09-30)"
 #
 # --- Professional services and consulting ----------------------------------------
 Accenture,accenture.com,1,false,consulting,Largest private employer in Ireland
@@ -386,6 +388,7 @@ Aircraft Leasing - AerCap,aercap.com,2,true,transport,Dublin aircraft leasing
 Avolon,avolon.aero,2,false,transport,Dublin aircraft leasing
 SMBC Aviation Capital,smbc.aero,3,false,transport,Dublin
 Aviation Capital Group,aviationcapitalgroup.com,4,false,transport,
+Lufthansa Technik Turbine Shannon,lufthansa-technik.com,3,false,transport,"Shannon; vacancies on the Lufthansa Group portal, no readable feed found (2026-09-30)"
 #
 # --- Construction, property and engineering --------------------------------------
 CRH,crh.com,1,true,construction,Dublin global building materials
@@ -452,6 +455,7 @@ Atlantic Technological University,atu.ie,3,false,education,
 South East Technological University,setu.ie,3,false,education,
 Dublin Institute for Advanced Studies,dias.ie,4,false,education,
 Tyndall National Institute,tyndall.ie,3,false,education,Cork
+Shannon Airport Group,snnairportgroup.ie,3,false,public-sector,"Shannon; vacancies written into its own page (2026-09-30)"
 #
 # --- Recruitment agencies and graduate programmes --------------------------------
 gradireland,gradireland.com,1,false,graduate,Irish graduate careers portal
@@ -531,6 +535,7 @@ Havok,havok.com,4,false,irish-tech,Dublin games technology
 Demonware,demonware.net,3,false,irish-tech,Dublin - Activision Blizzard
 Digit Games,digitgaming.com,4,false,irish-tech,Dublin
 Romero Games,romerogames.com,4,false,irish-tech,Galway
+Tesla,tesla.com,3,true,mnc-tech,"Dublin; careers site refuses automated requests (2026-09-30)"
 # --- Irish startups and scale-ups -------------------------------------------------
 Evervault,evervault.com,2,false,irish-tech,Dublin security infrastructure
 Nuvei Ireland,nuvei.com,3,false,irish-tech,
