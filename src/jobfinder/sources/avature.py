@@ -10,7 +10,13 @@ simply runs out. Each role's page holds the advert under "Description and
 Requirements"; its JSON-LD names only the title and date, so the office comes from the
 list.
 
-The slug is the host and portal path: `kpmgireland.avature.net/experiencedhires`.
+Newer portals (Bloomberg's) lay the list out as `article--result` cards linking to
+`JobDetail/{title-slug}/{id}`, the office in a `list-item-location` span. Both layouts
+are read.
+
+The slug is the host and portal path: `kpmgireland.avature.net/experiencedhires`. A
+global portal takes a keyword after a pipe, `bloomberg.avature.net/careers|Dublin`,
+sent as the search box's `search` term so only the Irish roles are listed and opened.
 """
 
 from __future__ import annotations
@@ -26,7 +32,7 @@ from jobfinder.sources.jsonld import iter_ld_objects
 
 PAGE_SIZE = 10
 MAX_PAGES = 50
-DETAIL = re.compile(r"/FolderDetail/[^/]+/(\d+)")
+DETAIL = re.compile(r"/(?:FolderDetail|JobDetail)/[^/]+/(\d+)")
 
 
 def _clean(text: str) -> str:
@@ -37,15 +43,17 @@ def parse_search_page(page: str) -> list[tuple[str, str, str | None]]:
     """(url, title, location) for every role listed on one search page."""
     tree = HTMLParser(page)
     roles: list[tuple[str, str, str | None]] = []
-    for item in tree.css("li.list__item--hr-bottom, li.list__item"):
-        link = item.css_first(".list__item__text__title a[href]")
+    for item in tree.css("li.list__item--hr-bottom, li.list__item, article.article--result"):
+        link = item.css_first(
+            ".list__item__text__title a[href], .article__header__text__title a[href]"
+        )
         if link is None:
             continue
         url = (link.attributes.get("href") or "").strip()
         title = _clean(link.text())
         if not DETAIL.search(url) or not title:
             continue
-        subtitle = item.css_first(".list__item__text__subtitle")
+        subtitle = item.css_first(".list-item-location, .list__item__text__subtitle")
         place = _clean(subtitle.text()).strip(" -|,") if subtitle is not None else ""
         roles.append((url, title, place or None))
     return roles
@@ -77,12 +85,15 @@ class AvatureAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        base = "https://" + slug.removeprefix("https://").removeprefix("http://").strip("/")
+        portal, _, keyword = slug.partition("|")
+        base = "https://" + portal.removeprefix("https://").removeprefix("http://").strip("/")
+        search = {"search": keyword} if keyword else {}
         found: dict[str, tuple[str, str, str | None]] = {}
         partial = True
         for page_number in range(MAX_PAGES):
             response = client.get(
-                f"{base}/SearchJobs/", params={"folderOffset": page_number * PAGE_SIZE}
+                f"{base}/SearchJobs/",
+                params={**search, "folderOffset": page_number * PAGE_SIZE},
             )
             response.raise_for_status()
             if page_number == 0 and "SearchJobs" not in response.text:

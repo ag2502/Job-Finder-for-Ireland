@@ -1370,6 +1370,42 @@ def test_avature_reads_every_search_page_and_each_advert(monkeypatch):
 
 
 @respx.mock
+def test_avature_reads_card_layout_searched_by_keyword(monkeypatch):
+    """Bloomberg's portal lists `article--result` cards and is searched for Dublin."""
+    from jobfinder.sources.avature import AvatureAdapter
+    from jobfinder.sources.base import BaseAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    card = (
+        '<article class="article article--result"><div class="article__header">'
+        '<h3 class="article__header__text__title"><a class="link" '
+        'href="https://acme.avature.net/careers/JobDetail/Software-Engineer/{i}">Software Engineer</a>'
+        '</h3><div class="article__header__text__subtitle">'
+        '<span class="list-item-location">Dublin, Ireland</span></div></div></article>'
+    )
+    searches = []
+
+    def search(request):
+        searches.append(request.url.params.get("search"))
+        ids = [7, 8] if request.url.params["folderOffset"] == "0" else []
+        cards = "".join(card.format(i=i) for i in ids)
+        return httpx.Response(200, text=f'<form action="SearchJobs"></form>{cards}')
+
+    respx.get(url__startswith="https://acme.avature.net/careers/SearchJobs/").mock(side_effect=search)
+    respx.get(url__startswith="https://acme.avature.net/careers/JobDetail/").mock(
+        return_value=httpx.Response(200, text="<article><h2>Description &amp; Requirements</h2></article>")
+    )
+
+    result = AvatureAdapter().fetch("acme.avature.net/careers|Dublin")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.location_raw) for j in result.jobs] == [
+        ("7", "Dublin, Ireland"), ("8", "Dublin, Ireland"),
+    ]
+    assert set(searches) == {"Dublin"}
+
+
+@respx.mock
 def test_avature_page_that_is_not_a_job_search_fails():
     from jobfinder.sources.avature import AvatureAdapter
 
