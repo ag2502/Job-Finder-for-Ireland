@@ -1425,3 +1425,65 @@ def test_avature_is_detected_with_its_portal():
     assert detect_in_text('<a href="https://acme.avature.net/en_US/careers">Jobs</a>') == (
         "avature", "acme.avature.net/en_US/careers"
     )
+
+
+# ---------------------------------------------------------------------------
+# JazzHR
+# ---------------------------------------------------------------------------
+
+
+def _jazzhr_role(code: str, title: str, place: str) -> str:
+    return (
+        f'<li class="list-group-item"><h3 class="list-group-item-heading">'
+        f'<a href="https://acme.applytojob.com/apply/{code}/Role">{title}</a></h3>'
+        f'<ul class="list-inline list-group-item-text">'
+        f'<li><i class="fa fa-map-marker"></i>{place}</li>'
+        f'<li><i class="fa fa-sitemap"></i>Engineering</li></ul></li>'
+    )
+
+
+@respx.mock
+def test_jazzhr_reads_the_board_and_each_advert(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.jazzhr import JazzHrAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    board = (
+        _jazzhr_role("Ab12", "DevOps Engineer", "Dublin, Dublin, Ireland")
+        + _jazzhr_role("Cd34", "Research Scientist", "Singapore, Singapore")
+        + _jazzhr_role("Ef56", "General Expression Of Interest", "Dublin, Dublin, Ireland")
+    )
+    respx.get("https://acme.applytojob.com/apply").mock(
+        return_value=httpx.Response(200, text=f'<ul class="list-group">{board}</ul>')
+    )
+    respx.get(url__startswith="https://acme.applytojob.com/apply/Ab12/").mock(
+        return_value=httpx.Response(200, text=(
+            '<script type="application/ld+json">{"@type":"JobPosting","title":"DevOps Engineer",'
+            '"description":"<p>Run our cloud.</p>","datePosted":"2026-08-19"}</script>'
+        ))
+    )
+    respx.get(url__startswith="https://acme.applytojob.com/apply/Cd34/").mock(
+        return_value=httpx.Response(500)
+    )
+
+    result = JazzHrAdapter().fetch("acme")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.location_raw) for j in result.jobs] == [
+        ("Ab12", "Dublin, Dublin, Ireland"), ("Cd34", "Singapore, Singapore"),
+    ]
+    job = result.jobs[0]
+    assert "Run our cloud" in job.description and job.posted_at.month == 8
+    assert job.department == "Engineering"
+    assert result.jobs[1].description is None
+
+
+@respx.mock
+def test_jazzhr_unknown_tenant_fails():
+    from jobfinder.sources.jazzhr import JazzHrAdapter
+
+    respx.get("https://nobody.applytojob.com/apply").mock(
+        return_value=httpx.Response(200, text="<html><body>JazzHR recruiting software</body></html>")
+    )
+
+    assert JazzHrAdapter().fetch("nobody").status is CrawlStatus.FAILED
