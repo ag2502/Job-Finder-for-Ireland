@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Launch the Dublin Job Finder interface and open it in a browser.
+# Launch the Ireland Job Finder interface and open it in a browser.
 #
 # Safe to run repeatedly: if the server is already up on the port it just opens the
 # browser rather than starting a second copy.
@@ -61,22 +61,22 @@ from sqlalchemy import func, select
 
 try:
     with session_scope() as s:
-        dublin = s.scalar(
+        irish = s.scalar(
             select(func.count()).select_from(JobPosting).where(
-                JobPosting.status == JobStatus.ACTIVE, JobPosting.is_dublin.is_(True)
+                JobPosting.status == JobStatus.ACTIVE, (JobPosting.is_ireland.is_(True) | JobPosting.is_dublin.is_(True))
             )
         ) or 0
         companies = s.scalar(select(func.count()).select_from(Company)) or 0
         interns = s.scalar(
             select(func.count()).select_from(JobPosting).where(
                 JobPosting.status == JobStatus.ACTIVE,
-                JobPosting.is_dublin.is_(True),
+                (JobPosting.is_ireland.is_(True) | JobPosting.is_dublin.is_(True)),
                 JobPosting.is_internship.is_(True),
             )
         ) or 0
 
-    print(f"{dublin:,} active Dublin jobs from {companies} employers ({interns} internships)")
-    if dublin == 0:
+    print(f"{irish:,} active jobs in Ireland from {companies} employers ({interns} internships)")
+    if irish == 0:
         print("Database is empty - run:  jobfinder seed && jobfinder crawl   (~9 min)")
 except Exception as exc:  # noqa: BLE001 - reporting only, must not block the launch
     print(f"(could not read database: {exc})")
