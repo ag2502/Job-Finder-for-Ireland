@@ -165,7 +165,7 @@ UrbanVolt,personio,urbanvolt,4,false,recovered,Registered by the 2026-09-13 regi
 Vertical Bridge,greenhouse,verticalbridge,4,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://verticalbridge.ie
 Willis Towers Watson,jsonld,https://careers.wtwco.com,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://careers.wtwco.com
 Wise,smartrecruiters,Wise,2,false,curated,SmartRecruiters board owned by Wise; read for Ireland instead of sampled as JSON-LD,https://wise.jobs/
-Xilinx,icims,careers.amd.com,3,false,curated,AMD's board (Xilinx is now AMD Dublin), read for Ireland,https://careers.amd.com/careers-home/jobs
+Xilinx,icims,careers.amd.com,3,false,curated,"AMD's board (Xilinx is now AMD Dublin), read for Ireland",https://careers.amd.com/careers-home/jobs
 Zimmer Biomet,phenom,careers.zimmerbiomet.com,2,false,curated,Phenom site read for Ireland instead of sampled as JSON-LD; Shannon,https://careers.zimmerbiomet.com
 Zinkworks,teamtailor,zinkworks,3,false,recovered,Registered by the 2026-09-13 registry run; lost when state moved off Neon,https://www.zinkworks.com/careers/
 Public Appointments Service,publicjobs,3,1,false,board,publicjobs.ie main board - every civil and public service competition,https://www.publicjobs.ie/en/
@@ -331,3 +331,13 @@ MKO,personio,mko:com,3,false,curated,Personio board behind mkoireland.ie current
 Cadence Design Systems,workday,cadence:wd1:External_Careers,2,false,curated,Workday board read for Ireland (Dublin and Cork); detection had not found it (UCD Careers list),https://www.cadence.com/en_US/home/company/careers.html
 Alexion,workday,astrazeneca:wd3:Alexion,2,false,curated,AstraZeneca's Workday site for Alexion (College Park Dublin and Athlone) (UCD Careers list),https://alexion.com/careers
 PTSB,corehr,ptsbrecruit|1000|,1,true,curated,CoreHR tenant; no place in the slug so each advert places its branch or Dublin office (UCD Careers list),https://www.ptsb.ie/about-us/careers/
+Cognex,workday,cognex:wd1:External_Career_Site,2,false,curated,Workday board read for Ireland (Cork),https://www.cognex.com/company/careers
+Merit Medical,workday,merit:wd503:Merit,2,false,curated,Workday board read for Ireland (Galway),https://www.merit.com/careers/
+Hovione,jsonld,https://en-careers-hovione.icims.com/jobs/search?ss=1&in_iframe=1,2,false,curated,iCIMS portal read through its job pages' JSON-LD (Cork),https://careers.hovione.com/en
+Element Six,smartrecruiters,AngloAmericanDeBeersGroup,2,false,curated,De Beers group SmartRecruiters board; its Irish roles are Element Six in Shannon,https://www.e6.com/
+Bon Secours Health System,workday,easyservice:wd5:bon_secours_careers,1,false,curated,"Workday board for its hospitals in Dublin, Cork, Limerick, Tralee and Galway",https://www.bonsecours.ie/careers
+Vitalograph,hibob,vitalograph,3,false,curated,HiBob careers site behind vitalograph.com (Ennis),https://vitalograph.com/about/careers
+BioMarin,jobvite,biomarin,2,false,curated,Jobvite board behind biomarin.com careers (Cork),https://www.biomarin.com/careers/
+Collins Aerospace,workday,globalhr:wd5:REC_RTX_Ext_Gateway,3,false,curated,RTX's Workday board read for Ireland; its Irish roles are Collins' Cork research centre,https://careers.rtx.com/
+Carelon Global Solutions,workday,elevancehealth:wd1:IRL,3,false,curated,Elevance Health's Irish Workday site (Limerick); nothing open on 2026-09-30,https://www.carelon.com/
+Sanmina,hrdepartment,sanminacareers.mua.hrdepartment.com,2,false,curated,HRdepartment site read whole; its Irish roles are in Fermoy,https://www.sanmina.com/careers/
