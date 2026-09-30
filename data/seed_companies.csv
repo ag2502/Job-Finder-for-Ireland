@@ -319,3 +319,15 @@ SEI Investments,workday,seic:wd1:SEI_Global_Services,2,false,curated,Workday boa
 Sysco Ireland,workday,sysco:wd5:syscocareers,3,false,curated,Sysco's Workday site read for Ireland (UCD Careers list),https://sysco.ie/
 Carlyle,workday,carlyle:wd1:Carlyle,3,false,curated,Carlyle's Workday site; its Dublin roles are Carlyle Aviation (UCD Careers list),https://www.carlyle.com/careers
 Enterprise Mobility Ireland,jsonld,https://ire-erac.icims.com/jobs/search?ss=1&in_iframe=1,2,false,curated,Enterprise's Irish iCIMS portal read through its job pages' JSON-LD (UCD Careers list),https://www.enterprisemobility.ie/en/careers.html
+TD Securities,workday,td:wd3:TD_Bank_Careers,2,false,curated,TD's Workday site read for Ireland; its Dublin roles are TD Securities (UCD Careers list),https://jobs.td.com/
+Dun & Bradstreet,lever,dnb,2,false,curated,Lever board behind dnb.com careers read for Ireland (UCD Careers list),https://www.dnb.com/en-us/about/careers.html
+Eaton,eightfold,eaton,2,false,curated,Eightfold board behind jobs.eaton.com read for Ireland (UCD Careers list),https://jobs.eaton.com/
+Grifols,successfactors,jobsearch.grifols.com|Ireland,2,false,curated,SuccessFactors site searched for Ireland (UCD Careers list),https://www.grifols.com/en/careers
+Cohesity,workday,cohesity:wd5:Cohesity_Careers,2,false,curated,Workday board behind cohesity.com open positions read for Ireland (UCD Careers list),https://www.cohesity.com/careers/open-positions/
+Bloomberg,avature,bloomberg.avature.net/careers|Dublin,2,false,curated,Global Avature portal searched for Dublin (UCD Careers list),https://bloomberg.avature.net/careers
+BMC Software,workday,bmc:wd1:BMC,3,false,curated,Workday board read for Ireland; no Irish roles open on 2026-09-30 (UCD Careers list),https://www.bmc.com/careers.html
+Horizon Quantum,jazzhr,horizonquantum,3,false,curated,JazzHR careers page; Dublin is its first office outside Singapore (UCD Careers list),https://horizonquantum.applytojob.com/
+MKO,personio,mko:com,3,false,curated,Personio board behind mkoireland.ie current vacancies (UCD Careers list),https://mkoireland.ie/careers/current-vacancies/
+Cadence Design Systems,workday,cadence:wd1:External_Careers,2,false,curated,Workday board read for Ireland (Dublin and Cork); detection had not found it (UCD Careers list),https://www.cadence.com/en_US/home/company/careers.html
+Alexion,workday,astrazeneca:wd3:Alexion,2,false,curated,AstraZeneca's Workday site for Alexion (College Park Dublin and Athlone) (UCD Careers list),https://alexion.com/careers
+PTSB,corehr,ptsbrecruit|1000|,1,true,curated,CoreHR tenant; no place in the slug so each advert places its branch or Dublin office (UCD Careers list),https://www.ptsb.ie/about-us/careers/
