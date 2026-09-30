@@ -15,7 +15,7 @@ Two audiences served by one funnel, confirmed 2026-09-22:
 - **Experienced professionals** — people already working who are looking to move, and
   who care about completeness and speed rather than guidance.
 
-Both arrive doing the same job: *find out what is actually open in Dublin right now,
+Both arrive doing the same job: *find out what is actually open in Ireland right now,
 without visiting twenty different sites to do it.* Neither group is the secondary one;
 the early-career path must be visible rather than hidden behind a checkbox.
 
@@ -23,7 +23,7 @@ the early-career path must be visible rather than hidden behind a checkbox.
 
 Every live opening in one place, so nothing is missed and nobody has to hunt across
 platforms. The searcher states the fields they want to work in and receives every
-currently-active matching Dublin role, ranked against the CV they added once to their
+currently-active matching role in Ireland, ranked against the CV they added once to their
 profile if they have one.
 
 Success is that a searcher can stop checking other sites, because anything they would

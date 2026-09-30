@@ -80,16 +80,14 @@ def cmd_stats(args: argparse.Namespace) -> int:
             )
             or 0
         )
-        dublin = (
+        dublin, irish = (
             session.scalar(
                 select(func.count())
                 .select_from(JobPosting)
-                .where(
-                    JobPosting.status == JobStatus.ACTIVE,
-                    JobPosting.is_dublin.is_(True),
-                )
+                .where(JobPosting.status == JobStatus.ACTIVE, flag.is_(True))
             )
             or 0
+            for flag in (JobPosting.is_dublin, JobPosting.is_ireland)
         )
         closed = (
             session.scalar(
@@ -111,6 +109,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         print(f"companies            {companies:>7,}")
         print(f"sources              {sources:>7,}")
         print(f"active jobs          {active:>7,}")
+        print(f"  in Ireland         {irish:>7,}")
         print(f"  of which Dublin    {dublin:>7,}")
         print(f"closed jobs          {closed:>7,}")
         print(f"needs location review{review:>7,}")
@@ -149,7 +148,7 @@ def cmd_jobs(args: argparse.Namespace) -> int:
             .where(JobPosting.status == JobStatus.ACTIVE)
         )
         if not args.all_locations:
-            stmt = stmt.where(JobPosting.is_dublin.is_(True))
+            stmt = stmt.where(JobPosting.is_ireland.is_(True) | JobPosting.is_dublin.is_(True))
         if args.query:
             stmt = stmt.where(JobPosting.title.ilike(f"%{args.query}%"))
         stmt = stmt.order_by(JobPosting.first_seen_at.desc()).limit(args.limit)
@@ -395,7 +394,7 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="jobfinder", description="Dublin job aggregator")
+    parser = argparse.ArgumentParser(prog="jobfinder", description="Ireland job aggregator")
     parser.add_argument("-v", "--verbose", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -418,7 +417,7 @@ def main(argv: list[str] | None = None) -> int:
     p_jobs = sub.add_parser("jobs", help="list active jobs")
     p_jobs.add_argument("query", nargs="?", help="filter by title substring")
     p_jobs.add_argument("--limit", type=int, default=30)
-    p_jobs.add_argument("--all-locations", action="store_true", help="do not filter to Dublin")
+    p_jobs.add_argument("--all-locations", action="store_true", help="do not filter to Ireland")
     p_jobs.set_defaults(func=cmd_jobs)
 
     p_detect = sub.add_parser("detect", help="find a company's ATS from its website")

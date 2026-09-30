@@ -1,6 +1,6 @@
-# Job Finder — Dublin
+# Job Finder: Ireland
 
-A job portal for Dublin, Ireland. Upload a CV, choose the fields you want to work in,
+A job portal for Ireland. Upload a CV, choose the fields you want to work in,
 and get every currently-active relevant opening — sourced from employers' own careers
 systems rather than only from job boards.
 
@@ -45,7 +45,7 @@ Other commands:
 
 ```bash
 jobfinder stats                  # what is in the database
-jobfinder jobs engineer          # search active Dublin roles from the terminal
+jobfinder jobs engineer          # search active Irish roles from the terminal
 jobfinder detect intercom.com    # find one company's ATS
 jobfinder detect acme.ie --add   # ...and register it
 jobfinder crawl --adapter workday
@@ -227,6 +227,13 @@ Dublin is also not unique: Dublin, California and Dublin, Ohio have real technol
 The rule that separates them is positional — a US state is disqualifying only when it
 *immediately follows* the city, so `Dublin, CA` is rejected while
 `SF, New York, Seattle, Dublin, Luxembourg` is kept.
+
+The rest of the Republic works the same way. Every Irish posting gets its county as
+`region` (`Athlone` is Westmeath, `Ringaskiddy` is Cork) and `is_ireland`; a US state or
+another country beside a town rules it out (`Waterford, MI`, `Westport, CT`), names as
+often found abroad (Bray, Shannon, Ennis) count only when Ireland is named too, and
+Northern Ireland is left out. The finder searches every Irish role, with a Location
+picker and a "By location" sort built on `region`.
 
 `location_raw` is never modified. Normalization is purely additive.
 
