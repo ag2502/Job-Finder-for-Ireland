@@ -254,6 +254,8 @@ def _upsert_jobs(
                     location_raw=raw.location_raw,
                     location_norm=location.location_norm,
                     is_dublin=location.is_dublin,
+                    is_ireland=location.is_ireland,
+                    region=location.region,
                     is_remote=location.is_remote,
                     needs_location_review=location.needs_review,
                     posted_at=raw.posted_at,
@@ -292,6 +294,8 @@ def _upsert_jobs(
         job.location_raw = raw.location_raw
         job.location_norm = location.location_norm
         job.is_dublin = location.is_dublin
+        job.is_ireland = location.is_ireland
+        job.region = location.region
         job.is_remote = location.is_remote
         job.needs_location_review = location.needs_review
         job.dedup_key = dedup_key

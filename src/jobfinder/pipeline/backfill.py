@@ -30,6 +30,8 @@ ADDED_COLUMNS: dict[str, str] = {
     "years_inferred": "BOOLEAN DEFAULT 0",
     "is_internship": "BOOLEAN DEFAULT 0",
     "is_graduate": "BOOLEAN DEFAULT 0",
+    "is_ireland": "BOOLEAN DEFAULT 0",
+    "region": "VARCHAR(32)",
 }
 
 
@@ -50,8 +52,32 @@ def add_missing_columns() -> list[str]:
                 )
                 added.append(name)
                 logger.info("added column job_postings.%s", name)
+        # Indexes on the added columns, which `create_all` skips on an existing table.
+        connection.execute(text(
+            "CREATE INDEX IF NOT EXISTS ix_job_active_ireland ON job_postings (status, is_ireland)"
+        ))
 
     return added
+
+
+def recompute_regions(session: Session, *, batch: int = 500) -> int:
+    """Fill `is_ireland` and `region` for every stored posting.
+
+    Run once when the columns are added, so roles are not left out of an Ireland-wide
+    search until each source's next successful crawl. A second office is not stored, so
+    a posting already known to be Dublin through one keeps that verdict.
+    """
+    jobs = session.execute(select(JobPosting)).scalars().all()
+    for index, job in enumerate(jobs, 1):
+        location = normalize_location(job.location_raw)
+        if job.is_dublin:
+            job.is_ireland, job.region = True, "Dublin"
+        else:
+            job.is_ireland, job.region = location.is_ireland, location.region
+        if index % batch == 0:
+            session.flush()
+    session.flush()
+    return len(jobs)
 
 
 def recompute_derived(session: Session, *, batch: int = 500) -> int:
@@ -70,6 +96,8 @@ def recompute_derived(session: Session, *, batch: int = 500) -> int:
         if not (job.location_raw or "").strip():
             location.is_dublin = dublin_in_advert(f"{job.title}\n{job.description or ''}")
         job.is_dublin = location.is_dublin
+        job.is_ireland = location.is_ireland or location.is_dublin
+        job.region = "Dublin" if location.is_dublin else location.region
         job.is_remote = location.is_remote or job.is_remote
         job.needs_location_review = location.needs_review
 

@@ -251,6 +251,53 @@ def test_secondary_location_rescues_a_dublin_role(session, source, company, run)
     assert stored.location_raw == "London, UK", "raw location must be preserved verbatim"
 
 
+def test_an_irish_role_outside_dublin_keeps_its_county(session, source, company, run):
+    _reconcile(session, source, company, run, ok_result("1", location="Ringaskiddy, Cork"))
+    session.flush()
+    stored = _by_id(session, "1")
+    assert stored.is_ireland and not stored.is_dublin
+    assert stored.region == "Cork"
+
+
+def test_adding_the_region_columns_fills_them_from_stored_rows(tmp_path, monkeypatch):
+    """A state database made before the columns existed gets them, filled, on startup."""
+    from sqlalchemy import create_engine, inspect, text
+    from sqlalchemy.orm import Session as OrmSession
+
+    from jobfinder.core.models import Base, Company, Source
+    from jobfinder.pipeline import backfill
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'old.db'}")
+    Base.metadata.create_all(engine)
+    with engine.begin() as connection:
+        connection.execute(text("DROP INDEX ix_job_active_ireland"))
+        connection.execute(text("ALTER TABLE job_postings DROP COLUMN region"))
+        connection.execute(text("ALTER TABLE job_postings DROP COLUMN is_ireland"))
+    monkeypatch.setattr(backfill, "engine", engine)
+
+    assert backfill.add_missing_columns() == ["is_ireland", "region"]
+    assert "region" in {c["name"] for c in inspect(engine).get_columns("job_postings")}
+
+    with OrmSession(engine) as orm:
+        firm = Company(name="Acme", normalized_name="acme")
+        orm.add(firm)
+        orm.flush()
+        board = Source(company_id=firm.id, adapter="greenhouse", slug="acme")
+        orm.add(board)
+        orm.flush()
+        for job_id, place, dublin in (("1", "Galway, Ireland", False),
+                                      ("2", "London, UK", True), ("3", "Austin, TX", False)):
+            orm.add(JobPosting(company_id=firm.id, source_id=board.id, source_job_id=job_id,
+                               dedup_key=job_id, title="Engineer", url="https://x",
+                               location_raw=place, is_dublin=dublin))
+        orm.flush()
+        backfill.recompute_regions(orm)
+        found = {j.source_job_id: (j.is_ireland, j.region) for j in orm.scalars(select(JobPosting))}
+
+    # A role already Dublin through a second office stays Dublin.
+    assert found == {"1": (True, "Galway"), "2": (True, "Dublin"), "3": (False, None)}
+
+
 def test_us_dublin_is_not_flagged(session, source, company, run):
     _reconcile(session, source, company, run, ok_result("1", location="Dublin, CA"))
     session.flush()

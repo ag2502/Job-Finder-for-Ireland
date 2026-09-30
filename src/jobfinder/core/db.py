@@ -111,6 +111,16 @@ def init_db() -> None:
         return
     Base.metadata.create_all(engine)
 
+    # `create_all` makes missing tables but never adds a column to one that exists, so
+    # a column declared since the database was made is added here, on every entry
+    # point, before anything selects it. Imported late: backfill imports this module.
+    from jobfinder.pipeline.backfill import add_missing_columns, recompute_regions
+
+    added = add_missing_columns()
+    if "is_ireland" in added:
+        with session_scope() as session:
+            recompute_regions(session)
+
 
 @contextmanager
 def session_scope() -> Iterator[Session]:

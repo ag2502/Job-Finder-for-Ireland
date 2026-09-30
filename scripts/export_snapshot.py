@@ -6,9 +6,9 @@ concurrency group and the web app is not in it. A reader that never writes does 
 a live connection to the crawl's database — it needs the rows it can actually show, as a
 file it can open locally.
 
-That subset is small. Of ~5,300 active postings only ~1,800 are Dublin or remote, and no
-query can return anything else: `_search_results` filters on `is_dublin`, or on
-`is_dublin OR is_remote` when the searcher opts into remote. The rest is dead weight in a
+That subset is small. Of ~24,000 active postings about 7,000 are in Ireland or remote,
+and no query can return anything else: `_search_results` filters on `is_ireland`, or on
+`is_ireland OR is_remote` when the searcher opts into remote. The rest is dead weight in a
 file that has to ship with the deployment, so it is dropped here — 38 MB becomes ~12 MB,
 about 2 MB gzipped.
 
@@ -87,7 +87,9 @@ def export(destination: Path) -> Path:
             if table.name == "job_postings":
                 stmt = stmt.where(
                     table.c.status == "ACTIVE",
-                    table.c.is_dublin.is_(True) | table.c.is_remote.is_(True),
+                    table.c.is_ireland.is_(True)
+                    | table.c.is_dublin.is_(True)
+                    | table.c.is_remote.is_(True),
                 )
 
             rows = [dict(row._mapping) for row in src.execute(stmt)]

@@ -146,6 +146,10 @@ class JobPosting(Base):
     location_raw: Mapped[str | None] = mapped_column(String(1024))
     location_norm: Mapped[str | None] = mapped_column(String(512))
     is_dublin: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    # Anywhere in the Republic, Dublin included, and the county it is in ("Cork"), or
+    # None where the posting names only the country. See normalize.location.
+    is_ireland: Mapped[bool] = mapped_column(Boolean, default=False)
+    region: Mapped[str | None] = mapped_column(String(32))
     is_remote: Mapped[bool] = mapped_column(Boolean, default=False)
     needs_location_review: Mapped[bool] = mapped_column(Boolean, default=False)
 
@@ -171,6 +175,7 @@ class JobPosting(Base):
     __table_args__ = (
         UniqueConstraint("source_id", "source_job_id", name="uq_job_source_identity"),
         Index("ix_job_active_dublin", "status", "is_dublin"),
+        Index("ix_job_active_ireland", "status", "is_ireland"),
         Index("ix_job_source_status", "source_id", "status"),
     )
 
