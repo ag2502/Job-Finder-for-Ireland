@@ -1581,3 +1581,46 @@ def test_jobvite_unknown_company_fails():
         return_value=httpx.Response(200, text="<html><body>Page not found</body></html>")
     )
     assert JobviteAdapter().fetch("nobody").status is CrawlStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# HRdepartment
+# ---------------------------------------------------------------------------
+
+
+def _hrdepartment_page(rows: list[tuple[str, str]], total: int) -> str:
+    body = "".join(
+        f'<tr><td><a href="/hr/ats/Posting/view/{job_id}"><span>Technician {job_id}</span></a></td>'
+        f"<td>{job_id}</td><td>Engineering<br></td><td>{office}</td></tr>"
+        for job_id, office in rows
+    )
+    return f"<p>1 - {len(rows)} of {total}</p><table><tbody>{body}</tbody></table>"
+
+
+@respx.mock
+def test_hrdepartment_reads_the_list_and_opens_irish_adverts(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.hrdepartment import HrDepartmentAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    host = "https://acme.mua.hrdepartment.com"
+    pages = {
+        "1": _hrdepartment_page([("11", "Europe: Ireland-Fermoy"), ("12", "North America USA: CA-Fremont")], 3),
+        "2": _hrdepartment_page([("13", "South Asia Pacific: Singapore")], 3),
+    }
+    respx.get(url__startswith=f"{host}/hr/ats/JobSearch/viewAll/").mock(
+        side_effect=lambda request: httpx.Response(200, text=pages[str(request.url).rsplit(":", 1)[-1]])
+    )
+    advert = respx.get(f"{host}/hr/ats/Posting/view/11").mock(return_value=httpx.Response(
+        200, text='<div id="job_details_ats_requisition_description"><p>Build boards.</p></div>'
+    ))
+
+    result = HrDepartmentAdapter().fetch("acme.mua.hrdepartment.com")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.location_raw) for j in result.jobs] == [
+        ("11", "Europe: Ireland-Fermoy"), ("12", "North America USA: CA-Fremont"),
+        ("13", "South Asia Pacific: Singapore"),
+    ]
+    assert advert.call_count == 1 and "Build boards" in result.jobs[0].description
+    assert result.jobs[0].department == "Engineering"

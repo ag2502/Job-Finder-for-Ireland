@@ -38,6 +38,7 @@ def load_adapters() -> None:
         hibob,
         hirehive,
         hrcloud,
+        hrdepartment,
         hrmanager,
         icims,
         jazzhr,
