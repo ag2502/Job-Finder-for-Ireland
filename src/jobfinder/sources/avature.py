@@ -16,12 +16,17 @@ are read.
 
 The slug is the host and portal path: `kpmgireland.avature.net/experiencedhires`. A
 global portal takes a keyword after a pipe, `bloomberg.avature.net/careers|Dublin`,
-sent as the search box's `search` term so only the Irish roles are listed and opened.
+sent as the search box's `search` term so only the Irish roles are listed and opened,
+or the portal's own filter instead (`jobs.siemens.com/en_US/externaljobs|42386[]=812128`,
+Siemens' country field set to Ireland; the value is found by picking it on the page).
+A filter can vouch for a place, named after a second pipe (`...|42386[]=812128|Ireland`):
+a row it returns that says only "Multiple Locations" is given that place as an office.
 """
 
 from __future__ import annotations
 
 import re
+from urllib.parse import parse_qsl
 
 import httpx
 from dateutil import parser as dateparser
@@ -30,9 +35,9 @@ from selectolax.parser import HTMLParser
 from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 from jobfinder.sources.jsonld import iter_ld_objects
 
-PAGE_SIZE = 10
 MAX_PAGES = 50
-DETAIL = re.compile(r"/(?:FolderDetail|JobDetail)/[^/]+/(\d+)")
+DETAIL = re.compile(r"/(?:FolderDetail|JobDetail)/(?:[^/?#]+/)?(\d+)")
+GENERIC_PLACE = re.compile(r"^(?:multiple locations|\d+ locations?)$", re.I)
 
 
 def _clean(text: str) -> str:
@@ -85,15 +90,21 @@ class AvatureAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        portal, _, keyword = slug.partition("|")
+        portal, _, rest = slug.partition("|")
+        query, _, vouched = rest.partition("|")
         base = "https://" + portal.removeprefix("https://").removeprefix("http://").strip("/")
-        search = {"search": keyword} if keyword else {}
+        if "=" in query:
+            search = dict(parse_qsl(query, keep_blank_values=True))
+        else:
+            search = {"search": query} if query else {}
         found: dict[str, tuple[str, str, str | None]] = {}
         partial = True
+        # The page size is the portal's own: KPMG shows ten, Bloomberg twelve, Siemens
+        # six. Stepping ten on Siemens skipped four roles in every ten.
+        offset, step = 0, None
         for page_number in range(MAX_PAGES):
             response = client.get(
-                f"{base}/SearchJobs/",
-                params={**search, "folderOffset": page_number * PAGE_SIZE},
+                f"{base}/SearchJobs/", params={**search, "folderOffset": offset},
             )
             response.raise_for_status()
             if page_number == 0 and "SearchJobs" not in response.text:
@@ -109,6 +120,8 @@ class AvatureAdapter(BaseAdapter):
                 # the list has been read to its end.
                 partial = False
                 break
+            step = step or len(roles)
+            offset += step
             self.polite_pause()
 
         jobs: list[RawJob] = []
@@ -122,9 +135,11 @@ class AvatureAdapter(BaseAdapter):
                 # The list names the role and its office; the advert is a bonus.
                 pass
             self.polite_pause()
+            vouch = vouched and (not place or GENERIC_PLACE.match(place))
             jobs.append(RawJob(
                 source_job_id=job_id, title=title, url=url, location_raw=place,
                 description=description, posted_at=posted,
+                extra_locations=[vouched] if vouch else [],
             ))
         return PartialJobs(jobs) if partial else jobs
 

@@ -1443,6 +1443,39 @@ def test_avature_reads_card_layout_searched_by_keyword(monkeypatch):
 
 
 @respx.mock
+def test_avature_filter_vouches_for_multiple_locations_and_pages_by_its_own_size(monkeypatch):
+    """Siemens: role links carry no title slug, pages hold six, and the country filter
+    returns roles whose row says only "Multiple Locations"."""
+    from jobfinder.sources.avature import AvatureAdapter
+    from jobfinder.sources.base import BaseAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    card = (
+        '<article class="article article--result"><h3 class="article__header__text__title">'
+        '<a href="https://acme.example/jobs/JobDetail/{i}">Engineer {i}</a></h3>'
+        '<span class="list-item-location">{place}</span></article>'
+    )
+    pages = {"0": [(1, "Multiple Locations"), (2, "Dublin, Ireland")], "2": [(3, "Multiple Locations")], "4": []}
+    seen = []
+
+    def search(request):
+        seen.append(dict(request.url.params))
+        rows = pages[request.url.params["folderOffset"]]
+        return httpx.Response(200, text='<form action="SearchJobs"></form>' + "".join(
+            card.format(i=i, place=place) for i, place in rows))
+
+    respx.get(url__startswith="https://acme.example/jobs/SearchJobs/").mock(side_effect=search)
+    respx.get(url__startswith="https://acme.example/jobs/JobDetail/").mock(return_value=httpx.Response(404))
+
+    result = AvatureAdapter().fetch("acme.example/jobs|42386[]=812128&listFilterMode=1|Ireland")
+
+    assert [j.source_job_id for j in result.jobs] == ["1", "2", "3"]
+    assert [j.extra_locations for j in result.jobs] == [["Ireland"], [], ["Ireland"]]
+    assert seen[0]["42386[]"] == "812128" and seen[0]["listFilterMode"] == "1"
+    assert [p["folderOffset"] for p in seen] == ["0", "2", "4"]
+
+
+@respx.mock
 def test_avature_page_that_is_not_a_job_search_fails():
     from jobfinder.sources.avature import AvatureAdapter
 
