@@ -10,11 +10,18 @@ results". The form has to be sent whole: leaving out its blank fields, or
 `p_competition_type=ALLOPTIONS`, earns a 403. Later pages are the same form with
 `p_refresh_search=Y` and the `p_start_from` that the page's own "Next" form carries.
 
+Each vacancy's own page opens with a plain GET, but only when the form's other
+parameters come with the id; without them it is a 403. It holds the whole advert, so
+every card's page is read for the description and becomes the posting's link. A card
+whose page will not load keeps its reference, closing date and salary instead, and
+links to the tenant's vacancy search.
+
 The slug is ``tenant|company|place``: the tenant (``ucdrecruit``), the company number
-the tenant's own links use (``1`` for most, ``5023`` for UCC), and where the institution
-is, since a card gives a reference, closing date, salary and department but seldom a
-place. A job's own page opens only by posting a form, so there is no link to it; the
-posting links to the tenant's vacancy search and names its reference.
+the tenant's own links use (``1`` for most, ``5023`` for UCC, ``1000`` for PTSB), and
+where the institution is, since a card seldom gives a place. Leave the place empty for
+an employer with offices across the country: PTSB's cards name no office, and its
+branch roles are in Bray or Roscommon, so the advert ("based in St. Stephen's Green,
+Dublin") is left to place each role.
 """
 
 from __future__ import annotations
@@ -24,6 +31,7 @@ import logging
 import re
 
 import httpx
+from selectolax.parser import HTMLParser
 
 from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 
@@ -56,6 +64,26 @@ _LABELS = {
     "department": ("Dept", "Department", "School/Unit"),
     "location": ("Location", "Work Location", "Campus"),
 }
+
+
+def spec_url(tenant: str, company: str, recruitment_id: str) -> str:
+    """A vacancy's own page, with the blank parameters it refuses to open without."""
+    return (
+        f"{HOST}/{tenant}/erq_jobspec_version_4.display_form?p_company={company}"
+        "&p_internal_external=E&p_display_in_irish=N&p_process_type=&p_applicant_no="
+        "&p_form_profile_detail=&p_display_apply_ind=Y&p_refresh_search=Y"
+        f"&p_recruitment_id={recruitment_id}"
+    )
+
+
+def parse_spec(page: str) -> str | None:
+    """The advert on a vacancy's own page, as HTML."""
+    cell = HTMLParser(page).css_first("td.erq_searchv4_jobspec_row")
+    if cell is None:
+        return None
+    for node in cell.css("script, style"):
+        node.decompose()
+    return cell.html if cell.text(strip=True) else None
 
 
 def split_slug(slug: str) -> tuple[str, str, str | None]:
@@ -145,14 +173,16 @@ class CoreHRAdapter(BaseAdapter):
                 break
             self.polite_pause()
         else:
-            return PartialJobs(self._build(cards, search_page, place))
+            return PartialJobs(self._build(cards, tenant, company, search_page, place, client))
 
         if total and len(cards) < total * COMPLETENESS:
             raise ValueError(f"CoreHR read {len(cards)} of {total} vacancies from {tenant}")
-        return self._build(cards, search_page, place)
+        return self._build(cards, tenant, company, search_page, place, client)
 
-    @staticmethod
-    def _build(cards: dict[str, dict], search_page: str, place: str | None) -> list[RawJob]:
+    def _build(
+        self, cards: dict[str, dict], tenant: str, company: str, search_page: str,
+        place: str | None, client: httpx.Client,
+    ) -> list[RawJob]:
         jobs = []
         for card in cards.values():
             details = [
@@ -161,12 +191,21 @@ class CoreHRAdapter(BaseAdapter):
                                    ("salary", "Salary"), ("department", "Department"))
                 if card.get(key)
             ]
+            url, advert = spec_url(tenant, company, card["id"]), None
+            try:
+                response = client.get(url)
+                response.raise_for_status()
+                advert = parse_spec(response.text)
+            except httpx.HTTPError:
+                # The card names the role and its reference; the advert is a bonus.
+                pass
+            self.polite_pause()
             jobs.append(RawJob(
                 source_job_id=card["id"],
                 title=card["title"],
-                url=search_page,
+                url=url if advert else search_page,
                 location_raw=card.get("location") or place,
-                description="\n".join(details) or None,
+                description=advert or "\n".join(details) or None,
                 department=card.get("department"),
             ))
         return jobs

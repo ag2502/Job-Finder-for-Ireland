@@ -984,11 +984,14 @@ def _corehr_page(refs: list[str], total: int, next_start: int | None) -> str:
 
 
 @respx.mock
-def test_corehr_follows_the_tenants_own_page_size():
+def test_corehr_follows_the_tenants_own_page_size(monkeypatch):
     """Maynooth shows eight a page; assuming ten skipped two roles on every page."""
     from urllib.parse import parse_qs
 
+    from jobfinder.sources.base import BaseAdapter
     from jobfinder.sources.corehr import CoreHRAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
 
     def serve(request: httpx.Request) -> httpx.Response:
         form = {k: v[0] for k, v in parse_qs(request.content.decode(), keep_blank_values=True).items()}
@@ -1002,6 +1005,10 @@ def test_corehr_follows_the_tenants_own_page_size():
     respx.post("https://my.corehr.com/pls/acmerecruit/erq_search_version_4.start_search_with_params").mock(
         side_effect=serve
     )
+    # Vacancy pages that will not load leave each card's own details in place.
+    respx.get(url__startswith="https://my.corehr.com/pls/acmerecruit/erq_jobspec_version_4").mock(
+        return_value=httpx.Response(403)
+    )
 
     result = CoreHRAdapter().fetch("acmerecruit|1|Dublin, Ireland")
 
@@ -1014,6 +1021,36 @@ def test_corehr_follows_the_tenants_own_page_size():
     assert "Salary: €52,519 - €67,129" in job.description
     assert "var links" not in job.description
     assert job.url.startswith("https://my.corehr.com/pls/acmerecruit/erq_search_package.search_form")
+
+
+@respx.mock
+def test_corehr_reads_each_vacancys_own_page(monkeypatch):
+    """PTSB's cards name no office; its adverts say where each role is based."""
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.corehr import CoreHRAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    respx.post("https://my.corehr.com/pls/ptsbrecruit/erq_search_version_4.start_search_with_params").mock(
+        return_value=httpx.Response(200, text=_corehr_page(["102248"], total=1, next_start=None))
+    )
+    spec = respx.get(url__startswith="https://my.corehr.com/pls/ptsbrecruit/erq_jobspec_version_4").mock(
+        return_value=httpx.Response(200, text=(
+            '<table><tr><td class="erq_searchv4_jobspec_row"><p>Senior AI Risk Manager</p>'
+            "<p>A permanent position based in St. Stephen's Green, Dublin.</p>"
+            '<script>var aTags = 1;</script></td></tr></table>'
+        ))
+    )
+
+    result = CoreHRAdapter().fetch("ptsbrecruit|1000|")
+
+    assert result.status is CrawlStatus.OK
+    job = result.jobs[0]
+    assert job.location_raw is None
+    assert "Stephen's Green, Dublin" in job.description and "aTags" not in job.description
+    assert job.url == spec.calls.last.request.url
+    params = spec.calls.last.request.url.params
+    assert params["p_company"] == "1000" and params["p_recruitment_id"] == "102248"
+    assert params["p_process_type"] == ""
 
 
 @respx.mock
