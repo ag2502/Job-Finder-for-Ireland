@@ -3,9 +3,9 @@
     GET https://jobs.jobvite.com/{slug}/jobs?p={n}
     GET https://jobs.jobvite.com/{slug}/job/{id}
 
-Jobvite has no public API, but every company's hosted board is the same server-rendered
-table: a row per role, its title linked to the role's page and its office in the
-`jv-job-list-location` cell ("Cork, Ireland"). Pages are numbered from zero and the list
+Jobvite has no public API, but every company's hosted board is server-rendered from one
+of two templates: a row per role, its title linked to the role's page and its office in
+`jv-job-list-location` ("Cork, Ireland"). Pages are numbered from zero and the list
 simply runs out; a page that adds nothing new ends the read. Each role's page carries a
 JobPosting JSON-LD block with the advert and the posting date.
 
@@ -40,18 +40,23 @@ def _clean(text: str) -> str:
 
 
 def parse_list(page: str) -> list[tuple[str, str, str, str | None]]:
-    """(id, url, title, office) for every role in one page of the board."""
+    """(id, url, title, office) for every role in one page of the board.
+
+    Two templates are in use: a table with the title linked in its cell, and (Xperi's)
+    a list whose whole row is the link, with the title and office in divs inside it.
+    """
     roles = []
-    for row in HTMLParser(page).css("tr"):
-        link = row.css_first("td.jv-job-list-name a[href]")
-        if link is None:
+    for row in HTMLParser(page).css("tr, li"):
+        name = row.css_first(".jv-job-list-name")
+        link = row.css_first('a[href*="/job/"]')
+        if name is None or link is None:
             continue
         href = link.attributes.get("href") or ""
         job_id = JOB_ID.search(href)
-        title = _clean(link.text())
+        title = _clean(name.text())
         if job_id is None or not title:
             continue
-        office = row.css_first("td.jv-job-list-location")
+        office = row.css_first(".jv-job-list-location")
         place = _clean(office.text()) if office is not None else ""
         roles.append((job_id.group(1), HOST + href if href.startswith("/") else href,
                       title, place or None))

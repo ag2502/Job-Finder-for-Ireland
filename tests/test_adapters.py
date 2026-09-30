@@ -1704,3 +1704,16 @@ def test_rippling_is_detected():
     from jobfinder.registry.detect import detect_in_text
 
     assert detect_in_text('<a href="https://ats.rippling.com/acme/jobs">Jobs</a>') == ("rippling", "acme")
+
+
+def test_jobvite_reads_the_list_template_as_well_as_the_table():
+    from jobfinder.sources.jobvite import parse_list
+
+    page = (
+        '<ul class="jv-job-list"><li class="row"><a href="/acme/job/oRhIAfwa" class="flex-row">'
+        '<div class="jv-job-list-name"> Office Assistant </div><div class="jv-job-id">(Req. #6956)</div>'
+        '<div class="jv-job-list-location"> Galway, Ireland </div></a></li></ul>'
+    )
+    assert parse_list(page) == [
+        ("oRhIAfwa", "https://jobs.jobvite.com/acme/job/oRhIAfwa", "Office Assistant", "Galway, Ireland")
+    ]
