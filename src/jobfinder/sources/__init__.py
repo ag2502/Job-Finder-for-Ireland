@@ -33,6 +33,7 @@ def load_adapters() -> None:
         careers_html,
         corehr,
         cornerstone,
+        dayforce,
         eightfold,
         greenhouse,
         hibob,

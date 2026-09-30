@@ -571,6 +571,7 @@ PLATFORMS = {
     "jobvite": ("Jobvite", "jobvite.com"),
     "hrdepartment": ("HRdepartment", "hrdepartment.com"),
     "rippling": ("Rippling", "rippling.com"),
+    "dayforce": ("Dayforce", "dayforce.com"),
     "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
     "rezoomo": ("Rezoomo", "rezoomo.com"),
     "hrmanager": ("HR Manager", "hrmanager.ie"),

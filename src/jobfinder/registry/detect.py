@@ -90,7 +90,6 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("comeet", re.compile(r"comeet\.(?:com|co)/jobs/([a-z0-9_-]+)", re.I)),
     ("jobvite", re.compile(r"jobs\.jobvite\.com/([a-z0-9_-]+)", re.I)),
     ("rippling", re.compile(r"ats\.rippling\.com/(?:api/v2/board/)?([a-z0-9_-]+)", re.I)),
-    ("dayforce", re.compile(r"jobs\.dayforcehcm\.com/(?:[a-z]{2}-[a-z]{2}/)?([a-z0-9_-]+)", re.I)),
     ("ukg", re.compile(r"recruiting2?\.ultipro\.com/([a-z0-9]+)", re.I)),
     ("adp", re.compile(r"workforcenow\.adp\.com/[^\"'\s<>]*?[?&](?:amp;)?cid=([0-9a-f-]{36})", re.I)),
     ("cornerstone", re.compile(r"([a-z0-9_-]+)\.csod\.com", re.I)),
@@ -313,12 +312,13 @@ def detect_in_text(text: str) -> tuple[str, str] | None:
     if oracle:
         return "oracle_recruiting", oracle
 
-    # Oleeo and CandidateManager are also two-part addresses. Both host the boards of
+    # Oleeo, CandidateManager and Dayforce are also two-part addresses. Both host the boards of
     # Irish public bodies and retailers, linked from careers pages that carry no other
     # fingerprint, so without these the companies read as having nothing to crawl.
-    from jobfinder.sources import candidatemanager, oleeo
+    from jobfinder.sources import candidatemanager, dayforce, oleeo
 
-    for adapter, module in (("oleeo", oleeo), ("candidatemanager", candidatemanager)):
+    for adapter, module in (("oleeo", oleeo), ("candidatemanager", candidatemanager),
+                            ("dayforce", dayforce)):
         found = module.slug_from_url(text)
         if found:
             return adapter, found

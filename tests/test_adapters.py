@@ -1717,3 +1717,53 @@ def test_jobvite_reads_the_list_template_as_well_as_the_table():
     assert parse_list(page) == [
         ("oRhIAfwa", "https://jobs.jobvite.com/acme/job/oRhIAfwa", "Office Assistant", "Galway, Ireland")
     ]
+
+
+# ---------------------------------------------------------------------------
+# Dayforce
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_dayforce_reads_the_search_with_its_csrf_token(monkeypatch):
+    import json as jsonlib
+
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.dayforce import DayforceAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    respx.get("https://jobs.dayforcehcm.com/api/auth/csrf").mock(
+        return_value=httpx.Response(200, json={"csrfToken": "tok"})
+    )
+
+    def posting(i, *places):
+        return {"jobPostingId": i, "jobTitle": f"Administrator {i}", "jobDescription": "<p>Run tests.</p>",
+                "postingStartTimestampUTC": "2026-09-15T23:00:00+00:00",
+                "postingLocations": [{"formattedAddress": p} for p in places]}
+
+    pages = {0: [posting(1, "Dundalk, Co. Louth, Ireland"), posting(2, "Arlington, TX, USA", "Galway, Ireland")],
+             2: [posting(3, "Vancouver, BC, Canada")]}
+
+    def search(request):
+        body = jsonlib.loads(request.content)
+        assert request.headers["x-csrf-token"] == "tok" and body["jobBoardCode"] == "board"
+        return httpx.Response(200, json={"jobPostings": pages[body["paginationStart"]], "maxCount": 3})
+
+    respx.post("https://jobs.dayforcehcm.com/api/geo/acme/jobposting/search").mock(side_effect=search)
+
+    result = DayforceAdapter().fetch("acme|board")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.location_raw, j.extra_locations) for j in result.jobs] == [
+        ("1", "Dundalk, Co. Louth, Ireland", []),
+        ("2", "Arlington, TX, USA", ["Galway, Ireland"]),
+        ("3", "Vancouver, BC, Canada", []),
+    ]
+    assert "Run tests" in result.jobs[0].description and result.jobs[0].posted_at.day == 15
+
+
+def test_dayforce_is_detected_with_its_board():
+    from jobfinder.registry.detect import detect_in_text
+
+    link = '<a href="https://jobs.dayforcehcm.com/en-IE/prometric/prometriccareersite">Jobs</a>'
+    assert detect_in_text(link) == ("dayforce", "prometric|prometriccareersite")
