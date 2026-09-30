@@ -371,3 +371,29 @@ Avaya,successfactors,careers.avaya.com|Ireland,3,false,curated,SuccessFactors si
 Skyworks,successfactors,careers.skyworksinc.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Cork); nothing open on 2026-09-30,https://careers.skyworksinc.com/
 Xperi,jobvite,xperi,3,false,curated,Jobvite board (Galway); nothing open on 2026-09-30,https://xperi.com/careers/open-positions/
 Quantexa,ashby,quantexa,3,false,curated,Ashby board (Dublin office); nothing open on 2026-09-30,https://www.quantexa.com/careers/
+BoyleSports,teamtailor,boylesports,2,false,curated,Teamtailor careers site (Dundalk head office and shops nationwide),https://careers.boylesports.com/
+Astellas,successfactors,careers.astellas.com|Ireland,2,false,curated,SuccessFactors site searched for Ireland (Kerry and Dublin),https://careers.astellas.com/
+AIG,workday,aig:wd1:aig,2,false,curated,Workday board read for Ireland (Dublin),https://www.aig.com/careers
+Integer,workday,integer:wd1:External,2,false,curated,Workday board read for Ireland (New Ross and Galway),https://www.integer.net/careers/default.aspx
+Flutter Entertainment,workday,flutterbe:wd3:Group_External,2,false,curated,Flutter's group Workday site read for Ireland (Dublin),https://flutter.com/careers/
+Flutter Entertainment,workday,flutterbe:wd3:FlutterUKI_External,2,false,curated,Flutter UK & Ireland Workday site read for Ireland,https://flutter.com/careers/
+Flutter Entertainment,workday,flutterbe:wd3:PPRetail_External,2,false,curated,Paddy Power retail Workday site read for Ireland (betting shops),https://flutter.com/careers/
+CAE,workday,cae:wd3:career,2,false,curated,Workday board read for Ireland (Dublin and Shannon),https://www.cae.com/careers
+Mondelez,workday,mdlz:wd3:External,2,false,curated,Workday board read for Ireland (Dublin and Rathmore),https://www.mondelezinternational.com/careers/
+Statkraft,smartrecruiters,Statkraft1,2,false,curated,SmartRecruiters board behind statkraft.com job opportunities (Cork),https://www.statkraft.com/careers/job-opportunities/
+Virtu Financial,greenhouse,virtu,2,false,curated,Greenhouse board (Dublin),https://www.virtu.com/careers/
+Parexel,workday,parexel:wd1:Parexel_External_Careers,2,false,curated,Workday board read for Ireland (Dublin and remote),https://jobs.parexel.com/en
+Concentrix,workday,cnx:wd1:external_global,2,false,curated,Workday board read for Ireland (Dublin),https://jobs.concentrix.com/
+Apex Group,workday,theapexgroup:wd3:apexgroupcareers,2,false,curated,Workday board read for Ireland (Dublin; Cork and Limerick),https://www.theapexgroup.com/careers/
+MetLife,avature,www.metlifecareers.com/en_US/ml|Dublin,3,false,curated,Avature portal searched for Dublin,https://www.metlifecareers.com/en_US/ml
+TE Connectivity,successfactors,careers.te.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Galway),https://careers.te.com/
+Veryan Medical,bamboohr,veryanmed,3,false,curated,BambooHR board behind veryanmed.com careers (Galway),https://veryanmed.com/careers/
+Alcon,workday,alcon:wd5:careers_alcon,3,false,curated,Workday board read for Ireland (Cork),https://www.alcon.com/careers/
+Novo Nordisk,successfactors,careers.novonordisk.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Athlone),https://careers.novonordisk.com/
+Kainos,phenom,careers.kainos.com,3,false,curated,Phenom careers site; its Irish roles are in Dublin,https://careers.kainos.com/gb/en
+Vanguard,workday,vanguard:wd5:vanguard_external,3,false,curated,Workday board read for Ireland (Dublin),https://www.vanguardjobs.com
+Chubb,oracle_recruiting,fa-ewgu-saasfaprod1.fa.ocs.oraclecloud.com|CX_2001,3,false,curated,Oracle Recruiting site read for Ireland (Dublin),https://www.chubb.com/ie-en/
+Smurfit Westrock,avature,westrockta.avature.net/en_US/careers|Ireland,3,false,curated,Group Avature portal searched for Ireland; Smurfit Kappa's own pages carry no Irish vacancies,https://www.smurfitwestrock.com/careers/jobs
+American Express,oracle_recruiting,egug.fa.us2.oraclecloud.com|CX_1,3,false,curated,Oracle Recruiting site behind careers.americanexpress.com; nothing open in Ireland on 2026-09-30,https://careers.americanexpress.com/
+Organon,workday,organon:wd5:SearchJobs,3,false,curated,Workday board read for Ireland (Swords); nothing open on 2026-09-30,https://jobs.organon.com/
+Mainstream Renewable Power,bamboohr,mainstreamrp,3,false,curated,BambooHR board (Dublin head office); nothing open in Ireland on 2026-09-30,https://www.mainstreamrp.com/careers/

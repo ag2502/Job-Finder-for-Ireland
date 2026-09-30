@@ -231,6 +231,8 @@ Clearstream,clearstream.com,3,false,finance,Cork
 Euronext Dublin,euronext.com,3,false,finance,
 Strategic Banking Corporation of Ireland,sbci.gov.ie,4,false,finance,
 Home Building Finance Ireland,hbfi.ie,4,false,finance,
+BOC Aviation,bocaviation.com,3,false,finance,"Dublin; no readable board found (2026-09-30)"
+Liberty Insurance,libertyinsurance.ie,3,false,finance,"Dublin and Cavan; careers page refuses requests (2026-09-30)"
 #
 # --- Pharmaceutical, biotech and medical devices ---------------------------------
 Pfizer,pfizer.com,1,false,pharma,Multiple Irish sites
@@ -310,6 +312,7 @@ Maples Group,maples.com,2,false,legal,Dublin
 Walkers Ireland,walkersglobal.com,3,false,legal,
 Ronan Daly Jermyn,rdj.ie,3,false,legal,Cork
 Byrne Wallace,byrnewallace.com,3,false,legal,
+Tata Consultancy Services,tcs.com,3,true,consulting,"Dublin and Letterkenny; careers site refuses automated requests (2026-09-30)"
 #
 # --- Retail, FMCG, food and hospitality ------------------------------------------
 Kerry Group,kerrygroup.com,1,true,fmcg,Tralee and Naas
@@ -353,6 +356,8 @@ Dalata Hotel Group,dalatahotelgroup.com,2,true,hospitality,Dublin
 The Doyle Collection,doylecollection.com,3,false,hospitality,
 Jurys Inn,jurysinns.com,3,false,hospitality,
 Fitzwilliam Hotel Group,fitzwilliamhotel.com,4,false,hospitality,
+Heineken Ireland,heinekenireland.ie,3,false,fmcg,"Cork; careers page behind an age gate (2026-09-30)"
+Greencore,greencore.com,3,true,fmcg,"Dublin; careers now on the Bakkavor site (2026-09-30)"
 #
 # --- Telecoms, utilities, energy and transport -----------------------------------
 Eir,eir.ie,1,false,telecom,Dublin
@@ -389,6 +394,7 @@ Avolon,avolon.aero,2,false,transport,Dublin aircraft leasing
 SMBC Aviation Capital,smbc.aero,3,false,transport,Dublin
 Aviation Capital Group,aviationcapitalgroup.com,4,false,transport,
 Lufthansa Technik Turbine Shannon,lufthansa-technik.com,3,false,transport,"Shannon; vacancies on the Lufthansa Group portal, no readable feed found (2026-09-30)"
+NTR,ntrplc.com,3,false,utilities,"Dublin; no readable board found (2026-09-30)"
 #
 # --- Construction, property and engineering --------------------------------------
 CRH,crh.com,1,true,construction,Dublin global building materials
@@ -659,3 +665,4 @@ Yonder Digital,yonderdigital.com,4,false,irish-tech,
 Zeus Packaging,zeuspackaging.com,4,false,fmcg,Dublin
 Zinkworks,zinkworks.com,3,false,irish-tech,Athlone
 Zolvit,zolvit.com,4,false,irish-tech,
+Neuromod,neuromod.com,4,false,irish-tech,"Dublin; careers page lists no board (2026-09-30)"
