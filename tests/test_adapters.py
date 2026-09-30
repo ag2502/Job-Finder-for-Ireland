@@ -1815,3 +1815,11 @@ def test_talentbrew_completes_a_short_location_page_from_the_sitemap(monkeypatch
     assert [(j.source_job_id, j.title) for j in result.jobs] == [("11", "Analyst"), ("12", "Engineer")]
     # Only the page's own cities are taken from the sitemap: Austin is never opened.
     assert "Analyse data" in result.jobs[0].description
+
+
+def test_successfactors_location_drops_an_escaped_line_break():
+    """TE writes "GALWAY, G, IRL, H91 VN2T&lt;br/&gt;", a tag only once unescaped."""
+    from jobfinder.sources.successfactors import _clean
+
+    assert _clean("GALWAY, G, IRL, H91 VN2T&lt;br/&gt;") == "GALWAY, G, IRL, H91 VN2T"
+    assert _clean("Dublin &amp; Cork") == "Dublin & Cork"

@@ -45,7 +45,9 @@ TAGS = re.compile(r"<[^>]+>")
 
 
 def _clean(fragment: str) -> str:
-    return re.sub(r"\s+", " ", html.unescape(TAGS.sub(" ", fragment))).strip()
+    # Tags are stripped after unescaping too: TE writes its location as
+    # "GALWAY, G, IRL, H91 VN2T&lt;br/&gt;", which only becomes a tag once unescaped.
+    return re.sub(r"\s+", " ", TAGS.sub(" ", html.unescape(TAGS.sub(" ", fragment)))).strip()
 
 
 def parse_page(page: str, host: str) -> tuple[list[RawJob], int | None]:
