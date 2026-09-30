@@ -1767,3 +1767,51 @@ def test_dayforce_is_detected_with_its_board():
 
     link = '<a href="https://jobs.dayforcehcm.com/en-IE/prometric/prometriccareersite">Jobs</a>'
     assert detect_in_text(link) == ("dayforce", "prometric|prometriccareersite")
+
+
+# ---------------------------------------------------------------------------
+# TalentBrew
+# ---------------------------------------------------------------------------
+
+
+def _talentbrew_item(job_id: str, city: str, title: str, office: str) -> str:
+    return (
+        f'<li><a class="sr-job-link" href="/job/{city}/{title.lower()}/1/{job_id}" data-job-id="{job_id}">'
+        f'<h2>{title}</h2></a><span class="job-location">{office}</span></li>'
+    )
+
+
+def _talentbrew_advert(title: str, city: str, region: str) -> str:
+    return (
+        '<script type="application/ld+json">{"@type":"JobPosting","title":"%s",'
+        '"description":"<p>Analyse data.</p>","datePosted":"2026-09-20",'
+        '"jobLocation":{"address":{"addressLocality":"%s","addressRegion":"%s"}}}</script>'
+    ) % (title, city, region)
+
+
+@respx.mock
+def test_talentbrew_completes_a_short_location_page_from_the_sitemap(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.talentbrew import TalentBrewAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    host = "https://careers.acme.com"
+    page = ('<div data-total-results="2"></div><section id="search-results-list"><ul>'
+            + _talentbrew_item("11", "dublin", "Analyst", "Dublin, Ireland") + "</ul></section>")
+    respx.get(f"{host}/location/ireland-jobs/1/2963597/2").mock(return_value=httpx.Response(200, text=page))
+    respx.get(f"{host}/sitemap.xml").mock(return_value=httpx.Response(200, text=(
+        f"<urlset><url><loc>{host}/job/dublin/analyst/1/11</loc></url>"
+        f"<url><loc>{host}/job/dublin/engineer/1/12</loc></url>"
+        f"<url><loc>{host}/job/austin/engineer/1/13</loc></url></urlset>"
+    )))
+    respx.get(f"{host}/job/dublin/analyst/1/11").mock(
+        return_value=httpx.Response(200, text=_talentbrew_advert("Analyst", "Dublin", "Leinster")))
+    respx.get(f"{host}/job/dublin/engineer/1/12").mock(
+        return_value=httpx.Response(200, text=_talentbrew_advert("Engineer", "Dublin", "Leinster")))
+
+    result = TalentBrewAdapter().fetch(f"{host}/location/ireland-jobs/1/2963597/2")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.title) for j in result.jobs] == [("11", "Analyst"), ("12", "Engineer")]
+    # Only the page's own cities are taken from the sitemap: Austin is never opened.
+    assert "Analyse data" in result.jobs[0].description

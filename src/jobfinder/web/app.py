@@ -572,6 +572,7 @@ PLATFORMS = {
     "hrdepartment": ("HRdepartment", "hrdepartment.com"),
     "rippling": ("Rippling", "rippling.com"),
     "dayforce": ("Dayforce", "dayforce.com"),
+    "talentbrew": ("TalentBrew", "radancy.com"),
     "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
     "rezoomo": ("Rezoomo", "rezoomo.com"),
     "hrmanager": ("HR Manager", "hrmanager.ie"),
