@@ -53,6 +53,7 @@ def load_adapters() -> None:
         pinpoint,
         recruitee,
         rezoomo,
+        rippling,
         smartrecruiters,
         successfactors,
         taleo_tbe,

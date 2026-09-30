@@ -89,6 +89,7 @@ ATS_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ("jazzhr", re.compile(r"([a-z0-9_-]+)\.applytojob\.com", re.I)),
     ("comeet", re.compile(r"comeet\.(?:com|co)/jobs/([a-z0-9_-]+)", re.I)),
     ("jobvite", re.compile(r"jobs\.jobvite\.com/([a-z0-9_-]+)", re.I)),
+    ("rippling", re.compile(r"ats\.rippling\.com/(?:api/v2/board/)?([a-z0-9_-]+)", re.I)),
     ("dayforce", re.compile(r"jobs\.dayforcehcm\.com/(?:[a-z]{2}-[a-z]{2}/)?([a-z0-9_-]+)", re.I)),
     ("ukg", re.compile(r"recruiting2?\.ultipro\.com/([a-z0-9]+)", re.I)),
     ("adp", re.compile(r"workforcenow\.adp\.com/[^\"'\s<>]*?[?&](?:amp;)?cid=([0-9a-f-]{36})", re.I)),

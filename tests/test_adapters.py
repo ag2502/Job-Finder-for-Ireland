@@ -1657,3 +1657,50 @@ def test_hrdepartment_reads_the_list_and_opens_irish_adverts(monkeypatch):
     ]
     assert advert.call_count == 1 and "Build boards" in result.jobs[0].description
     assert result.jobs[0].department == "Engineering"
+
+
+# ---------------------------------------------------------------------------
+# Rippling
+# ---------------------------------------------------------------------------
+
+
+@respx.mock
+def test_rippling_merges_a_role_listed_once_per_office(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.rippling import RipplingAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+
+    def row(job_id, name, country, code):
+        return {"id": job_id, "name": f"Role {job_id}", "url": f"https://ats.rippling.com/acme/jobs/{job_id}",
+                "department": {"name": "Sales"},
+                "locations": [{"name": name, "country": country, "countryCode": code}]}
+
+    pages = {
+        "0": {"items": [row("a", "London", "United Kingdom", "GB"), row("a", "Dublin", "Ireland", "IE")],
+              "totalPages": 2},
+        "1": {"items": [row("b", "Austin, TX", "United States", "US")], "totalPages": 2},
+    }
+    respx.get("https://ats.rippling.com/api/v2/board/acme/jobs").mock(
+        side_effect=lambda request: httpx.Response(200, json=pages[request.url.params["page"]])
+    )
+    detail = respx.get("https://ats.rippling.com/api/v2/board/acme/jobs/a").mock(return_value=httpx.Response(
+        200, json={"description": {"role": "<p>Sell things.</p>", "company": "<p>About us.</p>"},
+                   "createdOn": "2026-09-01T10:00:00-07:00"}
+    ))
+
+    result = RipplingAdapter().fetch("acme")
+
+    assert result.status is CrawlStatus.OK
+    first, second = result.jobs
+    assert (first.location_raw, first.extra_locations) == ("London, United Kingdom", ["Dublin, Ireland"])
+    assert "Sell things" in first.description and first.posted_at.month == 9
+    assert first.department == "Sales"
+    # Only the role with an Irish office has its advert fetched.
+    assert detail.call_count == 1 and second.description is None
+
+
+def test_rippling_is_detected():
+    from jobfinder.registry.detect import detect_in_text
+
+    assert detect_in_text('<a href="https://ats.rippling.com/acme/jobs">Jobs</a>') == ("rippling", "acme")
