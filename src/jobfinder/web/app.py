@@ -568,6 +568,7 @@ PLATFORMS = {
     "hrcloud": ("CoreHR", "corehr.com"),
     "avature": ("Avature", "avature.com"),
     "jazzhr": ("JazzHR", "jazzhr.com"),
+    "jobvite": ("Jobvite", "jobvite.com"),
     "cornerstone": ("Cornerstone", "cornerstoneondemand.com"),
     "rezoomo": ("Rezoomo", "rezoomo.com"),
     "hrmanager": ("HR Manager", "hrmanager.ie"),

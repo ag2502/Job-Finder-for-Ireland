@@ -1524,3 +1524,60 @@ def test_jazzhr_unknown_tenant_fails():
     )
 
     assert JazzHrAdapter().fetch("nobody").status is CrawlStatus.FAILED
+
+
+# ---------------------------------------------------------------------------
+# Jobvite
+# ---------------------------------------------------------------------------
+
+
+def _jobvite_page(rows: list[tuple[str, str]]) -> str:
+    body = "".join(
+        f'<tr><td class="jv-job-list-name"><a href="/acme/job/{job_id}">Role {job_id}</a></td>'
+        f'<td class="jv-job-list-location"> {place} </td></tr>'
+        for job_id, place in rows
+    )
+    return f'<table class="jv-job-list">{body}</table>'
+
+
+@respx.mock
+def test_jobvite_reads_every_page_and_opens_only_irish_adverts(monkeypatch):
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.jobvite import JobviteAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    pages = {
+        "0": _jobvite_page([("aa1", "Cork, Ireland"), ("bb2", "San Rafael, California")]),
+        "1": _jobvite_page([("cc3", "2 Locations")]),
+        "2": _jobvite_page([("cc3", "2 Locations")]),
+    }
+    respx.get(url__startswith="https://jobs.jobvite.com/acme/jobs").mock(
+        side_effect=lambda request: httpx.Response(200, text=pages[request.url.params["p"]])
+    )
+    adverts = respx.get(url__startswith="https://jobs.jobvite.com/acme/job/").mock(
+        return_value=httpx.Response(200, text=(
+            '<script type="application/ld+json">{"@type":"JobPosting","title":"Role",'
+            '"description":"<p>Make medicines.</p>","datePosted":"2026-06-24"}</script>'
+        ))
+    )
+
+    result = JobviteAdapter().fetch("acme")
+
+    assert result.status is CrawlStatus.OK
+    assert [(j.source_job_id, j.location_raw) for j in result.jobs] == [
+        ("aa1", "Cork, Ireland"), ("bb2", "San Rafael, California"), ("cc3", "2 Locations"),
+    ]
+    # The Californian role is kept but its advert is never opened.
+    assert {str(c.request.url).rsplit("/", 1)[-1] for c in adverts.calls} == {"aa1", "cc3"}
+    assert "Make medicines" in result.jobs[0].description and result.jobs[0].posted_at.month == 6
+    assert result.jobs[1].description is None
+
+
+@respx.mock
+def test_jobvite_unknown_company_fails():
+    from jobfinder.sources.jobvite import JobviteAdapter
+
+    respx.get(url__startswith="https://jobs.jobvite.com/nobody/jobs").mock(
+        return_value=httpx.Response(200, text="<html><body>Page not found</body></html>")
+    )
+    assert JobviteAdapter().fetch("nobody").status is CrawlStatus.FAILED
