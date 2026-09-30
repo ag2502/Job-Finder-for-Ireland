@@ -12,7 +12,7 @@ its own tenant, so a source is addressed by a compound slug:
     POST https://{tenant}.{wdhost}.myworkdayjobs.com/wday/cxs/{tenant}/{site}/jobs
          {"appliedFacets": {...}, "limit": 20, "offset": 0, "searchText": ""}
 
-The adapter returns a tenant's **Irish** postings and leaves Dublin to the pipeline,
+The adapter returns a tenant's **Irish** postings and leaves the county to the pipeline,
 which checks every office a role lists. Four details of the API drive how:
 
 * `total` is reported on the first page only. Every later page says `"total": 0`, so a
@@ -93,10 +93,14 @@ def parse_slug(slug: str) -> tuple[str, str, str]:
 
 
 def is_irish_place(text: str | None) -> bool:
-    """True for a location string naming Ireland or a Dublin office."""
+    """True for a location string naming Ireland or an Irish office.
+
+    Offices anywhere in the country count, not only Dublin's: Bon Secours names its
+    hospitals "Cork", "Limerick" and "Tralee", and those roles were never read.
+    """
     if not text:
         return False
-    return bool(_IRISH_WORDS.search(text)) or normalize_location(text).is_dublin
+    return bool(_IRISH_WORDS.search(text)) or normalize_location(text).is_ireland
 
 
 def irish_facets(facets: list[dict] | None) -> list[dict[str, list[str]]]:
@@ -274,7 +278,7 @@ class WorkdayAdapter(BaseAdapter):
         if is_irish_place(location):
             return True
         # The title itself sometimes carries the office when the location is generic.
-        return normalize_location(item.get("title") or "").is_dublin
+        return normalize_location(item.get("title") or "").is_ireland
 
     def _build_job(
         self,

@@ -231,3 +231,19 @@ def test_a_tag_in_the_first_bullet_is_not_used_as_the_id():
 
     # Real requisition ids keep the ids stored for existing roles unchanged.
     assert sorted(j.source_job_id for j in result.jobs) == ["JR0001", "JR0002", "R-3"]
+
+
+def test_irish_offices_outside_dublin_are_selected():
+    """Bon Secours names its hospitals by town alone: "Cork", "Limerick", "Tralee"."""
+    facets = [
+        {
+            "facetParameter": "locations",
+            "values": [
+                {"descriptor": "Cork", "id": "cork"},
+                {"descriptor": "Tralee", "id": "tralee"},
+                {"descriptor": "Waterford, MI", "id": "waterford-mi"},
+                {"descriptor": "London", "id": "london"},
+            ],
+        }
+    ]
+    assert irish_facets(facets) == [{"locations": ["cork", "tralee"]}]
