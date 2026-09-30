@@ -353,3 +353,21 @@ Circle Internet Group,workday,circle:wd1:Circle,3,false,curated,Workday board re
 Fidelity International,workday,fil:wd3:001,3,false,curated,Workday board read for Ireland (Dublin),https://careers.fidelityinternational.com/
 Broadcom,workday,broadcom:wd1:External_Career,3,false,curated,Workday board read for Ireland (VMware's Cork campus); nothing open on 2026-09-30,https://www.broadcom.com/company/careers
 Siemens Healthineers,workday,onehealthineers:wd3:SHSJB,3,false,curated,Workday board read for Ireland; nothing open on 2026-09-30,https://www.siemens-healthineers.com/careers
+Optum,talentbrew,https://careers.unitedhealthgroup.com/location/ireland-jobs/34088/2963597/2,2,false,curated,UnitedHealth Group's Ireland location page; its Irish roles are Optum's in Dublin and Letterkenny,https://careers.unitedhealthgroup.com/
+Kraken,ashby,kraken.com,2,false,curated,Ashby board read for Ireland (remote roles open in Ireland),https://www.kraken.com/careers
+Pramerica,workday,pru:wd5:Careers,2,false,curated,Prudential Financial's Workday site; its Irish roles are PGIM Ireland in Letterkenny,https://www.pramerica.ie/
+Rippling,rippling,rippling,2,false,curated,Rippling's own board (Dublin EMEA hub),https://www.rippling.com/careers
+Autodesk,workday,autodesk:wd1:Ext,2,false,curated,Workday board read for Ireland (Dublin),https://www.autodesk.com/careers
+ASSA ABLOY,successfactors,assaabloy.jobs2web.com|Ireland,2,false,curated,Group SuccessFactors site searched for Ireland; includes HID Global in Galway,https://careers.hidglobal.com/
+onsemi,oracle_recruiting,hctz.fa.us2.oraclecloud.com|CX_1001,2,false,curated,Oracle Recruiting site read for Ireland (Cork and Limerick),https://www.onsemi.com/careers
+Synopsys,talentbrew,https://careers.synopsys.com/location/ireland-jobs/44408/2963597/2,2,false,curated,TalentBrew Ireland location page (Dublin),https://careers.synopsys.com/
+GE HealthCare,workday,gehc:wd5:GEHC_ExternalSite,2,false,curated,Workday board read for Ireland (Cork),https://careers.gehealthcare.com/
+Prometric,dayforce,prometric|prometriccareersite,3,false,curated,Dayforce careers site (Dundalk and test centres),https://jobs.dayforcehcm.com/en-IE/prometric/prometriccareersite
+Viagogo,greenhouse,viagogo,3,false,curated,Greenhouse board (Limerick),https://job-boards.eu.greenhouse.io/viagogo
+Honeywell,oracle_recruiting,ibqbjb.fa.ocs.oraclecloud.com|Honeywell,3,false,curated,Oracle Recruiting site read for Ireland (Dublin),https://www.honeywell.com/us/en/careers
+Yahoo,workday,ouryahoo:wd5:careers,3,false,curated,Workday board read for Ireland (Dublin),https://www.yahooinc.com/careers/
+Mimecast,workday,mimecast:wd5:Mimecast-Careers,3,false,curated,Workday board read for Ireland (Dublin office); nothing open on 2026-09-30,https://careers.mimecast.com/
+Avaya,successfactors,careers.avaya.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Galway); nothing open on 2026-09-30,https://careers.avaya.com/
+Skyworks,successfactors,careers.skyworksinc.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Cork); nothing open on 2026-09-30,https://careers.skyworksinc.com/
+Xperi,jobvite,xperi,3,false,curated,Jobvite board (Galway); nothing open on 2026-09-30,https://xperi.com/careers/open-positions/
+Quantexa,ashby,quantexa,3,false,curated,Ashby board (Dublin office); nothing open on 2026-09-30,https://www.quantexa.com/careers/
