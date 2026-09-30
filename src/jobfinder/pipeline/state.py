@@ -68,26 +68,36 @@ def resolve_location(
 ) -> LocationResult:
     """Resolve a posting's location across its primary and secondary offices.
 
-    A role listed against several offices is a Dublin role if *any* of them is Dublin.
-    Checking only the primary field under-counts silently. A posting with no location
+    A role listed against several offices is a Dublin role if *any* of them is Dublin,
+    and otherwise an Irish role if any of them is in Ireland. Checking only the primary
+    field under-counts silently. A posting with no location
     at all is judged from its title and advert instead (see `dublin_in_advert`).
     """
     primary = normalize_location(job.location_raw, company_is_irish=company_is_irish)
     if primary.is_dublin:
         return primary
 
-    for extra in job.extra_locations:
-        candidate = normalize_location(extra, company_is_irish=company_is_irish)
-        if candidate.is_dublin:
-            # Keep the raw string the source led with, but adopt the Dublin verdict.
-            candidate.raw = job.location_raw
-            candidate.is_remote = candidate.is_remote or primary.is_remote
-            return candidate
+    extras = [
+        normalize_location(extra, company_is_irish=company_is_irish)
+        for extra in job.extra_locations
+    ]
+    # Dublin first, then anywhere else in Ireland: a Stockholm-led role also open in
+    # Cork is a Cork role here.
+    for wanted in ("is_dublin", "is_ireland"):
+        if getattr(primary, wanted):
+            return primary
+        for candidate in extras:
+            if getattr(candidate, wanted):
+                # Keep the raw string the source led with, but adopt the verdict.
+                candidate.raw = job.location_raw
+                candidate.is_remote = candidate.is_remote or primary.is_remote
+                return candidate
 
     if not (job.location_raw or "").strip() and not job.extra_locations:
         if dublin_in_advert(f"{job.title}\n{description or ''}"):
             return LocationResult(
-                raw=job.location_raw, is_dublin=True, location_norm="Dublin, Ireland"
+                raw=job.location_raw, is_dublin=True, is_ireland=True, region="Dublin",
+                location_norm="Dublin, Ireland",
             )
 
     return primary

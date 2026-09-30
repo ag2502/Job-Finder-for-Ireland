@@ -190,3 +190,63 @@ def test_an_advert_can_place_a_job_in_dublin(advert):
 )
 def test_a_passing_mention_of_dublin_does_not(advert):
     assert not dublin_in_advert(advert)
+
+
+# ---------------------------------------------------------------------------
+# The rest of Ireland
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("raw", "region"),
+    [
+        ("Cork, Ireland", "Cork"),
+        ("Ireland, Limerick", "Limerick"),
+        ("IE-Cork", "Cork"),
+        ("Galway", "Galway"),
+        ("Athlone", "Westmeath"),
+        ("Little Island, Cork", "Cork"),
+        ("Celbridge, Ireland", "Kildare"),
+        ("Westport, Co. Mayo", "Mayo"),
+        ("Shannon, Ireland", "Clare"),
+        ("Cork, IE; London, UK", "Cork"),
+        ("Dublin, Ireland", "Dublin"),
+    ],
+)
+def test_irish_places_are_given_their_county(raw: str, region: str) -> None:
+    result = normalize_location(raw)
+    assert result.is_ireland and result.region == region
+    assert result.location_norm == f"{region}, Ireland"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        # Names shared with offices abroad.
+        "Waterford, MI", "Westport, CT", "Dundalk, MD", "Ennis, TX", "Newbridge, Wales",
+        # Too often somewhere else to count without Ireland named beside them.
+        "Bray", "Shannon", "Clare",
+        # Northern Ireland is in the UK.
+        "Belfast, Northern Ireland",
+        "London, UK", "Remote", "Dublin, CA",
+    ],
+)
+def test_places_abroad_are_not_irish(raw: str) -> None:
+    assert not normalize_location(raw).is_ireland
+
+
+def test_the_country_alone_is_irish_without_a_region() -> None:
+    for raw in ("Ireland", "IE", "Remote - Ireland"):
+        result = normalize_location(raw)
+        assert result.is_ireland and result.region is None
+
+
+def test_an_irish_second_office_makes_an_irish_role() -> None:
+    from jobfinder.pipeline.state import resolve_location
+    from jobfinder.sources.base import RawJob
+
+    job = RawJob("1", "Engineer", "https://x", location_raw="Stockholm, Sweden",
+                 extra_locations=["Cork, Ireland"])
+    result = resolve_location(job)
+    assert result.is_ireland and not result.is_dublin and result.region == "Cork"
+    assert result.raw == "Stockholm, Sweden"

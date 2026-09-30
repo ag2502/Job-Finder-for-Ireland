@@ -17,6 +17,13 @@ follows the city, whereas in "SF, New York, Seattle, Dublin, Luxembourg" Dublin 
 as its own entry in a list of offices. So a US state is disqualifying only when it
 immediately follows Dublin — not merely when it appears somewhere in the string.
 
+Beyond Dublin, every Irish posting is given its county as `region`, so the finder can
+cover the whole country and group roles by where they are. The same trap applies
+there, only wider: Waterford, Michigan and Westport, Connecticut are real offices. A
+place is Irish when nothing beside it says otherwise, and the names that are just as
+often somewhere else (Ennis, Bray, Shannon, Westport) count only when the string also
+names Ireland. Northern Ireland is part of the UK and is not counted.
+
 `location_raw` is never modified by any of this. Normalization is purely additive.
 """
 
@@ -96,6 +103,78 @@ _DUBLIN_POSTAL = re.compile(r"\b(?:d(?:0[1-9]|1[0-9]|2[0-4])|dublin\s?\d{1,2}w?)
 # Splits a multi-location string into individual place entries.
 _SEPARATORS = re.compile(r"\s*(?:[,/|;&]|\bor\b|\band\b|\bplus\b)\s*", re.IGNORECASE)
 
+# The 26 counties of the Republic, each of which is also how a region is named. The
+# main city of most shares its county's name, so "Cork" is the city and the county alike.
+IRISH_COUNTIES = (
+    "Carlow", "Cavan", "Clare", "Cork", "Donegal", "Dublin", "Galway", "Kerry", "Kildare",
+    "Kilkenny", "Laois", "Leitrim", "Limerick", "Longford", "Louth", "Mayo", "Meath",
+    "Monaghan", "Offaly", "Roscommon", "Sligo", "Tipperary", "Waterford", "Westmeath",
+    "Wexford", "Wicklow",
+)
+
+# Towns, suburbs and business parks that boards give without their county.
+_IRISH_TOWNS = {
+    "Cork": ("carrigaline", "ringaskiddy", "little island", "mallow", "cobh", "midleton",
+             "fermoy", "youghal", "kinsale", "blarney", "ballincollig", "glanmire",
+             "carrigtwohill", "macroom", "clonakilty", "skibbereen", "bantry", "mahon"),
+    "Galway": ("oranmore", "ballybrit", "parkmore", "tuam", "ballinasloe", "loughrea",
+               "athenry", "clifden"),
+    "Limerick": ("castletroy", "raheen", "plassey", "annacotty", "newcastle west"),
+    "Waterford": ("dungarvan", "tramore"),
+    "Kildare": ("naas", "maynooth", "celbridge", "leixlip", "newbridge", "athy",
+                "kilcock", "clane", "kilcullen", "sallins"),
+    "Meath": ("navan", "ashbourne", "trim", "dunboyne", "kells", "ratoath",
+              "dunshaughlin"),
+    "Wicklow": ("bray", "greystones", "arklow", "blessington"),
+    "Louth": ("dundalk", "drogheda", "ardee"),
+    "Westmeath": ("athlone", "mullingar"),
+    "Wexford": ("enniscorthy", "gorey", "new ross", "rosslare"),
+    "Carlow": ("tullow",),
+    "Tipperary": ("clonmel", "thurles", "nenagh", "cashel", "carrick-on-suir", "roscrea",
+                  "cahir"),
+    "Clare": ("ennis", "shannon", "kilrush", "sixmilebridge"),
+    "Kerry": ("tralee", "killarney", "listowel", "kenmare", "dingle"),
+    "Mayo": ("castlebar", "ballina", "westport", "claremorris"),
+    "Donegal": ("letterkenny", "buncrana", "ballyshannon"),
+    "Roscommon": ("castlerea",),
+    "Offaly": ("tullamore", "birr", "edenderry"),
+    "Laois": ("portlaoise", "portarlington", "mountmellick"),
+    "Leitrim": ("carrick-on-shannon",),
+    "Cavan": ("bailieborough",),
+    "Monaghan": ("carrickmacross", "castleblayney"),
+}
+
+# Names shared with a better-known place abroad, a surname, or an everyday word. They
+# place a role in Ireland only when the string names Ireland too.
+_AMBIGUOUS_PLACES = {
+    "clare", "kerry", "mayo", "longford", "louth", "ennis", "shannon", "bray", "newbridge",
+    "westport", "ballina", "killarney", "listowel", "dingle", "trim", "kells", "ashbourne",
+    "portarlington", "birr", "cashel", "dundalk", "mahon",
+}
+
+_PLACE_REGION = {county.lower(): county for county in IRISH_COUNTIES}
+for _county, _towns in _IRISH_TOWNS.items():
+    _PLACE_REGION.update({town: _county for town in _towns})
+
+_IRISH_PLACE = re.compile(
+    r"\b(" + "|".join(sorted((re.escape(p) for p in _PLACE_REGION), key=len, reverse=True))
+    + r")\b",
+    re.IGNORECASE,
+)
+_COUNTY_PREFIX = re.compile(
+    r"\b(?:co\.?|county)\s+(" + "|".join(IRISH_COUNTIES) + r")\b", re.IGNORECASE
+)
+_NORTHERN_IRELAND = re.compile(r"\bnorthern\s+ireland\b", re.IGNORECASE)
+_IRELAND_WORD = re.compile(r"\b(?:ireland|[ée]ire)\b", re.IGNORECASE)
+
+# Countries a board names after a place abroad, so "Waterford, United Kingdom" is not
+# read as Irish. The US is covered by its states as well as by name.
+_FOREIGN_COUNTRIES = {
+    "uk", "united kingdom", "england", "scotland", "wales", "gb", "great britain",
+    "australia", "au", "canada", "ca", "new zealand", "nz", "south africa",
+    "usa", "us", "united states", "united states of america", "france", "fr",
+} | _US_SIGNALS
+
 
 @dataclass
 class LocationResult:
@@ -103,6 +182,10 @@ class LocationResult:
 
     raw: str | None
     is_dublin: bool = False
+    # Anywhere in the Republic of Ireland, Dublin included.
+    is_ireland: bool = False
+    # The county the role is in ("Cork"), or None where only the country is known.
+    region: str | None = None
     is_remote: bool = False
     is_hybrid: bool = False
     needs_review: bool = False
@@ -177,6 +260,42 @@ def _dublin_followed_by_us_state(text: str) -> bool:
     return False
 
 
+def _names_ireland(text: str, lowered_tokens: set[str]) -> bool:
+    """Does the string name the Republic itself: "Ireland", "IE", "Co. Cork"?"""
+    republic = _NORTHERN_IRELAND.sub(" ", text)
+    return bool(
+        _IRELAND_WORD.search(republic)
+        or (lowered_tokens & _IRELAND_SIGNALS) - {"ireland"}
+        or _COUNTY_PREFIX.search(republic)
+    )
+
+
+def irish_region(text: str, *, names_ireland: bool) -> str | None:
+    """The county of the first Irish place the string names, or None.
+
+    Each entry of a multi-office list is judged on its own, so in "Cork; Waterford, MI"
+    Cork counts and the Michigan Waterford does not.
+    """
+    if _NORTHERN_IRELAND.search(text) and not names_ireland:
+        return None
+    tokens = _tokenize(text)
+    for index, token in enumerate(tokens):
+        for match in _IRISH_PLACE.finditer(token):
+            place = match.group(1).lower()
+            if place in _AMBIGUOUS_PLACES and not names_ireland:
+                continue
+            # The next entry says which country: "Waterford, MI", "Bray, UK".
+            following = tokens[index + 1].strip() if index + 1 < len(tokens) else ""
+            if following.lower() in _FOREIGN_COUNTRIES or _is_state(following):
+                continue
+            # Or the state sits in the same entry: "Waterford MI".
+            code = _CODE_AFTER.match(token[match.end():])
+            if code and _is_state(code.group(1)):
+                continue
+            return _PLACE_REGION[place]
+    return None
+
+
 def normalize_location(
     raw: str | None,
     *,
@@ -212,19 +331,27 @@ def normalize_location(
     has_ireland_signal = bool(lowered_tokens & _IRELAND_SIGNALS)
     has_us_signal = bool(lowered_tokens & _US_SIGNALS)
 
-    if not (has_dublin_word or has_dublin_postal or has_locality):
-        # Not a Dublin string at all. Still record a tidied form for other filters.
-        result.location_norm = ", ".join(tokens) if tokens else text
-        return result
+    names_ireland = _names_ireland(text, lowered_tokens)
 
-    # A Dublin mention immediately followed by a US state is a US Dublin, unless the
-    # string also explicitly names Ireland (a genuine multi-office listing).
-    if _dublin_followed_by_us_state(text) and not has_ireland_signal:
-        result.is_dublin = False
-        result.location_norm = ", ".join(tokens) if tokens else text
+    if not (has_dublin_word or has_dublin_postal or has_locality) or (
+        # A Dublin mention immediately followed by a US state is a US Dublin, unless
+        # the string also explicitly names Ireland (a genuine multi-office listing).
+        _dublin_followed_by_us_state(text) and not has_ireland_signal
+    ):
+        # Not a Dublin role. It may still be somewhere else in Ireland.
+        region = irish_region(text, names_ireland=names_ireland)
+        if region == "Dublin":
+            region = None
+        result.region = region
+        result.is_ireland = bool(region) or names_ireland
+        result.location_norm = (
+            f"{region}, Ireland" if region else ", ".join(tokens) if tokens else text
+        )
         return result
 
     result.is_dublin = True
+    result.is_ireland = True
+    result.region = "Dublin"
     result.location_norm = "Dublin, Ireland"
 
     # Flag for human review only where the evidence genuinely conflicts: a US country
