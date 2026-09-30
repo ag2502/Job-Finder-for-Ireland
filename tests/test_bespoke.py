@@ -259,3 +259,19 @@ def test_a_posting_with_no_location_is_placed_by_its_advert():
     # A location the board did give is never second-guessed by the advert.
     placed = RawJob(source_job_id="2", title="Engineer", url="https://x", location_raw="Cork")
     assert not resolve_location(placed, description="Location: Dublin, Ireland").is_dublin
+
+
+@respx.mock
+def test_google_location_drops_the_icon_ligature():
+    """The location line starts with a "place" icon, which read as "placeDublin"."""
+    from jobfinder.sources.bespoke.google import GoogleAdapter
+
+    url = "https://www.google.com/about/careers/applications/jobs/results/1-engineer"
+    respx.get(url).mock(return_value=httpx.Response(200, text=(
+        '<meta property="og:title" content="Software Engineer">'
+        '<span><i class="material-icons">place</i>Dublin, Ireland; London, UK</span>'
+    )))
+
+    _, _, location = GoogleAdapter()._detail(url, httpx.Client())
+
+    assert location == "Dublin, Ireland; London, UK"

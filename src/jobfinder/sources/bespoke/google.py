@@ -51,6 +51,9 @@ def title_from_slug(slug: str) -> str:
     return " ".join(word.capitalize() for word in slug.split("-") if word)
 
 
+_ICON_PREFIX = re.compile(r"^place(?=[A-Z])")
+
+
 class GoogleAdapter(BaseAdapter):
     name = "google"
     tier = 1
@@ -135,7 +138,9 @@ class GoogleAdapter(BaseAdapter):
 
         location = None
         for node in tree.css("span, div"):
-            text = node.text(strip=True)
+            # The line opens with a Material icon whose text is its ligature name, so
+            # the node reads "placeDublin, Ireland": 128 Google jobs were not Dublin.
+            text = _ICON_PREFIX.sub("", node.text(strip=True))
             if text and "Dublin" in text and len(text) < 80:
                 location = text
                 break
