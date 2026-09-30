@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% from "_macros.html" import logo, titlebar, years_slider, field_tag %}
 {% set nav = 'finder' %}
-{% block title %}{% if landing and search_title %}{{ search_title }} jobs in Dublin | Sorted Place{% else %}Sorted Place: every job in Dublin, in one place{% endif %}{% endblock %}
-{% block railcount %}{{ "{:,}".format(dublin_count) }} open<span class="rail-long"> in Dublin</span>{% endblock %}
+{% block title %}{% if landing and search_title %}{{ search_title }} jobs in Ireland | Sorted Place{% else %}Sorted Place: every job in Ireland, in one place{% endif %}{% endblock %}
+{% block railcount %}{{ "{:,}".format(ireland_count) }} open<span class="rail-long"> in Ireland</span>{% endblock %}
 
 {% block wide %}
 {# The desktop everyone job hunting already has: a careers site per window. Each window
@@ -33,7 +33,7 @@
       <div class="fw__body">
         <div class="fw__head">
           {{ logo(e.name, e.domain) }}
-          <div><b>{{ e.name }}</b><span>{{ e.jobs }} open in Dublin</span></div>
+          <div><b>{{ e.name }}</b><span>{{ e.jobs }} open in Ireland</span></div>
         </div>
         {% if e.titles %}
         <ul class="fw__list">
@@ -49,7 +49,7 @@
       <span class="nametag__name">sorted</span>
     </div>
     <div class="sticker note" data-drag style="--x:27%;--y:79%;--r:4deg;--d:1.3;--i:10">
-      {{ "{:,}".format(employers_hiring) }} companies.<br>{{ "{:,}".format(dublin_count) }} jobs.<br>one tab.
+      {{ "{:,}".format(employers_hiring) }} companies.<br>{{ "{:,}".format(ireland_count) }} jobs.<br>one tab.
     </div>
     <p class="scribble hand" aria-hidden="true">
       psst, these windows move.<br>try dragging one
@@ -58,9 +58,9 @@
   </div>
 
   <div class="desk__copy">
-    <h1 id="desk-title">Every job in Dublin, <span class="hl">sorted.</span></h1>
+    <h1 id="desk-title">Every job in Ireland, <span class="hl">sorted.</span></h1>
     <p class="lede">
-      <strong>{{ "{:,}".format(dublin_count) }} jobs</strong> open right now at
+      <strong>{{ "{:,}".format(ireland_count) }} jobs</strong> open right now at
       {{ "{:,}".format(employers_hiring) }} companies, collected straight from their own careers
       pages, so you can close the other nineteen tabs.
     </p>
@@ -74,7 +74,7 @@
 
 {# The biggest employers sit in a dock; the rest are one click away on /companies. #}
 {% if hiring_employers %}
-<section class="dockrow" aria-label="Companies hiring in Dublin right now">
+<section class="dockrow" aria-label="Companies hiring in Ireland right now">
   <p class="dockrow__label hand">hiring right now <svg class="scrawl" viewBox="0 0 24 30" width="18" height="24" aria-hidden="true"><path d="M11 3c2 7-1 14 1 23M12 26l-6-6M12 26l5-7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></p>
   <div class="dock" data-dock>
     {% for e in hiring_employers if e.domain %}{% if loop.index <= 10 %}
@@ -84,7 +84,7 @@
     </a>
     {% endif %}{% endfor %}
     <span class="dock__sep" aria-hidden="true"></span>
-    <a class="dock__item dock__more" href="/companies" title="Every company hiring in Dublin">
+    <a class="dock__item dock__more" href="/companies" title="Every company hiring in Ireland">
       <span class="dock__folder">+{{ employers_hiring - 10 if employers_hiring > 10 else employers_hiring }}</span>
       <span class="dock__tip">all companies</span>
     </a>
@@ -151,12 +151,12 @@
         </div>
 
         <div class="demo__pane demo__pane--2">
-          <p class="demo__label">{{ "{:,}".format(dublin_count) }} jobs checked &middot; best fit first</p>
+          <p class="demo__label">{{ "{:,}".format(ireland_count) }} jobs checked &middot; best fit first</p>
           <ul class="demo__rows">
             {% for e in showcase[:4] %}{% if e.titles %}
             <li style="--k:{{ loop.index0 }}">
               {{ logo(e.name, e.domain, "logo--sm") }}
-              <span><b>{{ e.titles[0] }}</b><small>{{ e.name }} &middot; Dublin</small></span>
+              <span><b>{{ e.titles[0] }}</b><small>{{ e.name }} &middot; Ireland</small></span>
               <span class="btn btn--apply demo__apply">Apply <svg width="13" height="13"><use href="#i-arrow"/></svg></span>
             </li>
             {% endif %}{% endfor %}
@@ -274,7 +274,7 @@
   <span class="beachball" aria-hidden="true"></span>
   <div>
     <strong>Finding your jobs&hellip; <span id="search-elapsed" class="accession"></span></strong>
-    <span class="sub">Checking what you picked against every job open in Dublin.</span>
+    <span class="sub">Checking what you picked against every job open in Ireland.</span>
   </div>
 </div>
 

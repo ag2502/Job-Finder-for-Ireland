@@ -60,6 +60,12 @@
     <div class="guide">{{ tier_bands[item.tier] }}
       <span class="guide__count">{{ "{:,}".format(band_counts[item.tier]) }}</span></div>
     {% endif %}
+    {# Sorted by location, a heading opens each place instead. #}
+    {% set place_before = items[loop.index0 - 1].where.key if not loop.first else prev_where %}
+    {% if by_location and item.where.key != place_before %}
+    <div class="guide">{{ item.where.label }}
+      <span class="guide__count">{{ "{:,}".format(where_totals[item.where.key]) }}</span></div>
+    {% endif %}
 
     {# The whole row opens the advert in a panel over the list (finder.html); the title
        is a real link to the job's own page, for new tabs and for no JavaScript. #}

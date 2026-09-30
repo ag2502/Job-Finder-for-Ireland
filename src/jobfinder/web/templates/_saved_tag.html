@@ -1,7 +1,7 @@
 {# The Save control for one advert, in whichever state it is currently in.
 
    It posts the title, company and url back every time, because the saved list stores
-   them alongside the key: the snapshot only carries open Dublin roles, so looking them
+   them alongside the key: the snapshot only carries open Irish roles, so looking them
    up later would blank the list out as jobs close. #}
 {% set vals = {"advert_key": advert_key, "title": title, "company": company, "url": url}|tojson %}
 <span class="save-mark">

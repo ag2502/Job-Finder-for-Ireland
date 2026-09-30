@@ -53,3 +53,26 @@ def test_a_band_caps_how_strong_its_jobs_can_read():
     assert _strength(0, 10, cap=STRENGTH_CAPS[rank.TIER_CHOSEN]) == 3
     # A cap never lifts a job above where it ranks.
     assert _strength(9, 10, cap=3) == 1
+
+
+@pytest.mark.parametrize(
+    ("raw", "dublin", "region", "expected"),
+    [
+        ("Dublin, Ireland", True, "Dublin", "Dublin"),
+        ("Dublin 2, Ireland", True, "Dublin", "Dublin 2"),
+        ("Cork, Ireland", False, "Cork", "Cork"),
+        ("Ringaskiddy, Cork", False, "Cork", "Ringaskiddy, Cork"),
+        ("Athlone", False, "Westmeath", "Athlone, Westmeath"),
+        # The county once, and none of the board's codes.
+        ("Galway, County Galway", False, "Galway", "Galway"),
+        ("Galway IE-G, N/A", False, "Galway", "Galway"),
+        ("Ireland", False, None, "Ireland"),
+    ],
+)
+def test_a_row_says_where_in_ireland_the_role_is(raw, dublin, region, expected):
+    from types import SimpleNamespace
+
+    from jobfinder.web.app import _place_label
+
+    job = SimpleNamespace(location_raw=raw, is_dublin=dublin, is_ireland=True, region=region)
+    assert _place_label(job) == expected

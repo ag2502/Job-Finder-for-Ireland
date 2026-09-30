@@ -1218,3 +1218,86 @@ def test_no_colour_token_is_defined_by_itself():
     for f in [*root.glob("templates/*.html"), *root.glob("static/*.css")]:
         for name, ref in re.findall(r"--([a-z0-9-]+)\s*:\s*var\(--([a-z0-9-]+)\)", f.read_text()):
             assert name != ref, f"{f.name}: --{name} is defined as itself"
+
+
+# ---------------------------------------------------------------------------
+# All of Ireland, by location
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def irish_jobs(monkeypatch):
+    """A tiny database of graduate roles around the country, served to the search."""
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    import jobfinder.web.app as web
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    make = sessionmaker(bind=engine, future=True, expire_on_commit=False)
+    with make() as session:
+        company = Company(name="Acme", normalized_name="acme", coverage_state=CoverageState.UNRESOLVED)
+        session.add(company)
+        session.flush()
+        source = Source(company_id=company.id, adapter="greenhouse", slug="acme", tier=1)
+        session.add(source)
+        session.flush()
+        places = [
+            ("Cork, Ireland", False, True, "Cork"), ("Ringaskiddy, Cork", False, True, "Cork"),
+            ("Dublin 2, Ireland", True, True, "Dublin"),
+            ("Galway, Ireland", False, True, "Galway"),
+            ("Belfast, Northern Ireland", False, False, None),
+        ]
+        for index, (raw, dublin, irish, region) in enumerate(places):
+            session.add(JobPosting(
+                company_id=company.id, source_id=source.id, source_job_id=str(index),
+                dedup_key=f"k{index}", title=f"Graduate Engineer {index}",
+                url=f"https://acme.example/{index}", location_raw=raw, is_dublin=dublin,
+                is_ireland=irish, region=region, is_remote=False, is_graduate=True,
+                needs_location_review=False, status=JobStatus.ACTIVE, consecutive_misses=0,
+            ))
+        session.commit()
+
+    @contextmanager
+    def scope():
+        with make() as session:
+            yield session
+
+    monkeypatch.setattr(web, "session_scope", scope)
+    field = next(iter(web.FIELDS))
+    return lambda **kw: web._search_results(
+        {"fields": [field], "graduate_only": True, **kw.pop("profile", {})}, **kw
+    )
+
+
+def _titles(result):
+    return [item["job"].title for item in result["items"]]
+
+
+def test_roles_anywhere_in_ireland_are_offered(irish_jobs):
+    result = irish_jobs()
+    places = {item["place"] for item in result["items"]}
+    # Northern Ireland is not in the Republic.
+    assert result["total"] == 4
+    assert places == {"Cork", "Ringaskiddy, Cork", "Dublin 2", "Galway"}
+
+
+def test_the_location_picker_narrows_to_one_county(irish_jobs):
+    everywhere = irish_jobs()
+    assert [(p["key"], p["count"]) for p in everywhere["places"]] == [
+        ("Cork", 2), ("Dublin", 1), ("Galway", 1),
+    ]
+    cork = irish_jobs(where="Cork")
+    assert cork["where"] == "Cork" and cork["total"] == 2
+    # A place with nothing in this search is ignored rather than emptying the list.
+    assert irish_jobs(where="Kerry")["total"] == 4
+
+
+def test_sorting_by_location_puts_the_busiest_place_first(irish_jobs):
+    result = irish_jobs(profile={"sort": "location"})
+    assert [item["where"]["key"] for item in result["items"]] == ["Cork", "Cork", "Dublin", "Galway"]
+    assert result["by_location"] and result["where_totals"]["Cork"] == 2

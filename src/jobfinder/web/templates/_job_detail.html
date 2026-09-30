@@ -23,7 +23,7 @@
     </div>
     <div class="jobx__fact">
       <dt>Where</dt>
-      <dd>{{ "Dublin" if job.is_dublin else "Outside Dublin" }}{% if place %}, {{ place }}{% endif %}</dd>
+      <dd>{{ place or "Ireland" }}</dd>
     </div>
     <div class="jobx__fact">
       <dt>Salary</dt>

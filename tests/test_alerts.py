@@ -40,9 +40,9 @@ def test_new_means_first_seen_since_and_not_an_old_advert_newly_read():
 
 def test_the_subject_says_what_is_new():
     s = lambda n, noun: SimpleNamespace(count=n, noun=noun)
-    assert digest.subject([s(1, "internship")]) == "1 new internship in Dublin"
+    assert digest.subject([s(1, "internship")]) == "1 new internship in Ireland"
     assert digest.subject([s(3, "graduate programme"), s(12, "job")]) == \
-        "3 new graduate programmes and 12 new jobs in Dublin"
+        "3 new graduate programmes and 12 new jobs in Ireland"
 
 
 def test_sections_list_new_jobs_once_from_the_sites_own_search():

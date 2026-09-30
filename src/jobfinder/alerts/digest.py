@@ -148,7 +148,7 @@ def _plural(n: int, noun: str) -> str:
 def subject(sections: list[Section]) -> str:
     parts = [_plural(s.count, s.noun) for s in sections]
     joined = parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
-    return joined[0].upper() + joined[1:] + " in Dublin"
+    return joined[0].upper() + joined[1:] + " in Ireland"
 
 
 def compose(row: dict, sections: list[Section]) -> EmailMessage:

@@ -4,7 +4,7 @@
 {% from "_macros.html" import titlebar %}
 {% set nav = 'finder' %}
 {% block title %}{% if gone %}This job has closed{% else %}{{ job.title }} at {{ company }}{% endif %} | Sorted Place{% endblock %}
-{% block description %}{% if gone %}This job is no longer open.{% else %}{{ job.title }} at {{ company }}, Dublin. Read the advert and apply on {{ company }}'s own careers site.{% endif %}{% endblock %}
+{% block description %}{% if gone %}This job is no longer open.{% else %}{{ job.title }} at {{ company }}, {{ place|default('Ireland', true) }}. Read the advert and apply on {{ company }}'s own careers site.{% endif %}{% endblock %}
 {% block content %}
 <section class="jobpage">
   {% if gone %}

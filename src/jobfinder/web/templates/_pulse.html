@@ -1,4 +1,4 @@
-{# The hiring pulse: open Dublin jobs by the day they were posted, over the last 30
+{# The hiring pulse: open jobs in Ireland by the day they were posted, over the last 30
    days (web/app.py: _hiring_pulse). An Activity Monitor window on the desk. One series,
    so no legend: the title says what is plotted. Every bar answers on hover and focus,
    and the same figures are in the table under it. #}
@@ -9,7 +9,7 @@
     <div class="pulse__body">
       <div class="pulse__head">
         <div>
-          <p class="pulse__label" id="pulse-title">Dublin jobs posted in the last {{ pulse.days|length }} days, still open</p>
+          <p class="pulse__label" id="pulse-title">Jobs in Ireland posted in the last {{ pulse.days|length }} days, still open</p>
           <p class="pulse__value">{{ "{:,}".format(pulse.total) }}</p>
         </div>
         <p class="pulse__note">Busiest day: <b>{{ pulse.peak.long }}</b>, {{ "{:,}".format(pulse.peak.n) }} jobs.

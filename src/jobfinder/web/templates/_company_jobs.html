@@ -1,11 +1,11 @@
 {% from "_macros.html" import logo %}
-{# The inside of a company's window on /companies: every open Dublin job it has, each
+{# The inside of a company's window on /companies: every open job in Ireland it has, each
    linking to the company's own posting. #}
 <div class="cj__head">
   {{ logo(name, domain, "logo--lg") }}
   <div>
     <h3>{{ name }}</h3>
-    <p>{{ jobs|length }} job{{ "" if jobs|length == 1 else "s" }} open in Dublin</p>
+    <p>{{ jobs|length }} job{{ "" if jobs|length == 1 else "s" }} open in Ireland</p>
   </div>
 </div>
 {% if jobs %}
@@ -20,7 +20,7 @@
   {% endfor %}
 </ul>
 {% else %}
-<p class="popwin__loading">Nothing open in Dublin at the moment.</p>
+<p class="popwin__loading">Nothing open in Ireland at the moment.</p>
 {% endif %}
 <div class="cj__foot">
   <a class="btn" href="/#find">Find the ones that fit you

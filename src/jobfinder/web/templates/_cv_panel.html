@@ -58,7 +58,7 @@
        JavaScript. htmx swaps in _cv_demand.html once the page has drawn. #}
     <section class="demand is-loading" hx-get="/profile/cv/demand" hx-trigger="load" hx-swap="outerHTML" aria-busy="true">
       <h3 class="cvread__h">Your skills, in demand</h3>
-      <p class="small muted cvread__note">Counting the live Dublin jobs that ask for each of your {{ cv.skills|length }} skills&hellip;</p>
+      <p class="small muted cvread__note">Counting the live jobs in Ireland that ask for each of your {{ cv.skills|length }} skills&hellip;</p>
       <div class="cvread__skills">
         {% for s in cv.skills %}<span class="skill" style="--k:{{ loop.index0 }}">{{ s }}</span>{% endfor %}
       </div>
@@ -127,7 +127,7 @@
       <li><span class="cvwhy__n">2</span><div><b>Roles you had not thought of.</b> Jobs in the fields
         your CV points to show up too, below the ones you pick.</div></li>
       <li><span class="cvwhy__n">3</span><div><b>What employers are asking for.</b> See how many open
-        Dublin jobs ask for each skill on it. Your file stays private to your account; replace or
+        jobs in Ireland ask for each skill on it. Your file stays private to your account; replace or
         remove it whenever you like.</div></li>
     </ul>
   </div>

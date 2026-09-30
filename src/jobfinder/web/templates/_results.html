@@ -3,8 +3,9 @@
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar, mascot %}
-{% set filtered = facet or company or mode or paid or within or via %}
+{% set filtered = facet or company or mode or paid or within or via or where %}
 {% set via_label = (platforms|selectattr("key", "equalto", via)|map(attribute="label")|first) if via else "" %}
+{% set where_label = (places|selectattr("key", "equalto", where)|map(attribute="label")|first) if where else "" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 
@@ -51,7 +52,7 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}</strong>,
+      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</strong>,
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
@@ -62,8 +63,8 @@
       {% if candidate_years > 15 %}15+ years of experience &middot;
       {% else %}asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;{% endif %}
     {% endif %}
-    {% if early_only and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Dublin &middot; {% endif %}
-    {% if skill_count %}closest to your CV first{% if cv_name %} ({{ cv_name }}){% endif %}{% else %}best matches first{% endif %}
+    {% if early_only and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Ireland &middot; {% endif %}
+    {% if by_location %}busiest places first, best matches first within each{% elif skill_count %}closest to your CV first{% if cv_name %} ({{ cv_name }}){% endif %}{% else %}best matches first{% endif %}
     {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
       &middot; graduate and entry-level jobs included
     {% endif %}
@@ -94,11 +95,11 @@
 {# The bar that stays: how many, the order, and a way back to the filters from anywhere
    down the list. It sticks under the menu bar for as long as the results are on screen.
    Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
-{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if within else 0) + (1 if via else 0) %}
+{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if within else 0) + (1 if via else 0) + (1 if where else 0) %}
 <div class="rstick">
   <p class="rstick__count">
     <b data-roll>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -217,6 +218,17 @@
           {% endfor %}
         </select>
       </label>
+      {% if places and places|length > 1 or where %}
+      <label class="pick pick--wide">
+        <span>Location</span>
+        <select name="where">
+          <option value="">Anywhere in Ireland</option>
+          {% for pl in places %}
+          <option value="{{ pl.key }}" {% if where == pl.key %}selected{% endif %}>{{ pl.label }} ({{ pl.count }})</option>
+          {% endfor %}
+        </select>
+      </label>
+      {% endif %}
       {% if platforms and platforms|length > 1 or via %}
       <label class="pick pick--wide">
         <span>Platform</span>

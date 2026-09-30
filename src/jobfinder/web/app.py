@@ -41,7 +41,7 @@ from fastapi.responses import (
     Response,
 )
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import and_, func, select
+from sqlalchemy import and_, func, or_, select
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 from markupsafe import Markup
 from starlette.concurrency import run_in_threadpool
@@ -89,6 +89,7 @@ SORTS = {
     "relevance": "Best match",
     "newest": "Newest first",
     "oldest": "Oldest first",
+    "location": "By location",
 }
 DEFAULT_SORT = "relevance"
 
@@ -118,7 +119,7 @@ if PUBLIC_DEPLOYMENT and settings.session_secret == "dev-only-change-me":
         "project's environment variables before deploying."
     )
 
-app = FastAPI(title="Dublin Job Finder", lifespan=lifespan)
+app = FastAPI(title="Ireland Job Finder", lifespan=lifespan)
 
 # Everything a signed-out visitor may still reach. Privacy is on the list deliberately:
 # someone has to be able to read what an account will store about them *before* being
@@ -251,7 +252,7 @@ RERUN_BASE = (
 RERUN_INCLUDE = RERUN_BASE + (
     ", #results input[name=facet], #results input[name=company], #results select[name=mode],"
     " #results input[name=paid], #results select[name=within], #results input[name=new_only],"
-    " #results select[name=via]"
+    " #results select[name=via], #results select[name=where]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
 
@@ -639,7 +640,7 @@ def _logo_domain(name: str, website: str | None) -> str:
 
 
 def _hiring_employers(session) -> list[dict]:
-    """Every company with an open Dublin job, biggest first, with its logo domain and
+    """Every company with an open job in Ireland, biggest first, with its logo domain and
     the platforms its jobs were read from."""
     rows = session.execute(
         select(
@@ -651,7 +652,7 @@ def _hiring_employers(session) -> list[dict]:
         )
         .join(JobPosting, JobPosting.company_id == Company.id)
         .join(Source, Source.id == JobPosting.source_id)
-        .where(_is_offerable(), JobPosting.is_dublin.is_(True))
+        .where(_is_offerable(), _in_ireland())
         .group_by(Company.id, Company.name, Company.website, Source.adapter)
     ).all()
 
@@ -680,7 +681,7 @@ PULSE_DAYS = 30
 
 
 def _hiring_pulse(session) -> dict | None:
-    """Open Dublin jobs by the day their employer says they were posted, last 30 days.
+    """Open jobs in Ireland by the day their employer says they were posted, last 30 days.
 
     Only a stated posting date counts. Jobs without one are dated by when we first saw
     them elsewhere on the site, but here that would pile every one of them onto the day
@@ -695,7 +696,7 @@ def _hiring_pulse(session) -> dict | None:
     today = anchor.astimezone(DUBLIN).date()
     start = today - timedelta(days=PULSE_DAYS - 1)
     posted = session.scalars(
-        select(JobPosting.posted_at).where(_is_offerable(), JobPosting.is_dublin.is_(True))
+        select(JobPosting.posted_at).where(_is_offerable(), _in_ireland())
     ).all()
     counts: dict = {}
     undated = 0
@@ -732,9 +733,9 @@ def _index_context(request: Request) -> dict:
     with session_scope() as session:
         # The same rule the search uses, so the headline count cannot promise more
         # openings than a search will actually offer.
-        dublin = session.scalar(
+        in_ireland = session.scalar(
             select(func.count()).select_from(JobPosting).where(
-                _is_offerable(), JobPosting.is_dublin.is_(True)
+                _is_offerable(), _in_ireland()
             )
         ) or 0
         companies = session.scalar(select(func.count()).select_from(Company)) or 0
@@ -751,7 +752,7 @@ def _index_context(request: Request) -> dict:
                 select(JobPosting.title)
                 .where(
                     _is_offerable(),
-                    JobPosting.is_dublin.is_(True),
+                    _in_ireland(),
                     JobPosting.company_id == employer["id"],
                 )
                 .order_by(JobPosting.first_seen_at.desc())
@@ -760,7 +761,7 @@ def _index_context(request: Request) -> dict:
 
     context = _base_context(request)
     context.update(
-        dublin_count=dublin,
+        ireland_count=in_ireland,
         company_count=companies,
         # The registry size and the number of employers actually hiring are different
         # numbers, and only the second one is true of the jobs on the page.
@@ -796,9 +797,9 @@ WEB = Path(__file__).parent
 # What makes the site installable: a phone adds it to the home screen as an app that
 # opens on the finder, without the browser's bars.
 MANIFEST = {
-    "name": "Sorted Place: every job in Dublin",
+    "name": "Sorted Place: every job in Ireland",
     "short_name": "Sorted",
-    "description": "Every job open in Dublin right now, from companies' own careers pages.",
+    "description": "Every job open in Ireland right now, from companies' own careers pages.",
     "start_url": "/?source=app",
     "scope": "/",
     "display": "standalone",
@@ -862,6 +863,7 @@ URL_KEYS = {
     "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
     "view": "view", "mode": "mode", "paid": "paid", "within": "within", "via": "via",
+    "where": "where",
 }
 
 
@@ -897,6 +899,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("within", str(context["within"])))
     if context.get("via"):
         pairs.append(("via", context["via"]))
+    if context.get("where"):
+        pairs.append(("where", context["where"]))
     return "/?" + urlencode(pairs)
 
 
@@ -959,6 +963,7 @@ async def search(
     within: str | None = Form(default=None),
     new_only: str | None = Form(default=None),
     via: str | None = Form(default=None),
+    where: str | None = Form(default=None),
     more: str | None = Form(default=None),
 ):
     form = {
@@ -967,7 +972,7 @@ async def search(
         "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
         "mode": mode, "paid": paid, "within": within, "new_only": new_only,
-        "via": via,
+        "via": via, "where": where,
     }
     return _search(request, form, page=page, more=bool(more))
 
@@ -1132,6 +1137,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             since=last_visit,
             new_only=bool(form.get("new_only")),
             via=form.get("via") or None,
+            where=form.get("where") or None,
         )
     )
     context["search_url"] = _search_url(profile, context)
@@ -1176,7 +1182,7 @@ def _job_view(session, job: JobPosting) -> dict:
         "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
         "first_seen": first_seen.strftime("%d %b %Y") if first_seen else "",
         "age": _age(_as_utc(job.posted_at) or first_seen, datetime.now(timezone.utc)),
-        "place": _short_place(job.location_raw),
+        "place": _place_label(job),
         "experience": _experience_label(job),
         "mode": _facts_for(job)["mode"],
         "salary": _facts_for(job)["salary"],
@@ -1245,30 +1251,61 @@ def _experience_label(job: JobPosting) -> str | None:
     return f"{job.min_years_required}{suffix}"
 
 
-# Parts of a location string that say nothing on a site that only lists Dublin. Every
-# employer spells the same place differently ("Dublin, IRL", "Ireland, Dublin", "Dublin,
-# County Dublin, IE"), and printing all of them made identical jobs look different.
+# Parts of a location string that say nothing once the county is shown. Every employer
+# spells the same place differently ("Dublin, IRL", "Ireland, Dublin", "Dublin, County
+# Dublin, IE"), and printing all of them made identical jobs look different.
 _PLACE_NOISE = {"dublin", "ireland", "irl", "ie", "county", "co", "co.", "leinster",
                 "republic", "of"}
 _PLACE_SPLIT = re.compile(r"\s*(?:[;,|>:]|\s-\s|\bOR\b)\s*")
+# Board codes and placeholders that name nothing: Eightfold's "IE-G" county code, "N/A".
+_PLACE_JUNK = re.compile(r"\bIE-[A-Z]{1,3}\b|(?<![\w/])N/?A(?![\w/])", re.IGNORECASE)
 
 
-def _short_place(raw: str | None) -> str:
-    """What a location adds beyond "Dublin", or "" when it adds nothing.
+def _short_place(raw: str | None, also: frozenset[str] = frozenset()) -> str:
+    """What a location adds beyond "Dublin" or "Ireland", or "" when it adds nothing.
 
     "Dublin 2, Ireland" keeps "Dublin 2", "Cork, Ireland; Dublin, Ireland" keeps
-    "Cork", and "Dublin, IRL" is dropped entirely, since the whole list is Dublin.
+    "Cork", and "Dublin, IRL" is dropped entirely: `_place_label` puts the county back.
     """
     if not raw:
         return ""
-    text = re.sub(r"\([^)]*\)", " ", raw)
+    text = _PLACE_JUNK.sub(" ", re.sub(r"\([^)]*\)", " ", raw))
+    noise = _PLACE_NOISE | also
     parts = []
     for part in _PLACE_SPLIT.split(text):
         part = " ".join(part.split())
         # Judged word by word, so "Dublin  Ireland" and "County Dublin" go too.
-        if part and not set(part.casefold().split()) <= _PLACE_NOISE and part not in parts:
+        if part and not set(part.casefold().split()) <= noise and part not in parts:
             parts.append(part)
     return ", ".join(parts)
+
+
+def _place_label(job: JobPosting) -> str:
+    """Where a role is, for its row and its panel: "Cork", "Dublin 2", "Athlone,
+    Westmeath". The county leads unless the location already names it."""
+    if not (job.is_ireland or job.is_dublin):
+        return _short_place(job.location_raw)
+    area = "Dublin" if job.is_dublin else job.region or "Ireland"
+    # The county is said once: "Galway, County Galway" is "Galway".
+    short = _short_place(job.location_raw, also=frozenset({area.casefold()}))
+    if not short:
+        return area
+    if area.casefold() in short.casefold():
+        return short
+    return f"{short}, {area}"
+
+
+# The Location picker and the location sort: a role's county, "Ireland" where the
+# posting names only the country, and "Remote" for the remote roles from abroad that
+# the remote switch lets in.
+def _where(job: JobPosting) -> dict:
+    if job.is_dublin:
+        return {"key": "Dublin", "label": "Dublin"}
+    if job.is_ireland and job.region:
+        return {"key": job.region, "label": job.region}
+    if job.is_ireland:
+        return {"key": "ireland", "label": "Ireland, place not stated"}
+    return {"key": "remote", "label": "Remote"}
 
 
 def _age(when: datetime | None, now: datetime) -> str:
@@ -1313,6 +1350,12 @@ STRENGTH_CAPS = {
 def _strength(position: int, total: int, cap: int = 3) -> int:
     share = position / max(total, 1)
     return min(3 if share < 0.2 else (2 if share < 0.6 else 1), cap)
+
+
+def _in_ireland():
+    """Roles anywhere in the Republic. A Dublin role is always one, whatever a row made
+    before `is_ireland` existed says."""
+    return or_(JobPosting.is_ireland.is_(True), JobPosting.is_dublin.is_(True))
 
 
 def _is_offerable():
@@ -1466,9 +1509,9 @@ _demand: tuple[float, int, dict[str, frozenset[int]]] | None = None
 
 
 def _skill_demand() -> tuple[int, dict[str, frozenset[int]]]:
-    """How many live Dublin jobs there are, and which of them ask for each skill.
+    """How many live jobs in Ireland there are, and which of them ask for each skill.
 
-    The same jobs a search offers: live, in Dublin, one row per advert however many
+    The same jobs a search offers: live, in Ireland, one row per advert however many
     boards carry it, so a skill's count is a count of real openings.
     """
     global _demand
@@ -1479,7 +1522,7 @@ def _skill_demand() -> tuple[int, dict[str, frozenset[int]]]:
         wanted: dict[str, set[int]] = {}
         with session_scope() as session:
             rows = session.execute(
-                select(JobPosting).where(_is_offerable(), JobPosting.is_dublin.is_(True))
+                select(JobPosting).where(_is_offerable(), _in_ireland())
             ).scalars().all()
             rows = _prefer_direct_sources(session, rows, _grouping_keys(session, rows))
             for row in rows:
@@ -1617,6 +1660,7 @@ def _search_results(
     new_only: bool = False,
     per_page: int | None = None,
     via: str | None = None,
+    where: str | None = None,
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
@@ -1646,11 +1690,9 @@ def _search_results(
     with session_scope() as session:
         stmt = select(JobPosting).where(_is_offerable())
         if profile.get("include_remote"):
-            stmt = stmt.where(
-                (JobPosting.is_dublin.is_(True)) | (JobPosting.is_remote.is_(True))
-            )
+            stmt = stmt.where(_in_ireland() | JobPosting.is_remote.is_(True))
         else:
-            stmt = stmt.where(JobPosting.is_dublin.is_(True))
+            stmt = stmt.where(_in_ireland())
         if query:
             stmt = stmt.where(JobPosting.title.ilike(f"%{query}%"))
 
@@ -1756,7 +1798,8 @@ def _search_results(
                     "posted": job.posted_at.strftime("%d %b %Y") if job.posted_at else None,
                     "first_seen": first_seen.strftime("%d %b") if first_seen else "",
                     "age": _age(_as_utc(job.posted_at) or first_seen, now),
-                    "place": _short_place(job.location_raw),
+                    "place": _place_label(job),
+                    "where": _where(job),
                     "experience": _experience_label(job),
                     # The row says why it is here in chips rather than a sentence: the
                     # field it sits in and the searcher's skills the advert asks for.
@@ -1794,6 +1837,15 @@ def _search_results(
         # Tiers are a property of the relevance order. A date sort deliberately discards
         # that order, so the divider would fall in a meaningless place and is suppressed.
         tiered = sort_mode == DEFAULT_SORT
+        by_location = sort_mode == "location"
+        if by_location:
+            # The busiest place first, each keeping the best match order within it, and
+            # the roles that name no county after every one that does.
+            sizes: dict[str, int] = {}
+            for i in items:
+                sizes[i["where"]["key"]] = sizes.get(i["where"]["key"], 0) + 1
+            items.sort(key=lambda i: (i["where"]["key"] in ("ireland", "remote"),
+                                      -sizes[i["where"]["key"]], i["where"]["label"]))
         if sort_mode in ("newest", "oldest"):
             dated = [i for i in items if i["job"].posted_at or i["job"].first_seen_at]
             undated = [i for i in items if not (i["job"].posted_at or i["job"].first_seen_at)]
@@ -1828,6 +1880,14 @@ def _search_results(
         via = via if via in platform_counts else None
         if via:
             items = [i for i in items if i["via"]["key"] == via]
+        # The Location picker counts within everything else the bar has narrowed to.
+        where_counts: dict[str, dict] = {}
+        for i in items:
+            entry = where_counts.setdefault(i["where"]["key"], dict(i["where"], count=0))
+            entry["count"] += 1
+        where = where if where in where_counts else None
+        if where:
+            items = [i for i in items if i["where"]["key"] == where]
         try:
             within = int(within) if within else None
         except (TypeError, ValueError):
@@ -1974,6 +2034,15 @@ def _search_results(
         "within": within,
         "within_choices": WITHIN,
         "via": via,
+        "where": where,
+        # Busiest first, the roles that name no county last.
+        "places": sorted(where_counts.values(),
+                         key=lambda w: (w["key"] in ("ireland", "remote"), -w["count"], w["label"])),
+        # Location headings replace the match bands when sorted by place.
+        "by_location": by_location,
+        "prev_where": (rows_out[start - 1]["where"]["key"]
+                       if view == "list" and by_location and 0 < start <= len(rows_out) else None),
+        "where_totals": {w["key"]: w["count"] for w in where_counts.values()},
         # Careers sites first, then platforms and boards, busiest first.
         "platforms": sorted(platform_counts.values(),
                             key=lambda p: (p["kind"] != "careers", -p["count"], p["label"].lower())),
@@ -2488,7 +2557,7 @@ async def upload_cv(request: Request, resume: UploadFile | None = None):
 
 @app.get("/profile/cv/demand", response_class=HTMLResponse)
 def cv_demand(request: Request):
-    """How many live Dublin jobs ask for each skill on the CV. Fetched after the page
+    """How many live jobs in Ireland ask for each skill on the CV. Fetched after the page
     has drawn, because the first count after a cold start reads every advert."""
     account = _account(request)
     if account is None:
@@ -2739,11 +2808,11 @@ def privacy(request: Request):
 
 @app.get("/companies", response_class=HTMLResponse)
 def companies(request: Request):
-    """Every company hiring in Dublin, the biggest shown as app icons, and the
+    """Every company hiring in Ireland, the biggest shown as app icons, and the
     platforms their jobs are read from."""
     with session_scope() as session:
         employers = _hiring_employers(session)
-        dublin = sum(e["jobs"] for e in employers)
+        in_ireland = sum(e["jobs"] for e in employers)
 
         per_platform = session.execute(
             select(
@@ -2752,7 +2821,7 @@ def companies(request: Request):
                 func.count(func.distinct(JobPosting.company_id)),
             )
             .join(Source, Source.id == JobPosting.source_id)
-            .where(_is_offerable(), JobPosting.is_dublin.is_(True))
+            .where(_is_offerable(), _in_ireland())
             .group_by(Source.adapter)
         ).all()
 
@@ -2772,7 +2841,7 @@ def companies(request: Request):
     context.update(
         employers=employers,
         top=[e for e in employers if e["domain"]][:36],
-        dublin_count=dublin,
+        ireland_count=in_ireland,
         employers_hiring=len(employers),
         platforms=platforms_sorted,
         global_names=[n for n in GLOBAL_NAMES if n in hiring_names],
@@ -2785,7 +2854,7 @@ def companies(request: Request):
 
 @app.get("/companies/{company_id}/jobs", response_class=HTMLResponse)
 def company_jobs(request: Request, company_id: int):
-    """One company's open Dublin jobs, for the window that opens from its icon."""
+    """One company's open jobs in Ireland, for the window that opens from its icon."""
     with session_scope() as session:
         company = session.get(Company, company_id)
         if company is None:
@@ -2794,7 +2863,7 @@ def company_jobs(request: Request, company_id: int):
             select(JobPosting)
             .where(
                 _is_offerable(),
-                JobPosting.is_dublin.is_(True),
+                _in_ireland(),
                 JobPosting.company_id == company_id,
             )
             .order_by(JobPosting.first_seen_at.desc())
@@ -2803,7 +2872,7 @@ def company_jobs(request: Request, company_id: int):
             {
                 "title": job.title,
                 "url": job.url,
-                "location": job.location_raw or "Dublin",
+                "location": _place_label(job) or "Ireland",
                 "experience": _experience_label(job),
             }
             for job in jobs
