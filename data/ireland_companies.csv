@@ -233,6 +233,14 @@ Strategic Banking Corporation of Ireland,sbci.gov.ie,4,false,finance,
 Home Building Finance Ireland,hbfi.ie,4,false,finance,
 BOC Aviation,bocaviation.com,3,false,finance,"Dublin; no readable board found (2026-09-30)"
 Liberty Insurance,libertyinsurance.ie,3,false,finance,"Dublin and Cavan; careers page refuses requests (2026-09-30)"
+BNP Paribas Ireland,bnpparibas.ie,2,false,finance,"Dublin; careers page lists no readable board (2026-10-01)"
+Societe Generale,societegenerale.com,3,true,finance,"Dublin; Taleo careers site, no adapter (2026-10-01)"
+Wells Fargo,wellsfargo.com,3,true,finance,"Dublin; no Irish roles found on its Workday sites (2026-10-01)"
+Canada Life,canadalife.ie,3,false,finance,"Dublin; careers site certificate does not match (2026-10-01)"
+WTW,wtwco.com,3,true,finance,"Dublin and Cork; careers site API not readable (2026-10-01)"
+AXA XL,axaxl.com,3,false,finance,"Dublin; careers page lists no readable board (2026-10-01)"
+Swiss Re,swissre.com,3,false,finance,"Dublin; classic SuccessFactors portal, no adapter (2026-10-01)"
+Munich Re,munichre.com,3,false,finance,"Dublin; no readable board found (2026-10-01)"
 #
 # --- Pharmaceutical, biotech and medical devices ---------------------------------
 Pfizer,pfizer.com,1,false,pharma,Multiple Irish sites
@@ -283,6 +291,8 @@ Charles River Laboratories,criver.com,3,false,pharma,Ballina
 Eurofins,eurofins.com,3,false,pharma,Dungarvan
 Waters Corporation,waters.com,2,true,medtech,"Wexford; careers site refuses automated requests (2026-09-30)"
 Freudenberg Medical,freudenbergmedical.com,3,false,medtech,"Galway (formerly Cambus Medical); jobs.freudenberg.com refuses automated requests (2026-09-30)"
+Prothena,prothena.com,4,true,pharma,"Dublin; careers page lists no board (2026-10-01)"
+Amarin,amarincorp.com,4,true,pharma,"Dublin; careers page lists no board (2026-10-01)"
 #
 # --- Professional services and consulting ----------------------------------------
 Accenture,accenture.com,1,false,consulting,Largest private employer in Ireland

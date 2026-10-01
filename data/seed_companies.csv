@@ -405,3 +405,9 @@ Paysafe,hibob,paysafe,3,false,curated,HiBob careers site linked from paysafe.com
 New Relic,greenhouse,newrelic,3,false,curated,Greenhouse board (Dublin),https://newrelic.com/careers
 Payoneer,greenhouse,payoneer,3,false,curated,Greenhouse board (Dublin),https://careers.payoneer.com/
 Pure Storage,greenhouse,purestorage,3,false,curated,Greenhouse board read for Ireland (Cork and Dublin),https://www.everpuredata.com/company/careers.html
+Gallagher,icims,jobs.ajg.com,2,false,curated,Gallagher's Jibe careers site read for Ireland (its Irish brokers in Dublin and Kerry),https://jobs.ajg.com/ajg-home
+PartnerRe,successfactors,careers.partnerre.com|Ireland,2,false,curated,SuccessFactors site searched for Ireland (Dublin),https://careers.partnerre.com/
+Intact Insurance Ireland,careers_html,https://careers.rsagroup.ie/vacancyList.php,2,false,curated,Formerly RSA; vacancy list on its own careers site (Dublin and Galway),https://intactinsurance.ie/careers
+Carbery,workday,carbery:wd3:carbery_external_careers,3,false,curated,Workday board read for Ireland (Ballineen),https://www.carbery.com/
+Zoetis,workday,zoetis:wd5:zoetis_intl,3,false,curated,Zoetis' international Workday site read for Ireland (Dublin),https://www.zoetis.com/join-us
+Arachas,teamtailor,theardonaghgroup,3,false,curated,Ardonagh group Teamtailor board; Arachas is its Irish broker,https://www.arachas.ie/careers
