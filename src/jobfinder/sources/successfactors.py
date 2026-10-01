@@ -100,6 +100,23 @@ def parse_page(page: str, host: str) -> tuple[list[RawJob], int | None]:
     return jobs, total
 
 
+# A job page's own address, in the microdata every RMK job page carries. Some tenants
+# (FINEOS) leave the location off their search tiles, and it is only here.
+ADDRESS_PART = re.compile(
+    r'itemprop="(streetAddress|addressLocality|addressRegion|addressCountry)"\s+content="([^"]*)"', re.I
+)
+MAX_LOCATION_LOOKUPS = 100
+
+
+def parse_address(page: str) -> str | None:
+    parts: list[str] = []
+    for _, value in ADDRESS_PART.findall(page):
+        value = _clean(value)
+        if value and value not in parts:
+            parts.append(value)
+    return ", ".join(parts) or None
+
+
 class SuccessFactorsAdapter(BaseAdapter):
     name = "successfactors"
     tier = 1
@@ -162,6 +179,7 @@ class SuccessFactorsAdapter(BaseAdapter):
             if listed is not None:
                 return listed
             raise ValueError(f"no SuccessFactors job rows found on {host}")
+        self._fill_locations(jobs.values(), client)
         if repeated and total is None:
             # Career Site Builder pages state no total. A page that repeats could be a
             # one-page board or a tenant that ignores paging, and nothing on the page
@@ -179,6 +197,17 @@ class SuccessFactorsAdapter(BaseAdapter):
             )
         return list(jobs.values())
 
+
+    def _fill_locations(self, jobs, client: httpx.Client) -> None:
+        """Read the address off the job's own page where its tile named none."""
+        for job in [j for j in jobs if not j.location_raw][:MAX_LOCATION_LOOKUPS]:
+            try:
+                page = client.get(job.url)
+                page.raise_for_status()
+            except httpx.HTTPError:
+                continue
+            job.location_raw = parse_address(page.text)
+            self.polite_pause()
 
     def _fetch_json(
         self, host: str, place: str, client: httpx.Client

@@ -1823,3 +1823,27 @@ def test_successfactors_location_drops_an_escaped_line_break():
 
     assert _clean("GALWAY, G, IRL, H91 VN2T&lt;br/&gt;") == "GALWAY, G, IRL, H91 VN2T"
     assert _clean("Dublin &amp; Cork") == "Dublin & Cork"
+
+
+@respx.mock
+def test_successfactors_reads_a_missing_location_off_the_job_page(monkeypatch):
+    """FINEOS's tiles name no location; each job page's microdata does."""
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    tile = ('<a class="jobTitle-link" href="/job/DevOps-Engineer-D/1347667155/">DevOps Engineer</a>'
+            '<span class="jobLocation"></span>')
+    respx.get(url__startswith="https://careers.acme.com/search/").mock(
+        return_value=httpx.Response(200, text=f"Results 1 – 1 of <b>1</b>{tile}")
+    )
+    respx.get("https://careers.acme.com/job/DevOps-Engineer-D/1347667155/").mock(
+        return_value=httpx.Response(200, text=(
+            '<span itemprop="jobLocation"><span itemprop="address">'
+            '<meta itemprop="streetAddress" content="Dublin, IE"></span></span>'
+        ))
+    )
+
+    result = SuccessFactorsAdapter().fetch("careers.acme.com")
+
+    assert [j.location_raw for j in result.jobs] == ["Dublin, IE"]
