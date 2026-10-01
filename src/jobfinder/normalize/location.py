@@ -149,8 +149,10 @@ _IRISH_TOWNS = {
 _AMBIGUOUS_PLACES = {
     "clare", "kerry", "mayo", "longford", "louth", "ennis", "shannon", "bray", "newbridge",
     "westport", "ballina", "killarney", "listowel", "dingle", "trim", "kells", "ashbourne",
-    "portarlington", "birr", "cashel", "dundalk", "mahon",
+    "portarlington", "birr", "cashel", "mahon",
 }
+# Dundalk, Maryland is a real place too, but it is always written with its state, which
+# rules it out on its own; a bare "Dundalk" is the Louth town (Mr Price's shop, for one).
 
 _PLACE_REGION = {county.lower(): county for county in IRISH_COUNTIES}
 for _county, _towns in _IRISH_TOWNS.items():

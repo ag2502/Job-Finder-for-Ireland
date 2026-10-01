@@ -209,6 +209,7 @@ def test_a_passing_mention_of_dublin_does_not(advert):
         ("Celbridge, Ireland", "Kildare"),
         ("Westport, Co. Mayo", "Mayo"),
         ("Shannon, Ireland", "Clare"),
+        ("Dundalk", "Louth"),
         ("Cork, IE; London, UK", "Cork"),
         ("Dublin, Ireland", "Dublin"),
     ],
