@@ -420,3 +420,6 @@ Kellanova,successfactors,jobs.kellanova.com|Ireland,3,false,curated,SuccessFacto
 Mr Price,careers_html,https://careers.mrprice.ie/jobs,3,false,curated,Vacancy list on its own careers site (Irish stores),https://careers.mrprice.ie/
 Dealz,careers_html,https://search.poundlanddealzcareers.com/vacancies/,3,false,curated,Poundland and Dealz vacancy list; its Irish roles are Dealz stores,https://www.poundlanddealzcareers.com/
 Xtremepush,personio,xtremepush:com,3,false,curated,Personio board read through its search.json (the XML feed is off; Dublin),https://www.xtremepush.com/careers
+Dawn Meats,jsonld,https://careers-dawnmeats.icims.com/jobs/search?ss=1&in_iframe=1,2,false,curated,iCIMS portal read through its job pages' JSON-LD (plants nationwide),https://www.dawnmeats.com/careers/current-opportunities/
+Dairygold,corehr,dgrecruit|402|Ireland,2,false,curated,CoreHR tenant (company 402) linked from dairygold.ie careers (Cork and Limerick),https://www.dairygold.ie/careers/
+Munster Technological University,corehr,mturecruit|1|Ireland,2,false,curated,CoreHR tenant linked from mtu.ie vacancies (Cork and Kerry campuses),https://www.mtu.ie/vacancies/
