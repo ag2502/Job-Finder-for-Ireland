@@ -17,3 +17,5 @@ careers_html,https://maplesgroupcareers.ttcportals.com/search/jobs,Maples' porta
 jsonld,https://www.excelrecruitment.com/jobs/,No JobPosting markup any more; fails every run
 jsonld,https://www.tyndall.ie/careers/,No JobPosting markup any more; fails every run
 greenhouse,amplitude,Amplitude's Greenhouse board is gone (404); it is on Ashby now
+careers_html,https://www.ea.com/careers,EA's careers page holds no vacancy list; its roles are on the jobs.ea.com Avature portal
+careers_html,https://www.rbk.ie/careers/,RBK's site answers GitHub's runners with 403 (blocks cloud addresses)
