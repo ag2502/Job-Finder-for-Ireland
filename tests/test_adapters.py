@@ -1883,3 +1883,35 @@ def test_corehr_keeps_the_tenant_place_beside_a_campus(monkeypatch):
     job = CoreHRAdapter().fetch("mtu|1|Ireland").jobs[0]
 
     assert job.location_raw == "Kerry Both (North&South)" and job.extra_locations == ["Ireland"]
+
+
+@respx.mock
+def test_successfactors_completes_a_short_classic_read_from_the_json_search(monkeypatch):
+    """Murphy's classic pages, sorted by date, dropped a few of 65 roles on every run."""
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.successfactors import SuccessFactorsAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+
+    def tile(i):
+        return (f'<a class="jobTitle-link" href="/job/Fitter/{i}/">Fitter {i}</a>'
+                '<span class="jobLocation">Cork, IE</span>')
+
+    pages = {"0": tile(1) + tile(2), "2": tile(2)}  # the third role never surfaces
+    respx.get(url__startswith="https://careers.acme.com/search/").mock(
+        side_effect=lambda request: httpx.Response(
+            200, text="Results 1 – 2 of <b>3</b>" + pages.get(request.url.params["startrow"], ""))
+    )
+
+    def row(i):
+        return {"response": {"id": str(i), "unifiedStandardTitle": f"Fitter {i}",
+                             "jobLocationShort": ["Cork, IE"], "unifiedUrlTitle": "Fitter"}}
+
+    respx.post("https://careers.acme.com/services/recruiting/v1/jobs").mock(
+        return_value=httpx.Response(200, json={"totalJobs": 3, "jobSearchResult": [row(1), row(2), row(3)]})
+    )
+
+    result = SuccessFactorsAdapter().fetch("careers.acme.com|Ireland")
+
+    assert result.status is CrawlStatus.OK
+    assert sorted(j.source_job_id for j in result.jobs) == ["1", "2", "3"]

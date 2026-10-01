@@ -191,6 +191,12 @@ class SuccessFactorsAdapter(BaseAdapter):
             # are kept current and the unread tail is never closed on their account.
             return PartialJobs(jobs.values())
         if total and len(jobs) < total * COMPLETENESS:
+            # Paging by date drops roles that share one as the list shifts between pages
+            # (Murphy's read 57 to 62 of 65 on every CI run). The JSON search, where the
+            # tenant has it, returns the whole board in pages of its own.
+            listed = self._fetch_json(host, place, client)
+            if listed is not None and len(listed) >= total * COMPLETENESS:
+                return listed
             raise ValueError(
                 f"SuccessFactors read {len(jobs)} of {total} jobs from {host}; "
                 "refusing to report an incomplete board"
@@ -272,6 +278,12 @@ class SuccessFactorsAdapter(BaseAdapter):
             return PartialJobs(jobs.values())
 
         if total and len(jobs) < total * COMPLETENESS:
+            # Paging by date drops roles that share one as the list shifts between pages
+            # (Murphy's read 57 to 62 of 65 on every CI run). The JSON search, where the
+            # tenant has it, returns the whole board in pages of its own.
+            listed = self._fetch_json(host, place, client)
+            if listed is not None and len(listed) >= total * COMPLETENESS:
+                return listed
             raise ValueError(
                 f"SuccessFactors read {len(jobs)} of {total} jobs from {host}; "
                 "refusing to report an incomplete board"
