@@ -413,3 +413,9 @@ Zoetis,workday,zoetis:wd5:zoetis_intl,3,false,curated,Zoetis' international Work
 Arachas,teamtailor,theardonaghgroup,3,false,curated,Ardonagh group Teamtailor board; Arachas is its Irish broker,https://www.arachas.ie/careers
 Kirby Group Engineering,wordpress,careers.kirbygroup.com|job-listings,2,false,curated,WP Job Manager listings read through the WordPress REST API (Ireland and Europe),https://careers.kirbygroup.com/
 NTT DATA,phenom,careers.nttdata.com,2,false,curated,Phenom careers site read for Ireland (Dublin),https://careers.nttdata.com/global/en
+Intersport Elverys,hirehive,intersport-elverys,2,false,curated,HireHive board behind elverys.ie recruitment (shops nationwide),https://www.elverys.ie/pages/recruitment-vacancies
+H&M,smartrecruiters,HMGroup,2,false,curated,SmartRecruiters board read for Ireland (stores),https://career.hm.com/
+Pernod Ricard,workday,pernodricard:wd3:pernod-ricard,3,false,curated,Workday board read for Ireland (Irish Distillers in Dublin and Cork),https://www.pernod-ricard.com/en/careers
+Kellanova,successfactors,jobs.kellanova.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Dublin),https://jobs.kellanova.com/
+Mr Price,careers_html,https://careers.mrprice.ie/jobs,3,false,curated,Vacancy list on its own careers site (Irish stores),https://careers.mrprice.ie/
+Dealz,careers_html,https://search.poundlanddealzcareers.com/vacancies/,3,false,curated,Poundland and Dealz vacancy list; its Irish roles are Dealz stores,https://www.poundlanddealzcareers.com/
