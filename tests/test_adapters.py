@@ -1866,3 +1866,20 @@ def test_personio_falls_back_to_search_json_when_the_feed_is_off():
     job = result.jobs[0]
     assert (job.source_job_id, job.location_raw, job.extra_locations) == ("2785204", "Dublin", ["London"])
     assert job.url == "https://acme.jobs.personio.com/job/2785204" and job.department == "Finance"
+
+
+@respx.mock
+def test_corehr_keeps_the_tenant_place_beside_a_campus(monkeypatch):
+    """MTU's cards say "Kerry Both (North&South)", which names no country."""
+    from jobfinder.sources.base import BaseAdapter
+    from jobfinder.sources.corehr import CoreHRAdapter
+
+    monkeypatch.setattr(BaseAdapter, "polite_pause", staticmethod(lambda: None))
+    page = _corehr_page(["001"], total=1, next_start=None).replace(
+        "<td>Dept :</td>", "<td>Location :</td><td>Kerry Both (North&amp;South)</td><td>Dept :</td>")
+    respx.post(url__startswith="https://my.corehr.com/pls/mtu/").mock(return_value=httpx.Response(200, text=page))
+    respx.get(url__startswith="https://my.corehr.com/pls/mtu/").mock(return_value=httpx.Response(403))
+
+    job = CoreHRAdapter().fetch("mtu|1|Ireland").jobs[0]
+
+    assert job.location_raw == "Kerry Both (North&South)" and job.extra_locations == ["Ireland"]

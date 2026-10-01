@@ -205,6 +205,9 @@ class CoreHRAdapter(BaseAdapter):
                 title=card["title"],
                 url=url if advert else search_page,
                 location_raw=card.get("location") or place,
+                # A card's own place is often a campus ("Kerry Both (North&South)"),
+                # which says nothing of the country; the tenant's place still holds.
+                extra_locations=[place] if place and card.get("location") else [],
                 description=advert or "\n".join(details) or None,
                 department=card.get("department"),
             ))
