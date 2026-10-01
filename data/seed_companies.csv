@@ -24,7 +24,7 @@ Asana,greenhouse,asana,3,false,manual,,
 Vercel,greenhouse,vercel,3,false,manual,,
 Qualtrics,greenhouse,qualtrics,3,false,manual,Dublin office,
 Dropbox,greenhouse,dropbox,3,false,manual,Dublin EMEA HQ,
-Amplitude,greenhouse,amplitude,3,false,manual,,
+Amplitude,ashby,amplitude,3,false,manual,Moved from Greenhouse (board gone) to Ashby,https://amplitude.com/careers
 Udemy,greenhouse,udemy,3,false,manual,Dublin office,
 Tines,greenhouse,tines,1,false,manual,Irish cybersecurity scale-up,
 Flipdish,greenhouse,flipdish,1,false,manual,Irish scale-up,
@@ -419,3 +419,4 @@ Pernod Ricard,workday,pernodricard:wd3:pernod-ricard,3,false,curated,Workday boa
 Kellanova,successfactors,jobs.kellanova.com|Ireland,3,false,curated,SuccessFactors site searched for Ireland (Dublin),https://jobs.kellanova.com/
 Mr Price,careers_html,https://careers.mrprice.ie/jobs,3,false,curated,Vacancy list on its own careers site (Irish stores),https://careers.mrprice.ie/
 Dealz,careers_html,https://search.poundlanddealzcareers.com/vacancies/,3,false,curated,Poundland and Dealz vacancy list; its Irish roles are Dealz stores,https://www.poundlanddealzcareers.com/
+Xtremepush,personio,xtremepush:com,3,false,curated,Personio board read through its search.json (the XML feed is off; Dublin),https://www.xtremepush.com/careers

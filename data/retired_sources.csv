@@ -16,3 +16,4 @@ revolut,Ireland,Revolut answers GitHub's runners with 403 (blocks cloud addresse
 careers_html,https://maplesgroupcareers.ttcportals.com/search/jobs,Maples' portal answers GitHub's runners with 403 (blocks cloud addresses)
 jsonld,https://www.excelrecruitment.com/jobs/,No JobPosting markup any more; fails every run
 jsonld,https://www.tyndall.ie/careers/,No JobPosting markup any more; fails every run
+greenhouse,amplitude,Amplitude's Greenhouse board is gone (404); it is on Ashby now
