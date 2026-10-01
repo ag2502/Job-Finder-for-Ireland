@@ -816,7 +816,7 @@
   });
 
   // Skills in demand: a skill tapped off leaves the count, and the headline recounts
-  // the jobs asking for at least one of those still on.
+  // the share of jobs asking for at least one of those still on.
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   function jobsOf(box) {
     if (!box._jobs) box._jobs = JSON.parse(box.querySelector('[data-demand-data]').textContent);
@@ -826,11 +826,12 @@
     var from = el._n == null ? parseInt(el.textContent.replace(/\D/g, ''), 10) || 0 : el._n;
     el._n = to;
     cancelAnimationFrame(el._raf);
-    if (reduced.matches || from === to) { el.textContent = to.toLocaleString('en-IE'); return; }
+    var suffix = el.getAttribute('data-suffix') || '';
+    if (reduced.matches || from === to) { el.textContent = to.toLocaleString('en-IE') + suffix; return; }
     var start = performance.now(), span = 550;
     (function step(now) {
       var t = Math.min(1, (now - start) / span), e = 1 - Math.pow(1 - t, 3);
-      el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-IE');
+      el.textContent = Math.round(from + (to - from) * e).toLocaleString('en-IE') + suffix;
       if (t < 1) el._raf = requestAnimationFrame(step);
     })(start);
   }
@@ -842,7 +843,8 @@
         if (!seen[i]) { seen[i] = 1; n++; }
       });
     });
-    tween(box.querySelector('[data-demand-count]'), n);
+    var share = data.total ? Math.round(n / data.total * 100) : 0;
+    tween(box.querySelector('[data-demand-count]'), n && !share ? 1 : share);
     box.querySelector('.demand__meter').style.setProperty('--p', data.total ? n / data.total : 0);
     box.querySelector('[data-demand-reset]').hidden = !off;
     box.querySelector('[data-demand-status]').textContent =

@@ -1100,8 +1100,9 @@ def test_the_cv_panel_counts_the_live_jobs_asking_for_its_skills(
 
     demand = client.get("/profile/cv/demand").text
     assert "data-demand" in demand and "Your skills, in demand" in demand
-    assert re.search(r"data-demand-count>3<", demand)
-    assert "out of 10 open right now" in demand
+    # Three of the ten live jobs: shown as a share, never as a second job count.
+    assert re.search(r'data-demand-count data-suffix="%">30%<', demand)
+    assert "open right now" not in demand
     # Busiest first; a skill no job asks for is named apart, not drawn as an empty bar.
     assert demand.index('data-skill="aws"') < demand.index('data-skill="python"')
     assert 'data-skill="kafka"' not in demand and "skill--idle\">kafka" in demand

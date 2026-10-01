@@ -1,16 +1,20 @@
 {# The CV's skills against every live job in Ireland, swapped into the CV panel by htmx.
 
    Every skill starts switched on. Tapping one leaves it out and the headline recounts
-   the jobs asking for at least one of those still on, from the job lists in the JSON
+   the share of jobs asking for at least one of those still on, from the job lists in the JSON
    below; hovering one says what it opens on its own. Counts only: which jobs they are
    is the finder's business. Technical skills and the rest are listed apart. #}
 {% if demand and demand.rows %}
 {% set shown = 8 if demand.groups|selectattr('rows')|list|length == 1 else 6 %}
 <section class="demand" data-demand>
   <h3 class="cvread__h">Your skills, in demand</h3>
+  {# A share rather than a count: a count set beside its own total read as a second,
+     different number of open jobs from the one the rest of the site gives. #}
+  {% set share = ((demand.any * 100 / demand.total)|round|int) if demand.total else 0 %}
+  {% set share = 1 if demand.any and not share else share %}
   <div class="demand__head">
-    <b class="demand__n" data-demand-count>{{ "{:,}".format(demand.any) }}</b>
-    <p class="demand__of">live jobs in Ireland ask for at least one of your skills<span>out of {{ "{:,}".format(demand.total) }} open right now</span></p>
+    <b class="demand__n" data-demand-count data-suffix="%">{{ share }}%</b>
+    <p class="demand__of">of live jobs in Ireland ask for at least one of your skills</p>
   </div>
   <div class="demand__meter" aria-hidden="true" style="--p:{{ (demand.any / demand.total) if demand.total else 0 }};--q:0">
     <i class="demand__fill"></i><i class="demand__peek"></i>
