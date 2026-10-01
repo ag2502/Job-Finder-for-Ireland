@@ -1847,3 +1847,22 @@ def test_successfactors_reads_a_missing_location_off_the_job_page(monkeypatch):
     result = SuccessFactorsAdapter().fetch("careers.acme.com")
 
     assert [j.location_raw for j in result.jobs] == ["Dublin, IE"]
+
+
+@respx.mock
+def test_personio_falls_back_to_search_json_when_the_feed_is_off():
+    """Xtremepush's /xml is a 404 while its careers page lists every position."""
+    from jobfinder.sources.personio import PersonioAdapter
+
+    respx.get("https://acme.jobs.personio.com/xml").mock(return_value=httpx.Response(404))
+    respx.get("https://acme.jobs.personio.com/search.json").mock(return_value=httpx.Response(200, json=[
+        {"id": 2785204, "name": "Assistant Finance Manager", "office": "Dublin",
+         "offices": ["Dublin", "London"], "department": "Finance", "description": ""},
+    ]))
+
+    result = PersonioAdapter().fetch("acme:com")
+
+    assert result.status is CrawlStatus.OK
+    job = result.jobs[0]
+    assert (job.source_job_id, job.location_raw, job.extra_locations) == ("2785204", "Dublin", ["London"])
+    assert job.url == "https://acme.jobs.personio.com/job/2785204" and job.department == "Finance"

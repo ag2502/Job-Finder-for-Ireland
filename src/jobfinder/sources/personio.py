@@ -96,7 +96,18 @@ class PersonioAdapter(BaseAdapter):
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
         tenant, hosts = split_slug(slug)
-        text, host = self._fetch_feed(tenant, hosts, client)
+        try:
+            text, host = self._fetch_feed(tenant, hosts, client)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code != 404:
+                raise
+            # A tenant can switch the XML feed off while its careers page stays up:
+            # Xtremepush's /xml is a 404, but its board's own search.json still lists
+            # every position. Only a board missing on every host is a missing tenant.
+            listed = self._fetch_search(tenant, hosts, client)
+            if listed is None:
+                raise
+            return listed
 
         try:
             root = ET.fromstring(text)
@@ -125,6 +136,33 @@ class PersonioAdapter(BaseAdapter):
                 )
             )
         return jobs
+
+    def _fetch_search(
+        self, tenant: str, hosts: tuple[str, ...], client: httpx.Client
+    ) -> list[RawJob] | None:
+        """The positions from the careers page's JSON search, or None if it has none."""
+        for host in hosts:
+            response = client.get(f"https://{tenant}.jobs.personio.{host}/search.json")
+            if response.status_code == 404:
+                continue
+            response.raise_for_status()
+            jobs = []
+            for item in response.json():
+                if not isinstance(item, dict) or item.get("id") is None:
+                    continue
+                offices = [o for o in item.get("offices") or [] if o]
+                primary = item.get("office") or (offices[0] if offices else None)
+                jobs.append(RawJob(
+                    source_job_id=str(item["id"]),
+                    title=item.get("name") or "",
+                    url=f"https://{tenant}.jobs.personio.{host}/job/{item['id']}",
+                    location_raw=primary,
+                    extra_locations=[o for o in offices if o != primary],
+                    description=item.get("description") or None,
+                    department=item.get("department") or None,
+                ))
+            return jobs
+        return None
 
     def _fetch_feed(
         self, tenant: str, hosts: tuple[str, ...], client: httpx.Client
