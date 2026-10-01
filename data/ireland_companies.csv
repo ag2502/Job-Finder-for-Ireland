@@ -405,6 +405,11 @@ SMBC Aviation Capital,smbc.aero,3,false,transport,Dublin
 Aviation Capital Group,aviationcapitalgroup.com,4,false,transport,
 Lufthansa Technik Turbine Shannon,lufthansa-technik.com,3,false,transport,"Shannon; vacancies on the Lufthansa Group portal, no readable feed found (2026-09-30)"
 NTR,ntrplc.com,3,false,utilities,"Dublin; no readable board found (2026-09-30)"
+RWE,rwe.com,3,false,utilities,"Dublin and Cork; no readable board found by hand or by platform probes (2026-10-01)"
+SSE Renewables,sserenewables.com,3,false,utilities,"Dublin; no readable board found by hand or by platform probes (2026-10-01)"
+Orsted,orsted.com,3,false,utilities,"Cork; no readable board found by hand or by platform probes (2026-10-01)"
+Flogas,flogas.ie,4,false,utilities,"Drogheda; no readable board found by hand or by platform probes (2026-10-01)"
+Imagine Communications,imagine.ie,4,false,telecom,"Dublin; no readable board found by hand or by platform probes (2026-10-01)"
 #
 # --- Construction, property and engineering --------------------------------------
 CRH,crh.com,1,true,construction,Dublin global building materials
@@ -433,6 +438,11 @@ Green REIT,greenreitplc.com,4,false,property,
 Savills Ireland,savills.ie,3,false,property,
 CBRE Ireland,cbre.ie,3,false,property,
 Sherry FitzGerald,sherryfitz.ie,3,false,property,
+Mott MacDonald,mottmac.com,3,false,engineering,"Dublin and Cork; no readable board found by hand or by platform probes (2026-10-01)"
+WSP,wsp.com,3,false,engineering,"Dublin; no readable board found by hand or by platform probes (2026-10-01)"
+AECOM,aecom.com,3,true,engineering,"Dublin and Cork; DirectEmployers board, no adapter (2026-10-01)"
+AtkinsRealis,atkinsrealis.com,3,true,engineering,"Dublin and Cork; connectid.cloud board, no adapter (2026-10-01)"
+Duggan Brothers,dugganbrothers.com,4,false,construction,"Templemore; no readable board found by hand or by platform probes (2026-10-01)"
 #
 # --- Public sector, semi-state and education -------------------------------------
 Public Appointments Service,publicjobs.ie,1,false,public-sector,Irish public sector recruitment
@@ -472,6 +482,7 @@ South East Technological University,setu.ie,3,false,education,
 Dublin Institute for Advanced Studies,dias.ie,4,false,education,
 Tyndall National Institute,tyndall.ie,3,false,education,Cork
 Shannon Airport Group,snnairportgroup.ie,3,false,public-sector,"Shannon; vacancies written into its own page (2026-09-30)"
+Coillte,coillte.ie,3,false,public-sector,"Wicklow; no readable board found by hand or by platform probes (2026-10-01)"
 #
 # --- Recruitment agencies and graduate programmes --------------------------------
 gradireland,gradireland.com,1,false,graduate,Irish graduate careers portal
@@ -555,6 +566,7 @@ Tesla,tesla.com,3,true,mnc-tech,"Dublin; careers site refuses automated requests
 MathWorks,mathworks.com,2,false,mnc-tech,"Galway; careers site refuses automated requests (2026-09-30)"
 Microchip Technology,microchip.com,3,true,mnc-tech,"Cork; careers site refuses automated requests (2026-09-30)"
 Deel,deel.com,3,false,mnc-tech,"Dublin; own jobs site, no readable board found (2026-09-30)"
+Fujitsu,fujitsu.com,3,true,mnc-tech,"Dublin and Tallaght; no readable board found by hand or by platform probes (2026-10-01)"
 # --- Irish startups and scale-ups -------------------------------------------------
 Evervault,evervault.com,2,false,irish-tech,Dublin security infrastructure
 Nuvei Ireland,nuvei.com,3,false,irish-tech,
