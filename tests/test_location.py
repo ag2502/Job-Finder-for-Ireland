@@ -210,6 +210,8 @@ def test_a_passing_mention_of_dublin_does_not(advert):
         ("Westport, Co. Mayo", "Mayo"),
         ("Shannon, Ireland", "Clare"),
         ("Dundalk", "Louth"),
+        ("Mogeely", "Cork"),
+        ("Old Pallas", "Limerick"),
         ("Cork, IE; London, UK", "Cork"),
         ("Dublin, Ireland", "Dublin"),
     ],
@@ -226,7 +228,7 @@ def test_irish_places_are_given_their_county(raw: str, region: str) -> None:
         # Names shared with offices abroad.
         "Waterford, MI", "Westport, CT", "Dundalk, MD", "Ennis, TX", "Newbridge, Wales",
         # Too often somewhere else to count without Ireland named beside them.
-        "Bray", "Shannon", "Clare",
+        "Bray", "Shannon", "Clare", "Bandon, OR",
         # Northern Ireland is in the UK.
         "Belfast, Northern Ireland",
         "London, UK", "Remote", "Dublin, CA",
