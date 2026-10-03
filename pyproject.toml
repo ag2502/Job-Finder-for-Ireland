@@ -14,7 +14,10 @@ dependencies = [
     "alembic>=1.13",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
-    "selectolax>=0.3.21",
+    # Capped below 1.0, which removed the Modest backend (`selectolax.parser`) that
+    # every HTML adapter and html_to_text import. Moving to Lexbor changes parsing
+    # output, so it needs its own change with the adapter tests checked.
+    "selectolax>=0.3.21,<1.0",
     "tenacity>=8.3",
     "python-dateutil>=2.9",
     # Postgres driver. SQLite is the local default, but the deployed crawler runs
