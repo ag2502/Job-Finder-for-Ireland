@@ -1111,6 +1111,17 @@
     document.addEventListener('change', function (e) {
       if (e.target.classList && e.target.classList.contains('cpick__search')) e.stopPropagation();
     }, true);
+    // Field tabs tick on and off freely. All clears them, and is lit whenever none is
+    // ticked. This runs while capturing, so the ticks are settled before the bar's
+    // own change listener sends them.
+    document.addEventListener('change', function (e) {
+      var t = e.target, tabs = t.closest && t.closest('.facets');
+      if (!tabs) return;
+      var all = tabs.querySelector('[data-facet-all]');
+      var fields = tabs.querySelectorAll('input[name="facet"]');
+      if (t === all) Array.prototype.forEach.call(fields, function (x) { x.checked = false; });
+      if (all) all.checked = !tabs.querySelector('input[name="facet"]:checked');
+    }, true);
 
     document.addEventListener('click', function (e) {
       var t = e.target;
@@ -1134,11 +1145,11 @@
         var b = bar();
         var wide = b.classList.contains('is-more'), scope = wide ? b.querySelector('.rbar__more') : b;
         if (!wide) {
-          var all = b.querySelector('input[name="facet"][value=""]'); if (all) all.checked = true;
           var list = b.querySelector('input[name="view"][value="list"]'); if (list) list.checked = true;
         }
         Array.prototype.forEach.call(scope.querySelectorAll('select'), function (sel) { sel.value = ''; });
         Array.prototype.forEach.call(scope.querySelectorAll('input[type=checkbox]'), function (x) { x.checked = false; });
+        var all = scope.querySelector('[data-facet-all]'); if (all) all.checked = true;
         Array.prototype.forEach.call(scope.querySelectorAll('[data-cpick]'), function (x) { pickCompany(x, '', true); });
       }
       // A click anywhere outside the wide panel closes it, as a menu would.

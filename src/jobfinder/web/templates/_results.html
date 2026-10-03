@@ -52,7 +52,7 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</strong>,
+      <strong>{{ facet_label }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</strong>,
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
@@ -99,7 +99,7 @@
 <div class="rstick">
   <p class="rstick__count">
     <b data-roll>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facets|selectattr("key", "equalto", facet)|map(attribute="label")|first if facet else "" }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ facet_label }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -137,9 +137,12 @@
     </button>
   </div>
   {% if facets and facets|length > 1 %}
-  <div class="facets" role="radiogroup" aria-label="Show one field">
+  {# Tick as many fields as you like; All clears them. All carries no name, so it is
+     never sent: an empty set of ticks is what means every field. The finder's script
+     keeps All and the fields in step. #}
+  <div class="facets" role="group" aria-label="Show these fields">
     <label class="facet facet--all">
-      <input type="radio" name="facet" value="" {% if not facet %}checked{% endif %}>
+      <input type="checkbox" data-facet-all {% if not facet %}checked{% endif %}>
       <span class="facet__face">All <b>{{ "{:,}".format(facet_all) }}</b></span>
     </label>
     {% for f in facets %}
@@ -147,7 +150,7 @@
        open in it, so the choice visibly counted. #}
     <label class="facet{% if not f.count %} facet--empty{% endif %}"{% if f.group %} style="--g:var(--g-{{ f.group }})"{% endif %}
            {% if not f.count %}title="Nothing open in {{ f.label }} right now"{% endif %}>
-      <input type="radio" name="facet" value="{{ f.key }}" {% if facet == f.key %}checked{% endif %}{% if not f.count %} disabled{% endif %}>
+      <input type="checkbox" name="facet" value="{{ f.key }}" {% if f.key in facet %}checked{% endif %}{% if not f.count %} disabled{% endif %}>
       <span class="facet__face">{{ f.label }} <b>{{ "{:,}".format(f.count) }}</b></span>
     </label>
     {% endfor %}
@@ -314,7 +317,7 @@
             mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);
   }
   .facets::-webkit-scrollbar{display:none}
-  /* State is read from the radio beside each face rather than with :has(), which
+  /* State is read from the checkbox beside each face rather than with :has(), which
      Firefox only gained in 121, and ESR 115 is still common on work machines. */
   .facet{--g:var(--ink-3);position:relative;flex:none;display:inline-flex;cursor:pointer}
   .facet__face{

@@ -240,6 +240,33 @@ def test_every_picked_field_gets_a_tab_and_the_tabs_add_up_to_all(client):
             assert re.search(rf'value="{key}"[^>]*disabled', text), "an empty tab cannot be picked"
 
 
+def test_several_field_tabs_can_be_ticked_at_once(client):
+    """The tabs were radios, so narrowing to two fields meant choosing one of them."""
+    fields = {"chosen_fields": ["backend", "frontend", "data-science", "devops"]}
+    text = client.post("/search", data=fields, headers={"HX-Request": "true"}).text
+    tabs = [(k, int(n.replace(",", ""))) for k, n in re.findall(
+        r'name="facet" value="([a-z-]+)"[^>]*>\s*<span class="facet__face">[^<]*<b>([\d,]+)</b>',
+        text,
+    ) if n != "0"]
+    if len(tabs) < 2:
+        pytest.skip("this snapshot has fewer than two fields with jobs open")
+    (a, count_a), (b, count_b) = tabs[:2]
+
+    both = client.post(
+        "/search", data={**fields, "facet": [a, b]}, headers={"HX-Request": "true"}
+    ).text
+    assert _total(type("R", (), {"text": both})) == count_a + count_b
+    assert re.search(rf'value="{a}" checked', both) and re.search(rf'value="{b}" checked', both)
+    assert not re.search(r'data-facet-all checked', both), "All is off while fields are ticked"
+    assert " or " in re.search(r'class="rstick__on">([^<]*)<', both).group(1)
+
+    # The link the search writes reopens it with both ticked.
+    page = client.get("/?" + "&".join(
+        [f"f={f}" for f in fields["chosen_fields"]] + [f"field={a}", f"field={b}"]
+    )).text
+    assert re.search(rf'value="{a}" checked', page) and re.search(rf'value="{b}" checked', page)
+
+
 def test_the_company_view_lays_the_same_results_out_by_employer(client):
     fields = {"chosen_fields": ["backend", "cloud", "devops"]}
     as_list = client.post("/search", data=fields, headers={"HX-Request": "true"}).text

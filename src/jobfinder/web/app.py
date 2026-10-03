@@ -890,8 +890,7 @@ def _search_url(profile: dict, context: dict) -> str:
             pairs.append((flag, "1"))
     if profile.get("sort") and profile["sort"] != DEFAULT_SORT:
         pairs.append(("sort", profile["sort"]))
-    if context.get("facet"):
-        pairs.append(("field", context["facet"]))
+    pairs.extend(("field", key) for key in context.get("facet") or [])
     if context.get("company"):
         pairs.append(("co", context["company"]))
     if context.get("view") and context["view"] != DEFAULT_VIEW:
@@ -924,7 +923,7 @@ def home(request: Request):
     params = request.query_params
     if params.getlist("f"):
         form = {
-            field: (params.getlist(key) if key == "f" else params.get(key))
+            field: (params.getlist(key) if key in ("f", "field") else params.get(key))
             for key, field in URL_KEYS.items()
         }
         # A switch in a link is on for 1 (what the site writes) and off for anything
@@ -960,7 +959,7 @@ async def search(
     sort: str | None = Form(default=None),
     show_applied: str | None = Form(default=None),
     use_cv: str | None = Form(default=None),
-    facet: str | None = Form(default=None),
+    facet: list[str] = Form(default=[]),
     company: str | None = Form(default=None),
     view: str | None = Form(default=None),
     mode: str | None = Form(default=None),
@@ -1133,7 +1132,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             applied_keys=applied,
             saved_keys=saved_keys,
             show_applied=bool(show_applied),
-            facet=form.get("facet") or None,
+            facet=form.get("facet"),
             company=form.get("company") or None,
             view=form.get("view"),
             mode=form.get("mode") or None,
@@ -1647,6 +1646,13 @@ WORK_MODES = {
 }
 
 
+def _either(labels: list[str]) -> str:
+    """["A", "B", "C"] as "A, B or C"."""
+    if len(labels) < 2:
+        return "".join(labels)
+    return ", ".join(labels[:-1]) + " or " + labels[-1]
+
+
 def _search_results(
     profile: dict,
     *,
@@ -1655,7 +1661,7 @@ def _search_results(
     applied_keys: set[str] | None = None,
     saved_keys: set[str] | None = None,
     show_applied: bool = False,
-    facet: str | None = None,
+    facet: list[str] | str | None = None,
     company: str | None = None,
     view: str | None = None,
     mode: str | None = None,
@@ -1669,7 +1675,8 @@ def _search_results(
 ) -> dict:
     """Rank the active jobs against a profile and build the template context.
 
-    `facet` (a field key) and `company` (an employer name) narrow a search that has
+    `facet` (field keys, any of which a row may be in) and `company` (an employer
+    name) narrow a search that has
     already run, from the filter bar above the results. They never change the ranking
     or the counts the bar itself shows, which are taken before either applies.
 
@@ -1904,15 +1911,16 @@ def _search_results(
 
         total_all = len(items)
         known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}
-        facet = facet if facet in known_fields else None
+        # Several tabs can be ticked at once, and a row shows when it is in any of them.
+        if isinstance(facet, str):
+            facet = [facet]
+        facet = list(dict.fromkeys(k for k in facet or [] if k in known_fields))
         company = company if company in {i["company"] for i in items} else None
 
         def in_facet(item: dict) -> bool:
             if not facet:
                 return True
-            if facet == OTHER_FACET:
-                return not item["field"]
-            return bool(item["field"] and item["field"]["key"] == facet)
+            return (item["field"]["key"] if item["field"] else OTHER_FACET) in facet
 
         def at_company(item: dict) -> bool:
             return not company or item["company"] == company
@@ -2033,6 +2041,10 @@ def _search_results(
             for name, count in sorted(company_counts.items(), key=lambda c: (-c[1], c[0].casefold()))
         ],
         "facet": facet,
+        # "Backend, Frontend or Data Science", for the summary of what is ticked.
+        "facet_label": _either(
+            [field_counts[k]["label"] for k in facet if k in field_counts]
+        ),
         "company": company,
         "mode": mode,
         "paid": paid,
