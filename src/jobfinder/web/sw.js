@@ -3,7 +3,7 @@
 //
 // Three rules, in order of what matters:
 //
-// 1. Pages are always asked for from the network first. Job lists change every six hours
+// 1. Pages are always asked for from the network first. Job lists change every two hours
 //    and an advert can close at any time, so a cached page is only ever a fallback, never
 //    a shortcut. Nothing POSTed, and nothing from another site, is touched at all.
 // 2. The site's own scripts and icons carry their version in their names, so they are

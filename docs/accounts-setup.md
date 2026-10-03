@@ -127,7 +127,7 @@ is what step 2 did. Run `schema.sql` before this key goes anywhere.
 
 This is for the keep-alive only. **A free Supabase project pauses after about a week
 with no traffic**, and the first request after that fails — which for a job site means
-someone cannot sign in at the moment they came back. The crawl already runs every six
+someone cannot sign in at the moment they came back. The crawl already runs every two
 hours, so it now pings Supabase to keep it awake.
 
 1. This repo → **Settings** → **Secrets and variables** → **Actions** →
@@ -231,7 +231,7 @@ need a fresh one:
 npx vercel --prod
 ```
 
-Or wait up to six hours for `crawl.yml`, which deploys at the end of every run.
+Or wait up to two hours for `crawl.yml`, which deploys at the end of every run.
 
 ---
 

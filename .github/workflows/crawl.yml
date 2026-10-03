@@ -15,9 +15,9 @@ name: Crawl
 
 on:
   schedule:
-    # Roughly every six hours. GitHub queues scheduled workflows with everyone else's,
+    # Roughly every two hours. GitHub queues scheduled workflows with everyone else's,
     # so expect drift of minutes to tens of minutes; nothing here depends on exact times.
-    - cron: "0 */6 * * *"
+    - cron: "0 */2 * * *"
   workflow_dispatch:
     inputs:
       adapter:
@@ -125,7 +125,7 @@ jobs:
         # Supabase pauses a free project after about a week without traffic, and the
         # first request after that fails - which for a job site means someone cannot
         # sign in at the exact moment they came back to look. This crawl already runs
-        # every six hours, so one request from it is enough to keep the project awake
+        # every two hours, so one request from it is enough to keep the project awake
         # and costs nothing.
         #
         # Never fails the crawl. The jobs are what this workflow is for; sign-in being
@@ -161,8 +161,8 @@ jobs:
         # made here rather than left to a Git trigger that does not exist.
         #
         # The snapshot is deliberately NOT committed. It is a 12 MB binary that changes
-        # completely every run, so committing it four times a day would add roughly
-        # 50 MB of pack objects daily to a repository that gains nothing from the
+        # completely every run, so committing it twelve times a day would add roughly
+        # 150 MB of pack objects daily to a repository that gains nothing from the
         # history: only the newest snapshot is ever served.
         run: |
           if [ -z "$VERCEL_TOKEN" ]; then

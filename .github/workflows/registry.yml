@@ -3,7 +3,7 @@ name: Registry
 # Growing the registry: import companies, resolve them to crawlable sources, and try
 # generic extraction on whatever detection could not read.
 #
-# Weekly, not six-hourly, because this is the slow half of the pipeline and the data it
+# Weekly, not two-hourly, because this is the slow half of the pipeline and the data it
 # reads barely moves. A company's website and choice of ATS change on a scale of months;
 # its job postings change hourly. Detection across a few hundred unknown hosts takes
 # 30-60 minutes and typically registers a handful of new sources, so running it four

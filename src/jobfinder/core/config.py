@@ -114,7 +114,7 @@ class Settings(BaseSettings):
 
     # Sources whose company sits below this priority are crawled only when their last
     # success is older than `stale_after_hours`. A registry of thousands is mostly long
-    # tail: re-fetching a 12-person consultancy every six hours costs far more than the
+    # tail: re-fetching a 12-person consultancy every two hours costs far more than the
     # freshness it buys, while the multinationals that carry most of the roles stay on
     # every run.
     priority_always_crawl: int = 2

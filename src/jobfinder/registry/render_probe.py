@@ -13,7 +13,7 @@ from then on it is crawled over its public API by plain HTTP.
 
 ## Why the browser never enters the crawl
 
-A browser is slow, heavy and fragile, and the six-hourly crawl is none of those. So the
+A browser is slow, heavy and fragile, and the two-hourly crawl is none of those. So the
 browser is used only to *discover* where a site's jobs come from, weekly, in the registry
 job; what it discovers is always a board the crawler can read without one. Reading job
 lists straight out of arbitrary JSON responses was tried against the blocked queue and

@@ -69,7 +69,7 @@ def select_sources(
 
     High-priority companies run every time. The long tail runs only once its last
     successful crawl has aged past `stale_after_hours`, which is what keeps a registry
-    of thousands inside a six-hour CI window. A source that has never succeeded is
+    of thousands inside a two-hour CI window. A source that has never succeeded is
     always due — otherwise a newly-registered company would wait a day for its first
     fetch, and a permanently broken one would never retry.
     """

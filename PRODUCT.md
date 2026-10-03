@@ -49,7 +49,7 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
 ## Operating Context
 
 - Searchers arrive mid-hunt, often repeatedly over weeks, frequently on a phone.
-- The crawl runs every six hours via GitHub Actions, which also deploys the site.
+- The crawl runs every two hours via GitHub Actions, which also deploys the site.
 - Applying always happens on the employer's own posting, in a new tab. This site never
   takes an application.
 

@@ -174,7 +174,7 @@ Fetching is parallel; reconciliation stays serial on one thread, so the state ma
 guarantees are exactly what they were.
 
 High-priority companies are crawled every run; the long tail waits for
-`stale_after_hours`. Re-fetching a twelve-person consultancy every six hours costs far
+`stale_after_hours`. Re-fetching a twelve-person consultancy every two hours costs far
 more than the freshness it buys, while the multinationals that carry most of the roles
 stay current.
 
@@ -360,7 +360,7 @@ Two GitHub Actions workflows, split by how fast the data underneath each one mov
 
 | Workflow | Schedule | Does |
 |---|---|---|
-| `crawl.yml` | every 6 hours | tests, then fetch and reconcile every source that is due |
+| `crawl.yml` | every 2 hours | tests, then fetch and reconcile every source that is due |
 | `registry.yml` | weekly | import companies, detect their ATS, try generic extraction |
 
 The split is the point. Detection sweeps a few hundred unknown hosts, takes 30-60
