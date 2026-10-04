@@ -615,6 +615,8 @@
   .aboutwin,.profilewin{box-shadow:var(--shadow-lift)}
   .profilewin{margin-bottom:28px}
   .aboutwin{scroll-margin-top:70px}
+  /* Preferences and alerts are two windows, so they sit apart like the ones above. */
+  .aboutwin + .aboutwin{margin-top:28px}
   .aboutfold__head{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;
     padding:18px 26px;cursor:pointer}
   .aboutfold__head::-webkit-details-marker{display:none}
