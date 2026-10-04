@@ -442,7 +442,7 @@
     scale:calc(1 / var(--mag));transform-origin:50% 100%}
   .dock__item:hover .dock__tip,.dock__item:focus-visible .dock__tip{opacity:1;translate:-50% 0}
   .dock__item:active .logo{filter:brightness(.85)}
-  .dock__sep{align-self:stretch;width:1px;margin:6px 2px;background:rgba(20,24,33,.16)}
+  .dock__sep{align-self:stretch;width:1px;margin:6px 2px;background:var(--line-strong)}
   .dock__folder{display:grid;place-items:center;width:60px;height:60px;
     border-radius:24%;font-weight:750;font-size:17px;letter-spacing:-.03em;color:#fff;
     background:linear-gradient(180deg,#2766d6,var(--aqua-deep));
@@ -725,7 +725,7 @@
   html.job-open,html.job-open body{overflow:hidden}
   .jobsheet{position:fixed;inset:0;z-index:150}
   .jobsheet[hidden]{display:none}
-  .jobsheet__scrim{position:absolute;inset:0;background:rgba(20,24,33,.26);opacity:0;transition:opacity .25s var(--ease)}
+  .jobsheet__scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .25s var(--ease)}
   .jobsheet.is-open .jobsheet__scrim{opacity:1}
   .jobsheet__win{
     position:absolute;top:calc(48px + env(safe-area-inset-top) + 12px);right:12px;bottom:12px;
@@ -754,7 +754,7 @@
   .jobsheet__acts .savebtn{font-size:14.5px;padding:9px 16px}
   .jobsheet__acts .savebtn__label{position:static;width:auto;height:auto;clip:auto}
   /* While the advert loads: a few grey lines where it will be. */
-  .jobsheet__skel i{display:block;height:12px;border-radius:6px;background:#eceef2;margin:0 0 12px}
+  .jobsheet__skel i{display:block;height:12px;border-radius:6px;background:var(--skel);margin:0 0 12px}
   /* The heading is the row's own, so the first bar stands for the facts strip. */
   .jobsheet__skel{margin-top:22px}
   .jobsheet__skel i:first-child{height:62px;width:100%;border-radius:12px;margin-bottom:22px}
@@ -794,7 +794,7 @@
     border:1px solid var(--line-strong);box-shadow:0 1px 0 var(--line-strong)}
   .keys{position:fixed;inset:0;z-index:160;display:grid;place-items:center;padding:16px}
   .keys[hidden]{display:none}
-  .keys__scrim{position:absolute;inset:0;background:rgba(20,24,33,.3)}
+  .keys__scrim{position:absolute;inset:0;background:var(--scrim)}
   .keys__win{position:relative;width:min(440px,100%);box-shadow:0 3px 8px rgba(20,24,33,.12),0 50px 90px -24px rgba(20,24,33,.5)}
   .keys__win h2{font-size:1.3rem;margin-bottom:14px}
   .keys__list{margin:0 0 14px}

@@ -201,6 +201,8 @@
     background-size:22px 22px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.3);
   }
+  /* Full-strength aqua is a floodlight on the night desk; a deep blue keeps the band. */
+  :root[data-theme="dark"] .sky{background-color:#172a4a;background-image:radial-gradient(rgba(255,255,255,.1) 1px,transparent 1.3px)}
   .sky h2{font-size:clamp(1.9rem,4.2vw,3.2rem);max-width:20ch;margin-bottom:14px}
   .sky__lede{color:#e3edff;font-size:1.1rem;max-width:56ch}
   .sky__stage{position:relative;display:flex;flex-wrap:wrap;gap:16px 14px;margin-top:40px;
@@ -285,6 +287,8 @@
   .deck-scrim{position:fixed;inset:0;z-index:110;background:rgba(223,227,233,.62);
     opacity:0;visibility:hidden;transition:opacity .25s var(--ease),visibility 0s .25s}
   .deck-scrim.is-on{opacity:1;visibility:visible;transition-delay:0s}
+  /* By night the desk is dark, so a pale wash over it read as a light-grey fog. */
+  :root[data-theme="dark"] .deck-scrim{background:var(--scrim)}
   .popwin:focus{outline:none}
   .popwin .win__bar{flex:none}
   .popwin.is-stacked{filter:blur(1.5px) saturate(.85);opacity:.9;cursor:pointer;

@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#eceef2">
 {# The Appearance choice, applied before anything paints, so a dark page never flashes
    white first. See the Appearance control at the end of this file. #}
-<script>try{if(localStorage.getItem('sp-theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
+<script>try{if(localStorage.getItem('sp-theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.querySelector('meta[name="color-scheme"]').setAttribute('content','dark')}}catch(e){}</script>
 <title>{% block title %}Sorted Place: every job in Ireland, in one place{% endblock %}</title>
 <meta name="description" content="{% block description %}Every job open in Ireland right now, gathered from companies' own careers pages so you do not have to check them one by one.{% endblock %}">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='9' width='20' height='16' rx='4' fill='%23c9ced6'/%3E%3Crect x='9' y='5' width='20' height='16' rx='4' fill='%232b74f0'/%3E%3Ccircle cx='13' cy='9' r='1.4' fill='%23fff'/%3E%3Ccircle cx='17' cy='9' r='1.4' fill='%23fff'/%3E%3C/svg%3E">
@@ -95,6 +95,17 @@
      window by night. Mixing into a literal #fff left every ticked tag a white pill
      with near-white text in dark mode. --tint-ink is the same idea for darkened text. */
   --tint-base:#fff; --tint-ink:#000;
+  /* Everything else that used to be a fixed light colour, so the night desk can turn it. */
+  --hover:rgba(20,24,33,.06); --hover-2:rgba(20,24,33,.08);  /* menu hovers, the page you are on */
+  --scrim:rgba(20,24,33,.3);                                  /* behind a panel or dialog */
+  --scroll:#bcc3cd; --scroll-hi:#9aa2ae;                      /* scrollbar thumb */
+  --brass-bg:#fff4c7; --brass-ink:#7a5800;                    /* Saved, the brass stamp */
+  --flag-bg:#fff8dc; --flag-edge:#f1dd92;                     /* "worth knowing" chips */
+  --error-bg:#fdeeed;
+  --tick:#c4cad3;                                             /* slider tick marks */
+  --stage:#e9ecf1; --stage-dot:rgba(20,24,33,.13);            /* the profile's CV stage */
+  --avatar-l:88%; --avatar-ink-l:28%; --logo-l:92%; --logo-ink-l:30%;  /* pastel tiles */
+  --pad-ink:#6b5a14;                                          /* text on the legal pad bar */
 
   --measure:68ch;
   --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -121,6 +132,16 @@
   --hl:rgba(255,216,74,.5); --thumb:#434953;
   --pad:#3b3522; --pad-2:#332d1b; --pad-edge:#4a4128;
   --tint-base:#20242a; --tint-ink:#fff;
+  --hover:rgba(255,255,255,.07); --hover-2:rgba(255,255,255,.1);
+  --scrim:rgba(0,0,0,.55);
+  --scroll:#3c424c; --scroll-hi:#56606c;
+  --brass-bg:rgba(255,216,74,.14); --brass-ink:#ffd84a;
+  --flag-bg:rgba(255,216,74,.12); --flag-edge:rgba(255,216,74,.35);
+  --error-bg:rgba(232,65,60,.14); --tag-red-deep:#ff7b76;
+  --tick:#3c414b;
+  --stage:#15181c; --stage-dot:rgba(255,255,255,.07);
+  --avatar-l:30%; --avatar-ink-l:85%; --logo-l:26%; --logo-ink-l:82%;
+  --pad-ink:#d9c27a;
   --shadow-win:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -10px rgba(0,0,0,.7);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -18px rgba(0,0,0,.8);
   --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
@@ -150,11 +171,11 @@ body{
 /* --- browser surfaces carry the design too --- */
 ::selection{background:var(--sticker);color:var(--ink)}
 input,textarea,select{caret-color:var(--aqua)}
-html{scrollbar-color:#b9c0ca transparent;scrollbar-width:thin}
+html{scrollbar-color:var(--scroll) transparent;scrollbar-width:thin}
 ::-webkit-scrollbar{width:11px;height:11px}
 ::-webkit-scrollbar-track{background:transparent}
-::-webkit-scrollbar-thumb{background:#bcc3cd;border:3px solid transparent;background-clip:padding-box;border-radius:8px}
-::-webkit-scrollbar-thumb:hover{background:#9aa2ae;background-clip:padding-box}
+::-webkit-scrollbar-thumb{background:var(--scroll);border:3px solid transparent;background-clip:padding-box;border-radius:8px}
+::-webkit-scrollbar-thumb:hover{background:var(--scroll-hi);background-clip:padding-box}
 :focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px;border-radius:6px}
 a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 
@@ -180,8 +201,8 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   padding:5px 10px;border-radius:7px;white-space:nowrap;letter-spacing:-.005em;
   transition:background .2s var(--ease),color .2s var(--ease);
 }
-.menubar__nav a:hover{background:rgba(20,24,33,.06);color:var(--ink)}
-.menubar__nav a[aria-current="page"]{color:var(--ink);background:rgba(20,24,33,.08);font-weight:600}
+.menubar__nav a:hover{background:var(--hover);color:var(--ink)}
+.menubar__nav a[aria-current="page"]{color:var(--ink);background:var(--hover-2);font-weight:600}
 .menubar .status{margin-left:auto;display:flex;align-items:center;gap:16px;
   font-size:13px;color:var(--ink-2);white-space:nowrap}
 .status .live{display:inline-flex;align-items:center;gap:7px;font-weight:600;color:var(--ink)}
@@ -200,7 +221,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 /* the person, as a round picture; their initial when there is no picture */
 .avatar{--av:28px;position:relative;flex:none;display:inline-grid;place-items:center;
   width:var(--av);height:var(--av);border-radius:50%;overflow:hidden;
-  background:hsl(var(--hue,215) 70% 88%);color:hsl(var(--hue,215) 55% 28%);
+  background:hsl(var(--hue,215) 70% var(--avatar-l));color:hsl(var(--hue,215) 55% var(--avatar-ink-l));
   font-weight:700;font-size:calc(var(--av) * .44);letter-spacing:-.02em;
   box-shadow:inset 0 0 0 1px rgba(20,24,33,.1)}
 .avatar img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -213,7 +234,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   padding:3px 10px 3px 3px;border-radius:999px;font-weight:600;font-size:13.5px;color:var(--ink);
   transition:background .2s var(--ease)}
 .acct > summary::-webkit-details-marker{display:none}
-.acct > summary:hover,.acct[open] > summary{background:rgba(20,24,33,.07)}
+.acct > summary:hover,.acct[open] > summary{background:var(--hover)}
 .acct > summary:focus-visible{outline:2.5px solid var(--aqua);outline-offset:2px}
 .acct__chev{width:10px;height:10px;color:var(--ink-3);transition:transform .25s var(--ease)}
 .acct[open] .acct__chev{transform:rotate(180deg)}
@@ -249,7 +270,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 .burger{display:none;margin-left:auto;width:44px;height:44px;margin-right:-10px;padding:0;
   background:none;border:0;box-shadow:none;border-radius:10px;color:var(--ink)}
 .burger::after{display:none}
-.burger:hover:not(:disabled){background:rgba(20,24,33,.06);transform:none;filter:none;box-shadow:none}
+.burger:hover:not(:disabled){background:var(--hover);transform:none;filter:none;box-shadow:none}
 .burger:active:not(:disabled){transform:scale(.94)}
 .burger i{position:absolute;left:13px;top:21px;width:18px;height:2px;border-radius:2px;background:currentColor;
   transition:transform .35s var(--ease)}
@@ -264,7 +285,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
 /* the sheet the burger opens: every destination as a large, thumb-sized row */
 .sheet{position:fixed;inset:calc(48px + env(safe-area-inset-top)) 0 0 0;z-index:99;
   display:flex;flex-direction:column;visibility:hidden;pointer-events:none}
-.sheet__scrim{position:absolute;inset:0;background:rgba(20,24,33,.28);opacity:0;
+.sheet__scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;
   transition:opacity .25s var(--ease)}
 .sheet__panel{position:relative;background:var(--win-bar);border-bottom:1px solid var(--edge);
   box-shadow:0 30px 60px -24px rgba(20,24,33,.45);max-height:100%;overflow-y:auto;
@@ -411,14 +432,14 @@ p{margin:0 0 14px;max-width:var(--measure)}
   --size:44px;
   position:relative;flex:none;display:inline-grid;place-items:center;
   width:var(--size);height:var(--size);border-radius:24%;
-  background:hsl(var(--hue,210) 70% 92%);
+  background:hsl(var(--hue,210) 70% var(--logo-l));
   box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 1px 2px rgba(20,24,33,.08);
   overflow:hidden;
 }
 .logo::before{
   content:attr(data-initial);
   font-weight:750;font-size:calc(var(--size) * .44);letter-spacing:-.04em;
-  color:hsl(var(--hue,210) 55% 30%);
+  color:hsl(var(--hue,210) 55% var(--logo-ink-l));
 }
 .logo img{position:absolute;inset:14%;width:72%;height:72%;object-fit:contain;border-radius:18%}
 .logo.has-img{background:#fff}  /* in both themes: most logos are drawn for white */
@@ -443,7 +464,7 @@ p{margin:0 0 14px;max-width:var(--measure)}
   border-radius:20px;padding:3px 9px;white-space:nowrap;line-height:1.3;
 }
 .stamp--filled{background:var(--tag-red);color:#fff}
-.stamp--brass{background:#fff4c7;color:#7a5800}
+.stamp--brass{background:var(--brass-bg);color:var(--brass-ink)}
 .stamp--flat{transform:none}
 .stamp__tick{width:11px;height:11px;flex:none;fill:none;stroke:currentColor;stroke-width:2.4;
   stroke-linecap:round;stroke-linejoin:round}
@@ -498,7 +519,7 @@ button:hover:not(:disabled) svg,.btn:hover svg{transform:translateX(3px)}
 button:active:not(:disabled),.btn:active{transform:translateY(0);filter:brightness(.96);
   box-shadow:inset 0 2px 4px rgba(10,40,110,.3),0 1px 2px rgba(20,24,33,.12);transition-duration:.06s}
 button:focus-visible,.btn:focus-visible{outline:2.5px solid var(--aqua);outline-offset:3px}
-button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-color:var(--line-strong);
+button:disabled{cursor:not-allowed;color:var(--ink-3);background:var(--fill);border-color:var(--line-strong);
   box-shadow:none;text-shadow:none;filter:none}
 
 /* the white pill: a secondary way in */
@@ -593,7 +614,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-c
 .yrs__track{position:relative;height:36px}
 .yrs__ticks{position:absolute;left:calc(var(--thumb) / 2);right:calc(var(--thumb) / 2);top:50%;
   display:flex;justify-content:space-between;transform:translateY(8px);pointer-events:none}
-.yrs__ticks i{width:2px;height:5px;border-radius:1px;background:#c4cad3}
+.yrs__ticks i{width:2px;height:5px;border-radius:1px;background:var(--tick)}
 .yrs__track input[type=range]{
   -webkit-appearance:none;appearance:none;position:relative;width:100%;height:36px;margin:0;
   background:transparent;cursor:pointer;touch-action:pan-y}
@@ -736,7 +757,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-c
 .jobx__fact dt{font-size:12px;font-weight:600;color:var(--ink-3)}
 .jobx__fact dd{margin:2px 0 0;font-size:14px;font-weight:600;color:var(--ink);overflow-wrap:anywhere}
 .jobx__age{font-weight:400;color:var(--ink-3)}
-.jobx__note{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:#7a5800}
+.jobx__note{display:block;margin-top:2px;font-size:12.5px;font-weight:600;color:var(--brass-ink)}
 .jobx__short{margin:16px 0 0;padding:14px 16px 12px;border-radius:12px;background:var(--surface);
   border:1px solid var(--line-strong);box-shadow:var(--shadow-sm)}
 .jobx__short h3{margin:0 0 8px;font-size:13px;font-weight:650;color:var(--ink-3);letter-spacing:0}
@@ -774,7 +795,7 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-c
 .savebtn svg{width:14px;height:14px}
 .savebtn:hover:not(:disabled){color:var(--ink);border-color:#9aa2ae;filter:none;
   box-shadow:0 4px 10px -5px rgba(20,24,33,.3)}
-.savebtn--on{color:#7a5800;background:#fff4c7;border-color:var(--sticker-deep)}
+.savebtn--on{color:var(--brass-ink);background:var(--brass-bg);border-color:var(--sticker-deep)}
 .savebtn--on svg path{fill:var(--sticker)}
 @media (prefers-reduced-motion:no-preference){
   .savebtn--on svg{animation:pop .5s var(--spring)}
@@ -814,7 +835,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   background:var(--aqua-wash);color:var(--aqua-deep);font-weight:550;
   border:1px solid rgba(43,116,240,.25);
 }
-.error,.err{background:#fdeeed;color:var(--tag-red-deep);border-color:rgba(232,65,60,.3)}
+.error,.err{background:var(--error-bg);color:var(--tag-red-deep);border-color:rgba(232,65,60,.3)}
 
 /* -------------------------------------------------------------- stickers -- */
 .sticker{position:absolute;z-index:3;user-select:none;
@@ -1055,7 +1076,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
           stroke-width="1.5" stroke-linejoin="round"/>
   </symbol>
   <symbol id="i-doc" viewBox="0 0 24 24">
-    <path d="M6 2.8h8.2L19.2 8v12.2a1 1 0 01-1 1H6a1 1 0 01-1-1V3.8a1 1 0 011-1z" fill="#fff" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+    <path d="M6 2.8h8.2L19.2 8v12.2a1 1 0 01-1 1H6a1 1 0 01-1-1V3.8a1 1 0 011-1z" style="fill:var(--surface)" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
     <path d="M14 3v5h5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
     <path d="M8.5 12.5h7M8.5 15.5h7M8.5 18.5h4.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
   </symbol>
