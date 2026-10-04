@@ -14,11 +14,16 @@
   <div class="co-hero__copy">
     <h1><span>{{ "{:,}".format(employers_hiring) }}</span> companies are hiring in Ireland <span class="hl">right now.</span></h1>
     <p class="lede">
-      Sorted Place brings every one of them into one place:
-      {% if global_names %}multinationals like {{ names(global_names[:4]) }},{% endif %}
-      {% if irish_names %}Irish companies like {{ names(irish_names[:3]) }},{% endif %}
-      {% if public_sector %}{{ public_sector }} public-sector employers{% endif %}
-      {%- if graduate_employers %} and {{ graduate_employers }} graduate recruiters{% endif %}.
+      {#- Gathered first and joined after, so the sentence reads right whichever groups
+          there are: written inline, a register with no public-sector or graduate
+          employers ended on "Intercom, ." -#}
+      {%- set groups = [] -%}
+      {%- if global_names %}{% set _ = groups.append("multinationals like " ~ names(global_names[:4])) %}{% endif -%}
+      {%- if irish_names %}{% set _ = groups.append("Irish companies like " ~ names(irish_names[:3])) %}{% endif -%}
+      {%- if public_sector %}{% set _ = groups.append(public_sector ~ " public-sector employers") %}{% endif -%}
+      {%- if graduate_employers %}{% set _ = groups.append(graduate_employers ~ " graduate recruiters") %}{% endif %}
+      Sorted Place brings every one of them into one place{% if groups %}:
+      {% for g in groups %}{{ g }}{% if not loop.last %}{{ ", and " if loop.revindex == 2 else ", " }}{% endif %}{% endfor %}{% endif %}.
       Between them that's <strong>{{ "{:,}".format(ireland_count) }} jobs</strong>, read straight
       from each company's own careers site.
     </p>
