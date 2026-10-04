@@ -539,6 +539,9 @@ button:disabled{cursor:not-allowed;color:var(--ink-3);background:var(--fill);bor
 
 /* Things built on <button> that are not pills: text links, menu rows, icons, list rows. */
 .linkish,.linky,.menuitem,.app,.corow,.sheet__nav button{min-height:0;text-shadow:none;white-space:normal;line-height:inherit}
+/* Sign out in the phone menu is a button, and the line above flattened it to its text,
+   a squat row among 52px ones. */
+.sheet__nav button{min-height:52px}
 .savebtn,.burger{text-shadow:none;min-height:0}
 
 /* Apply leaves this site, so it is the aqua outline that fills on hover. */
