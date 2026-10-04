@@ -333,7 +333,7 @@
   .facet input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
   .facet:hover .facet__face{transform:translateY(-1px);border-color:#9aa2ae}
   .facet input:checked + .facet__face{
-    background:var(--fill);background:color-mix(in srgb,var(--g) 11%,#fff);
+    background:var(--fill);background:color-mix(in srgb,var(--g) 11%,var(--tint-base));
     border-color:var(--g);font-weight:650;
   }
   .facet--all input:checked + .facet__face{background:var(--ink);border-color:var(--ink);color:var(--win)}
@@ -517,7 +517,7 @@
   }
   .chip svg{width:12px;height:12px;color:var(--ink-3)}
   .chip--field{background:var(--fill);border-color:var(--line-strong);color:var(--ink);
-    background:color-mix(in srgb,var(--g) 11%,#fff);border-color:color-mix(in srgb,var(--g) 35%,#fff)}
+    background:color-mix(in srgb,var(--g) 11%,var(--tint-base));border-color:color-mix(in srgb,var(--g) 35%,var(--tint-base))}
   .chip--field::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--g)}
   .chip--skill{background:var(--aqua-wash);border-color:color-mix(in srgb,var(--aqua) 22%,var(--surface));color:var(--aqua-deep)}
   .chip--more{font-family:var(--mono);font-weight:500}

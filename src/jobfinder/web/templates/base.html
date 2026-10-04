@@ -91,6 +91,10 @@
   --hl:var(--sticker);                /* the highlighter under a headline's phrase */
   --thumb:#fff;                       /* the chosen side of a segmented control */
   --pad:#fbf3c8; --pad-2:#f3e6a6; --pad-edge:#e6d58a;  /* the legal pad title bar */
+  /* What a field colour is washed into for a ticked tag or a chip: paper by day, the
+     window by night. Mixing into a literal #fff left every ticked tag a white pill
+     with near-white text in dark mode. --tint-ink is the same idea for darkened text. */
+  --tint-base:#fff; --tint-ink:#000;
 
   --measure:68ch;
   --mono:"Geist Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
@@ -116,6 +120,7 @@
   --edge:rgba(255,255,255,.09); --skel:#262a31; --skel-hi:#31363e;
   --hl:rgba(255,216,74,.5); --thumb:#434953;
   --pad:#3b3522; --pad-2:#332d1b; --pad-edge:#4a4128;
+  --tint-base:#20242a; --tint-ink:#fff;
   --shadow-win:0 1px 2px rgba(0,0,0,.5), 0 12px 32px -10px rgba(0,0,0,.7);
   --shadow-lift:0 2px 4px rgba(0,0,0,.5), 0 30px 60px -18px rgba(0,0,0,.8);
   --shadow-sm:0 1px 2px rgba(0,0,0,.5), 0 4px 10px -4px rgba(0,0,0,.6);
@@ -549,14 +554,14 @@ button:disabled{cursor:not-allowed;color:#6f7581;background:var(--fill);border-c
 }
 .divider::before{ /* the tag dot, which becomes a tick */
   content:"";flex:none;width:16px;height:16px;border-radius:50%;
-  background:color-mix(in srgb,var(--g) 22%,#fff);
+  background:color-mix(in srgb,var(--g) 22%,var(--tint-base));
   box-shadow:inset 0 0 0 1.5px var(--g);
   transition:background .2s var(--ease),transform .4s var(--spring);
 }
 .divider:hover{transform:translateY(-2px);box-shadow:0 6px 14px -8px rgba(20,24,33,.35);border-color:#aab1bc}
 .divider input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
 .divider:has(input:checked){
-  background:color-mix(in srgb,var(--g) 11%,#fff);
+  background:color-mix(in srgb,var(--g) 11%,var(--tint-base));
   border-color:var(--g);font-weight:600;
   box-shadow:0 0 0 1px var(--g),0 6px 14px -8px color-mix(in srgb,var(--g) 70%,transparent);
 }

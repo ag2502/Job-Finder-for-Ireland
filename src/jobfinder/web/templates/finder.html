@@ -589,7 +589,7 @@
     .story[data-step="2"] .demo__rows li{animation:sortin .45s var(--spring) calc(var(--k) * 60ms + 60ms) both}
     .story[data-step="2"] .demo__rows li:first-child .demo__apply{animation:nudge 1.4s var(--ease) .8s 2}
   }
-  .demo-chip.is-pick{background:color-mix(in srgb,var(--g) 11%,#fff);border-color:var(--g);font-weight:600;
+  .demo-chip.is-pick{background:color-mix(in srgb,var(--g) 11%,var(--tint-base));border-color:var(--g);font-weight:600;
     box-shadow:0 0 0 1px var(--g)}
   .demo-chip.is-pick::before{background:var(--g) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M4.2 8.3l2.5 2.5 5-5.4' fill='none' stroke='%23fff' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/100% no-repeat;box-shadow:none}
   @keyframes pick{0%{background:var(--surface);border-color:var(--line-strong);box-shadow:none;transform:scale(1)}
