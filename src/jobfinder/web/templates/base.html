@@ -1285,6 +1285,18 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   paint();
 })();
 
+// Save and Apply ask a signed-out visitor to sign in first. The rows are drawn without
+// knowing which search they belong to, so their sign-in links say next=/, and signing in
+// from one landed on an empty finder with the search gone. The search is in this page's
+// address, so that is where they are sent back to.
+document.addEventListener('click', function (e) {
+  var link = e.target.closest && e.target.closest('a[href^="/login?next=/&"]');
+  if (!link || location.pathname !== '/') return;
+  var url = new URL(link.href, location.href);
+  url.searchParams.set('next', location.pathname + location.search);
+  link.href = url.pathname + url.search;
+}, true);
+
 // Installable, and readable offline: see sw.js. Registered after the page has loaded, so
 // it never competes with the first paint for the network.
 if ('serviceWorker' in navigator) {
