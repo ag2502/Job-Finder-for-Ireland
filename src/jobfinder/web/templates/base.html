@@ -55,8 +55,8 @@
 
   /* stickers and marks */
   --sticker:#ffd84a; --sticker-deep:#e8b400;
-  --tag-red:#e8413c; --tag-red-deep:#c02c28;
-  --sorted:#1c9a4a; --sorted-wash:#e6f6ec;
+  --tag-red:#d93a35; --tag-red-deep:#c02c28;  /* white badge text 4.6:1 */
+  --sorted:#157a3a; --sorted-wash:#e6f6ec;  /* 3.6:1 on white at #1c9a4a; 5.3:1 now */
 
   /* the traffic lights */
   --tl-red:#ff5f57; --tl-amber:#febc2e; --tl-green:#28c840;
@@ -95,6 +95,9 @@
      window by night. Mixing into a literal #fff left every ticked tag a white pill
      with near-white text in dark mode. --tint-ink is the same idea for darkened text. */
   --tint-base:#fff; --tint-ink:#000;
+  /* The fill under white text: a step deeper than aqua so the label clears 4.5:1 in
+     either theme (white on aqua itself was 4.3:1 by day and 3.6:1 by night). */
+  --btn:#1f5fd6;
   /* Everything else that used to be a fixed light colour, so the night desk can turn it. */
   --hover:rgba(20,24,33,.06); --hover-2:rgba(20,24,33,.08);  /* menu hovers, the page you are on */
   --scrim:rgba(20,24,33,.3);                                  /* behind a panel or dialog */
@@ -260,7 +263,7 @@ a{color:inherit;text-underline-offset:3px;text-decoration-thickness:1px}
   letter-spacing:-.005em}
 .menuitem::after{display:none}
 .menuitem svg{width:16px;height:16px;flex:none;color:var(--ink-3);transform:none!important}
-.menuitem:hover:not(:disabled),.menuitem:focus-visible{background:var(--aqua);color:#fff;
+.menuitem:hover:not(:disabled),.menuitem:focus-visible{background:var(--btn);color:#fff;
   transform:none;filter:none;box-shadow:none}
 .menuitem:hover svg,.menuitem:focus-visible svg{color:#fff}
 .menuitem--out{color:var(--tag-red-deep)}
@@ -498,10 +501,10 @@ button,.btn{
   position:relative;display:inline-flex;align-items:center;justify-content:center;gap:9px;
   font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.2;
   color:#fff;text-decoration:none;cursor:pointer;white-space:nowrap;
-  background-color:var(--aqua);
+  background-color:var(--btn);
   background-image:
     linear-gradient(180deg,rgba(255,255,255,.24) 0%,rgba(255,255,255,.1) 48%,rgba(255,255,255,0) 52%),
-    linear-gradient(180deg,#4f8ffb 0%,var(--aqua) 55%,#1f63da 100%);
+    linear-gradient(180deg,#3478ea 0%,var(--btn) 55%,#1a52c0 100%);
   border:1px solid var(--aqua-deep);border-radius:999px;
   padding:11px 22px;min-height:44px;
   text-shadow:0 1px 0 rgba(10,40,110,.25);
@@ -544,7 +547,7 @@ button:disabled{cursor:not-allowed;color:var(--ink-3);background:var(--fill);bor
   background:var(--surface);border:1.5px solid var(--aqua);text-shadow:none;
   box-shadow:0 2px 6px -3px rgba(43,116,240,.5);
 }
-.btn--apply:hover{color:#fff;background:var(--aqua);filter:none}
+.btn--apply:hover{color:#fff;background:var(--btn);filter:none}
 
 .linkish{
   background:none;border:0;padding:0;font:inherit;color:var(--aqua-deep);box-shadow:none;
