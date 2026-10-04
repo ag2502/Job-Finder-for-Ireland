@@ -1,0 +1,40 @@
+# Diagram Regenerator configuration.
+# Reference: https://github.com/ag2502/Diagram-Regenerator#configuration
+
+# Where the schema comes from: a migrations directory, a .sql file, a database
+# URL (keep credentials in env vars, e.g. "${DATABASE_URL}") or SQLAlchemy
+# models as "python:myapp.models:Base".
+source = "schema.sql"
+dialect = "postgresql"
+
+# Tables to leave out of the docs (glob patterns, e.g. "tmp_*").
+exclude = []
+
+# Human-written table and column descriptions; `diagram-regen describe` drafts missing ones.
+descriptions = "docs/schema/descriptions.yml"
+
+[output]
+snapshot = "docs/schema/schema.json"   # commit it: PRs are compared against this file
+markdown = "docs/schema/README.md"     # Mermaid ER diagram + data dictionary
+# html = "docs/schema/index.html"      # searchable, zoomable schema browser
+# dbml = "docs/schema/schema.dbml"     # for dbdiagram.io
+# mermaid = "docs/schema/schema.mmd"
+title = "Database schema"
+diagram = "auto"                     # auto | all | keys | none
+# source_label = "Production"        # how the docs name the source
+
+# Focused diagrams for areas of a big schema.
+# [groups]
+# Billing = ["invoice*", "payment*"]
+
+[diff]
+fail_on = "breaking"                 # breaking | warning | any | never
+ignore = []                          # comments, defaults, indexes, foreign_keys, enums, column_order
+
+# Databases compared by `diagram-regen drift` (read-only access is enough).
+# [environments]
+# staging = "${STAGING_DATABASE_URL}"
+# prod = "${PROD_DATABASE_URL}"
+
+# [notify]
+# slack_webhook = "${SLACK_WEBHOOK_URL}"

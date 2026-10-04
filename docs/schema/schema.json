@@ -1,0 +1,314 @@
+{
+  "format": "diagram-regenerator/schema@1",
+  "dialect": "postgresql",
+  "tables": {
+    "alerts": {
+      "name": "alerts",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "email",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "internships",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "graduate",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "jobs",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "frequency",
+          "type": "text",
+          "nullable": false,
+          "default": "'daily'"
+        },
+        {
+          "name": "token",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "last_sent_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "created_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "current_timestamp"
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "current_timestamp"
+        }
+      ],
+      "primary_key": [
+        "user_id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "ref_table": "auth.users",
+          "ref_columns": [
+            "id"
+          ],
+          "name": "alerts_user_id_fkey",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "applications": {
+      "name": "applications",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "advert_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "company",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "applied_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "current_timestamp"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "ref_table": "auth.users",
+          "ref_columns": [
+            "id"
+          ],
+          "name": "applications_user_id_fkey",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "user_id",
+            "advert_key"
+          ],
+          "unique": true,
+          "name": "applications_user_id_advert_key_key"
+        },
+        {
+          "columns": [
+            "user_id",
+            "applied_at"
+          ],
+          "unique": false,
+          "name": "applications_user_applied_at_idx"
+        }
+      ]
+    },
+    "profiles": {
+      "name": "profiles",
+      "columns": [
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "fields",
+          "type": "text[]",
+          "nullable": false,
+          "default": "'{}'"
+        },
+        {
+          "name": "years",
+          "type": "smallint",
+          "nullable": true
+        },
+        {
+          "name": "include_remote",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "internships_only",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "graduate_only",
+          "type": "boolean",
+          "nullable": false,
+          "default": "false"
+        },
+        {
+          "name": "cv",
+          "type": "jsonb",
+          "nullable": true
+        },
+        {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "current_timestamp"
+        },
+        {
+          "name": "seen_at",
+          "type": "timestamptz",
+          "nullable": true
+        },
+        {
+          "name": "prev_seen_at",
+          "type": "timestamptz",
+          "nullable": true
+        }
+      ],
+      "primary_key": [
+        "user_id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "ref_table": "auth.users",
+          "ref_columns": [
+            "id"
+          ],
+          "name": "profiles_user_id_fkey",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": []
+    },
+    "saved_jobs": {
+      "name": "saved_jobs",
+      "columns": [
+        {
+          "name": "id",
+          "type": "uuid",
+          "nullable": false,
+          "default": "gen_random_uuid()"
+        },
+        {
+          "name": "user_id",
+          "type": "uuid",
+          "nullable": false
+        },
+        {
+          "name": "advert_key",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "title",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "company",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "url",
+          "type": "text",
+          "nullable": false
+        },
+        {
+          "name": "saved_at",
+          "type": "timestamptz",
+          "nullable": false,
+          "default": "current_timestamp"
+        }
+      ],
+      "primary_key": [
+        "id"
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "user_id"
+          ],
+          "ref_table": "auth.users",
+          "ref_columns": [
+            "id"
+          ],
+          "name": "saved_jobs_user_id_fkey",
+          "on_delete": "CASCADE"
+        }
+      ],
+      "indexes": [
+        {
+          "columns": [
+            "user_id",
+            "advert_key"
+          ],
+          "unique": true,
+          "name": "saved_jobs_user_id_advert_key_key"
+        },
+        {
+          "columns": [
+            "user_id",
+            "saved_at"
+          ],
+          "unique": false,
+          "name": "saved_jobs_user_saved_at_idx"
+        }
+      ]
+    }
+  }
+}
