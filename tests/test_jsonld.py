@@ -462,3 +462,13 @@ def test_a_single_country_source_can_place_adverts_that_name_nowhere() -> None:
     assert "Swords" in parse_job_posting(stated, "https://x/1", place="Ireland").location_raw
     # Without the option an advert that names nowhere stays unplaced.
     assert parse_job_posting(bare, "https://x/1").location_raw is None
+
+
+def test_a_title_escaped_twice_is_shown_as_written() -> None:
+    from jobfinder.sources.jsonld import parse_job_posting
+
+    job = parse_job_posting({"@type": "JobPosting", "title": "Food &amp;#038; Beverage Supervisor",
+                             "url": "https://x.ie/j/1"}, "https://x.ie/j/1")
+    assert job.title == "Food & Beverage Supervisor"
+    assert parse_job_posting({"@type": "JobPosting", "title": "R&D Engineer", "url": "https://x.ie/j/2"},
+                             "https://x.ie/j/2").title == "R&D Engineer"

@@ -33,6 +33,7 @@ entirely yields nothing rather than being crawled anyway.
 
 from __future__ import annotations
 
+import html
 import json
 import logging
 import re
@@ -256,11 +257,27 @@ def job_locations(obj: dict) -> tuple[str | None, list[str]]:
     return primary, extras
 
 
+def _unescape(text: str | None) -> str | None:
+    """Undo entity escaping, however many times it was applied.
+
+    WordPress hotel sites escape the markup twice, so Hodson Bay's 'Food & Beverage
+    Supervisor' arrived as 'Food &amp;#038; Beverage Supervisor'.
+    """
+    for _ in range(3):
+        if not text or "&" not in text:
+            break
+        unescaped = html.unescape(text)
+        if unescaped == text:
+            break
+        text = unescaped
+    return text
+
+
 def parse_job_posting(obj: dict, page_url: str, *, place: str | None = None) -> RawJob | None:
     """Turn one `JobPosting` object into a RawJob, or None if it is unusable."""
     url = _text(obj.get("url")) or page_url
 
-    title = _text(obj.get("title")) or _text(obj.get("name")) or title_from_url(url)
+    title = _unescape(_text(obj.get("title")) or _text(obj.get("name")) or title_from_url(url))
     if not title:
         return None
 
