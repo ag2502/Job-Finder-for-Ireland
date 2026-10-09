@@ -289,3 +289,9 @@ def test_a_dublin_neighbourhood_named_in_the_north_is_the_north(raw: str) -> Non
 
 def test_a_dublin_neighbourhood_on_its_own_is_still_dublin() -> None:
     assert normalize_location("Dundrum Town Centre").is_dublin
+
+
+def test_a_dublin_neighbourhood_named_in_another_country_is_that_country() -> None:
+    location = normalize_location("ibis Amsterdam City West, Amsterdam, Netherlands")
+    assert not location.is_dublin and not location.is_ireland
+    assert normalize_location("City West Business Campus").is_dublin

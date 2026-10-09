@@ -194,6 +194,15 @@ _FOREIGN_COUNTRIES = {
 } | _US_SIGNALS
 
 
+# Countries a Dublin neighbourhood's name also turns up in, as boards write them.
+_OTHER_COUNTRIES = {
+    "netherlands", "the netherlands", "nl", "germany", "de", "spain", "es", "italy", "it",
+    "belgium", "be", "portugal", "pt", "poland", "pl", "switzerland", "ch", "austria",
+    "sweden", "denmark", "norway", "finland", "czech republic", "luxembourg", "india",
+    "singapore", "japan", "china", "hong kong", "brazil", "mexico", "united arab emirates",
+}
+
+
 @dataclass
 class LocationResult:
     """Outcome of normalizing one raw location string."""
@@ -371,14 +380,17 @@ def normalize_location(
     # "Smithfield, RI 02917" names a Dublin neighbourhood, but the state and ZIP code
     # make it an American address.
     us_address = any(_is_state_with_zip(token) for token in tokens) and not has_ireland_signal
-    # Dundrum and Rathfriland-style village names exist in the North too. A Dublin
-    # neighbourhood alone, with Northern Ireland or the UK named beside it, is the North:
-    # "Dundrum, Northern Ireland, GB" is Fat Face's County Down shop.
+    # A Dublin neighbourhood's name alone gives way to another country named beside it.
+    # Dundrum is also a County Down village ("Dundrum, Northern Ireland, GB", Fat Face's
+    # shop), and "City West" an ibis hotel in Amsterdam.
     northern_locality = (
         has_locality
         and not (has_dublin_word or has_dublin_postal)
-        and bool(_NORTHERN_SIGNAL.search(text))
         and not names_ireland
+        and bool(
+            _NORTHERN_SIGNAL.search(text)
+            or lowered_tokens & (_FOREIGN_COUNTRIES | _OTHER_COUNTRIES)
+        )
     )
 
     if not (has_dublin_word or has_dublin_postal or has_locality) or us_address or northern_locality or (
