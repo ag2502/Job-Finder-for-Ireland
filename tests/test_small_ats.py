@@ -337,3 +337,15 @@ def test_occupop_reads_a_vacancy_frame_embedded_in_an_employers_own_site():
     assert job.department == "Fitness & Leisure"
     assert job.employment_type == "Permanent"
     assert route.calls[0].request.url.params["visibility"] == "external"
+
+
+@respx.mock
+def test_pinpoint_reads_a_board_on_the_employers_own_domain():
+    """River Island's Pinpoint board is careers.riverisland.com, not *.pinpointhq.com."""
+    from jobfinder.sources.pinpoint import PinpointAdapter
+
+    route = respx.get("https://careers.riverisland.com/postings.json").mock(return_value=httpx.Response(
+        200, json={"data": [{"id": 7, "title": "Sales Advisor", "path": "/en/postings/7",
+                             "location": {"city": "Athlone", "name": "Athlone"}}]}))
+    jobs = PinpointAdapter().fetch("careers.riverisland.com").jobs
+    assert route.called and jobs[0].url == "https://careers.riverisland.com/en/postings/7"

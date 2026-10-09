@@ -10,6 +10,9 @@ Locations carry a city and province but no country, and a remote role says so on
 `workplace_type`, so that is folded into the location string for the normalizer to read.
 The feed does not name the board's owner; registration relies on the slug resembling
 the company.
+
+A board on the employer's own domain (River Island's careers.riverisland.com) serves the
+same feed there, so a slug containing a dot is taken as the host itself.
 """
 
 from __future__ import annotations
@@ -53,7 +56,8 @@ class PinpointAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        response = client.get(f"https://{slug}.pinpointhq.com/postings.json")
+        host = slug if "." in slug else f"{slug}.pinpointhq.com"
+        response = client.get(f"https://{host}/postings.json")
         response.raise_for_status()
         payload = response.json()
         if not isinstance(payload, dict) or not isinstance(payload.get("data"), list):
@@ -69,7 +73,7 @@ class PinpointAdapter(BaseAdapter):
                 RawJob(
                     source_job_id=str(job_id),
                     title=item.get("title") or "",
-                    url=item.get("url") or f"https://{slug}.pinpointhq.com{item.get('path') or ''}",
+                    url=item.get("url") or f"https://{host}{item.get('path') or ''}",
                     location_raw=_location(item),
                     description=_description(item),
                     department=department,
