@@ -8,6 +8,7 @@
 {% set where_label = (places|selectattr("key", "equalto", where)|map(attribute="label")|first) if where else "" %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
+{% set pt = "part-time " if part_time_only else "" %}
 
 <div class="win resultswin">
 {{ titlebar("results: " ~ ("{:,}".format(total_all|default(total))) ~ " found") }}
@@ -15,11 +16,13 @@
   <div class="spread">
     <h2 style="margin:0">
       {% if internships_only and graduate_only %}
-        <span data-roll>{{ "{:,}".format(total) }}</span> internship{{ "" if total == 1 else "s" }} &amp; graduate job{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> {{ pt }}internship{{ "" if total == 1 else "s" }} &amp; graduate job{{ "" if total == 1 else "s" }}
       {% elif internships_only %}
-        <span data-roll>{{ "{:,}".format(total) }}</span> internship{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> {{ pt }}internship{{ "" if total == 1 else "s" }}
       {% elif graduate_only %}
-        <span data-roll>{{ "{:,}".format(total) }}</span> graduate job{{ "" if total == 1 else "s" }}
+        <span data-roll>{{ "{:,}".format(total) }}</span> {{ pt }}graduate job{{ "" if total == 1 else "s" }}
+      {% elif part_time_only %}
+        <span data-roll>{{ "{:,}".format(total) }}</span> part-time job{{ "" if total == 1 else "s" }}
       {% else %}
         <span data-roll>{{ "{:,}".format(total) }}</span> job{{ "" if total == 1 else "s" }} match
       {% endif %}
@@ -63,7 +66,7 @@
       {% if candidate_years > 15 %}15+ years of experience &middot;
       {% else %}asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;{% endif %}
     {% endif %}
-    {% if early_only and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Ireland &middot; {% endif %}
+    {% if (early_only or part_time_only) and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Ireland &middot; {% endif %}
     {% if by_location %}busiest places first, best matches first within each{% elif skill_count %}closest to your CV first{% if cv_name %} ({{ cv_name }}){% endif %}{% else %}best matches first{% endif %}
     {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
       &middot; graduate and entry-level jobs included
@@ -286,6 +289,9 @@
       There are no {{ "internships or graduate jobs" if graduate_only else "internships" }}
       open in those areas right now. These are seasonal, so this changes a lot through
       the year. Try more areas, or turn on Active jobs.
+    {% elif part_time_only %}
+      There are no part-time jobs open that fit this search right now. Try raising the
+      years of experience, clearing the title search, or picking a different location.
     {% else %}
       Nothing open in those areas right now. Try raising the years of experience,
       picking more areas, clearing the title search, or turning on Active jobs.

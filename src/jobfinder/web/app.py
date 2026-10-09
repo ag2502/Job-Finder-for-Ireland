@@ -480,6 +480,7 @@ def _me(stored: dict | None) -> dict:
         "include_remote": bool(stored.get("include_remote")),
         "internships_only": bool(stored.get("internships_only")),
         "graduate_only": bool(stored.get("graduate_only")),
+        "part_time_only": bool(stored.get("part_time_only")),
         "cv": _cv_view(stored.get("cv")),
         "has_details": bool(stored.get("fields") or stored.get("years") is not None),
     }
@@ -865,7 +866,7 @@ def _finder_context(request: Request, stored: dict | None = None) -> dict:
 # /?f=backend&f=frontend&y=2&sort=newest. Each key is the form field it stands for.
 URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
-    "intern": "internships_only", "grad": "graduate_only", "sort": "sort",
+    "intern": "internships_only", "grad": "graduate_only", "pt": "part_time_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
     "view": "view", "mode": "mode", "paid": "paid", "within": "within", "via": "via",
     "where": "where",
@@ -885,7 +886,8 @@ def _search_url(profile: dict, context: dict) -> str:
     if profile.get("query"):
         pairs.append(("q", profile["query"]))
     for flag, key in (("remote", "include_remote"), ("intern", "internships_only"),
-                      ("grad", "graduate_only"), ("cv", "use_cv"), ("applied", "show_applied")):
+                      ("grad", "graduate_only"), ("pt", "part_time_only"), ("cv", "use_cv"),
+                      ("applied", "show_applied")):
         if profile.get(key):
             pairs.append((flag, "1"))
     if profile.get("sort") and profile["sort"] != DEFAULT_SORT:
@@ -928,7 +930,7 @@ def home(request: Request):
         }
         # A switch in a link is on for 1 (what the site writes) and off for anything
         # else, so a hand-edited "paid=0" means what it says.
-        for key in ("remote", "intern", "grad", "cv", "applied", "paid"):
+        for key in ("remote", "intern", "grad", "pt", "cv", "applied", "paid"):
             field = URL_KEYS[key]
             form[field] = "1" if (form.get(field) or "").lower() in ("1", "true", "on", "yes") else None
         response = _search(request, form)
@@ -954,6 +956,7 @@ async def search(
     include_remote: str | None = Form(default=None),
     internships_only: str | None = Form(default=None),
     graduate_only: str | None = Form(default=None),
+    part_time_only: str | None = Form(default=None),
     years: str | None = Form(default=None),
     q: str | None = Form(default=None),
     sort: str | None = Form(default=None),
@@ -973,7 +976,7 @@ async def search(
     form = {
         "chosen_fields": chosen_fields, "include_remote": include_remote,
         "internships_only": internships_only, "graduate_only": graduate_only,
-        "years": years, "q": q, "sort": sort, "show_applied": show_applied,
+        "part_time_only": part_time_only, "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
         "mode": mode, "paid": paid, "within": within, "new_only": new_only,
         "via": via, "where": where,
@@ -1087,6 +1090,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
         "years": stated_years,
         "internships_only": bool(form.get("internships_only")),
         "graduate_only": bool(form.get("graduate_only")),
+        "part_time_only": bool(form.get("part_time_only")),
         "include_remote": bool(form.get("include_remote")),
         "query": q or None,
         # An unrecognised value falls back to relevance rather than erroring: the sort
@@ -1743,6 +1747,8 @@ def _search_results(
                 want_graduate=want_graduate,
             )
         ]
+        if profile.get("part_time_only"):
+            rows = [row for row in rows if row.is_part_time]
         company_rows = session.execute(select(Company)).scalars().all()
         companies = {c.id: c.name for c in company_rows}
         domains = {c.id: _logo_domain(c.name, c.website) for c in company_rows}
@@ -1755,7 +1761,13 @@ def _search_results(
         # usually takes any discipline: hiding the ones outside the ticked fields hid most
         # of them. They are ranked as usual - the ticked fields first - and the rest follow
         # under their own heading, rather than disappearing.
-        early = bool(profile.get("internships_only") or profile.get("graduate_only"))
+        # Part-time work is the same: a few hundred roles across every field, and someone
+        # after evening or weekend hours takes the shop floor as readily as the office.
+        early = bool(
+            profile.get("internships_only")
+            or profile.get("graduate_only")
+            or profile.get("part_time_only")
+        )
         scored = rank_jobs(rows, candidate, limit=len(rows), only_relevant=not early)
         by_id = {row.id: row for row in rows}
 
@@ -2002,7 +2014,6 @@ def _search_results(
         page_groups = groups[start : start + per_page]
         shown = page_items or [row for card in page_groups for row in card["rows"]]
 
-    both = bool(profile.get("internships_only") and profile.get("graduate_only"))
     return {
         "items": page_items,
         # Headings for the bands below what the searcher actually ticked. See
@@ -2013,12 +2024,8 @@ def _search_results(
             rank.TIER_CV: "Where your CV points",
             rank.TIER_NEAR: "Closely related roles",
             rank.TIER_FAR: "A sideways move into another field",
-            rank.TIER_SKILLS: (
-                "Every other " + (
-                    "internship and graduate job" if both
-                    else "internship" if profile.get("internships_only") else "graduate job"
-                ) + " open now"
-            ) if early else "Matched on your skills, not your fields",
+            rank.TIER_SKILLS: f"Every other {_early_noun(profile)} open now"
+            if early else "Matched on your skills, not your fields",
         },
         "prev_tier": rows_out[start - 1]["tier"] if view == "list" and 0 < start <= len(rows_out) else None,
         "shown": min(start + per_page, len(units)),
@@ -2103,7 +2110,21 @@ def _search_results(
         "in_fields": sum(1 for i in items if i["tier"] < rank.TIER_SKILLS),
         "internships_only": bool(profile.get("internships_only")),
         "graduate_only": bool(profile.get("graduate_only")),
+        "part_time_only": bool(profile.get("part_time_only")),
     }
+
+
+def _early_noun(profile: dict) -> str:
+    """What an early-career or part-time search is listing: "part-time internship"."""
+    if profile.get("internships_only") and profile.get("graduate_only"):
+        noun = "internship and graduate job"
+    elif profile.get("internships_only"):
+        noun = "internship"
+    elif profile.get("graduate_only"):
+        noun = "graduate job"
+    else:
+        noun = "job"
+    return f"part-time {noun}" if profile.get("part_time_only") else noun
 
 
 # --------------------------------------------------------------------- accounts
@@ -2611,6 +2632,7 @@ def save_details(
     include_remote: str | None = Form(default=None),
     internships_only: str | None = Form(default=None),
     graduate_only: str | None = Form(default=None),
+    part_time_only: str | None = Form(default=None),
 ):
     """Save what the searcher is looking for, for the finder to offer back."""
     account = _account(request)
@@ -2625,15 +2647,25 @@ def save_details(
     except ValueError:
         stated = None
 
+    details = {
+        "fields": [f for f in dict.fromkeys(chosen_fields) if f in FIELDS],
+        "years": stated,
+        "include_remote": bool(include_remote),
+        "internships_only": bool(internships_only),
+        "graduate_only": bool(graduate_only),
+        "part_time_only": bool(part_time_only),
+    }
     try:
-        supabase.save_profile(
-            account,
-            fields=[f for f in dict.fromkeys(chosen_fields) if f in FIELDS],
-            years=stated,
-            include_remote=bool(include_remote),
-            internships_only=bool(internships_only),
-            graduate_only=bool(graduate_only),
-        )
+        try:
+            supabase.save_profile(account, **details)
+        except supabase.SupabaseError as exc:
+            # `part_time_only` arrived after the table did, and needs schema.sql re-run
+            # in Supabase. Until it is, the rest of the details still save.
+            if "part_time_only" not in str(exc):
+                raise
+            logger.warning("profiles.part_time_only is missing; re-run schema.sql")
+            details.pop("part_time_only")
+            supabase.save_profile(account, **details)
     except (supabase.SupabaseError, httpx.HTTPError):
         logger.warning("could not save profile details", exc_info=True)
         if request.headers.get("HX-Request"):

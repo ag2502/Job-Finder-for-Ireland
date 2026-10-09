@@ -1338,6 +1338,33 @@ def test_details_are_saved_and_offered_back_on_the_finder(client: TestClient, fa
     assert not re.findall(r'value="backend"\s+checked', home)
 
 
+def test_part_time_is_saved_with_the_details(client: TestClient, fake):
+    _signed_in(client)
+    client.post("/profile/details", data={"chosen_fields": ["retail"], "part_time_only": "1"},
+                headers={"HX-Request": "true"})
+    assert fake.profile["part_time_only"] is True
+    assert "part-time" in client.get("/profile").text
+
+
+def test_details_still_save_before_the_part_time_column_exists(client: TestClient, fake, monkeypatch):
+    """Until schema.sql is re-run, PostgREST rejects the unknown column outright."""
+    _signed_in(client)
+    real = fake._save_profile
+
+    def no_column_yet(account, **columns):
+        if "part_time_only" in columns:
+            raise supabase.SupabaseError(
+                "Could not find the 'part_time_only' column of 'profiles' in the schema cache")
+        real(account, **columns)
+
+    monkeypatch.setattr(supabase, "save_profile", no_column_yet)
+    response = client.post("/profile/details",
+                           data={"chosen_fields": ["retail"], "years": "1", "part_time_only": "1"},
+                           headers={"HX-Request": "true"})
+    assert "Saved" in response.text
+    assert fake.profile["fields"] == ["retail"] and "part_time_only" not in fake.profile
+
+
 def test_any_on_the_profile_slider_saves_no_years(client: TestClient, fake):
     _signed_in(client)
     client.post("/profile/details", data={"chosen_fields": ["backend"], "years": "-1"},

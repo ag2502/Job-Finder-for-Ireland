@@ -152,6 +152,8 @@ create table if not exists public.profiles (
 -- before this one ended, and what "new since your last visit" is measured from.
 alter table public.profiles add column if not exists seen_at      timestamptz;
 alter table public.profiles add column if not exists prev_seen_at timestamptz;
+-- The "Part-time only" switch (added 2026-10-09).
+alter table public.profiles add column if not exists part_time_only boolean not null default false;
 
 alter table public.profiles enable row level security;
 

@@ -1328,3 +1328,69 @@ def test_sorting_by_location_puts_the_busiest_place_first(irish_jobs):
     result = irish_jobs(profile={"sort": "location"})
     assert [item["where"]["key"] for item in result["items"]] == ["Cork", "Cork", "Dublin", "Galway"]
     assert result["by_location"] and result["where_totals"]["Cork"] == 2
+
+
+@pytest.fixture
+def shift_jobs(monkeypatch):
+    """Part-time and full-time roles in two unrelated fields."""
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    import jobfinder.web.app as web
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    make = sessionmaker(bind=engine, future=True, expire_on_commit=False)
+    with make() as session:
+        company = Company(name="Acme", normalized_name="acme", coverage_state=CoverageState.UNRESOLVED)
+        session.add(company)
+        session.flush()
+        source = Source(company_id=company.id, adapter="greenhouse", slug="acme", tier=1)
+        session.add(source)
+        session.flush()
+        roles = [
+            ("Part Time Sales Assistant", True), ("Store Manager", False),
+            ("Customer Service Advisor (Part Time)", True), ("Software Engineer", False),
+        ]
+        for index, (title, part_time) in enumerate(roles):
+            session.add(JobPosting(
+                company_id=company.id, source_id=source.id, source_job_id=str(index),
+                dedup_key=f"k{index}", title=title, url=f"https://acme.example/{index}",
+                location_raw="Cork, Ireland", is_dublin=False, is_ireland=True, region="Cork",
+                is_remote=False, is_part_time=part_time, needs_location_review=False,
+                status=JobStatus.ACTIVE, consecutive_misses=0,
+            ))
+        session.commit()
+
+    @contextmanager
+    def scope():
+        with make() as session:
+            yield session
+
+    monkeypatch.setattr(web, "session_scope", scope)
+    return lambda **profile: web._search_results({"fields": ["retail"], **profile})
+
+
+def test_part_time_only_keeps_part_time_roles_in_any_field(shift_jobs):
+    """Ticking Retail still brings the part-time call-centre role, after the shop ones."""
+    result = shift_jobs(part_time_only=True)
+    assert _titles(result) == ["Part Time Sales Assistant", "Customer Service Advisor (Part Time)"]
+    assert result["part_time_only"]
+    from jobfinder.matching import rank
+    assert result["tier_bands"][rank.TIER_SKILLS] == "Every other part-time job open now"
+
+
+def test_without_the_switch_part_time_roles_are_not_singled_out(shift_jobs):
+    assert "Store Manager" in _titles(shift_jobs())
+
+
+def test_part_time_switch_is_offered_and_written_into_the_address(client):
+    assert 'name="part_time_only"' in client.get("/").text
+    response = client.post("/search", data={"chosen_fields": ["retail"], "part_time_only": "1"},
+                           headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert "part-time" in response.text.lower()
+    assert "pt=1" in response.headers["HX-Push-Url"]

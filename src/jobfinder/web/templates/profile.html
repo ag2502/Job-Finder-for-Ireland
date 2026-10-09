@@ -167,7 +167,8 @@
               {%- if me.years is not none %} &middot; {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }}{% endif %}
               {%- if me.include_remote %} &middot; active jobs{% endif %}
               {%- if me.internships_only %} &middot; internships{% endif %}
-              {%- if me.graduate_only %} &middot; graduate programmes{% endif %}.
+              {%- if me.graduate_only %} &middot; graduate programmes{% endif %}
+              {%- if me.part_time_only %} &middot; part-time{% endif %}.
               The finder's <b>Use my profile</b> button fills them in.
             {% else %}
               Optional. Save what you usually search for, and the finder fills it in with one click.
@@ -230,6 +231,11 @@
           <input type="checkbox" name="graduate_only" value="1" {% if me.graduate_only %}checked{% endif %}>
           <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
           Graduate programmes only
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="part_time_only" value="1" {% if me.part_time_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Part-time only
         </label>
       </div>
 

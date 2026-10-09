@@ -191,7 +191,8 @@
         {# Saved details are offered, never applied: every visit still starts blank. #}
         <button type="button" class="secondary fillme" id="fill-me"
                 data-fill='{{ {"fields": me.fields, "years": me.years, "include_remote": me.include_remote,
-                               "internships_only": me.internships_only, "graduate_only": me.graduate_only}|tojson }}'>
+                               "internships_only": me.internships_only, "graduate_only": me.graduate_only,
+                               "part_time_only": me.part_time_only}|tojson }}'>
           <svg width="15" height="15" aria-hidden="true"><use href="#i-person"/></svg>Use my profile
         </button>
         {% endif %}
@@ -256,6 +257,12 @@
                  {% if profile and profile.graduate_only %}checked{% endif %}>
           <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
           Graduate programmes only
+        </label>
+        <label class="switch">
+          <input type="checkbox" name="part_time_only" value="1"
+                 {% if profile and profile.part_time_only %}checked{% endif %}>
+          <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+          Part-time only
         </label>
       </div>
 
@@ -921,7 +928,7 @@
             sync();
           }, reduced ? 0 : i * 90);
         });
-        ['include_remote', 'internships_only', 'graduate_only'].forEach(function (name) {
+        ['include_remote', 'internships_only', 'graduate_only', 'part_time_only'].forEach(function (name) {
           var box = form.querySelector('input[name="' + name + '"]');
           if (box) box.checked = !!me[name];
         });
