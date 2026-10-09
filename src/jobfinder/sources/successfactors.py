@@ -30,10 +30,12 @@ COMPLETENESS = 0.95
 TITLE_ANCHOR = re.compile(r"<a\b([^>]*jobTitle-link[^>]*)>(.*?)</a>", re.I | re.S)
 HREF = re.compile(r'href="([^"]+)"', re.I)
 # Classic RMK puts the location in a `jobLocation` span; Career Site Builder tiles put it
-# in a labelled section field whose id ends `-section-<field>-value`.
+# in a labelled section field whose id ends `-section-<field>-value`. It has to be the
+# `id`: the label before it names the same value in `aria-describedby`, and matching
+# that read the label itself, so every Currys and SSP role was "City/Town".
 LOCATION = re.compile(
     r'<span\b[^>]*class="jobLocation[^"]*"[^>]*>(.*?)</span>'
-    r'|-section-(?:location|city|multilocation)[a-z-]*-value"[^>]*>(.*?)</(?:span|div)>',
+    r'|\bid="[^"]*-section-(?:location|city|multilocation)[a-z-]*-value"[^>]*>(.*?)</(?:span|div)>',
     re.I | re.S,
 )
 TOTALS = (

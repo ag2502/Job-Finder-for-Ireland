@@ -502,3 +502,5 @@ Rehab Group,jsonld,"https://careers.rehab.ie/jobs|max=200|match=/job/[a-z0-9-]+-
 Bus Eireann,jsonld,"https://careers.buseireann.ie/jobs|max=200|match=/job/[a-z0-9-]+-\d{6,}$|place=Ireland",3,false,part-time-sweep,"Bus drivers, depots and school transport",https://careers.buseireann.ie/jobs
 Woodie's,jsonld,"https://www.woodies-careers.ie/jobs|max=200|match=/job/[a-z0-9-]+-\d{6,}$|place=Ireland",3,false,part-time-sweep,DIY and garden stores nationwide,https://www.woodies-careers.ie/jobs
 Supermac's,careers_html,https://supermacs.ie/careers/,3,false,part-time-sweep,"Moved off Rezoomo to its own site: restaurant, forecourt and head office roles",https://supermacs.ie/careers/
+Currys Ireland,successfactors,curryscareers.co.uk|Ireland,3,false,part-time-sweep,"Currys stores and delivery in Ireland, searched for Ireland",https://curryscareers.co.uk/go/Ireland/9752901/
+SSP Ireland,successfactors,careers.foodtravelexperts.com|Ireland,3,false,part-time-sweep,Food outlets at Dublin Airport,https://careers.foodtravelexperts.com/

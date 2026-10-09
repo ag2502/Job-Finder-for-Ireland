@@ -1915,3 +1915,16 @@ def test_successfactors_completes_a_short_classic_read_from_the_json_search(monk
 
     assert result.status is CrawlStatus.OK
     assert sorted(j.source_job_id for j in result.jobs) == ["1", "2", "3"]
+
+
+def test_successfactors_reads_the_location_value_not_its_label():
+    """Career Site Builder labels name the value in aria-describedby, before the value."""
+    from jobfinder.sources.successfactors import LOCATION
+
+    tile = (
+        '<span id="job-1-desktop-section-city-label" aria-describedby="job-1-desktop-section-city-value"'
+        ' class="section-label">City/Town</span>'
+        '<div id="job-1-desktop-section-city-value">Carrickmines</div>'
+    )
+    found = [a or b for a, b in LOCATION.findall(tile)]
+    assert [f.strip() for f in found] == ["Carrickmines"]
