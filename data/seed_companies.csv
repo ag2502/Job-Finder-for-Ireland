@@ -426,3 +426,4 @@ Munster Technological University,corehr,mturecruit|1|Ireland,2,false,curated,Cor
 Electronic Arts,avature,jobs.ea.com/en_US/careers|Ireland,3,false,curated,Avature portal searched for Ireland (Galway studio),https://www.ea.com/careers
 Charityjobs.ie,jsonld,"https://www.charityjobs.ie/jobs|employers|max=200|match=/jobs/\d{6,}-",3,false,board,Charity and not-for-profit jobs board; each advert filed under the charity that posted it,https://www.charityjobs.ie/jobs
 localgovernmentjobs.ie,localgov,all,3,false,board,"Local Government Management Agency board: vacancies for every council, filed under the council that posted them",https://www.localgovernmentjobs.ie/Search/Vacancies
+JobAlert.ie,jobalert,all,3,false,board,"Irish-owned job board strong on shops, hotels, care and trades; each advert filed under its employer",https://www.jobalert.ie/jobs
