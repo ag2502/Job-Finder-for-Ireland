@@ -1394,3 +1394,23 @@ def test_part_time_switch_is_offered_and_written_into_the_address(client):
     assert response.status_code == 200
     assert "part-time" in response.text.lower()
     assert "pt=1" in response.headers["HX-Push-Url"]
+
+
+def test_part_time_alone_is_a_whole_search(shift_jobs):
+    """No field ticked: every part-time job in Ireland, whatever the work."""
+    result = shift_jobs(fields=[], part_time_only=True)
+    assert sorted(_titles(result)) == ["Customer Service Advisor (Part Time)", "Part Time Sales Assistant"]
+    assert not result["chosen_any"]
+    from jobfinder.matching import rank
+    assert result["tier_bands"][rank.TIER_SKILLS] == "Every part-time job open now"
+
+
+def test_the_part_time_switch_needs_no_field_but_a_bare_search_still_does(client):
+    response = client.post("/search", data={"part_time_only": "1"}, headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert response.headers["HX-Push-Url"] == "/?pt=1"
+    assert "Every part-time job open in Ireland" in response.text or "No jobs matched" in response.text
+    assert client.post("/search", data={}).status_code == 422
+    # The link it writes runs the same search.
+    page = client.get("/?pt=1")
+    assert page.status_code == 200 and "Part-time jobs in Ireland" in page.text

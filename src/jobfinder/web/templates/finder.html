@@ -267,7 +267,7 @@
       </div>
 
       <div class="slip__action">
-        <span id="find-hint" class="slip__hint">Pick at least one above</span>
+        <span id="find-hint" class="slip__hint">Pick at least one above, or Part-time only</span>
         <button type="submit" id="find-btn" disabled>
           Find my jobs
           <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg>
@@ -896,17 +896,23 @@
     function chosen() {
       return form.querySelectorAll('input[name="chosen_fields"]:checked').length;
     }
+    // Part-time only is a search on its own: every part-time job, any field.
+    function partTime() {
+      var box = form.querySelector('input[name="part_time_only"]');
+      return !!(box && box.checked);
+    }
     function label(n) {
       return n + (n === 1 ? ' area selected' : ' areas selected');
     }
     function sync() {
       var n = chosen();
-      button.disabled = n === 0;
-      hint.textContent = n === 0 ? 'Pick at least one above' : label(n);
-      hint.classList.toggle('is-ready', n > 0);
+      var ready = n > 0 || partTime();
+      button.disabled = !ready;
+      hint.textContent = n > 0 ? label(n) : partTime() ? 'Every part-time job' : 'Pick at least one above, or Part-time only';
+      hint.classList.toggle('is-ready', ready);
     }
     form.addEventListener('change', function (event) {
-      if (event.target.name === 'chosen_fields') sync();
+      if (event.target.name === 'chosen_fields' || event.target.name === 'part_time_only') sync();
     });
     sync();
 

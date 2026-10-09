@@ -923,7 +923,8 @@ def home(request: Request):
         return RedirectResponse(f"/auth/callback?{request.url.query}", status_code=303)
 
     params = request.query_params
-    if params.getlist("f"):
+    # A search in a link names its fields, or is the part-time switch on its own.
+    if params.getlist("f") or (params.get("pt") or "").lower() in ("1", "true", "on", "yes"):
         form = {
             field: (params.getlist(key) if key in ("f", "field") else params.get(key))
             for key, field in URL_KEYS.items()
@@ -1048,8 +1049,14 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     # someone has done, not what they want to do next, and a career-change or
     # broad-experience CV matches half the market. Paging re-submits the form with the
     # boxes still ticked, so the fallback to the existing session only covers that.
-    effective_fields = chosen_fields or previous_profile.get("fields") or []
-    if not effective_fields:
+    # Part-time work is the exception: someone after evening or weekend hours usually
+    # takes whatever is near them, so the switch alone is a whole search, every
+    # part-time job in Ireland, and a ticked field only puts its roles first.
+    part_time_alone = bool(form.get("part_time_only")) and not chosen_fields
+    effective_fields = chosen_fields or (
+        [] if part_time_alone else previous_profile.get("fields") or []
+    )
+    if not effective_fields and not part_time_alone:
         context = _finder_context(request)
         context["error"] = (
             "Pick at least one role or field you want to work in. Your CV tells us "
@@ -1151,7 +1158,10 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     context["search_url"] = _search_url(profile, context)
     # What a search link's page is called, in a tab, a bookmark or the offline list.
     labels = [FIELDS[f].label for f in effective_fields if f in FIELDS]
-    context["search_title"] = ", ".join(labels[:2]) + (f" and {len(labels) - 2} more" if len(labels) > 2 else "")
+    context["search_title"] = (
+        ", ".join(labels[:2]) + (f" and {len(labels) - 2} more" if len(labels) > 2 else "")
+        if labels else "Part-time"
+    )
 
     # HTMX asks for the table alone; a normal form post gets the whole page back. Show
     # more asks for less again: only the next page of rows, to go under the ones shown,
@@ -2024,9 +2034,13 @@ def _search_results(
             rank.TIER_CV: "Where your CV points",
             rank.TIER_NEAR: "Closely related roles",
             rank.TIER_FAR: "A sideways move into another field",
-            rank.TIER_SKILLS: f"Every other {_early_noun(profile)} open now"
-            if early else "Matched on your skills, not your fields",
+            rank.TIER_SKILLS: (
+                f"Every other {_early_noun(profile)} open now" if profile.get("fields")
+                else f"Every {_early_noun(profile)} open now"
+            ) if early else "Matched on your skills, not your fields",
         },
+        # False for the part-time switch on its own, which has no fields to rank first.
+        "chosen_any": bool(profile.get("fields")),
         "prev_tier": rows_out[start - 1]["tier"] if view == "list" and 0 < start <= len(rows_out) else None,
         "shown": min(start + per_page, len(units)),
         "units_total": len(units),
