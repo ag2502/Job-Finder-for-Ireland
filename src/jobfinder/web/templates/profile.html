@@ -165,7 +165,7 @@
             {% if me.has_details %}
               {{ me.fields|length }} kind{{ "" if me.fields|length == 1 else "s" }} of work
               {%- if me.years is not none %} &middot; {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }}{% endif %}
-              {%- if me.include_remote %} &middot; remote{% endif %}
+              {%- if me.include_remote %} &middot; active jobs{% endif %}
               {%- if me.internships_only %} &middot; internships{% endif %}
               {%- if me.graduate_only %} &middot; graduate programmes{% endif %}.
               The finder's <b>Use my profile</b> button fills them in.
@@ -219,7 +219,7 @@
         <label class="switch">
           <input type="checkbox" name="include_remote" value="1" {% if me.include_remote %}checked{% endif %}>
           <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
-          Include remote jobs
+          Active jobs
         </label>
         <label class="switch">
           <input type="checkbox" name="internships_only" value="1" {% if me.internships_only %}checked{% endif %}>
