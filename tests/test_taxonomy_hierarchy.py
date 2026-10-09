@@ -311,3 +311,52 @@ def test_an_unusable_years_figure_becomes_not_stated(years):
     payload = {"fields": [], "skills": [], "years_experience": years,
                "seniority": None, "summary": ""}
     assert llm_profile._clean(payload, "m").years_experience is None
+
+
+@pytest.mark.parametrize(
+    "title,field",
+    [
+        ("Customer Assistant", "retail"),
+        ("Store Employee - Carlow, Co. Carlow", "retail"),
+        ("Deli Team Member", "hospitality"),
+        ("Burger King Team Member", "retail"),
+        ("Crew Member", "hospitality"),
+        ("Room Attendant (Part Time)", "hospitality"),
+        ("Accommodation Assistant", "hospitality"),
+        ("Social Care Worker", "care-support"),
+        ("Healthcare Assistant", "care-support"),
+        ("Early years educator", "childcare"),
+        ("Receptionist", "administration"),
+        ("Administrative Officer 3", "administration"),
+        ("Cleaner - Castlecomer", "cleaning-security"),
+        ("Security Officer", "cleaning-security"),
+        ("Lifeguard", "leisure"),
+        ("Night Pack Assistant - Galway Store", "supply-chain"),
+        ("Courier", "transport"),
+        ("Shuttle Bus Driver - Dublin Airport", "transport"),
+        ("Customer Service Advisor", "customer-support"),
+    ],
+)
+def test_shop_floor_and_shift_titles_have_a_field(title: str, field: str) -> None:
+    assert field in classify_title(title)
+
+
+@pytest.mark.parametrize(
+    "title,field",
+    [
+        # Each one a term that begins a longer, unrelated word or phrase.
+        ("Head of Oracle Service Delivery Management", "hospitality"),
+        ("Commissioning Primary Plant Engineer", "hospitality"),
+        ("Business Analyst", "transport"),
+        ("Data Warehouse Engineer", "supply-chain"),
+        ("Linux Systems Administrator", "administration"),
+        ("Product Security Guardian, Vice President", "cleaning-security"),
+        ("Cleaning Validation Specialist", "cleaning-security"),
+        ("Data Steward, Re:Cycle Reverse Logistics", "leisure"),
+        ("Agile Coach", "leisure"),
+        ("Device Driver Engineer", "transport"),
+        ("Front Office Manager", "administration"),
+    ],
+)
+def test_terms_do_not_catch_unrelated_titles(title: str, field: str) -> None:
+    assert field not in classify_title(title)

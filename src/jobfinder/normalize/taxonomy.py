@@ -56,6 +56,9 @@ class Field:
     terms: tuple[str, ...]
     related: tuple[tuple[str, float], ...] = ()
     skills: tuple[str, ...] = ()
+    # Titles that carry a term but belong elsewhere: a "Systems Administrator" is not
+    # office administration. Matched the same way as `terms`.
+    exclude: tuple[str, ...] = ()
 
 
 FIELDS: dict[str, Field] = {}
@@ -428,11 +431,31 @@ _add(Field(
     label="Healthcare & Clinical Practice",
     terms=("nurse", "nursing", "physiotherapist", "radiographer", "pharmacist",
            "healthcare assistant", "clinical specialist", "occupational therapist",
-           "medical doctor", "psychologist", "care assistant", "dietitian"),
-    related=_near("clinical-research") + _far("public-sector", "education"),
+           "medical doctor", "psychologist", "care assistant", "dietitian",
+           "midwife", "pharmacy technician", "dental nurse", "dental assistant",
+           "optometrist", "optical assistant", "paramedic", "phlebotomist",
+           "speech and language", "podiatrist", "radiotherapist"),
+    related=_near("clinical-research", "care-support") + _far("public-sector", "education"),
     skills=("patient care", "nmbi", "coru", "clinical governance", "phlebotomy",
             "electronic health record", "safeguarding", "infection control",
             "triage", "medication administration"),
+))
+_add(Field(
+    key="care-support",
+    group="science-health",
+    label="Care & Support Work",
+    # Social care, disability services, home care and nursing homes: much of Ireland's
+    # part-time and shift work, under titles none of the clinical terms reach.
+    terms=("social care", "care worker", "support worker", "carer", "home care",
+           "homecare", "home help", "care assistant", "healthcare assistant",
+           "health care assistant", "residential care", "disability", "key worker",
+           "community support", "care giver", "caregiver",
+           "relief care", "care staff", "night care", "care team", "activities coordinator",
+           "residential worker", "youth worker", "family support", "child care worker"),
+    related=_near("healthcare") + _far("childcare", "public-sector"),
+    skills=("qqi level 5", "manual handling", "safeguarding", "hiqa", "first aid",
+            "medication administration", "garda vetting", "person centred care",
+            "challenging behaviour", "tusla"),
 ))
 _add(Field(
     key="laboratory",
@@ -456,7 +479,12 @@ _add(Field(
     label="Manufacturing & Production",
     terms=("manufacturing engineer", "process engineer", "production engineer",
            "production supervisor", "automation engineer", "maintenance engineer",
-           "continuous improvement", "industrial engineer", "machine operator"),
+           "continuous improvement", "industrial engineer", "machine operator",
+           "production operator", "production operative", "manufacturing operator",
+           "manufacturing associate", "production associate", "process operator",
+           "manufacturing technician", "production technician", "line operator",
+           "factory operative", "food production", "packing operative", "butchery operative",
+           "meat processing", "boning"),
     related=_near("mechanical-engineering", "supply-chain")
             + _far("operations", "pharma", "electrical-engineering"),
     skills=("lean", "six sigma", "kaizen", "plc", "scada", "cnc", "5s", "oee",
@@ -519,8 +547,13 @@ _add(Field(
     terms=("supply chain", "logistics", "procurement", "buyer", "warehouse operative",
            "warehouse manager", "warehouse supervisor", "demand planner",
            "production planner", "materials planner", "demand planning", "inventory",
-           "freight", "materials manager", "category manager"),
-    related=_near("operations", "manufacturing") + _far("finance", "retail"),
+           "freight", "materials manager", "category manager", "warehouse assistant",
+           "warehouse associate", "warehouse worker", "warehouse team", "warehouse operator", "picker",
+           "packer", "order picker", "pick packer", "general operative", "night pack",
+           "goods in", "goods inward", "despatch", "dispatch operative", "stock controller",
+           "replenishment", "distribution centre", "distribution center", "fulfilment",
+           "fulfillment", "loader", "unloader", "yard operative", "reach truck"),
+    related=_near("operations", "manufacturing") + _far("finance", "retail", "transport"),
     skills=("sap", "oracle scm", "erp", "s&op", "incoterms", "wms", "kinaxis",
             "excel", "demand planning", "inventory management", "customs",
             "supplier management", "lean"),
@@ -724,10 +757,41 @@ _add(Field(
     label="Customer Support",
     terms=("customer support", "customer service", "technical support",
            "support specialist", "trust and safety", "content moderator",
-           "customer advisor", "contact centre"),
-    related=_near("customer-success") + _far("sales", "operations", "it-support"),
+           "customer advisor", "contact centre", "contact center", "call centre",
+           "call center", "customer care", "call handler", "customer service agent",
+           "customer experience advisor", "customer service advisor", "customer agent",
+           "helpdesk agent", "telesales", "customer contact"),
+    related=_near("customer-success", "administration") + _far("sales", "operations",
+                                                              "it-support", "retail"),
     skills=("zendesk", "salesforce", "intercom", "jira service", "troubleshooting",
             "freshdesk", "sla", "csat", "ticketing", "live chat"),
+))
+
+_add(Field(
+    key="administration",
+    group="business-ops",
+    label="Administration & Office Support",
+    terms=("administrator", "administrative", "administration", "admin assistant",
+           "admin officer", "admin executive", "office assistant", "office manager",
+           "office coordinator", "receptionist", "reception", "clerical", "clerk",
+           "secretary", "secretarial", "personal assistant", "executive assistant",
+           "data entry", "front desk", "records officer", "team assistant", "medical secretary",
+           "legal secretary", "legal assistant", "file clerk", "typist"),
+    related=_near("customer-support") + _far("operations", "hr", "public-sector"),
+    skills=("microsoft office", "excel", "word", "outlook", "typing", "diary management",
+            "minute taking", "filing", "data entry", "sage", "reception"),
+    exclude=("systems administrator", "system administrator", "database administrator",
+             "network administrator", "sysadmin", "linux administrator",
+             "salesforce administrator", "cloud administrator", "it administrator",
+             "server administrator", "security administrator", "sharepoint administrator",
+             "storage administrator", "application administrator", "platform administrator",
+             "crm administrator", "erp administrator", "sap administrator",
+             "medication administration", "business administration graduate",
+             "administration of medic", "fund administration", "fund administrator",
+             "transfer agency", "pension administrat", "trust administrat",
+             "contract administrat", "loan administrat", "hedge fund", "front office",
+             "chief administrative",
+             "clerk of works"),
 ))
 
 # ---------------------------------------------------------------------------
@@ -767,11 +831,24 @@ _add(Field(
     label="Education & Training",
     terms=("teacher", "lecturer", "tutor", "instructor", "education officer",
            "training specialist", "curriculum", "academic", "teaching assistant",
-           "learning designer", "childcare"),
-    related=_near("research-science") + _far("hr", "public-sector"),
+           "learning designer", "special needs assistant", "invigilator",
+           "swim teacher", "grinds"),
+    related=_near("research-science", "childcare") + _far("hr", "public-sector"),
     skills=("lesson planning", "curriculum design", "moodle", "canvas lms",
             "assessment", "safeguarding", "classroom management", "sen",
             "e-learning", "articulate"),
+))
+_add(Field(
+    key="childcare",
+    group="public-education",
+    label="Childcare & Early Years",
+    terms=("childcare", "child care", "early years", "early childhood", "creche",
+           "crèche", "montessori", "preschool", "pre-school", "after school",
+           "afterschool", "room leader", "playroom", "nanny", "au pair", "ecce",
+           "childminder", "child minder", "school age"),
+    related=_near("education") + _far("care-support"),
+    skills=("qqi level 5", "qqi level 6", "aistear", "siolta", "ecce", "garda vetting",
+            "first aid", "child protection", "children first"),
 ))
 _add(Field(
     key="public-sector",
@@ -796,8 +873,20 @@ _add(Field(
     label="Hospitality, Food & Events",
     terms=("chef", "barista", "bartender", "waiter", "waitress", "hotel",
            "restaurant manager", "food and beverage", "event coordinator",
-           "kitchen porter", "front office", "housekeeping", "concierge"),
-    related=_near("retail") + _far("operations", "customer-support"),
+           "kitchen porter", "front office", "housekeeping", "concierge",
+           # The counter and the floor, where most part-time hospitality work is.
+           "crew member", "crew trainer", "sandwich artist", "food server", "restaurant server",
+           "food service", "food & beverage", "f&b", "catering", "kitchen assistant",
+           "kitchen", "commis chef", "cook", "pizza", "barperson", "bar person", "bar staff",
+           "bar tender", "lounge", "hostess", "restaurant host", "room attendant", "accommodation",
+           "porter", "night porter", "guest services", "guest experience",
+           "guest relations", "reservations", "banqueting", "conference and events",
+           "meeting & events", "events assistant", "events staff", "event staff",
+           "events team", "events manager", "café", "cafe", "coffee", "baker", "pastry",
+           "dishwasher", "deli ", "deli-", "restaurant", "breakfast",
+           "waiting staff", "wait staff", "front of house", "hospitality",
+           "duty manager", "drinks"),
+    related=_near("retail") + _far("operations", "customer-support", "leisure"),
     skills=("haccp", "food safety", "opera pms", "micros", "event management",
             "menu planning", "rostering", "customer service", "barista"),
 ))
@@ -807,7 +896,21 @@ _add(Field(
     label="Retail & Consumer",
     terms=("retail", "store manager", "sales assistant", "merchandiser",
            "visual merchandising", "shop assistant", "shop manager", "e-commerce manager",
-           "category buyer", "stock assistant"),
+           "category buyer", "stock assistant",
+           # Shop-floor titles, which say nothing about retail in so many words.
+           "customer assistant", "store assistant", "store employee", "store colleague",
+           "retail colleague", "sales colleague", "team member", "sales advisor",
+           "sales associate", "sales consultant", "retail associate", "store associate",
+           "cashier", "checkout", "department manager", "store supervisor",
+           "shop floor", "keyholder", "key holder", "beauty advisor", "beauty consultant",
+           "brand ambassador", "christmas team", "christmas staff", "seasonal",
+           "pharmacy healthcare advisor", "pharmacy assistant", "pharmacy sales",
+           "counter assistant", "forecourt", "garden centre", "butcher", "fishmonger",
+           "bakery", "fresh food", "grocery", "store", "shop", "stylist", "fitting room",
+           "night pack", "replenishment", "merchandising", "mobile phone advisor",
+           "car wash", "deli assistant", "service assistant"),
+    exclude=("data store", "app store", "object store", "storage",
+             "datastore", "workshop", "shopify developer", "eshop developer"),
     related=_near("hospitality", "supply-chain") + _far("sales", "marketing",
                                                         "operations"),
     skills=("epos", "visual merchandising", "stock control", "shopify",
@@ -820,11 +923,61 @@ _add(Field(
     terms=("hgv driver", "van driver", "bus driver", "truck driver", "delivery driver",
            "aviation", "aircraft", "pilot", "cabin crew", "fleet manager",
            "fleet supervisor", "transport manager", "forklift", "maritime", "rail",
-           "dispatcher"),
+           "dispatcher", "courier", "delivery associate", "delivery rider", "rider",
+           "postal operative", "postperson", "postman", "postwoman", "driver",
+           "chauffeur", "taxi", "train driver", "baggage", "ramp agent",
+           "passenger service", "check-in", "airport", "bus ", "coach driver", "tram driver",
+           "luas", "car park", "valet", "multi-drop", "trucker"),
+    exclude=("driver development", "device driver", "kernel driver", "driver engineer",
+             "drivers engineer", "business driver", "value driver", "growth driver"),
     related=_near("supply-chain") + _far("operations", "mechanical-engineering"),
     skills=("hgv", "cpc", "tachograph", "easa", "part 145", "route planning",
             "fleet management", "forklift licence", "safety management system",
             "load planning"),
+))
+
+_add(Field(
+    key="cleaning-security",
+    group="service",
+    label="Cleaning, Security & Facilities",
+    terms=("cleaner", "cleaning", "cleaning operative", "janitor", "caretaker",
+           "housekeeper", "domestic assistant", "domestic staff", "hygiene operative", "window cleaner",
+           "security officer", "security guard", "security operative", "door supervisor",
+           "doorman", "event steward", "match steward", "event security", "cctv operator",
+           "patrol officer",
+           "facilities assistant", "facilities operative", "general maintenance",
+           "handyman", "groundskeeper", "grounds person", "gardener", "landscaper",
+           "waste operative", "recycling operative", "porter", "laundry"),
+    related=_far("operations", "hospitality", "care-support"),
+    skills=("psa licence", "manual handling", "first aid", "health and safety",
+            "cctv", "access control", "safe pass", "haccp", "colour coding"),
+    exclude=("cyber security", "information security", "security engineer",
+             "security analyst", "security architect", "security operations centre",
+             "security operations center", "security officer (information",
+             "chief security officer", "data cleaning", "security risk", "guardian",
+             "cleaning validation", "cleaning verification",
+             "network security", "cloud security", "application security"),
+))
+_add(Field(
+    key="leisure",
+    group="service",
+    label="Leisure, Sport & Fitness",
+    terms=("lifeguard", "life guard", "swim teacher", "swimming instructor",
+           "swimming teacher", "fitness instructor", "gym instructor", "personal trainer",
+           "leisure attendant", "leisure centre", "leisure assistant", "gym",
+           "fitness", "sports coach", "coach", "recreation", "activity leader",
+           "activities leader", "camp leader", "summer camp", "tour guide", "visitor",
+           "cinema", "usher", "box office", "bowling", "leisure", "theme park",
+           "ride operator", "zookeeper", "zoo keeper", "golf", "pool attendant",
+           "pool supervisor", "spa therapist", "beauty therapist", "massage therapist",
+           "stadium", "racecourse", "betting shop", "bookmaker", "casino", "croupier",
+           "event steward", "match steward"),
+    related=_near("hospitality") + _far("education", "retail"),
+    skills=("national pool lifeguard", "swim ireland", "rlss", "rec 3", "first aid",
+            "fitness instruction", "ehfa", "garda vetting", "customer service"),
+    exclude=("agile coach", "executive coach", "career coach", "sales coach",
+             "health coach", "compliance coach", "delivery coach", "leadership coach",
+             "performance coach", "leisure travel"),
 ))
 
 # Every skill token known to the taxonomy, for resume extraction.
@@ -922,6 +1075,9 @@ _FIELD_TERMS: dict[str, list[tuple[str, re.Pattern[str]]]] = {
     ]
     for key, field_obj in FIELDS.items()
 }
+_FIELD_EXCLUDES: dict[str, tuple[str, ...]] = {
+    key: field_obj.exclude for key, field_obj in FIELDS.items() if field_obj.exclude
+}
 
 
 def classify_title(title: str) -> list[str]:
@@ -937,6 +1093,7 @@ def classify_title(title: str) -> list[str]:
         key
         for key, terms in _FIELD_TERMS.items()
         if any(term in lowered and pattern.search(lowered) for term, pattern in terms)
+        and not any(term in lowered for term in _FIELD_EXCLUDES.get(key, ()))
     ]
 
 
