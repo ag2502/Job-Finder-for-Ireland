@@ -308,3 +308,32 @@ def test_a_vendor_cdn_host_is_never_a_slug():
     from jobfinder.registry.detect import detect_in_text
 
     assert detect_in_text('<script src="https://cdn13.icims.com/x.js"></script>') is None
+
+
+FRAME_ROW = """
+<table class="table"><tr class=" "><td><h4 class="title">
+<a href="https://api.occupop.com/job/application/swim-teacher-4ba99" target="_blank">Swim Teacher</a><br>
+<small class="location"><i class="fa fa-map-marker"></i> Dundalk, Co. Louth, Ireland</small>
+<small class="category"><i class="fa fa-tag"></i> Fitness &amp; Leisure</small>
+<small class="type d-none d-sm-inline"><i class="fa fa-clock-o"></i> Permanent</small>
+</h4></td></tr></table>
+"""
+
+
+@respx.mock
+def test_occupop_reads_a_vacancy_frame_embedded_in_an_employers_own_site():
+    """Most Irish Occupop users have no careers page, only the frame, keyed by a token."""
+    route = respx.get(url__startswith="https://api.occupop.com/api/jobs-frame/tok123").mock(
+        return_value=httpx.Response(200, text=FRAME_ROW)
+    )
+
+    jobs = OccupopAdapter().fetch("frame:tok123").jobs
+
+    assert len(jobs) == 1
+    job = jobs[0]
+    assert job.title == "Swim Teacher"
+    assert job.source_job_id == "swim-teacher-4ba99"
+    assert job.location_raw == "Dundalk, Co. Louth, Ireland"
+    assert job.department == "Fitness & Leisure"
+    assert job.employment_type == "Permanent"
+    assert route.calls[0].request.url.params["visibility"] == "external"
