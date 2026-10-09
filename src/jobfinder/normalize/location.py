@@ -177,6 +177,12 @@ _COUNTY_PREFIX = re.compile(
     r"\b(?:co\.?|county)\s+(" + "|".join(IRISH_COUNTIES) + r")\b", re.IGNORECASE
 )
 _NORTHERN_IRELAND = re.compile(r"\bnorthern\s+ireland\b", re.IGNORECASE)
+# The North named some other way: its six counties, or the UK itself.
+_NORTHERN_SIGNAL = re.compile(
+    r"\bnorthern\s+ireland\b|\b(?:co\.?|county)\s+(?:antrim|armagh|down|fermanagh|londonderry|derry|tyrone)\b"
+    r"|\b(?:united kingdom|uk|gb|great britain)\b",
+    re.IGNORECASE,
+)
 _IRELAND_WORD = re.compile(r"\b(?:ireland|[ée]ire)\b", re.IGNORECASE)
 
 # Countries a board names after a place abroad, so "Waterford, United Kingdom" is not
@@ -365,8 +371,17 @@ def normalize_location(
     # "Smithfield, RI 02917" names a Dublin neighbourhood, but the state and ZIP code
     # make it an American address.
     us_address = any(_is_state_with_zip(token) for token in tokens) and not has_ireland_signal
+    # Dundrum and Rathfriland-style village names exist in the North too. A Dublin
+    # neighbourhood alone, with Northern Ireland or the UK named beside it, is the North:
+    # "Dundrum, Northern Ireland, GB" is Fat Face's County Down shop.
+    northern_locality = (
+        has_locality
+        and not (has_dublin_word or has_dublin_postal)
+        and bool(_NORTHERN_SIGNAL.search(text))
+        and not names_ireland
+    )
 
-    if not (has_dublin_word or has_dublin_postal or has_locality) or us_address or (
+    if not (has_dublin_word or has_dublin_postal or has_locality) or us_address or northern_locality or (
         # A Dublin mention immediately followed by a US state is a US Dublin, unless
         # the string also explicitly names Ireland (a genuine multi-office listing).
         _dublin_followed_by_us_state(text) and not has_ireland_signal

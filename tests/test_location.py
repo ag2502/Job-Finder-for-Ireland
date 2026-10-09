@@ -278,3 +278,14 @@ def test_an_american_office_beside_an_irish_one_keeps_the_irish_one() -> None:
 def test_store_towns_are_placed_in_their_county(raw: str, county: str) -> None:
     """Lidl's and JobAlert's shops give the town alone."""
     assert normalize_location(raw).region == county
+
+
+@pytest.mark.parametrize("raw", ["Dundrum, Northern Ireland, GB", "Dundrum, County Down"])
+def test_a_dublin_neighbourhood_named_in_the_north_is_the_north(raw: str) -> None:
+    """Dundrum is a Dublin suburb and a County Down village; Fat Face's shop is the second."""
+    location = normalize_location(raw)
+    assert not location.is_dublin and not location.is_ireland
+
+
+def test_a_dublin_neighbourhood_on_its_own_is_still_dublin() -> None:
+    assert normalize_location("Dundrum Town Centre").is_dublin
