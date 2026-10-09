@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import unicodedata
 
 _PUNCT = re.compile(r"[^\w\s]+")
 _WHITESPACE = re.compile(r"\s+")
@@ -40,8 +41,18 @@ _TITLE_NOISE = re.compile(
 )
 
 
+def fold_accents(text: str) -> str:
+    """'Uisce Éireann' -> 'Uisce Eireann'.
+
+    Irish names are written both ways, often by the same employer on different boards:
+    Uisce Éireann's roles arrived under two companies, 93 under one spelling and 15
+    under the other, and Tirlán's, Fáilte Ireland's and Foróige's the same.
+    """
+    return "".join(c for c in unicodedata.normalize("NFKD", text) if not unicodedata.combining(c))
+
+
 def normalize_company_name(name: str) -> str:
-    text = _PUNCT.sub(" ", name.lower())
+    text = _PUNCT.sub(" ", fold_accents(name).lower())
     text = _COMPANY_SUFFIXES.sub(" ", text)
     return _WHITESPACE.sub(" ", text).strip()
 

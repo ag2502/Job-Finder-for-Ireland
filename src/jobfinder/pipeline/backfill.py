@@ -17,8 +17,9 @@ from sqlalchemy import inspect, select, text
 from sqlalchemy.orm import Session
 
 from jobfinder.core.db import engine
-from jobfinder.core.models import JobPosting
+from jobfinder.core.models import Company, CoverageState, JobPosting, Source
 from jobfinder.normalize.experience import analyze as analyze_experience
+from jobfinder.normalize.dedup import fold_accents
 from jobfinder.normalize.hours import is_part_time
 from jobfinder.normalize.location import dublin_in_advert, normalize_location
 from jobfinder.normalize.text import html_to_text
@@ -81,6 +82,68 @@ def recompute_regions(session: Session, *, batch: int = 500) -> int:
             session.flush()
     session.flush()
     return len(jobs)
+
+
+# Which state to keep when two records of one employer are merged: the one nearer to
+# being crawled.
+_STATE_RANK = {
+    CoverageState.BESPOKE_ADAPTER: 0, CoverageState.ATS_DETECTED: 1,
+    CoverageState.GENERIC_EXTRACTION: 2, CoverageState.BLOCKED: 3,
+    CoverageState.NO_CAREERS_PAGE: 4, CoverageState.UNRESOLVED: 5,
+}
+
+
+def merge_accent_duplicates(session: Session) -> int:
+    """Join companies whose names differ only by accents, and fold the stored keys.
+
+    Company names were normalised without folding accents, so 'Uisce Éireann' and
+    'Uisce Eireann' were two employers with their jobs split between them. Only rows
+    whose stored key carries an accent are touched, so nothing else is re-keyed. The
+    record already holding the folded key is kept where there is one, otherwise the
+    oldest; the others' sources and postings move to it and they are deleted. Returns
+    the number of companies merged away.
+    """
+    companies = session.execute(select(Company)).scalars().all()
+    groups: dict[str, list[Company]] = {}
+    for company in companies:
+        groups.setdefault(fold_accents(company.normalized_name), []).append(company)
+
+    merged = 0
+    for folded, members in groups.items():
+        if len(members) == 1 and members[0].normalized_name == folded:
+            continue
+        keeper = next((c for c in members if c.normalized_name == folded), None) or min(
+            members, key=lambda c: c.id
+        )
+        for other in members:
+            if other is keeper:
+                continue
+            session.execute(
+                Source.__table__.update().where(Source.company_id == other.id).values(company_id=keeper.id)
+            )
+            session.execute(
+                JobPosting.__table__.update()
+                .where(JobPosting.company_id == other.id)
+                .values(company_id=keeper.id)
+            )
+            keeper.website = keeper.website or other.website
+            keeper.careers_url = keeper.careers_url or other.careers_url
+            keeper.coverage_priority = min(keeper.coverage_priority, other.coverage_priority)
+            keeper.is_public_listed = keeper.is_public_listed or other.is_public_listed
+            if _STATE_RANK.get(other.coverage_state, 9) < _STATE_RANK.get(keeper.coverage_state, 9):
+                keeper.coverage_state = other.coverage_state
+            session.delete(other)
+            merged += 1
+        # The losers must be gone before the keeper takes the folded key, which is unique.
+        names = [c.name for c in members]
+        session.flush()
+        keeper.normalized_name = folded
+        # Shown with its accents where any record had them: Tirlán, not Tirlan.
+        keeper.name = next((n for n in names if fold_accents(n) != n), keeper.name)
+    session.flush()
+    if merged:
+        logger.info("merged %d companies that differed only by accents", merged)
+    return merged
 
 
 def recompute_part_time(session: Session, *, batch: int = 500) -> int:

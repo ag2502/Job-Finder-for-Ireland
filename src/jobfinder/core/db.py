@@ -116,6 +116,7 @@ def init_db() -> None:
     # point, before anything selects it. Imported late: backfill imports this module.
     from jobfinder.pipeline.backfill import (
         add_missing_columns,
+        merge_accent_duplicates,
         recompute_part_time,
         recompute_regions,
     )
@@ -127,6 +128,9 @@ def init_db() -> None:
     if "is_part_time" in added:
         with session_scope() as session:
             recompute_part_time(session)
+    # Cheap and a no-op once done: only accented keys are looked at.
+    with session_scope() as session:
+        merge_accent_duplicates(session)
 
 
 @contextmanager

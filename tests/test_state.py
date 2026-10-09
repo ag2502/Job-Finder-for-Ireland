@@ -363,3 +363,31 @@ def test_part_time_is_read_from_the_board_label_and_kept_on_update(session, sour
                FetchResult(status=CrawlStatus.OK, jobs=[relabelled, make_job("2")]))
     session.flush()
     assert not _by_id(session, "1").is_part_time
+
+
+def test_companies_that_differ_only_by_accents_are_merged(session, run):
+    """Uisce Éireann's jobs arrived under two employers, one per spelling."""
+    from jobfinder.core.models import Company, CoverageState, Source
+    from jobfinder.normalize.dedup import normalize_company_name
+    from jobfinder.pipeline.backfill import merge_accent_duplicates
+
+    plain = Company(name="Uisce Eireann", normalized_name="uisce eireann",
+                    coverage_state=CoverageState.UNRESOLVED, coverage_priority=4)
+    accented = Company(name="Uisce Éireann", normalized_name="uisce éireann",
+                       coverage_state=CoverageState.ATS_DETECTED, coverage_priority=2)
+    session.add_all([plain, accented])
+    session.flush()
+    session.add(Source(company_id=accented.id, adapter="greenhouse", slug="uisce", tier=1))
+    session.flush()
+
+    assert merge_accent_duplicates(session) == 1
+    companies = session.execute(select(Company)).scalars().all()
+    survivors = [c for c in companies if "eireann" in c.normalized_name]
+    assert len(survivors) == 1
+    kept = survivors[0]
+    assert (kept.name, kept.normalized_name) == ("Uisce Éireann", "uisce eireann")
+    assert kept.coverage_state is CoverageState.ATS_DETECTED and kept.coverage_priority == 2
+    assert session.execute(select(Source)).scalars().one().company_id == kept.id
+    assert normalize_company_name("Tirlán") == normalize_company_name("Tirlan")
+    # Nothing left to do on a second run.
+    assert merge_accent_duplicates(session) == 0
