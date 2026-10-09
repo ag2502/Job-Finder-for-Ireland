@@ -75,6 +75,7 @@ the employer.
 | 1 | `corehr` | CoreHR e-recruitment tenants (the universities, much of the public sector) |
 | 1 | `cornerstone` | Cornerstone career sites, through the regional API the page names |
 | 1 | `rezoomo` | Irish recruitment platform; a company page's one-call job list |
+| 1 | `peoplefirst` | MHR People First boards; JSON API keyed by a `tenantcode` header |
 | 1 | `hrmanager` | HR Manager job portal JSON list per customer |
 | 1 | `taleo_tbe` | Taleo Business Edition career sections, following their scroll pages |
 | 1 | `wordpress` | A WordPress site's vacancy post type, through the REST API |
@@ -86,8 +87,11 @@ the employer.
 | 1b | `ibm` | IBM's site search API, filtered to Ireland |
 | 1b | `revolut` | Every position is embedded in the careers page; Irish ones kept |
 | 1b | `hse` | HSE job search, paged; confined competitions (staff only) left out |
+| 1b | `lidl` | Lidl's own job site API; whole adverts, contract type included |
 | 3 | `jsonld` | Generic `schema.org/JobPosting` extraction from any careers site |
 | 4 | `adzuna` | Licensed aggregator; one source carries many employers |
+| 4 | `localgov` | Every council's vacancies from the LGMA's shared board |
+| 4 | `jobalert` | Irish board for employers too small for an ATS; shops, hotels, care, trades |
 
 Tier 1 reads an employer's own board through a public API. Tier 3 targets a *convention*
 rather than a platform — Google requires `JobPosting` structured data for a role to
@@ -237,6 +241,60 @@ picker and a "By location" sort built on `region`.
 
 `location_raw` is never modified. Normalization is purely additive.
 
+## Part-time work
+
+Part-time hiring is a different corpus from the one a jobs site usually indexes. The
+roles are in shops, cafes, nursing homes, creches, leisure centres and council depots;
+the employers are often too small to run an ATS, or run one nobody has heard of; and the
+titles say nothing a technology taxonomy recognises.
+
+Three things had to change for the "Part-time only" switch to mean anything.
+
+**Knowing which roles are part-time.** `normalize/hours.py` sets `is_part_time` from
+three signals: the board's own employment type, now carried through by every adapter
+whose API states one (`RawJob.employment_type`, stored so a backfill can recompute
+without re-crawling); the title, which is where most Irish retail and hospitality
+employers say it; and the advert, but only where it states *this role's* hours. That
+last qualifier is the whole difficulty. Of the ~160 live Irish adverts mentioning "part
+time", a good share are not part-time roles: "support for part-time training", "a
+graduate on the part time course", "another part-time Technician role" describing a
+colleague, and the university pay clause "pro rata for shorter and/or part-time
+contracts" on full-time research posts. A mention counts only when it is a labelled
+field, a statement about this role, or an offer of both hours. Weekly hours under
+thirty and an FTE fraction count too, since that is how the public sector and the
+forecourt chains write it.
+
+**Having a field to file them under.** Over a third of live Irish postings matched no
+field at all: "Customer Assistant", "Store Employee", "Crew Member", "Room Attendant",
+"Social Care Worker", "Receptionist", "Cleaner", "Night Pack Assistant". Ticking Retail
+could not find a shop job. Five fields were added — Care & Support Work, Childcare &
+Early Years, Administration & Office Support, Cleaning, Security & Facilities, and
+Leisure, Sport & Fitness — and the existing service fields took the titles employers
+really use. A field can now also list titles to *exclude*, because the obvious terms
+collide: a "Systems Administrator" is not office administration, a "Data Warehouse
+Engineer" is not a warehouse job, and a plant's "Weekend Shift" is a compressed
+full-time week.
+
+**Reaching the employers.** Roughly 540 were checked by hand and by probe. What that
+turned up, beyond the boards detection found on its own:
+
+* **Employers hide their board inside their own page.** Fifteen use Occupop's vacancy
+  frame, keyed by an embed token the GraphQL gateway rejects; seven embed Rezoomo; five
+  run Phenom sites that name themselves only in the scripts they load. None was visible
+  in the markup, and all were found by rendering the page and watching its requests.
+* **Some big names needed their own path.** Lidl's SuccessFactors portal lists nothing
+  without a login, but its job site has a clean API. Tesco's Tribepad portal and Aldi's
+  Eploy site both refuse; the catalogue records why.
+* **Two boards carry many employers each.** JobAlert.ie is where SuperValu and Centra
+  shops, hotels, garages and creches advertise (~1,900 Irish adverts, ~430 part-time),
+  and localgovernmentjobs.ie carries every council's vacancies. Charityjobs.ie carries
+  the charities. Each advert is filed under the employer that posted it, not the board.
+
+The switch itself behaves like the internship and graduate switches: it stops filtering
+by field, so the ticked fields come first and every other part-time job follows under
+its own heading. Someone after evening or weekend hours takes the shop floor as readily
+as the office.
+
 ## Matching
 
 Rule-based parsing and lexical ranking, chosen so the whole thing runs on free tiers:
@@ -245,9 +303,9 @@ Rule-based parsing and lexical ranking, chosen so the whole thing runs on free t
   a miss is a visibly absent keyword rather than an untraceable hallucination.
 - **Ranking** → skills overlap (40%), field match (30%), BM25 (20%), seniority (10%),
   with a recency multiplier. Every score explains itself.
-- **Fields** → 56 fields under 11 groups in `normalize/taxonomy.py`, from Machine
-  Learning to Hospitality. Choosing "Data Engineering" also surfaces analytics
-  engineering, BI and data science, expanded one hop out.
+- **Fields** → 61 fields under 11 groups in `normalize/taxonomy.py`, from Machine
+  Learning to Cleaning, Security & Facilities. Choosing "Data Engineering" also
+  surfaces analytics engineering, BI and data science, expanded one hop out.
 
 ### How close is "related"?
 
@@ -274,7 +332,7 @@ on 40M product reviews"* contains no title line and never says "machine learning
 the rules find a few tokens and no field at all.
 
 `matching/llm_profile.py` optionally asks a model instead. The task is narrow — pick
-fields from a closed list of 56 — so a free open-weight model is enough: the JSON schema
+fields from a closed list of 61 — so a free open-weight model is enough: the JSON schema
 is generated from `FIELDS`, and everything returned is re-checked against the same
 tables the ranker uses. It is classification into known labels, not open generation.
 
