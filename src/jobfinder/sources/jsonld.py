@@ -93,6 +93,16 @@ def split_slug(slug: str) -> tuple[str, int, re.Pattern]:
     return url, cap, hint
 
 
+def names_its_employers(slug: str) -> bool:
+    """``url|employers``: a job board, where each posting's `hiringOrganization` is the
+    employer, rather than one employer's own careers site.
+
+    Charityjobs.ie carries adverts for dozens of charities; filed under the board, a
+    Simon Community role would be shown as the board's own vacancy.
+    """
+    return "employers" in slug.split("|")[1:]
+
+
 def _parse_date(value) -> datetime | None:
     if not isinstance(value, str) or not value:
         return None
@@ -346,9 +356,10 @@ class JsonLdAdapter(BaseAdapter):
         if not candidates:
             raise ValueError(f"no job pages discovered under {careers_url}")
 
+        board = names_its_employers(slug)
         jobs: dict[str, RawJob] = {}
         for url in candidates[:cap]:
-            for job in self._extract_page(url, client):
+            for job in self._extract_page(url, client, board=board):
                 # A posting can appear under several URLs (a listing card and its own
                 # page). Keyed by source id so the same role is stored once.
                 jobs.setdefault(job.source_job_id, job)
@@ -363,7 +374,7 @@ class JsonLdAdapter(BaseAdapter):
             return PartialJobs(jobs.values())
         return list(jobs.values())
 
-    def _extract_page(self, url: str, client: httpx.Client) -> list[RawJob]:
+    def _extract_page(self, url: str, client: httpx.Client, *, board: bool = False) -> list[RawJob]:
         try:
             response = client.get(url)
             response.raise_for_status()
@@ -376,6 +387,11 @@ class JsonLdAdapter(BaseAdapter):
             if not _is_job_posting(obj):
                 continue
             job = parse_job_posting(obj, str(response.url))
+            if job and board:
+                # A board advert without its employer cannot be filed under anyone.
+                job.company_name = _text(obj.get("hiringOrganization"))
+                if not job.company_name:
+                    continue
             if job:
                 found.append(job)
         return found

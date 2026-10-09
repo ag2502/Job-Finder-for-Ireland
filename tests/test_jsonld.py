@@ -416,3 +416,28 @@ def test_employment_type_keeps_every_listed_value() -> None:
         "https://x.ie/j/1",
     )
     assert job is not None and job.employment_type == "FULL_TIME, PART_TIME"
+
+
+def test_a_board_files_each_advert_under_its_hiring_organisation() -> None:
+    import httpx
+
+    from jobfinder.sources.jsonld import JsonLdAdapter, names_its_employers
+
+    page = (
+        '<script type="application/ld+json">{"@type": "JobPosting", "title": "Project Worker",'
+        ' "url": "https://board.ie/jobs/123456-project-worker",'
+        ' "hiringOrganization": {"@type": "Organization", "name": "Barnardos"},'
+        ' "employmentType": "PART_TIME"}</script>'
+        '<script type="application/ld+json">{"@type": "JobPosting", "title": "No Employer",'
+        ' "url": "https://board.ie/jobs/123457-x"}</script>'
+    )
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200, text=page)))
+    adapter = JsonLdAdapter()
+
+    jobs = adapter._extract_page("https://board.ie/jobs/123456-project-worker", client, board=True)
+    assert [(j.title, j.company_name) for j in jobs] == [("Project Worker", "Barnardos")]
+    # On an employer's own site the company is the source's, as before.
+    assert all(j.company_name is None for j in adapter._extract_page("https://board.ie/x", client))
+
+    assert names_its_employers(r"https://www.charityjobs.ie/jobs|employers|match=/jobs/\d+")
+    assert not names_its_employers("https://careers.acme.ie/employers")
