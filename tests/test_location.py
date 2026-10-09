@@ -253,3 +253,17 @@ def test_an_irish_second_office_makes_an_irish_role() -> None:
     result = resolve_location(job)
     assert result.is_ireland and not result.is_dublin and result.region == "Cork"
     assert result.raw == "Stockholm, Sweden"
+
+
+@pytest.mark.parametrize(
+    "raw",
+    ["Dublin, CA 94568", "Dublin, OH 43017", "Smithfield, RI 02917", "Cork, PA 19103"],
+)
+def test_a_state_code_with_its_zip_is_an_american_address(raw: str) -> None:
+    """TJX's board writes US stores this way, and they were filed as Dublin jobs."""
+    location = normalize_location(raw)
+    assert not location.is_ireland and not location.is_dublin
+
+
+def test_an_american_office_beside_an_irish_one_keeps_the_irish_one() -> None:
+    assert normalize_location("Dublin, OH 43017; Dublin, Ireland").is_dublin

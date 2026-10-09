@@ -218,6 +218,16 @@ def _is_state(word: str) -> bool:
     return word.lower() in _US_STATE_NAMES
 
 
+# "CA 94568": a state code with its ZIP code is a US address however short the code,
+# so the ambiguous ones count here too ("PA 19103", "OR 97035").
+_STATE_AND_ZIP = re.compile(r"^([A-Za-z]{2})\s+\d{5}(?:-\d{4})?\b")
+
+
+def _is_state_with_zip(entry: str) -> bool:
+    match = _STATE_AND_ZIP.match(entry.strip())
+    return bool(match and match.group(1).lower() in _US_STATE_CODES)
+
+
 # A code may follow a hyphen ("DUBLIN- OH"); a full name only plain space, because
 # "Dublin - New York" is a list of two offices far more often than a place in New York.
 _CODE_AFTER = re.compile(r"^[\s\-–]+([A-Z]{2})\b")
@@ -243,7 +253,11 @@ def _dublin_followed_by_us_state(text: str) -> bool:
                 continue
             # Compare against the next entry only, up to the following separator.
             next_entry = _SEPARATORS.split(tail)[0].strip()
-            if next_entry in _SAFE_STATE_CODES or next_entry in _US_STATE_NAMES:
+            if (
+                next_entry in _SAFE_STATE_CODES
+                or next_entry in _US_STATE_NAMES
+                or _is_state_with_zip(next_entry)
+            ):
                 return True
             continue
 
@@ -292,7 +306,11 @@ def irish_region(text: str, *, names_ireland: bool) -> str | None:
                 continue
             # The next entry says which country: "Waterford, MI", "Bray, UK".
             following = tokens[index + 1].strip() if index + 1 < len(tokens) else ""
-            if following.lower() in _FOREIGN_COUNTRIES or _is_state(following):
+            if (
+                following.lower() in _FOREIGN_COUNTRIES
+                or _is_state(following)
+                or _is_state_with_zip(following)
+            ):
                 continue
             # Or the state sits in the same entry: "Waterford MI".
             code = _CODE_AFTER.match(token[match.end():])
@@ -338,8 +356,11 @@ def normalize_location(
     has_us_signal = bool(lowered_tokens & _US_SIGNALS)
 
     names_ireland = _names_ireland(text, lowered_tokens)
+    # "Smithfield, RI 02917" names a Dublin neighbourhood, but the state and ZIP code
+    # make it an American address.
+    us_address = any(_is_state_with_zip(token) for token in tokens) and not has_ireland_signal
 
-    if not (has_dublin_word or has_dublin_postal or has_locality) or (
+    if not (has_dublin_word or has_dublin_postal or has_locality) or us_address or (
         # A Dublin mention immediately followed by a US state is a US Dublin, unless
         # the string also explicitly names Ireland (a genuine multi-office listing).
         _dublin_followed_by_us_state(text) and not has_ireland_signal
