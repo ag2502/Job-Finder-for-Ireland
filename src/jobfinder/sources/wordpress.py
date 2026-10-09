@@ -13,8 +13,12 @@ usually built by script. The slug is ``host|rest_base``, e.g.
 
 Location is the awkward part: there is no standard field. WP Job Manager keeps it in
 `meta._job_location`; custom types usually state it in the advert ("Location: Centra
-Carrickfergus"). Both are tried, and a site with a fixed location may name it as a
-third slug part (``host|rest_base|Dublin, Ireland``).
+Carrickfergus"). Both are tried, then the title's last part, which is where Boots
+writes it ("Seasonal Customer Assistant – Cork, Mahon Point"), and a site with a fixed
+location may name it as a third slug part (``host|rest_base|Dublin, Ireland``).
+
+A board for several countries can add ``ireland-only`` as a slug part: boots.jobs lists
+about 2,900 roles across the UK and Ireland, and only the Irish ones are kept.
 """
 
 from __future__ import annotations
@@ -27,6 +31,7 @@ from datetime import datetime, timezone
 import httpx
 from dateutil import parser as date_parser
 
+from jobfinder.normalize.location import normalize_location
 from jobfinder.sources.base import BaseAdapter, PartialJobs, RawJob, register
 
 logger = logging.getLogger(__name__)
@@ -37,11 +42,29 @@ _TAGS = re.compile(r"<[^>]+>")
 _LOCATION = re.compile(r"\bLocation\s*[:\-–]?\s*(?:&nbsp;|\s)*([^\n<]{2,90})", re.I)
 
 
-def split_slug(slug: str) -> tuple[str, str, str | None]:
-    host, rest_base, place = (slug.split("|") + ["", ""])[:3]
+IRELAND_ONLY = "ireland-only"
+# A BrassRing requisition number before the title: "284513BR: Counter Manager".
+_REFERENCE = re.compile(r"^\d{4,}[A-Z]{0,3}\s*:\s*")
+# The last part of "Role – Town, Store" or "Role - Town".
+_TITLE_PLACE = re.compile(r"\s[–-]\s([^–]+)$")
+
+
+def split_slug(slug: str) -> tuple[str, str, str | None, bool]:
+    host, rest_base, *rest = slug.split("|") + [""]
     if not (host and rest_base):
         raise ValueError(f"WordPress slug must be 'host|rest_base', got {slug!r}")
-    return host, rest_base, place or None
+    place = next((part for part in rest if part and part != IRELAND_ONLY), None)
+    return host, rest_base, place, IRELAND_ONLY in rest
+
+
+def _title_place(title: str) -> str | None:
+    match = _TITLE_PLACE.search(title)
+    if not match:
+        return None
+    # Only a part that names an Irish place: "Customer Advisor - Weekends" names none,
+    # and a board's UK roles are left unplaced, as they were before.
+    candidate = match.group(1).strip()
+    return candidate if normalize_location(candidate).is_ireland else None
 
 
 def _text(fragment: str) -> str:
@@ -77,7 +100,7 @@ class WordPressAdapter(BaseAdapter):
     tier = 1
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        host, rest_base, place = split_slug(slug)
+        host, rest_base, place, irish_only = split_slug(slug)
         endpoint = f"https://{host}/wp-json/wp/v2/{rest_base}"
 
         items: dict[str, dict] = {}
@@ -100,24 +123,27 @@ class WordPressAdapter(BaseAdapter):
                 break
             self.polite_pause()
         else:
-            return PartialJobs(self._build(items, place))
+            return PartialJobs(self._build(items, place, irish_only))
 
         if total and len(items) < total:
             raise ValueError(f"WordPress listed {len(items)} of {total} posts at {endpoint}")
-        return self._build(items, place)
+        return self._build(items, place, irish_only)
 
     @staticmethod
-    def _build(items: dict[str, dict], place: str | None) -> list[RawJob]:
+    def _build(items: dict[str, dict], place: str | None, irish_only: bool = False) -> list[RawJob]:
         jobs = []
         for job_id, item in items.items():
-            title = _text((item.get("title") or {}).get("rendered"))
+            title = _REFERENCE.sub("", _text((item.get("title") or {}).get("rendered")))
             if not title:
+                continue
+            location = _location(item) or _title_place(title) or place
+            if irish_only and not normalize_location(location).is_ireland:
                 continue
             jobs.append(RawJob(
                 source_job_id=job_id,
                 title=title,
                 url=item.get("link") or "",
-                location_raw=_location(item) or place,
+                location_raw=location,
                 description=(item.get("content") or {}).get("rendered") or None,
                 posted_at=_parse_date(item.get("date_gmt") or item.get("date")),
             ))

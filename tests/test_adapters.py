@@ -1928,3 +1928,32 @@ def test_successfactors_reads_the_location_value_not_its_label():
     )
     found = [a or b for a, b in LOCATION.findall(tile)]
     assert [f.strip() for f in found] == ["Carrickmines"]
+
+
+@respx.mock
+def test_wordpress_reads_the_town_from_a_boots_title_and_keeps_only_irish_roles():
+    """boots.jobs lists UK and Irish stores together, the town only in the title."""
+    from jobfinder.sources.wordpress import WordPressAdapter
+
+    def post(n, title):
+        return {"id": n, "status": "publish", "link": f"https://boots.jobs/jobs/{n}",
+                "title": {"rendered": title}, "content": {"rendered": "<p>Join our team.</p>"}}
+
+    posts = [
+        post(1, "284380BR: Seasonal Customer Assistant &#8211; Dublin, Liffey Valley"),
+        post(2, "284582BR: Customer Advisor &#8211; London, Chiswick High Road"),
+        post(3, "283828BR: Seasonal Customer Assistant &#8211; Cork, Mahon Point"),
+    ]
+    respx.get("https://boots.jobs/wp-json/wp/v2/jobs").mock(
+        return_value=httpx.Response(200, json=posts, headers={"X-WP-Total": "3", "X-WP-TotalPages": "1"})
+    )
+
+    jobs = WordPressAdapter().fetch("boots.jobs|jobs|ireland-only").jobs
+
+    assert [(j.title, j.location_raw) for j in jobs] == [
+        ("Seasonal Customer Assistant – Dublin, Liffey Valley", "Dublin, Liffey Valley"),
+        ("Seasonal Customer Assistant – Cork, Mahon Point", "Cork, Mahon Point"),
+    ]
+    # Without the option every role is kept, and a UK title is left unplaced.
+    everything = WordPressAdapter().fetch("boots.jobs|jobs").jobs
+    assert len(everything) == 3 and everything[1].location_raw is None
