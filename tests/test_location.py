@@ -267,3 +267,14 @@ def test_a_state_code_with_its_zip_is_an_american_address(raw: str) -> None:
 
 def test_an_american_office_beside_an_irish_one_keeps_the_irish_one() -> None:
     assert normalize_location("Dublin, OH 43017; Dublin, Ireland").is_dublin
+
+
+@pytest.mark.parametrize(
+    "raw,county",
+    [("Thomastown, Ireland", "Kilkenny"), ("Newcastlewest, Ireland", "Limerick"),
+     ("Tubbercurry, Ireland", "Sligo"), ("Dungloe, Ireland", "Donegal"),
+     ("Ireland - Cootehill", "Cavan"), ("Ballaghaderreen", "Roscommon")],
+)
+def test_store_towns_are_placed_in_their_county(raw: str, county: str) -> None:
+    """Lidl's and JobAlert's shops give the town alone."""
+    assert normalize_location(raw).region == county
