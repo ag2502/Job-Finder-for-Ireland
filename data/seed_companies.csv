@@ -498,3 +498,6 @@ Hugo Boss,phenom,careers.hugoboss.com,3,false,part-time-sweep,Kildare Village an
 Kuehne+Nagel,phenom,jobs.kuehne-nagel.com,3,false,part-time-sweep,"Logistics, Swords and Little Island",https://jobs.kuehne-nagel.com
 DHL Express Ireland,phenom,careers.dhl.com,3,false,part-time-sweep,"DHL group careers site, filtered to Ireland",https://careers.dhl.com/global/en
 New Balance,phenom,jobs.newbalance.com,3,false,part-time-sweep,Kildare Village and Dublin stores,https://jobs.newbalance.com
+Rehab Group,jsonld,"https://careers.rehab.ie/jobs|max=200|match=/job/[a-z0-9-]+-\d{6,}$|place=Ireland",3,false,part-time-sweep,Disability services and RehabCare; Volcanic site read as JSON-LD,https://careers.rehab.ie/jobs
+Bus Eireann,jsonld,"https://careers.buseireann.ie/jobs|max=200|match=/job/[a-z0-9-]+-\d{6,}$|place=Ireland",3,false,part-time-sweep,"Bus drivers, depots and school transport",https://careers.buseireann.ie/jobs
+Woodie's,jsonld,"https://www.woodies-careers.ie/jobs|max=200|match=/job/[a-z0-9-]+-\d{6,}$|place=Ireland",3,false,part-time-sweep,DIY and garden stores nationwide,https://www.woodies-careers.ie/jobs

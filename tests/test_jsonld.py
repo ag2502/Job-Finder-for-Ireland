@@ -399,7 +399,7 @@ def test_a_curated_slug_can_widen_the_ceiling_and_name_the_job_url_pattern():
     """Dalata's 181 job pages are /breakfast-chef-310215.htm: no "job" in the path."""
     from jobfinder.sources.jsonld import MAX_JOB_PAGES, split_slug
 
-    url, cap, hint = split_slug(r"https://careers.acme.ie/jobs|max=400|match=-\d{5,}\.htm$")
+    url, cap, hint, place = split_slug(r"https://careers.acme.ie/jobs|max=400|match=-\d{5,}\.htm$")
     assert (url, cap) == ("https://careers.acme.ie/jobs", 400)
     assert hint.search("https://careers.acme.ie/breakfast-chef-310215.htm")
     assert not hint.search("https://careers.acme.ie/about.htm")
@@ -441,3 +441,24 @@ def test_a_board_files_each_advert_under_its_hiring_organisation() -> None:
 
     assert names_its_employers(r"https://www.charityjobs.ie/jobs|employers|match=/jobs/\d+")
     assert not names_its_employers("https://careers.acme.ie/employers")
+
+
+def test_a_single_country_source_can_place_adverts_that_name_nowhere() -> None:
+    """Woodie's and Bus Eireann leave the address out of about a third of theirs."""
+    from jobfinder.sources.jsonld import parse_job_posting, split_slug
+
+    assert split_slug("https://careers.acme.ie/jobs|place=Ireland")[3] == "Ireland"
+    assert split_slug("https://careers.acme.ie/jobs")[3] is None
+
+    bare = {"@type": "JobPosting", "title": "Part Time Bus Driver, Weekend, Nationwide",
+            "url": "https://careers.acme.ie/job/driver-1"}
+    assert parse_job_posting(bare, "https://x/1", place="Ireland").location_raw == "Ireland"
+    # The title's town wins over the bare country.
+    named = dict(bare, title="Assistant Manager - Naas")
+    assert parse_job_posting(named, "https://x/1", place="Ireland").location_raw == "Kildare, Ireland"
+    # A stated location is never overwritten.
+    stated = dict(bare, jobLocation={"@type": "Place", "address": {
+        "@type": "PostalAddress", "addressLocality": "Swords", "addressCountry": "IE"}})
+    assert "Swords" in parse_job_posting(stated, "https://x/1", place="Ireland").location_raw
+    # Without the option an advert that names nowhere stays unplaced.
+    assert parse_job_posting(bare, "https://x/1").location_raw is None

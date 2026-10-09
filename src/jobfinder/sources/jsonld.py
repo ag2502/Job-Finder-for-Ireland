@@ -49,8 +49,11 @@ from jobfinder.sources.policy import ExcludedSite, is_excluded
 
 logger = logging.getLogger(__name__)
 
+# HTML5 allows an attribute value to go unquoted, and Volcanic's career sites write
+# `<script type=application/ld+json>`. Requiring the quotes read none of their adverts.
 LD_BLOCK = re.compile(
-    r"<script[^>]*type=[\"']application/ld\+json[\"'][^>]*>(.*?)</script>",
+    r"<script[^>]*type=\s*(?:\"application/ld\+json\"|'application/ld\+json'"
+    r"|application/ld\+json(?=[\s>]))[^>]*>(.*?)</script>",
     re.I | re.S,
 )
 ANCHOR_HREF = re.compile(r"<a\b[^>]*href=[\"']([^\"'#]+)[\"']", re.I)
@@ -76,21 +79,29 @@ MAX_SITEMAP_FETCHES = 5
 HARD_MAX_JOB_PAGES = 500
 
 
-def split_slug(slug: str) -> tuple[str, int, re.Pattern]:
-    """``url|max=N|match=REGEX`` -> the careers URL, page ceiling and job-URL pattern.
+def split_slug(slug: str) -> tuple[str, int, re.Pattern, str | None]:
+    """``url|max=N|match=REGEX|place=WHERE`` -> careers URL, ceiling, pattern, default place.
 
     Dalata's job pages are ``/breakfast-chef-310215.htm``: nothing in the path says
     "job", and its sitemap lists 181 of them, so the defaults read none of it.
+
+    ``place`` is where an advert that states no location at all is, and is only ever
+    set for an employer who hires in one country: Woodie's and Bus Eireann leave the
+    address out of about a third of theirs. It is never applied over a stated location,
+    and the title is read for a town first, so "Assistant Manager - Naas" is in Kildare
+    rather than merely in Ireland.
     """
     url, *options = slug.split("|")
-    cap, hint = MAX_JOB_PAGES, JOB_URL_HINT
+    cap, hint, place = MAX_JOB_PAGES, JOB_URL_HINT, None
     for option in options:
         key, _, value = option.partition("=")
         if key == "max" and value.isdigit():
             cap = min(int(value), HARD_MAX_JOB_PAGES)
         elif key == "match" and value:
             hint = re.compile(value, re.I)
-    return url, cap, hint
+        elif key == "place" and value:
+            place = value
+    return url, cap, hint, place
 
 
 def names_its_employers(slug: str) -> bool:
@@ -245,7 +256,7 @@ def job_locations(obj: dict) -> tuple[str | None, list[str]]:
     return primary, extras
 
 
-def parse_job_posting(obj: dict, page_url: str) -> RawJob | None:
+def parse_job_posting(obj: dict, page_url: str, *, place: str | None = None) -> RawJob | None:
     """Turn one `JobPosting` object into a RawJob, or None if it is unusable."""
     url = _text(obj.get("url")) or page_url
 
@@ -272,6 +283,13 @@ def parse_job_posting(obj: dict, page_url: str) -> RawJob | None:
         in_title = DUBLIN_IN_TITLE.search(title)
         if in_title:
             primary = f"{in_title.group(0)}, Ireland"
+    # A source that hires in one country only, for the adverts that name nowhere. The
+    # title is tried first, since it usually carries the town.
+    if primary is None and place:
+        from jobfinder.normalize.location import normalize_location
+
+        named = normalize_location(f"{title}, {place}")
+        primary = f"{named.region}, {place}" if named.region else place
 
     return RawJob(
         source_job_id=str(source_id),
@@ -340,7 +358,7 @@ class JsonLdAdapter(BaseAdapter):
     tier = 3
 
     def _fetch(self, slug: str, client: httpx.Client) -> list[RawJob]:
-        target, cap, hint = split_slug(slug)
+        target, cap, hint, place = split_slug(slug)
         careers_url = target if "//" in target else f"https://{target}"
         if is_excluded(careers_url):
             raise ExcludedSite(f"{careers_url} is on a site this project does not crawl")
@@ -359,7 +377,7 @@ class JsonLdAdapter(BaseAdapter):
         board = names_its_employers(slug)
         jobs: dict[str, RawJob] = {}
         for url in candidates[:cap]:
-            for job in self._extract_page(url, client, board=board):
+            for job in self._extract_page(url, client, board=board, place=place):
                 # A posting can appear under several URLs (a listing card and its own
                 # page). Keyed by source id so the same role is stored once.
                 jobs.setdefault(job.source_job_id, job)
@@ -374,7 +392,9 @@ class JsonLdAdapter(BaseAdapter):
             return PartialJobs(jobs.values())
         return list(jobs.values())
 
-    def _extract_page(self, url: str, client: httpx.Client, *, board: bool = False) -> list[RawJob]:
+    def _extract_page(
+        self, url: str, client: httpx.Client, *, board: bool = False, place: str | None = None
+    ) -> list[RawJob]:
         try:
             response = client.get(url)
             response.raise_for_status()
@@ -386,7 +406,7 @@ class JsonLdAdapter(BaseAdapter):
         for obj in iter_ld_objects(response.text):
             if not _is_job_posting(obj):
                 continue
-            job = parse_job_posting(obj, str(response.url))
+            job = parse_job_posting(obj, str(response.url), place=place)
             if job and board:
                 # A board advert without its employer cannot be filed under anyone.
                 job.company_name = _text(obj.get("hiringOrganization"))
