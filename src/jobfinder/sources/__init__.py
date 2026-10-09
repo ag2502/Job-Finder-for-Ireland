@@ -47,6 +47,7 @@ def load_adapters() -> None:
         jsonld,
         lever,
         occupop,
+        peoplefirst,
         oleeo,
         oracle_recruiting,
         personio,

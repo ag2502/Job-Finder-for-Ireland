@@ -23,6 +23,10 @@ teamtailor,ats,1,api key,detected only,Public API needs a key; job pages fall ba
 bamboohr,ats,1,public api,open api,{slug}.bamboohr.com/careers/list - common among Irish SMEs
 jazzhr,ats,1,public api,open api,Public board feed per employer
 breezy,ats,1,public api,in use,{slug}.breezy.hr/json; descriptions read from each position page; board names its owner
+peoplefirst,ats,1,public api,in use,MHR People First - {tenant}.jobs.people-first.com JSON API with a tenantcode header (Dublin Simon Community)
+peoplehr,ats,1,not accessible,not accessible,Access PeopleHR - {slug}.peoplehr.net robots.txt disallows everything (DPD Ireland, Family Carers Ireland, Irish Guide Dogs)
+eploy,ats,1,not accessible,not accessible,Eploy - Aldi's careers.aldirecruitment.ie sits behind a Cloudflare managed challenge; not bypassed
+tribepad,ats,1,scrape only,scrape only,Tribepad - Tesco's apply.tesco-careers.com lists nothing without a login and its search site refuses non-browsers (HTTP 403)
 comeet,ats,1,public api,open api,Public positions endpoint per employer
 pinpoint,ats,1,public api,in use,{slug}.pinpointhq.com/postings.json; found by probing (BDO, Arthur Cox, Jones Engineering)
 occupop,ats,1,public api,in use,Irish ATS (Dublin) - public GraphQL gateway behind {slug}.occupop-careers.com; names the hiring company
@@ -44,7 +48,7 @@ cornerstone,ats,1,scrape only,detected only,Cornerstone OnDemand
 jobvite,ats,1,scrape only,detected only,Jobvite
 dayforce,ats,1,scrape only,detected only,Ceridian Dayforce
 adp,ats,1,scrape only,detected only,ADP Recruiting
-ukg,ats,1,scrape only,detected only,UKG / Ultimate Software
+ukg,ats,1,not accessible,not accessible,UKG / UltiPro - robots.txt allows */JobBoard/ but disallows the JobBoardView search API (Menzies Aviation)
 # --- Employers running their own careers platform (Tier 1b) -----------------------
 amazon,bespoke,1,public api,in use,country=IRL filter
 lidl,bespoke,1,public api,in use,jobs.lidl.ie/api/v1/search - the job site's own search API; whole adverts with contract type; SuccessFactors behind it lists nothing
