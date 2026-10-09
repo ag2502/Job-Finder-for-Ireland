@@ -133,6 +133,7 @@ class PersonioAdapter(BaseAdapter):
                     department=_text(position.find("department"))
                     or _text(position.find("recruitingCategory")),
                     extra_locations=extras,
+                    employment_type=_text(position.find("schedule")),
                 )
             )
         return jobs
@@ -160,6 +161,7 @@ class PersonioAdapter(BaseAdapter):
                     extra_locations=[o for o in offices if o != primary],
                     description=item.get("description") or None,
                     department=item.get("department") or None,
+                    employment_type=item.get("schedule") or None,
                 ))
             return jobs
         return None

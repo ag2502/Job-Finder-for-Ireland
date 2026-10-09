@@ -34,6 +34,9 @@ class RawJob:
     description: str | None = None
     posted_at: datetime | None = None
     department: str | None = None
+    # The board's own working-hours label where it has one ("Part time", "PART_TIME",
+    # "parttime"), kept verbatim. See normalize.hours.
+    employment_type: str | None = None
 
     # Some boards list a role against several offices. Each extra location is
     # expanded into its own candidate so a Dublin secondary location is not lost.

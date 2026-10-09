@@ -45,6 +45,7 @@ from jobfinder.core.models import (
 )
 from jobfinder.normalize.dedup import compute_dedup_key, normalize_company_name
 from jobfinder.normalize.experience import analyze as analyze_experience
+from jobfinder.normalize.hours import is_part_time
 from jobfinder.normalize.location import LocationResult, dublin_in_advert, normalize_location
 from jobfinder.normalize.text import html_to_text
 from jobfinder.sources.base import FetchResult, RawJob
@@ -232,6 +233,7 @@ def _upsert_jobs(
         description = html_to_text(raw.description)
         location = resolve_location(raw, description=description)
         experience = analyze_experience(raw.title, description)
+        part_time = is_part_time(raw.title, description, raw.employment_type)
         dedup_key = compute_dedup_key(
             job_company.name,
             raw.title,
@@ -263,6 +265,8 @@ def _upsert_jobs(
                     years_inferred=experience.inferred,
                     is_internship=experience.is_internship,
                     is_graduate=experience.is_graduate,
+                    employment_type=(raw.employment_type or "")[:64] or None,
+                    is_part_time=part_time,
                     first_seen_at=now,
                     last_seen_at=now,
                     status=JobStatus.ACTIVE,
@@ -286,6 +290,7 @@ def _upsert_jobs(
         if not description and job.description:
             description = job.description
             experience = analyze_experience(raw.title, description)
+            part_time = is_part_time(raw.title, description, raw.employment_type)
 
         job.company_id = job_company.id
         job.title = raw.title
@@ -303,6 +308,8 @@ def _upsert_jobs(
         job.years_inferred = experience.inferred
         job.is_internship = experience.is_internship
         job.is_graduate = experience.is_graduate
+        job.employment_type = (raw.employment_type or "")[:64] or None
+        job.is_part_time = part_time
         if raw.posted_at:
             job.posted_at = raw.posted_at
         job.last_seen_at = now

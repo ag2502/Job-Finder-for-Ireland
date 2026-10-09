@@ -77,6 +77,9 @@ class RezoomoAdapter(BaseAdapter):
                     location_raw=item.get("location") or item.get("loc"),
                     description=description or None,
                     posted_at=_parse_date(item.get("postDate")),
+                    # A list such as ["parttime", "perm"].
+                    employment_type=", ".join(t for t in item.get("type") or [] if isinstance(t, str))
+                    or None,
                 )
             )
         return jobs

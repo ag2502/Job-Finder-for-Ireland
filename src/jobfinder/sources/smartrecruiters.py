@@ -159,6 +159,7 @@ class SmartRecruitersAdapter(BaseAdapter):
                     description=_description(source) if detail else None,
                     posted_at=_parse_date(source.get("releasedDate")),
                     department=department.get("label") or function.get("label"),
+                    employment_type=(source.get("typeOfEmployment") or {}).get("label"),
                 )
             )
         return jobs

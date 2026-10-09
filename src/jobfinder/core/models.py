@@ -162,6 +162,11 @@ class JobPosting(Base):
     years_inferred: Mapped[bool] = mapped_column(Boolean, default=False)
     is_internship: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_graduate: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    # The board's own label, verbatim, and whether the role is part-time or offers
+    # part-time hours (normalize.hours). The label is stored so a backfill can recompute
+    # the flag without re-crawling.
+    employment_type: Mapped[str | None] = mapped_column(String(64))
+    is_part_time: Mapped[bool] = mapped_column(Boolean, default=False)
 
     # The lifecycle fields that make the cumulative guarantee work.
     first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)

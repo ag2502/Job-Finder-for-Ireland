@@ -73,6 +73,7 @@ class PinpointAdapter(BaseAdapter):
                     location_raw=_location(item),
                     description=_description(item),
                     department=department,
+                    employment_type=item.get("employment_type_text") or item.get("employment_type"),
                 )
             )
         return jobs

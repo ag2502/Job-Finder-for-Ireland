@@ -300,6 +300,7 @@ class WorkdayAdapter(BaseAdapter):
         location = self._list_location(item)
         extra: list[str] = []
         description = None
+        employment_type = None
         posted_at = parse_posted_on(item.get("postedOn"))
 
         # Enrichment is best-effort: a detail fetch that fails must not discard the
@@ -313,6 +314,7 @@ class WorkdayAdapter(BaseAdapter):
             extra = [loc for loc in info.get("additionalLocations") or [] if loc]
             public_url = info.get("externalUrl") or public_url
             req_id = req_id or info.get("jobReqId")
+            employment_type = info.get("timeType")
             if info.get("startDate"):
                 try:
                     posted_at = datetime.fromisoformat(info["startDate"]).replace(
@@ -333,6 +335,7 @@ class WorkdayAdapter(BaseAdapter):
             description=description,
             posted_at=posted_at,
             extra_locations=extra,
+            employment_type=employment_type,
         )
 
 

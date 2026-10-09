@@ -272,7 +272,15 @@ def parse_job_posting(obj: dict, page_url: str) -> RawJob | None:
         posted_at=_parse_date(obj.get("datePosted")),
         department=_text(obj.get("occupationalCategory")) or _text(obj.get("industry")),
         extra_locations=extras,
+        employment_type=_employment_type(obj.get("employmentType")),
     )
+
+
+def _employment_type(value) -> str | None:
+    """`employmentType`, which may list several (["FULL_TIME", "PART_TIME"])."""
+    values = value if isinstance(value, list) else [value]
+    found = [text for text in (_text(entry) for entry in values) if text]
+    return ", ".join(found) or None
 
 
 class RobotsPolicy:

@@ -343,3 +343,23 @@ def test_an_id_repeated_within_one_fetch_does_not_abort_the_run(session, source,
 
     assert stats.created == 2
     assert sorted(j.source_job_id for j in _jobs(session)) == ["1", "2"]
+
+
+def test_part_time_is_read_from_the_board_label_and_kept_on_update(session, source, company, run):
+    """The board's own label is stored, so the flag survives a backfill and a re-crawl."""
+    labelled = make_job("1", title="Customer Assistant")
+    labelled.employment_type = "Part time"
+    _reconcile(session, source, company, run,
+               FetchResult(status=CrawlStatus.OK, jobs=[labelled, make_job("2")]))
+    session.flush()
+
+    assert _by_id(session, "1").is_part_time
+    assert _by_id(session, "1").employment_type == "Part time"
+    assert not _by_id(session, "2").is_part_time
+
+    relabelled = make_job("1", title="Customer Assistant")
+    relabelled.employment_type = "Full time"
+    _reconcile(session, source, company, run,
+               FetchResult(status=CrawlStatus.OK, jobs=[relabelled, make_job("2")]))
+    session.flush()
+    assert not _by_id(session, "1").is_part_time

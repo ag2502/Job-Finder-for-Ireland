@@ -406,3 +406,13 @@ def test_a_curated_slug_can_widen_the_ceiling_and_name_the_job_url_pattern():
 
     assert split_slug("https://careers.acme.ie|max=99999")[1] == 500
     assert split_slug("https://careers.acme.ie")[1] == MAX_JOB_PAGES
+
+
+def test_employment_type_keeps_every_listed_value() -> None:
+    """A board offering either hours lists both, and part-time must not be dropped."""
+    job = parse_job_posting(
+        {"@type": "JobPosting", "title": "Customer Assistant", "url": "https://x.ie/j/1",
+         "employmentType": ["FULL_TIME", "PART_TIME"]},
+        "https://x.ie/j/1",
+    )
+    assert job is not None and job.employment_type == "FULL_TIME, PART_TIME"

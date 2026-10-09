@@ -104,6 +104,7 @@ class RecruiteeAdapter(BaseAdapter):
                     posted_at=_parse_date(item.get("published_at") or item.get("created_at")),
                     department=item.get("department"),
                     extra_locations=extras,
+                    employment_type=item.get("employment_type_code"),
                 )
             )
         return jobs

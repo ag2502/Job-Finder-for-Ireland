@@ -19,6 +19,7 @@ from sqlalchemy.orm import Session
 from jobfinder.core.db import engine
 from jobfinder.core.models import JobPosting
 from jobfinder.normalize.experience import analyze as analyze_experience
+from jobfinder.normalize.hours import is_part_time
 from jobfinder.normalize.location import dublin_in_advert, normalize_location
 from jobfinder.normalize.text import html_to_text
 
@@ -32,6 +33,8 @@ ADDED_COLUMNS: dict[str, str] = {
     "is_graduate": "BOOLEAN DEFAULT 0",
     "is_ireland": "BOOLEAN DEFAULT 0",
     "region": "VARCHAR(32)",
+    "employment_type": "VARCHAR(64)",
+    "is_part_time": "BOOLEAN DEFAULT 0",
 }
 
 
@@ -80,6 +83,21 @@ def recompute_regions(session: Session, *, batch: int = 500) -> int:
     return len(jobs)
 
 
+def recompute_part_time(session: Session, *, batch: int = 500) -> int:
+    """Fill `is_part_time` for every stored posting, from its title and advert.
+
+    Run once when the column is added, so part-time roles already in the database are
+    found by the "Part-time only" switch before each source's next crawl.
+    """
+    jobs = session.execute(select(JobPosting)).scalars().all()
+    for index, job in enumerate(jobs, 1):
+        job.is_part_time = is_part_time(job.title, job.description, job.employment_type)
+        if index % batch == 0:
+            session.flush()
+    session.flush()
+    return len(jobs)
+
+
 def recompute_derived(session: Session, *, batch: int = 500) -> int:
     """Recompute experience and location flags from stored text."""
     jobs = session.execute(select(JobPosting)).scalars().all()
@@ -91,6 +109,7 @@ def recompute_derived(session: Session, *, batch: int = 500) -> int:
         job.years_inferred = experience.inferred
         job.is_internship = experience.is_internship
         job.is_graduate = experience.is_graduate
+        job.is_part_time = is_part_time(job.title, job.description, job.employment_type)
 
         location = normalize_location(job.location_raw)
         if not (job.location_raw or "").strip():

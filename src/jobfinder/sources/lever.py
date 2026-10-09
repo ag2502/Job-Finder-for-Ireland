@@ -65,6 +65,7 @@ class LeverAdapter(BaseAdapter):
                     posted_at=_from_epoch_ms(item.get("createdAt")),
                     department=categories.get("department") or categories.get("team"),
                     extra_locations=all_locations,
+                    employment_type=categories.get("commitment"),
                 )
             )
         return jobs

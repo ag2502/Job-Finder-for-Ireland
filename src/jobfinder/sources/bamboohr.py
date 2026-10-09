@@ -59,6 +59,7 @@ class BambooHRAdapter(BaseAdapter):
                     url=f"https://{slug}.bamboohr.com/careers/{job_id}",
                     location_raw=_location(job),
                     department=job.get("departmentLabel") or None,
+                    employment_type=job.get("employmentStatusLabel") or None,
                 )
             )
         return jobs

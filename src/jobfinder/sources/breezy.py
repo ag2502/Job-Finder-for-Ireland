@@ -84,6 +84,8 @@ class BreezyAdapter(BaseAdapter):
                     posted_at=date_parser.parse(published) if published else None,
                     department=item.get("department"),
                     extra_locations=[name for name in names if name != primary],
+                    employment_type=(item.get("type") or {}).get("name")
+                    if isinstance(item.get("type"), dict) else item.get("type"),
                 )
             )
         return jobs

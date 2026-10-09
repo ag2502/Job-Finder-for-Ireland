@@ -66,6 +66,7 @@ class AshbyAdapter(BaseAdapter):
                     posted_at=_parse_date(item.get("publishedAt")),
                     department=item.get("department") or item.get("team"),
                     extra_locations=secondary,
+                    employment_type=item.get("employmentType"),
                 )
             )
         return jobs
