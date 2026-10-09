@@ -506,3 +506,7 @@ Currys Ireland,successfactors,curryscareers.co.uk|Ireland,3,false,part-time-swee
 SSP Ireland,successfactors,careers.foodtravelexperts.com|Ireland,3,false,part-time-sweep,Food outlets at Dublin Airport,https://careers.foodtravelexperts.com/
 Boots Ireland,wordpress,www.boots.jobs|jobs|ireland-only,2,false,part-time-sweep,"boots.jobs WordPress API, UK and Irish stores together; Irish ones kept",https://www.boots.jobs/
 Hodson Bay Group,jsonld,https://www.hodsonbaygroup.com/careers/,3,false,part-time-sweep,"Hotels in Athlone, Galway and Roscommon; careers pages carry JobPosting markup",https://www.hodsonbaygroup.com/careers/
+Go-Ahead Ireland,careers_html,https://www.goaheadireland.ie/careers,3,false,part-time-sweep,Dublin bus routes: drivers and depot staff,https://www.goaheadireland.ie/careers
+Myhomecare,careers_html,https://www.myhomecare.ie/,3,false,part-time-sweep,Home care and nursing,https://www.myhomecare.ie/
+Noonan Services Group,careers_html,https://bidvestnoonan.com/careers/,3,false,part-time-sweep,"Cleaning and security, UK and Ireland; Irish roles kept by location",https://bidvestnoonan.com/careers/
+Aircoach,careers_html,https://www.aircoach.ie/aircoach-careers,3,false,part-time-sweep,Coach drivers,https://www.aircoach.ie/aircoach-careers
