@@ -1683,3 +1683,16 @@ def test_part_time_employers_take_turns_within_a_day():
     jobs = [{"company_id": c, "posted": at, "n": n}
             for n, c in enumerate([1, 1, 1, 2, 2, 3])]
     assert [j["company_id"] for j in _take_turns(jobs)] == [1, 2, 3, 1, 2, 1]
+
+
+def test_a_job_and_a_search_can_be_shared(client):
+    results = client.post("/search", data={"chosen_fields": ["software-engineering"], "pay": "40"},
+                          headers={"HX-Request": "true"})
+    # The search shares the address that re-runs it, filters included.
+    shared = re.search(r'data-share data-share-url="([^"]+)"', results.text)
+    assert shared and "pay=40" in shared.group(1)
+    page = client.get("/?f=software-engineering").text
+    assert 'data-share-from="[data-jobsheet-page]"' in page
+    job_id = _a_live_job_id()
+    if job_id is not None:
+        assert f'data-share-url="/jobs/{job_id}"' in client.get(f"/jobs/{job_id}").text

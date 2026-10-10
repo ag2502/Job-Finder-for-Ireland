@@ -1054,8 +1054,24 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 @media (max-width:380px){
   .rail-long{display:none}
 }
+/* Share: the phone's own share sheet where there is one, otherwise the link is copied
+   and a note says so. One control for a job, a search and an event. */
+.sharebtn{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:inherit;
+  font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .15s,color .15s,transform .15s}
+.sharebtn svg{width:15px;height:15px;flex:none}
+.sharebtn:hover{border-color:var(--aqua);color:var(--aqua-deep)}
+.sharebtn:active{transform:scale(.96)}
+.sharebtn.is-done{border-color:var(--aqua);color:var(--aqua-deep)}
+.sharenote{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));z-index:200;
+  transform:translate(-50%,16px);opacity:0;pointer-events:none;padding:10px 18px;border-radius:999px;
+  background:var(--ink);color:var(--surface);font-size:14px;font-weight:600;box-shadow:var(--shadow-lift);
+  transition:opacity .2s,transform .2s}
+.sharenote.is-on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.sharenote,.sharebtn{transition:none}}
 /* Fingers need bigger targets than pointers do. */
 @media (pointer:coarse){
+  .sharebtn{min-height:40px}
   .btn--apply,.savebtn{min-height:40px}
   .linkish.small{padding:8px 4px}
 }
@@ -1092,6 +1108,10 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   </symbol>
   <symbol id="i-filter" viewBox="0 0 16 16">
     <path d="M2.5 4.5h11M4.8 8h6.4M6.8 11.5h2.4" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+  </symbol>
+  <symbol id="i-share" viewBox="0 0 16 16">
+    <path d="M8 10V2.4M5 5.2l3-3 3 3M4.2 7.6H3.6a1 1 0 00-1 1v4.6a1 1 0 001 1h8.8a1 1 0 001-1V8.6a1 1 0 00-1-1h-.6"
+          fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
   <symbol id="i-x" viewBox="0 0 16 16">
     <path d="M4 4l8 8M12 4l-8 8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
@@ -1258,6 +1278,56 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
 </footer>
 
 <script>
+// Share. Any [data-share] button shares a link: data-share-url names it outright, or
+// data-share-from points at a link on the page whose address it takes (the job panel's
+// "Job page", which changes with every job opened). A phone gets its own share sheet;
+// anything else copies the link and says so. Cancelling the sheet is not an error.
+(function () {
+  var note = null, timer = null;
+  function say(text) {
+    if (!note) {
+      note = document.createElement('p');
+      note.className = 'sharenote';
+      note.setAttribute('role', 'status');
+      document.body.appendChild(note);
+    }
+    note.textContent = text;
+    note.classList.add('is-on');
+    clearTimeout(timer);
+    timer = setTimeout(function () { note.classList.remove('is-on'); }, 2200);
+  }
+  function copy(url) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(url);
+    var box = document.createElement('textarea');
+    box.value = url; box.setAttribute('readonly', ''); box.style.position = 'fixed'; box.style.opacity = '0';
+    document.body.appendChild(box); box.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (err) {}
+    box.remove();
+    return ok ? Promise.resolve() : Promise.reject();
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('[data-share]');
+    if (!btn) return;
+    e.preventDefault();
+    var from = btn.getAttribute('data-share-from');
+    var link = from ? document.querySelector(from) : null;
+    var url = new URL(btn.getAttribute('data-share-url') || (link && link.getAttribute('href')) || location.href,
+                      location.href).href;
+    var title = btn.getAttribute('data-share-title') || document.title;
+    var text = btn.getAttribute('data-share-text') || '';
+    if (navigator.share && window.matchMedia('(pointer:coarse)').matches) {
+      navigator.share({ title: title, text: text, url: url }).catch(function () {});
+      return;
+    }
+    copy(url).then(function () {
+      say('Link copied');
+      btn.classList.add('is-done');
+      setTimeout(function () { btn.classList.remove('is-done'); }, 1600);
+    }, function () { window.prompt('Copy this link', url); });
+  });
+})();
+
 // Appearance: light (the default) or dark, remembered on this device. The choice is put
 // on <html> by the script in <head> before anything paints. The button shows where it
 // will take you: a moon in light mode, a sun in dark.

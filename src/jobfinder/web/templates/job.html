@@ -21,6 +21,10 @@
       {% include "_job_detail.html" %}
     </div>
     <div class="jobpage__foot">
+      <button type="button" class="sharebtn jobpage__share" data-share
+              data-share-url="/jobs/{{ job.id }}" data-share-title="{{ job.title }} at {{ company }}"
+              data-share-text="{{ job.title }} at {{ company }}, on Sorted Place"
+              aria-label="Share this job"><svg aria-hidden="true"><use href="#i-share"/></svg>Share</button>
       <a class="btn btn--ghost" href="/#find">Find more jobs</a>
       <a class="btn" href="{{ job.url }}" target="_blank" rel="noopener">Apply on {{ company }}'s site
         <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
@@ -35,6 +39,7 @@
   .jobpage__body{padding:28px 32px 8px}
   .jobpage__foot{display:flex;justify-content:flex-end;gap:12px;flex-wrap:wrap;padding:16px 32px 20px;
     background:var(--win-bar);border-top:1px solid var(--line)}
+  .jobpage__share{margin-right:auto}
   .jobpage__gone{font-size:clamp(1.8rem,4vw,2.6rem)}
   @media (max-width:860px){
     .jobpage{padding:20px 0 10px}

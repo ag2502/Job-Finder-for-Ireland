@@ -41,6 +41,13 @@
     </h2>
 
     <div class="row" style="gap:16px">
+      {% if search_url %}
+      {# The address that re-runs this search, filters included, for a friend. #}
+      <button type="button" class="sharebtn" data-share data-share-url="{{ search_url }}"
+              data-share-title="{{ search_title|default('Jobs in Ireland') }} | Sorted Place"
+              data-share-text="{{ '{:,}'.format(total) }} open jobs on Sorted Place"
+              aria-label="Share this search"><svg aria-hidden="true"><use href="#i-share"/></svg>Share search</button>
+      {% endif %}
       {% if new_count or new_only %}
       {# New since the searcher was last here, when we know (signed in); otherwise new
          today. Ticking it narrows the list to those, and it stays with this visit
