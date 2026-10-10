@@ -358,3 +358,11 @@ def test_occupop_frame_can_be_served_under_another_host():
         return_value=httpx.Response(200, text=FRAME_ROW))
     assert OccupopAdapter().fetch("frame:api.bidrecruit.io/tok9").jobs[0].title == "Swim Teacher"
     assert route.called
+
+
+@respx.mock
+def test_occupop_frame_can_name_a_single_site_employers_town():
+    row = FRAME_ROW.replace("Dundalk, Co. Louth, Ireland", "National Concert Hall, Earlsfort Terrace")
+    respx.get(url__startswith="https://api.occupop.com/api/jobs-frame/tok5").mock(return_value=httpx.Response(200, text=row))
+    job = OccupopAdapter().fetch("frame:tok5|Dublin, Ireland").jobs[0]
+    assert job.location_raw == "National Concert Hall, Earlsfort Terrace, Dublin, Ireland"

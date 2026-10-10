@@ -17,7 +17,10 @@ HTML, under a slug of `frame:{token}`. It carries each job's title, place, secto
 contract type but no advert body, since the apply page behind it is a second
 single-page app. The same frame is served under the BidRecruit name
 (`api.bidrecruit.io`), which NCBI uses; such a board's slug names the host,
-`frame:api.bidrecruit.io/{token}`.
+`frame:api.bidrecruit.io/{token}`. A single-site employer whose places the location
+parser cannot read (National Concert Hall's "Earlsfort Terrace") may add its town,
+`frame:{token}|Dublin, Ireland`; it is appended only where a job's own place is not
+already read as Irish.
 """
 
 from __future__ import annotations
@@ -83,7 +86,10 @@ def _date(value):
 
 
 def frame_jobs(token: str, client: httpx.Client) -> list[RawJob]:
-    """The postings in an embedded vacancy frame, `token` or `host/token`."""
+    """The postings in an embedded vacancy frame, `token` or `host/token`, `|place`."""
+    from jobfinder.normalize.location import normalize_location
+
+    token, _, place = token.partition("|")
     host, _, bare = token.rpartition("/")
     response = client.get(
         FRAME.format(host=host or FRAME_HOST, token=bare),
@@ -105,13 +111,16 @@ def frame_jobs(token: str, client: httpx.Client) -> list[RawJob]:
             node = row.css_first(f"small.{name}")
             return node.text(strip=True) or None if node is not None else None
 
+        location = _small("location")
+        if place and not normalize_location(location).is_ireland:
+            location = f"{location}, {place}" if location else place
         jobs.append(
             RawJob(
                 # The apply URL's slug ends in the job's own identifier and is stable.
                 source_job_id=url.rstrip("/").rsplit("/", 1)[-1],
                 title=title,
                 url=url,
-                location_raw=_small("location"),
+                location_raw=location,
                 department=_small("category"),
                 employment_type=_small("type"),
             )

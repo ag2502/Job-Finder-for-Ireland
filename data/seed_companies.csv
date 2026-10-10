@@ -489,7 +489,7 @@ Camphill Communities of Ireland,occupop,frame:uiu09ixv0Gmqk7TUyTCKzhFsi8kDQ8Dl98
 Kids Inc,occupop,frame:gBO2x7NO6LHCVZvdd5bUkbSdQYiSjsBMLVJkLobHsykdPThYyd,3,false,part-time-sweep,Creches and afterschool care,https://kidsinc.ie/careers/
 Lyrath Estate,occupop,frame:VyTfmH9r8iyo9FZhzNHhrXU8iIT4KHALOsXf3ZQa7ALwr3O01J,3,false,part-time-sweep,"Hotel, Kilkenny",https://www.lyrath.com/careers/
 Manguard Plus,occupop,frame:lSs3dYCtkSgx1F4xfLfT1T1adLe3Y3XGzs3KqPSvcPJuYCWDsd,3,false,part-time-sweep,Security and concierge services,https://manguardplus.ie/jobs/
-National Concert Hall,occupop,frame:QFuyYnsA1MYkoG0WlGXJPrtcgZOLKAS9C5JMMOo2teJabCjIIe,3,false,part-time-sweep,"Concert venue, Dublin",https://www.nch.ie/about-us/careers/
+National Concert Hall,occupop,"frame:QFuyYnsA1MYkoG0WlGXJPrtcgZOLKAS9C5JMMOo2teJabCjIIe|Dublin, Ireland",3,false,part-time-sweep,"Concert venue, Dublin",https://www.nch.ie/about-us/careers/
 Prosper Fingal,occupop,frame:VXSSpbNILywRSgqNhFgCFLEkLN1MTUBiUadqAK5QVtphH195hl,3,false,part-time-sweep,"Disability services, north Dublin",https://www.prosperfingal.ie/careers/
 The Merrion Hotel,occupop,frame:SAxK7YbOeFvP293fzzAkhc8fY9PkceG7CyE6Z4SQlMf38cq47P,3,false,part-time-sweep,"Hotel, Dublin",https://merrionhotel.com/careers/
 Western Care Association,occupop,frame:OMvaUBZIwUJvQZ7NaoaewzIvQXRZWWkONhKirKm4eZKEhbtaK5,3,false,part-time-sweep,"Disability services, Mayo",https://westerncare.com/careers/
@@ -523,7 +523,7 @@ PE Global,jsonld,https://www.peglobal.net/jobs/|max=500,3,false,part-time-sweep,
 Foróige,careers_html,https://www.foroige.ie/join-us/careers/,3,false,part-time-sweep,Youth work and family support projects nationwide,https://www.foroige.ie/join-us/careers/
 Dune London,jsonld,https://careers.dunelondon.com/|max=500,3,false,part-time-sweep,"Footwear stores, UK and Ireland; Irish kept by location",https://careers.dunelondon.com/
 SeeMeHired,seemehired,all,3,false,board,"ATS for care homes, hotels and pubs; public search API read whole, Irish jobs kept and filed under each employer",https://seemehired.com/jobs
-O'Callaghan Hotels,jsonld,https://careers.ocallaghancollection.com/jobs.aspx|max=200|match=-\d{5,}\.htm$,3,false,part-time-sweep,"Davenport, Mont, Alex and Stephen's Green hotels; RecruitGenie site read as JSON-LD",https://careers.ocallaghancollection.com/jobs.aspx
+O'Callaghan Hotels,jsonld,"https://careers.ocallaghancollection.com/jobs.aspx|max=200|match=-\d{5,}\.htm$",3,false,part-time-sweep,"Davenport, Mont and Alex hotels in Dublin; RecruitGenie site read as JSON-LD",https://careers.ocallaghancollection.com/jobs.aspx
 Little Harvard,healthbox,664dcd9a03d56|Ireland,3,false,part-time-sweep,"Creches in Kildare, Wicklow and Dublin; HealthBox HR feed",https://www.littleharvard.ie/careers
 NCBI,occupop,frame:api.bidrecruit.io/OdVfqm9lVng4PNGTmXoFt4iZPTTLjny7RavMs0O1C8Wy90l0C4,3,false,part-time-sweep,"Vision Ireland: charity shops, drivers and services; BidRecruit frame",https://vi.ie/about-us/careers/
 Concern Worldwide,icims,jobs.concern.net,3,false,part-time-sweep,iCIMS careers-home site; Dublin head office roles,https://jobs.concern.net/careers-home

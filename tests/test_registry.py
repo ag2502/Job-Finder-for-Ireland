@@ -875,3 +875,16 @@ def test_a_probed_greenhouse_board_under_someone_elses_name_is_rejected():
                                   client, "linkedin", "LinkedIn")
         assert _board_matches("greenhouse", "https://boards-api.greenhouse.io/v1/boards/stripe/jobs",
                               client, "stripe", "Stripe")
+
+
+def test_every_registry_row_has_its_columns():
+    """An unquoted comma in a slug ('\\d{5,}') splits a row and crashes seeding in CI."""
+    import csv
+    from pathlib import Path
+
+    data = Path(__file__).resolve().parent.parent / "data"
+    for name in ("seed_companies.csv", "ireland_companies.csv", "retired_sources.csv", "platform_catalogue.csv"):
+        lines = [l for l in (data / name).read_text(encoding="utf-8").splitlines() if l and not l.startswith("#")]
+        rows = list(csv.reader(lines))
+        broken = [row[0] for row in rows[1:] if len(row) != len(rows[0])]
+        assert not broken, f"{name}: {broken}"
