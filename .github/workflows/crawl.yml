@@ -104,6 +104,17 @@ jobs:
           fi
           jobfinder crawl $args
 
+      - name: Crawl careers events
+        env:
+          JOBFINDER_DATABASE_URL: ${{ env.STATE_DB_URL }}
+        # Job fairs, graduate events and tech meetups for /events, refreshed every run so
+        # a new listing appears within two hours. Never fails the run: the jobs are what
+        # this workflow is for, and an events site being down leaves the events already
+        # stored exactly as they were (events/crawl.py).
+        continue-on-error: true
+        timeout-minutes: 10
+        run: jobfinder crawl-events
+
       - name: Publish the crawler state
         # Only on success. A run that failed part-way through has a database that reflects
         # neither the previous state nor a complete crawl, and overwriting the release with
