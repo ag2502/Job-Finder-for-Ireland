@@ -522,3 +522,4 @@ Kate Cowhig International Recruitment,jsonld,https://www.kcr.ie/jobseekers/|max=
 PE Global,jsonld,https://www.peglobal.net/jobs/|max=500,3,false,part-time-sweep,"Recruitment agency: data centres, engineering, IT and healthcare",https://www.peglobal.net/jobs/
 Foróige,careers_html,https://www.foroige.ie/join-us/careers/,3,false,part-time-sweep,Youth work and family support projects nationwide,https://www.foroige.ie/join-us/careers/
 Dune London,jsonld,https://careers.dunelondon.com/|max=500,3,false,part-time-sweep,"Footwear stores, UK and Ireland; Irish kept by location",https://careers.dunelondon.com/
+SeeMeHired,seemehired,all,3,false,board,"ATS for care homes, hotels and pubs; public search API read whole, Irish jobs kept and filed under each employer",https://seemehired.com/jobs

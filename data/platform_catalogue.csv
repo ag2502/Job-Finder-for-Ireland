@@ -74,6 +74,7 @@ gradireland,job board,4,public,in use,Search service behind the Gatsby site; nee
 charityjobs,job board,4,public,in use,Charityjobs.ie - read by jsonld with the employers option (each advert's hiringOrganization is the employer); ~40 live adverts
 localgov,job board,4,public,in use,localgovernmentjobs.ie (LGMA) - one result request lists every council's vacancies; each advert read for county and contract type; no robots.txt or reuse terms
 jobalert,job board,4,public,in use,"JobAlert.ie - ten jobs per server-rendered page in the Next.js page data (~195 pages); no robots.txt or reuse terms; ~1,900 Irish adverts and ~430 part-time"
+seemehired,job board,4,public,in use,"SeeMeHired public search API (api.seemehired.com robots allows all; /jobs/filtered frames are closed): ~1,700 UK and Irish jobs in 9 requests, ~380 Irish kept"
 irishjobs,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
 jobs_ie,job board,4,not accessible,not accessible,StepStone group; terms restrict automated access
 recruitireland,job board,4,not accessible,not accessible,Terms restrict automated access
