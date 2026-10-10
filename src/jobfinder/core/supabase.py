@@ -622,6 +622,66 @@ def unsubscribe(token: str) -> None:
         raise SupabaseError(_message_from(response))
 
 
+# ----------------------------------------------------------- event reminders
+
+def list_event_reminders(account: Account) -> list[dict]:
+    """This account's event reminders, soonest event first."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.get(
+            f"{base}/rest/v1/event_reminders",
+            headers=_auth_headers(account.access_token),
+            params={"select": "event_key,title,starts_at,url,frequency,created_at",
+                    "user_id": f"eq.{account.user_id}", "order": "starts_at.asc", "limit": "500"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+    return response.json()
+
+
+def add_event_reminder(account: Account, *, event_key: str, title: str, starts_at: str,
+                       url: str, frequency: str) -> None:
+    """Remind this account of an event, or change how often. Setting it again keeps the
+    record of what has been sent, so changing daily to weekly is not a fresh start."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/event_reminders",
+            params={"on_conflict": "user_id,event_key"},
+            headers={**_auth_headers(account.access_token),
+                     "Prefer": "resolution=merge-duplicates,return=minimal"},
+            json={"user_id": account.user_id, "email": account.email, "event_key": event_key,
+                  "title": title, "starts_at": starts_at, "url": url, "frequency": frequency},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def remove_event_reminder(account: Account, event_key: str) -> None:
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.delete(
+            f"{base}/rest/v1/event_reminders",
+            headers=_auth_headers(account.access_token),
+            params={"user_id": f"eq.{account.user_id}", "event_key": f"eq.{event_key}"},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
+def stop_event_reminder(token: str) -> None:
+    """The "stop this reminder" link in a reminder email, which works signed out."""
+    base, _ = _require_config()
+    with _client() as client:
+        response = client.post(
+            f"{base}/rest/v1/rpc/stop_event_reminder",
+            headers=_auth_headers(),
+            json={"p_token": token},
+        )
+    if response.status_code >= 400:
+        raise SupabaseError(_message_from(response))
+
+
 # ------------------------------------------------------------------ CV files
 #
 # The CV document itself, in the private `cvs` bucket.

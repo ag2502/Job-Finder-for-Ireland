@@ -1,0 +1,32 @@
+{# "Remind me" for one event: emails daily or weekly until it starts, and always the
+   day before. Signed out it is a way in to sign in; set, it says how often and offers
+   Stop. Picking how often folds open inside the card rather than over it, so a card in
+   a sideways strip never clips it. The POST handlers send this fragment back. #}
+<div class="remind" id="remind-{{ v.id }}">
+  {% if v.status != "done" and accounts_enabled %}
+    {% if not account %}
+    <a class="remindbtn" href="/login?next=/events/{{ v.id }}&amp;why=remind" title="Sign in, and we will email you until it starts">
+      <svg aria-hidden="true"><use href="#e-alarm"/></svg>Remind me</a>
+    {% elif reminder %}
+    <span class="remindbtn is-on" title="We email you {{ reminder.frequency or 'weekly' }} until it starts, and the day before">
+      <svg aria-hidden="true"><use href="#i-check"/></svg>Reminding you {{ reminder.frequency or "weekly" }}</span>
+    <button type="button" class="linkish remind__stop"
+            hx-post="/events/{{ v.id }}/remind/stop" hx-target="#remind-{{ v.id }}" hx-swap="outerHTML">Stop</button>
+    {% elif reminders_ok %}
+    <details class="remind__pick">
+      <summary class="remindbtn"><svg aria-hidden="true"><use href="#e-alarm"/></svg>Remind me</summary>
+      <form class="remind__pop" method="post" action="/events/{{ v.id }}/remind"
+            hx-post="/events/{{ v.id }}/remind" hx-target="#remind-{{ v.id }}" hx-swap="outerHTML">
+        <p class="remind__q">Email me about this until it starts</p>
+        <div class="seg seg--sm" role="radiogroup" aria-label="How often">
+          <label class="seg__opt"><input type="radio" name="frequency" value="daily"><span>Daily</span></label>
+          <label class="seg__opt"><input type="radio" name="frequency" value="weekly" checked><span>Weekly</span></label>
+        </div>
+        <p class="remind__fine">And always the day before. Stop any time.</p>
+        <button type="submit" class="remind__go">Remind me</button>
+      </form>
+    </details>
+    {% endif %}
+  {% endif %}
+  {% if note %}<p class="remind__note{% if note_bad %} remind__note--bad{% endif %}" role="status">{{ note }}</p>{% endif %}
+</div>

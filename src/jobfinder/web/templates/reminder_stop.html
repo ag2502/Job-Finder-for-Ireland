@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{# Where "stop this reminder" in a reminder email lands. One press rather than acting on
+   arrival: mail scanners open every link in a message. #}
+{% from "_macros.html" import titlebar %}
+{% set nav = 'events' %}
+{% block title %}Event reminder | Sorted Place{% endblock %}
+{% block railcount %}{% endblock %}
+{% block content %}
+<section class="pagehead">
+  {% if done %}
+  <h1>Reminder <span class="hl">stopped.</span></h1>
+  <p class="lede">We will not email you about that event again. Any other reminders you set carry on.</p>
+  {% else %}
+  <h1>Stop this reminder?</h1>
+  <p class="lede">We will stop emailing you about this one event. Reminders for other events carry on.</p>
+  {% endif %}
+</section>
+
+<div class="win unsubwin">
+  {{ titlebar("event-reminder") }}
+  <div class="win__body">
+    {% if failed %}
+    <p class="err" role="alert">That link did not work. Sign in and press Stop on the event instead.</p>
+    {% endif %}
+    {% if done %}
+    <a class="btn" href="/events">See what's on <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    {% elif token %}
+    <form method="post" action="/reminders/stop" class="row">
+      <input type="hidden" name="token" value="{{ token }}">
+      <button type="submit">Stop this reminder</button>
+      <a class="btn btn--ghost" href="/events">Keep it</a>
+    </form>
+    {% else %}
+    <p class="muted">This link is missing its code. Sign in and press Stop on the event instead.</p>
+    {% endif %}
+  </div>
+</div>
+<style>.unsubwin{max-width:640px;box-shadow:var(--shadow-lift)}</style>
+{% endblock %}

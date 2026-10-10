@@ -1696,3 +1696,18 @@ def test_a_job_and_a_search_can_be_shared(client):
     job_id = _a_live_job_id()
     if job_id is not None:
         assert f'data-share-url="/jobs/{job_id}"' in client.get(f"/jobs/{job_id}").text
+
+
+def test_the_events_page_opens_with_or_without_events(client):
+    page = client.get("/events")
+    assert page.status_code == 200
+    assert "Careers events across Ireland" in page.text and "calendar.app" in page.text
+    # Filters in the address are read on the server too, for a shared link.
+    assert client.get("/events?kind=fair&where=Cork&mode=online&day=2026-10-15").status_code == 200
+    assert client.get("/events?day=not-a-day").status_code == 200
+    assert client.get("/events/999999999").status_code == 404
+    assert client.get("/events/999999999/calendar.ics").status_code == 404
+
+
+def test_events_are_in_the_menu(client):
+    assert 'href="/events"' in client.get("/").text

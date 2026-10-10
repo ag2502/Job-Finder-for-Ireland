@@ -142,3 +142,79 @@ def test_clock_times_in_every_shape_listings_use():
     assert sources._clock("10am") == (10, 0)
     assert sources._clock("12:00 AM") == (0, 0)
     assert sources._clock("TBC") is None and sources._clock(None) is None
+
+
+def test_an_event_a_newer_rule_rules_out_is_hidden_not_deleted(session):
+    from datetime import datetime, timezone
+
+    session.add(Event(source="meetup", source_id="x", url="https://x", title="After-Work Quick Date Rounds",
+                      starts_at=datetime(2026, 10, 17, tzinfo=timezone.utc), kind="tech"))
+    session.flush()
+    crawl.store(session, [], crawl.Summary())
+    hidden = session.execute(select(Event)).scalar_one()
+    assert hidden.cancelled
+
+
+def _event(**kw):
+    base = dict(id=1, source="eventbrite", source_id="1", url="https://www.eventbrite.ie/e/1",
+                title="Job Fair", kind="fair", has_time=True, is_online=False, cancelled=False,
+                starts_at=datetime(2026, 10, 15, 9, 0, tzinfo=timezone.utc), ends_at=None,
+                region="Dublin", town="Dublin 15", venue="Hall", summary="", organizer=None,
+                is_free=None, image_url=None)
+    base.update(kw)
+    return Event(**base)
+
+
+def test_an_event_moves_from_ahead_to_on_now_to_completed_by_the_clock():
+    from jobfinder.events import listing
+
+    event = _event()   # 10:00 to 13:00 Irish time, the end assumed
+    starts, ends = listing.span(event)
+    assert (starts.hour, ends.hour) == (10, 13)
+    status = lambda when: listing.status_of(starts, ends, when)
+    assert status(datetime(2026, 10, 1, tzinfo=timezone.utc)) == "later"
+    assert status(datetime(2026, 10, 12, tzinfo=timezone.utc)) == "week"
+    assert status(datetime(2026, 10, 15, 10, tzinfo=timezone.utc)) == "live"
+    assert status(datetime(2026, 10, 15, 13, tzinfo=timezone.utc)) == "done"
+    view = listing.EventView(event, starts, ends, "week")
+    assert view.countdown(datetime(2026, 10, 13, 8, tzinfo=timezone.utc)) == "In 2 days"
+    assert view.time_label == "From 10:00" and view.where == "Hall, Dublin 15"
+
+
+def test_a_date_with_no_hour_runs_all_day_and_a_run_of_days_says_so():
+    from jobfinder.events import listing
+
+    day = _event(has_time=False, starts_at=datetime(2026, 10, 14, 23, 0, tzinfo=timezone.utc))
+    starts, ends = listing.span(day)
+    assert listing.EventView(day, starts, ends, "week").time_label == "All day"
+    run = _event(has_time=False, starts_at=datetime(2026, 9, 21, 23, 0, tzinfo=timezone.utc),
+                 ends_at=datetime(2026, 10, 20, 23, 0, tzinfo=timezone.utc))
+    starts, ends = listing.span(run)
+    assert listing.EventView(run, starts, ends, "live").time_label == "22 Sep to 20 Oct"
+
+
+def test_the_calendar_file_is_valid_and_folded():
+    from jobfinder.events import listing
+
+    event = _event(summary="A long description " * 10)
+    starts, ends = listing.span(event)
+    text = listing.ics(listing.EventView(event, starts, ends, "week"), "https://sorted-place.vercel.app/events/1")
+    lines = text.split("\r\n")
+    assert lines[0] == "BEGIN:VCALENDAR" and "DTSTART:20261015T090000Z" in lines
+    assert all(len(line.encode()) <= 75 for line in lines)
+    assert "UID:eventbrite-1@sorted-place" in lines
+
+
+def test_the_calendar_marks_days_with_events():
+    from datetime import date
+
+    from jobfinder.events import listing
+
+    event = _event()
+    starts, ends = listing.span(event)
+    months = listing.calendar([listing.EventView(event, starts, ends, "week")], date(2026, 10, 10), count=2)
+    october = months[0]
+    assert october["label"] == "October 2026" and october["lead"] == 3   # 1 October 2026 is a Thursday
+    fifteenth = october["days"][14]
+    assert fifteenth["n"] == 1 and october["days"][9]["today"]
+    assert months[1]["label"] == "November 2026"

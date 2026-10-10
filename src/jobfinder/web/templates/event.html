@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{# One event: what a shared link, a reminder email or a card on /events opens. #}
+{% from "_macros.html" import titlebar %}
+{% set nav = 'events' %}
+{% block title %}{{ v.event.title }}, {{ v.starts.strftime('%-d %B') }} | Sorted Place{% endblock %}
+{% block description %}{{ v.kind_label }}: {{ v.event.title }}, {{ v.date_label }}, {{ v.where }}. {{ (v.event.summary or '')[:150] }}{% endblock %}
+{% block railcount %}{% endblock %}
+{% block content %}
+{% include "_events_kit.html" %}
+<section class="evpage">
+  <a class="evpage__back" href="/events"><svg aria-hidden="true"><use href="#e-left"/></svg>All events</a>
+  <article class="win evpage__win{% if v.status == 'live' %} tk--live{% endif %}">
+    {{ titlebar((v.source_label|lower) ~ "/event.ics") }}
+    <div class="evpage__cover">
+      {% if v.event.image_url %}<img src="{{ v.event.image_url }}" alt="" referrerpolicy="no-referrer" onerror="this.remove()">{% endif %}
+      <span class="tk__art"><svg aria-hidden="true"><use href="#e-{{ v.event.kind }}"/></svg></span>
+    </div>
+    <div class="evpage__body">
+      <p class="evpage__kind"><svg aria-hidden="true"><use href="#e-{{ v.event.kind }}"/></svg>{{ v.kind_label }}
+        {%- if v.status == "done" %}<span class="stamp stamp--flat evpage__done">Completed</span>{% endif %}</p>
+      <h1 class="evpage__title">{{ v.event.title }}</h1>
+      <p class="evpage__count tk__count" data-countdown data-starts="{{ v.starts.isoformat() }}" data-ends="{{ v.ends.isoformat() }}"
+         data-timed="{{ 1 if v.event.has_time else 0 }}">{{ v.countdown(now) }}</p>
+
+      <dl class="evpage__facts">
+        <div><dt>When</dt><dd>{{ v.date_label }}<span>{{ v.time_label }}</span></dd></div>
+        <div><dt>Where</dt><dd>{{ v.where }}</dd></div>
+        <div><dt>Run by</dt><dd>{{ v.event.organizer or "Not stated" }}</dd></div>
+        <div><dt>Price</dt><dd>{{ "Free" if v.event.is_free else ("Paid" if v.event.is_free == false else "See the listing") }}</dd></div>
+      </dl>
+
+      {% if v.event.summary %}<p class="evpage__summary">{{ v.event.summary }}</p>{% endif %}
+
+      <div class="evpage__acts">
+        <a class="btn" href="{{ v.event.url }}" target="_blank" rel="noopener">{{ "See it" if v.status == "done" else "Details and registration" }} on {{ v.source_label }}
+          <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+        {% if v.status != "done" %}
+        <a class="btn btn--ghost" href="/events/{{ v.id }}/calendar.ics"><svg width="16" height="16" aria-hidden="true"><use href="#e-cal"/></svg>Add to calendar</a>
+        {% endif %}
+        <button type="button" class="sharebtn" data-share data-share-url="/events/{{ v.id }}"
+                data-share-title="{{ v.event.title }}" data-share-text="{{ v.event.title }}, {{ v.date_label }}, {{ v.place }}">
+          <svg aria-hidden="true"><use href="#i-share"/></svg>Share</button>
+      </div>
+      {% if v.status != "done" and accounts_enabled %}
+      <div class="evpage__remind">
+        <p class="evpage__remindq">Want a nudge before it starts?</p>
+        {% include "_remind.html" %}
+      </div>
+      {% endif %}
+      <p class="evpage__source">Listed on {{ v.source_label }}. Registration and any tickets are on their site, not this one.</p>
+    </div>
+  </article>
+</section>
+
+<script type="application/ld+json">{{ {
+  "@context": "https://schema.org", "@type": "Event", "name": v.event.title,
+  "startDate": v.starts.isoformat(), "endDate": v.ends.isoformat(),
+  "eventAttendanceMode": "https://schema.org/OnlineEventAttendanceMode" if v.event.is_online else "https://schema.org/OfflineEventAttendanceMode",
+  "location": {"@type": "VirtualLocation", "url": v.event.url} if v.event.is_online else {"@type": "Place", "name": v.event.venue or v.place, "address": {"@type": "PostalAddress", "addressLocality": v.event.town or v.place, "addressCountry": "IE"}},
+  "description": v.event.summary or "", "url": v.event.url,
+}|tojson }}</script>
+
+<style>
+  .evpage{max-width:760px;margin:0 auto;padding:28px 0 64px}
+  .evpage__back{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;font-size:14px;font-weight:600;
+    color:var(--ink-2);text-decoration:none}
+  .evpage__back svg{width:15px;height:15px}
+  .evpage__back:hover{color:var(--aqua-deep)}
+  .evpage__win{box-shadow:var(--shadow-lift)}
+  .evpage__cover{position:relative;aspect-ratio:2.6/1;background:var(--fill);overflow:hidden;
+    background-image:radial-gradient(var(--desk-dot) 1.1px,transparent 1.2px);background-size:14px 14px}
+  .evpage__cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1}
+  .evpage__body{padding:24px 32px 28px}
+  .evpage__kind{display:inline-flex;align-items:center;gap:7px;margin:0 0 10px;font-size:13.5px;font-weight:650;color:var(--ink-2)}
+  .evpage__kind svg{width:16px;height:16px}
+  .evpage__done{margin-left:8px;background:var(--fill);color:var(--ink-3)}
+  .evpage__title{font-size:clamp(1.8rem,4vw,2.6rem);margin:0 0 8px}
+  .evpage__count{margin:0 0 20px;font-size:15px}
+  .evpage__facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:0 0 20px;
+    border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .evpage__facts div{padding:12px 16px;border-top:1px solid var(--line)}
+  .evpage__facts div:nth-child(-n+2){border-top:0}
+  .evpage__facts div:nth-child(2n){border-left:1px solid var(--line)}
+  .evpage__facts dt{font-size:12.5px;font-weight:600;color:var(--ink-3);margin-bottom:3px}
+  .evpage__facts dd{margin:0;font-size:15px;font-weight:550}
+  .evpage__facts dd span{display:block;font-family:var(--mono);font-size:12.5px;font-weight:400;color:var(--ink-3);margin-top:2px}
+  .evpage__summary{color:var(--ink-2);font-size:15.5px;line-height:1.6}
+  .evpage__acts{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:20px 0}
+  .evpage__acts .btn--ghost svg{margin-right:6px;vertical-align:-3px}
+  .evpage__remind{padding:14px 16px;border-radius:12px;background:var(--win-bar);border:1px solid var(--line)}
+  .evpage__remindq{margin:0 0 10px;font-size:14px;font-weight:650}
+  .evpage__source{margin:18px 0 0;font-size:13px;color:var(--ink-3)}
+  @media (max-width:860px){
+    .evpage{padding:16px 0 40px}
+    .evpage__body{padding:20px 18px 22px}
+    .evpage__facts{grid-template-columns:1fr}
+    .evpage__facts div:nth-child(2){border-top:1px solid var(--line)}
+    .evpage__facts div:nth-child(2n){border-left:0}
+    .evpage__acts .btn{flex:1 1 100%;justify-content:center}
+  }
+</style>
+<script>
+(function () {
+  var el = document.querySelector('[data-countdown]');
+  if (!el) return;
+  function tick() {
+    var now = Date.now(), s = Date.parse(el.dataset.starts), f = Date.parse(el.dataset.ends);
+    if (now >= s && now < f) el.textContent = 'On now';
+    else if (el.dataset.timed === '1' && now < s && s - now < 6 * 3600e3) {
+      var m = Math.round((s - now) / 60000);
+      el.textContent = 'Starts in ' + (m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm');
+    }
+  }
+  tick(); setInterval(tick, 30000);
+})();
+</script>
+{% endblock %}

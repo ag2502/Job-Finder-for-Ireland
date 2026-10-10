@@ -65,6 +65,8 @@ from jobfinder.matching import vocabulary
 from jobfinder.matching import llm_profile
 from jobfinder.matching.resume import cv_file_type, own_skills, parse_resume
 from jobfinder.web import advert
+from jobfinder.events import listing as event_listing
+from jobfinder.events import relevance as event_kinds
 from jobfinder.normalize.dedup import (
     canonical_title,
     key_for,
@@ -2307,7 +2309,7 @@ def _safe_next(value: str | None) -> str:
 # Why sign-in was asked for, when it interrupted an Apply or a Save. It only changes
 # the heading to "One step first."; an explanation box above the Google button was
 # judged unnecessary, and the lede already says what an account is for.
-REASONS = frozenset({"apply", "save"})
+REASONS = frozenset({"apply", "save", "remind"})
 
 
 def _auth_page(request: Request, *, mode: str, error: str = "", notice: str = "",
@@ -3336,6 +3338,216 @@ def part_time(request: Request):
 
 
 # ------------------------------------------------------------------- companies
+
+
+# ------------------------------------------------------------------- events
+#
+# Careers events across Ireland (events/): job fairs, graduate events, tech meetups.
+# The page renders every event with what it is filed under, and its script filters on
+# the device; the same filters are read here for a shared link or a browser without JS.
+
+EVENT_MODES = {"in-person": "In person", "online": "Online"}
+# Completed events shown before "Show all completed".
+DONE_SHOWN = 24
+
+
+def _event_reminders(account: supabase.Account | None) -> tuple[dict[str, dict], bool]:
+    """This account's reminders by event key, and whether they could be read at all."""
+    if account is None:
+        return {}, True
+    try:
+        return {row["event_key"]: row for row in supabase.list_event_reminders(account)}, True
+    except (supabase.SupabaseError, httpx.HTTPError):
+        # Most likely schema.sql has not been re-run since reminders arrived.
+        logger.info("could not read event reminders", exc_info=True)
+        return {}, False
+
+
+def _event_picks(request: Request) -> dict:
+    params = request.query_params
+    day = params.get("day") or ""
+    try:
+        day_value = datetime.strptime(day, "%Y-%m-%d").date() if day else None
+    except ValueError:
+        day_value = None
+    return {
+        "kinds": [k for k in params.getlist("kind") if k in event_kinds.KINDS],
+        "where": params.get("where") or "",
+        "mode": params.get("mode") if params.get("mode") in EVENT_MODES else "",
+        "day": day_value,
+    }
+
+
+def _event_fits(view, picked: dict) -> bool:
+    event = view.event
+    if picked["kinds"] and event.kind not in picked["kinds"]:
+        return False
+    if picked["where"] and (event.region or "") != picked["where"]:
+        return False
+    if picked["mode"] == "online" and not event.is_online:
+        return False
+    if picked["mode"] == "in-person" and event.is_online:
+        return False
+    if picked["day"] and not (view.starts.date() <= picked["day"] <= view.ends.date()):
+        return False
+    return True
+
+
+@app.get("/events", response_class=HTMLResponse)
+def events_page(request: Request):
+    """Every careers event we know of: on now, this week, later on, and completed."""
+    now = datetime.now(timezone.utc)
+    picked = _event_picks(request)
+    with session_scope() as session:
+        views = event_listing.load(session, now)
+    account = _account(request)
+    reminders, reminders_ok = _event_reminders(account)
+
+    ahead = [v for v in views if v.status != "done"]
+    done = sorted((v for v in views if v.status == "done"), key=lambda v: v.ends, reverse=True)
+    show_all_done = request.query_params.get("past") == "all"
+    for view in views:
+        view.fits = _event_fits(view, picked)
+
+    kind_counts = {key: sum(1 for v in ahead if v.event.kind == key) for key in event_kinds.KINDS}
+    county_counts: dict[str, int] = {}
+    for view in ahead:
+        if view.event.region and not view.event.is_online:
+            county_counts[view.event.region] = county_counts.get(view.event.region, 0) + 1
+    seen = [v.event.last_seen_at for v in views if v.event.last_seen_at]
+
+    context = _base_context(request)
+    context.update(
+        nav="events",
+        now=now,
+        picked=picked,
+        live=[v for v in ahead if v.status == "live"],
+        week=[v for v in ahead if v.status == "week"],
+        later=event_listing.months([v for v in ahead if v.status == "later"]),
+        done=done if show_all_done else done[:DONE_SHOWN],
+        done_total=len(done),
+        show_all_done=show_all_done,
+        ahead_total=len(ahead),
+        shown_total=sum(1 for v in ahead if v.fits),
+        kinds=event_kinds.KINDS,
+        kind_counts=kind_counts,
+        counties=sorted(county_counts.items(), key=lambda c: (-c[1], c[0])),
+        modes=EVENT_MODES,
+        online_total=sum(1 for v in ahead if v.event.is_online),
+        sources_total=len({v.event.source for v in views}),
+        updated=_age(max(_as_utc(t) for t in seen), now) if seen else "",
+        calendar=event_listing.calendar(views, now.astimezone(DUBLIN).date()),
+        reminders=reminders,
+        reminders_ok=reminders_ok,
+    )
+    return templates.TemplateResponse(request, "events.html", context)
+
+
+def _event_or_404(event_id: int):
+    with session_scope() as session:
+        view = event_listing.get(session, event_id)
+    if view is None:
+        raise HTTPException(status_code=404)
+    return view
+
+
+@app.get("/events/{event_id}", response_class=HTMLResponse)
+def event_page(request: Request, event_id: int):
+    """One event: when, where, who runs it, and the way to register on its own site."""
+    view = _event_or_404(event_id)
+    account = _account(request)
+    reminders, reminders_ok = _event_reminders(account)
+    context = _base_context(request)
+    context.update(nav="events", v=view, now=datetime.now(timezone.utc),
+                   reminder=reminders.get(view.key), reminders_ok=reminders_ok,
+                   kinds=event_kinds.KINDS)
+    return templates.TemplateResponse(request, "event.html", context)
+
+
+@app.get("/events/{event_id}/calendar.ics", include_in_schema=False)
+def event_calendar(request: Request, event_id: int):
+    view = _event_or_404(event_id)
+    page = f"{_site_origin(request)}/events/{view.id}"
+    slug = re.sub(r"[^a-z0-9]+", "-", view.event.title.casefold()).strip("-")[:60] or "event"
+    return Response(
+        event_listing.ics(view, page), media_type="text/calendar; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{slug}.ics"'},
+    )
+
+
+def _remind_control(request: Request, view, reminder: dict | None, note: str = "",
+                    bad: bool = False):
+    context = _base_context(request)
+    context.update(v=view, reminder=reminder, note=note, note_bad=bad, reminders_ok=True)
+    return templates.TemplateResponse(request, "_remind.html", context)
+
+
+@app.post("/events/{event_id}/remind", response_class=HTMLResponse)
+def event_remind(request: Request, event_id: int, frequency: str = Form(default="weekly")):
+    """Email this account about the event, daily or weekly, until it happens."""
+    view = _event_or_404(event_id)
+    account = _account(request)
+    if account is None:
+        login = f"/login?next=/events/{event_id}&why=remind"
+        if request.headers.get("HX-Request"):
+            return Response(status_code=204, headers={"HX-Redirect": login})
+        return RedirectResponse(login, status_code=303)
+    frequency = frequency if frequency in ALERT_FREQUENCIES else "weekly"
+    if view.status == "done":
+        return _remind_control(request, view, None, "This event has already happened.", bad=True)
+    try:
+        supabase.add_event_reminder(
+            account, event_key=view.key, title=view.event.title,
+            starts_at=_as_utc(view.event.starts_at).isoformat(), url=view.event.url,
+            frequency=frequency,
+        )
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not save an event reminder", exc_info=True)
+        return _remind_control(request, view, None, "Could not set the reminder just now. Please try again.", bad=True)
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse(f"/events/{event_id}", status_code=303)
+    return _remind_control(request, view, {"event_key": view.key, "frequency": frequency},
+                           f"We will email {account.email} {frequency}, and the day before.")
+
+
+@app.post("/events/{event_id}/remind/stop", response_class=HTMLResponse)
+def event_remind_stop(request: Request, event_id: int):
+    view = _event_or_404(event_id)
+    account = _account(request)
+    if account is None:
+        return PlainTextResponse("Sign in to continue.", status_code=401)
+    try:
+        supabase.remove_event_reminder(account, view.key)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not remove an event reminder", exc_info=True)
+        return _remind_control(request, view, {"event_key": view.key}, "Could not stop it just now. Please try again.", bad=True)
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse(f"/events/{event_id}", status_code=303)
+    return _remind_control(request, view, None, "Reminder stopped.")
+
+
+@app.get("/reminders/stop", response_class=HTMLResponse)
+def reminder_stop_page(request: Request, token: str = ""):
+    """Where "stop this reminder" in an email lands. One press, never on arrival, since
+    mail scanners open every link in a message."""
+    context = _base_context(request)
+    context.update(token=token, done=False, failed=False)
+    return templates.TemplateResponse(request, "reminder_stop.html", context)
+
+
+@app.post("/reminders/stop", response_class=HTMLResponse)
+async def reminder_stop(request: Request, token: str = ""):
+    form = await request.form()
+    token = str(form.get("token") or token)
+    failed = False
+    try:
+        uuid.UUID(token)
+        supabase.stop_event_reminder(token)
+    except (ValueError, supabase.SupabaseError, httpx.HTTPError):
+        failed = True
+    context = _base_context(request)
+    context.update(token=token, done=not failed, failed=failed)
+    return templates.TemplateResponse(request, "reminder_stop.html", context)
 
 
 @app.get("/companies", response_class=HTMLResponse)

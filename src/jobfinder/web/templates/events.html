@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+{% from "_macros.html" import titlebar, mascot %}
+{% set nav = 'events' %}
+{% block title %}{{ "{:,}".format(ahead_total) }} careers events in Ireland | Sorted Place{% endblock %}
+{% block description %}Job fairs, graduate events, tech meetups and careers workshops across Ireland: {{ "{:,}".format(ahead_total) }} coming up, gathered from Eventbrite, Meetup, Luma and gradireland and checked every two hours.{% endblock %}
+{% block railcount %}{{ "{:,}".format(ahead_total) }}<span class="rail-long"> events</span> ahead{% endblock %}
+
+{% block wide %}
+{% include "_events_kit.html" %}
+{% from "_events_kit.html" import ticket with context %}
+
+{# Every control belongs to this form, so without JS "Show events" filters on the
+   server, and a shared address opens the same list. #}
+<form id="evf" action="/events" method="get" hidden></form>
+
+<section class="ev-hero wrap">
+  <div class="ev-hero__copy">
+    <h1>Careers events across Ireland, <span class="hl">on one page.</span></h1>
+    <p class="lede">
+      <strong>{{ "{:,}".format(ahead_total) }} events</strong> coming up: job fairs, graduate
+      days, tech meetups and workshops{% if counties %} in {{ counties|length }} {{ "county" if counties|length == 1 else "counties" }}{% endif %}{% if online_total %}, plus {{ online_total }} online{% endif %}.
+      Gathered from Eventbrite, Meetup, Luma and gradireland, and checked every two hours.
+    </p>
+    <ul class="ev-facts" aria-label="What is on">
+      <li><b>{{ live|length }}</b> on now</li>
+      <li><b>{{ week|length }}</b> this week</li>
+      <li><b>{{ kind_counts.fair }}</b> job fairs</li>
+      <li><b>{{ kind_counts.student }}</b> for students and graduates</li>
+    </ul>
+    <p class="ev-hero__how">
+      {% if accounts_enabled %}<svg aria-hidden="true"><use href="#e-alarm"/></svg>
+      Press <b>Remind me</b> on any event and we will email you daily or weekly until it starts, and the day before.{% endif %}
+      {% if updated %}<span class="typed">Last checked {{ updated }}.</span>{% endif %}
+    </p>
+  </div>
+
+  {# A month at a glance. Each day with something starting on it is a button that
+     narrows the list to that day; the arrows step a month at a time. #}
+  <section class="win ev-cal opens" aria-labelledby="cal-h" data-cal>
+    {{ titlebar("calendar.app") }}
+    <div class="ev-cal__body">
+      {% for m in calendar %}
+      <div class="ev-cal__month" data-cal-month="{{ loop.index0 }}" {% if not loop.first %}hidden{% endif %}>
+        <div class="ev-cal__head">
+          <button type="button" class="ev-cal__nav" data-cal-step="-1" aria-label="Previous month" {% if loop.first %}disabled{% endif %}><svg><use href="#e-left"/></svg></button>
+          <h2 id="{{ 'cal-h' if loop.first else 'cal-h' ~ loop.index }}">{{ m.label }}</h2>
+          <button type="button" class="ev-cal__nav" data-cal-step="1" aria-label="Next month" {% if loop.last %}disabled{% endif %}><svg><use href="#e-right"/></svg></button>
+        </div>
+        <p class="ev-cal__sum typed">{{ m.total }} event{{ "" if m.total == 1 else "s" }} starting</p>
+        <div class="ev-cal__grid" role="group" aria-label="{{ m.label }}">
+          {% for d in ["M","T","W","T","F","S","S"] %}<span class="ev-cal__dow" aria-hidden="true">{{ d }}</span>{% endfor %}
+          {% for _ in range(m.lead) %}<span aria-hidden="true"></span>{% endfor %}
+          {% for d in m.days %}
+            {% if d.n and not d.past %}
+            <a class="ev-cal__day has-ev{% if d.today %} is-today{% endif %}{% if picked.day == d.date %} is-picked{% endif %}"
+               href="/events?day={{ d.date.isoformat() }}#list" data-day="{{ d.date.isoformat() }}"
+               aria-label="{{ d.date.strftime('%A %-d %B') }}: {{ d.n }} event{{ '' if d.n == 1 else 's' }}">
+              <span>{{ d.date.day }}</span><i class="ev-cal__dots" aria-hidden="true">{% for _ in range([d.n, 3]|min) %}<b></b>{% endfor %}</i>
+            </a>
+            {% else %}
+            <span class="ev-cal__day{% if d.past %} is-past{% endif %}{% if d.today %} is-today{% endif %}"><span>{{ d.date.day }}</span></span>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="hand ev-cal__hint" aria-hidden="true">tap a day</p>
+  </section>
+</section>
+
+<section class="wrap ev-board" id="list" aria-label="Events">
+  <div class="win ev-win">
+    {{ titlebar("events: " ~ ahead_total ~ " coming up") }}
+
+    {# The filter bar. Each count is what picking it would show with everything else held
+       as it is; the script keeps them current. #}
+    <div class="ev-bar">
+      <div class="ev-kinds" role="group" aria-label="Kinds of event">
+        {% for key, label in kinds.items() %}{% if kind_counts[key] or key in picked.kinds %}
+        <label class="ev-kind">
+          <input type="checkbox" name="kind" value="{{ key }}" form="evf" {% if key in picked.kinds %}checked{% endif %}>
+          <span><svg aria-hidden="true"><use href="#e-{{ key }}"/></svg>{{ label }} <b data-kind-n="{{ key }}">{{ kind_counts[key] }}</b></span>
+        </label>
+        {% endif %}{% endfor %}
+      </div>
+      <div class="ev-pickers">
+        <label class="ev-pick">
+          <span>Where</span>
+          <select name="where" form="evf">
+            <option value="">All of Ireland</option>
+            {% for county, n in counties %}
+            <option value="{{ county }}" {% if picked.where == county %}selected{% endif %}>{{ county }} ({{ n }})</option>
+            {% endfor %}
+          </select>
+        </label>
+        <div class="seg" role="radiogroup" aria-label="In person or online">
+          <label class="seg__opt"><input type="radio" name="mode" value="" form="evf" {% if not picked.mode %}checked{% endif %}><span>Any</span></label>
+          {% for key, label in modes.items() %}
+          <label class="seg__opt"><input type="radio" name="mode" value="{{ key }}" form="evf" {% if picked.mode == key %}checked{% endif %}><span>{{ label }}</span></label>
+          {% endfor %}
+        </div>
+        <input type="hidden" name="day" value="{{ picked.day.isoformat() if picked.day else '' }}" form="evf" data-day-input>
+        <button type="button" class="ev-daychip" data-day-clear {% if not picked.day %}hidden{% endif %}>
+          <span data-day-label>{{ picked.day.strftime('%a %-d %b') if picked.day else '' }}</span>
+          <svg aria-hidden="true"><use href="#i-x"/></svg><span class="sr-only">Show every day</span>
+        </button>
+        <noscript><button type="submit" form="evf" class="ev-go">Show events</button></noscript>
+      </div>
+      <p class="ev-status" aria-live="polite">
+        <b data-shown>{{ shown_total }}</b> of {{ ahead_total }} upcoming
+        <button type="button" class="linkish" data-ev-clear {% if shown_total == ahead_total %}hidden{% endif %}>Show all</button>
+      </p>
+    </div>
+
+    {% if live %}
+    <section class="ev-sec" data-sec aria-labelledby="live-h">
+      <div class="ev-sec__head">
+        <h2 id="live-h"><i class="ev-live" aria-hidden="true"></i>Happening now</h2>
+        <div class="ev-strip__nav" data-strip-nav>
+          <button type="button" class="ev-cal__nav" data-strip-step="-1" aria-label="Scroll back"><svg><use href="#e-left"/></svg></button>
+          <button type="button" class="ev-cal__nav" data-strip-step="1" aria-label="Scroll on"><svg><use href="#e-right"/></svg></button>
+        </div>
+      </div>
+      <div class="ev-strip" data-strip tabindex="0" aria-label="Events happening now">
+        {% for v in live %}{{ ticket(v, loop.index0) }}{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% if week %}
+    <section class="ev-sec" data-sec aria-labelledby="week-h">
+      <div class="ev-sec__head">
+        <h2 id="week-h">This week</h2>
+        <div class="ev-strip__nav" data-strip-nav>
+          <button type="button" class="ev-cal__nav" data-strip-step="-1" aria-label="Scroll back"><svg><use href="#e-left"/></svg></button>
+          <button type="button" class="ev-cal__nav" data-strip-step="1" aria-label="Scroll on"><svg><use href="#e-right"/></svg></button>
+        </div>
+      </div>
+      <div class="ev-strip" data-strip tabindex="0" aria-label="Events in the next seven days">
+        {% for v in week %}{{ ticket(v, loop.index0) }}{% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    {% for month, views in later %}
+    <section class="ev-sec" data-sec aria-labelledby="m{{ loop.index }}-h">
+      <div class="ev-sec__head">
+        <h2 id="m{{ loop.index }}-h">{% if loop.first and not week and not live %}Coming up: {% endif %}{{ month }}</h2>
+        <span class="typed" data-sec-n>{{ views|length }}</span>
+      </div>
+      <div class="ev-grid">
+        {% for v in views %}{{ ticket(v, loop.index0) }}{% endfor %}
+      </div>
+    </section>
+    {% endfor %}
+
+    <div class="ev-empty" data-ev-empty {% if shown_total or not ahead_total %}hidden{% endif %}>
+      {{ mascot("surprised", "mascot--big") }}
+      <h3>Nothing fits those picks.</h3>
+      <p class="muted">Try another county, or both in person and online.</p>
+      <button type="button" class="secondary" data-ev-clear>Show every event</button>
+    </div>
+    {% if not ahead_total %}
+    <div class="ev-empty">
+      {{ mascot("", "mascot--big") }}
+      <h3>No events coming up just now.</h3>
+      <p class="muted">The next check is within two hours. Job fairs cluster in spring and autumn.</p>
+    </div>
+    {% endif %}
+
+    {% if done_total %}
+    {# Finished events move here by the clock, newest first. They keep their page and
+       link, for anyone who wants to know when it runs again. #}
+    <details class="ev-done" {% if show_all_done %}open{% endif %}>
+      <summary>
+        <span>Completed events</span><span class="typed">{{ done_total }}</span>
+      </summary>
+      <ol class="ev-done__list">
+        {% for v in done %}
+        <li class="ev-done__row">
+          <span class="ev-done__date typed">{{ v.starts.strftime('%-d %b %Y') }}</span>
+          <a href="/events/{{ v.id }}">{{ v.event.title }}</a>
+          <span class="ev-done__where">{{ v.kind_label }}, {{ v.place }}</span>
+          <span class="stamp stamp--flat">Done</span>
+        </li>
+        {% endfor %}
+      </ol>
+      {% if not show_all_done and done_total > done|length %}
+      <a class="linkish ev-done__all" href="/events?past=all#list">Show all {{ done_total }} completed</a>
+      {% endif %}
+    </details>
+    {% endif %}
+  </div>
+</section>
+
+<style>
+  /* A control's own display must never beat the hidden attribute the script sets. */
+  .ev-board [hidden],.ev-hero [hidden]{display:none !important}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  /* ------------------------------------------------------------------ hero */
+  .ev-hero{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.9fr);gap:48px;align-items:center;
+    padding-top:56px;padding-bottom:36px}
+  .ev-hero h1{font-size:clamp(2.5rem,5.6vw,4.4rem)}
+  .ev-facts{list-style:none;margin:20px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+  .ev-facts li{padding:7px 14px;border-radius:999px;background:var(--surface);border:1px solid var(--line);
+    font-size:14px;color:var(--ink-2);box-shadow:var(--shadow-sm)}
+  .ev-facts b{color:var(--ink);font-weight:700;font-variant-numeric:tabular-nums}
+  .ev-hero__how{margin:18px 0 0;font-size:14px;color:var(--ink-2);line-height:1.55;max-width:56ch}
+  .ev-hero__how svg{width:16px;height:16px;vertical-align:-3px;margin-right:4px;color:var(--ink-3)}
+  .ev-hero__how .typed{display:block;margin-top:6px}
+
+  /* The calendar window */
+  .ev-cal{box-shadow:var(--shadow-lift);transform:rotate(.8deg);max-width:420px;justify-self:end;width:100%;overflow:visible}
+  .ev-cal__body{padding:16px 20px 20px}
+  .ev-cal__head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+  .ev-cal__head h2{margin:0;font-size:1.25rem}
+  .ev-cal__sum{margin:2px 0 12px;text-align:center}
+  .ev-cal__nav{width:32px;height:32px;padding:0;min-height:0;display:grid;place-items:center;border-radius:50%;
+    background:var(--surface);border:1px solid var(--line);color:var(--ink-2);box-shadow:none;text-shadow:none;cursor:pointer}
+  .ev-cal__nav svg{width:15px;height:15px}
+  .ev-cal__nav:hover:not(:disabled){border-color:var(--aqua);color:var(--aqua-deep);transform:none;filter:none}
+  .ev-cal__nav:disabled{opacity:.35;cursor:default}
+  .ev-cal__grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+  .ev-cal__dow{text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink-3);padding-bottom:4px}
+  .ev-cal__day{position:relative;aspect-ratio:1;display:grid;place-items:center;border-radius:10px;
+    font-size:13.5px;font-weight:500;color:var(--ink-2);font-variant-numeric:tabular-nums;text-decoration:none}
+  .ev-cal__day.is-past{color:var(--ink-3);opacity:.45}
+  .ev-cal__day.is-today{box-shadow:inset 0 0 0 1.5px var(--ink)}
+  .ev-cal__day.has-ev{background:var(--aqua-wash);color:var(--aqua-deep);font-weight:700;
+    transition:transform .3s var(--spring),background .15s}
+  .ev-cal__day.has-ev:hover{transform:scale(1.12);background:var(--surface);box-shadow:var(--shadow-sm)}
+  .ev-cal__day.is-picked{background:var(--aqua);color:#fff;transform:scale(1.08)}
+  .ev-cal__day > span{transform:translateY(-3px)}
+  .ev-cal__dots{position:absolute;bottom:5px;left:0;right:0;display:flex;justify-content:center;gap:2px}
+  .ev-cal__dots b{width:4px;height:4px;border-radius:50%;background:currentColor}
+  .ev-cal__hint{position:absolute;right:-14px;bottom:-30px;margin:0;font-size:22px;color:var(--ink-3);transform:rotate(-4deg)}
+
+  /* ------------------------------------------------------------- the board */
+  .ev-board{padding-bottom:64px}
+  .ev-win{box-shadow:var(--shadow-lift);--tk-ground:var(--win)}
+  .ev-bar{position:sticky;top:48px;z-index:5;display:grid;gap:12px;padding:16px 26px 14px;
+    background:var(--win-bar);border-bottom:1px solid var(--line)}
+  .ev-kinds{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;margin:0 -26px;padding:2px 26px;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+  .ev-kinds::-webkit-scrollbar{display:none}
+  .ev-kind{flex:none;position:relative;cursor:pointer}
+  .ev-kind input{position:absolute;opacity:0;width:1px;height:1px}
+  .ev-kind span{display:inline-flex;align-items:center;gap:7px;padding:7px 13px 7px 11px;border-radius:999px;
+    background:var(--surface);border:1px solid var(--line);font-size:13.5px;font-weight:550;color:var(--ink);
+    white-space:nowrap;transition:transform .3s var(--spring),border-color .15s,background .15s}
+  .ev-kind span svg{width:15px;height:15px;color:var(--ink-3)}
+  .ev-kind b{font-family:var(--mono);font-size:12px;font-weight:400;color:var(--ink-3)}
+  .ev-kind:hover span{transform:translateY(-2px);border-color:var(--line-strong)}
+  .ev-kind input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--win)}
+  .ev-kind input:checked + span svg,.ev-kind input:checked + span b{color:var(--win);opacity:.8}
+  .ev-kind input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .ev-pickers{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px}
+  .ev-pick{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--ink-2)}
+  .ev-pick select{padding:7px 30px 7px 11px;font-size:14px;min-width:170px}
+  .ev-daychip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px 6px 13px;min-height:0;border-radius:999px;
+    background:var(--aqua);color:#fff;border:0;font-size:13.5px;font-weight:600;box-shadow:none;text-shadow:none;cursor:pointer}
+  .ev-daychip svg{width:13px;height:13px}
+  .ev-status{margin:0;font-size:13px;color:var(--ink-3)}
+  .ev-status b{color:var(--ink);font-variant-numeric:tabular-nums}
+  .ev-status .linkish{margin-left:6px;font-size:13px}
+
+  .ev-sec{padding:22px 26px 6px}
+  .ev-sec[hidden]{display:none}
+  .ev-sec + .ev-sec{border-top:1px solid var(--line)}
+  .ev-sec__head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+  .ev-sec__head h2{margin:0;font-size:1.3rem;display:flex;align-items:center;gap:10px}
+  .ev-live{width:10px;height:10px;border-radius:50%;background:var(--tl-green);box-shadow:0 0 0 4px var(--sorted-wash)}
+  @media (prefers-reduced-motion:no-preference){.ev-live{animation:livepulse 1.8s ease-out infinite}}
+  .ev-strip__nav{display:flex;gap:6px}
+  .ev-strip__nav[hidden]{display:none}
+  /* The sideways strips: a row of tickets that snaps card by card. */
+  .ev-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(272px,300px);gap:16px;
+    overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;scroll-padding:0 26px;
+    margin:0 -26px;padding:4px 26px 22px;scrollbar-width:thin}
+  .ev-strip > .tk{scroll-snap-align:start}
+  .ev-strip:focus-visible{outline:2.5px solid var(--aqua);outline-offset:-4px;border-radius:12px}
+  .ev-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(272px,1fr));gap:16px;padding-bottom:22px}
+
+  .ev-empty{text-align:center;padding:40px 26px 48px}
+  .ev-empty[hidden]{display:none}
+  .ev-empty .mascot{margin:0 auto 12px}
+  .ev-empty p{margin:0 auto 16px}
+
+  .ev-done{border-top:1px solid var(--line);background:var(--win-bar)}
+  .ev-done > summary{display:flex;align-items:center;gap:10px;padding:16px 26px;cursor:pointer;
+    font-weight:650;font-size:1.05rem;list-style:none}
+  .ev-done > summary::-webkit-details-marker{display:none}
+  .ev-done > summary::before{content:"";width:0;height:0;border-left:6px solid var(--ink-3);
+    border-top:5px solid transparent;border-bottom:5px solid transparent;transition:transform .2s}
+  .ev-done[open] > summary::before{transform:rotate(90deg)}
+  .ev-done__list{list-style:none;margin:0;padding:0 26px 10px}
+  .ev-done__row{display:grid;grid-template-columns:96px minmax(0,1fr) auto auto;gap:14px;align-items:center;
+    padding:10px 0;border-top:1px solid var(--line);font-size:14px}
+  .ev-done__row a{color:var(--ink-2);font-weight:550;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .ev-done__row a:hover{color:var(--aqua-deep);text-decoration:underline}
+  .ev-done__where{font-size:13px;color:var(--ink-3);white-space:nowrap}
+  .ev-done__row .stamp{background:var(--fill);color:var(--ink-3)}
+  .ev-done__all{display:inline-block;margin:0 26px 18px}
+
+  @media (max-width:980px){
+    .ev-hero{grid-template-columns:1fr;gap:28px;padding-top:36px}
+    .ev-cal{justify-self:start;transform:none;max-width:460px}
+    .ev-cal__hint{display:none}
+  }
+  @media (max-width:860px){
+    /* On a phone the bar scrolls away with the page: stuck, it took a third of the screen. */
+    .ev-bar{position:static;padding:12px 16px}
+    .ev-kinds{margin:0 -16px;padding:2px 16px}
+    .ev-sec{padding:18px 16px 4px}
+    .ev-strip{margin:0 -16px;padding:4px 16px 18px;scroll-padding:0 16px;grid-auto-columns:minmax(260px,82vw)}
+    .ev-strip__nav{display:none}
+    .ev-grid{grid-template-columns:1fr}
+    .ev-pick{flex:1 1 100%}
+    .ev-pick select{flex:1;min-width:0}
+    .ev-done > summary{padding:14px 16px}
+    .ev-done__list{padding:0 16px 8px}
+    .ev-done__row{grid-template-columns:1fr auto;gap:2px 10px}
+    .ev-done__date{grid-column:1 / -1}
+    .ev-done__where{grid-column:1;white-space:normal}
+    .ev-done__row .stamp{grid-row:2 / 4;grid-column:2}
+    .ev-done__all{margin:0 16px 16px}
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Filtering on the device. The server rendered every upcoming event with what it is
+// filed under; picking a kind, a county, in person or online, or a day hides the rest,
+// recounts every control as if it were picked next, and writes the choice into the
+// address so Refresh and a shared link open the same list.
+(function () {
+  var form = document.getElementById('evf');
+  if (!form) return;
+  var cards = Array.prototype.slice.call(document.querySelectorAll('.ev-win .tk'));
+  var dayInput = document.querySelector('[data-day-input]');
+  var dayChip = document.querySelector('[data-day-clear]');
+  var dayLabel = document.querySelector('[data-day-label]');
+  var shown = document.querySelector('[data-shown]');
+  var empty = document.querySelector('[data-ev-empty]');
+  var clears = document.querySelectorAll('[data-ev-clear]');
+  var where = document.querySelector('select[name=where]');
+  var total = cards.length;
+
+  function picks() {
+    var kinds = Array.prototype.map.call(document.querySelectorAll('input[name=kind]:checked'), function (i) { return i.value; });
+    var mode = (document.querySelector('input[name=mode]:checked') || {}).value || '';
+    return { kinds: kinds, where: where ? where.value : '', mode: mode, day: dayInput.value };
+  }
+  function fits(card, p, skip) {
+    var d = card.dataset;
+    if (skip !== 'kind' && p.kinds.length && p.kinds.indexOf(d.kind) < 0) return false;
+    if (skip !== 'where' && p.where && d.where !== p.where) return false;
+    if (p.mode === 'online' && d.online !== '1') return false;
+    if (p.mode === 'in-person' && d.online === '1') return false;
+    if (p.day && (p.day < d.from || p.day > d.to)) return false;
+    return true;
+  }
+  function apply(push) {
+    var p = picks(), n = 0;
+    cards.forEach(function (c) { var ok = fits(c, p); c.hidden = !ok; if (ok) n++; });
+    // A section with nothing left in it steps aside, heading and all.
+    document.querySelectorAll('[data-sec]').forEach(function (sec) {
+      var left = sec.querySelectorAll('.tk:not([hidden])').length;
+      sec.hidden = !left;
+      var count = sec.querySelector('[data-sec-n]');
+      if (count) count.textContent = left;
+    });
+    shown.textContent = n;
+    if (empty) empty.hidden = n > 0 || !total;
+    clears.forEach(function (b) { if (b.closest('.ev-status')) b.hidden = n === total; });
+    // Each kind counts what ticking it would show; each county the same.
+    document.querySelectorAll('[data-kind-n]').forEach(function (b) {
+      var key = b.getAttribute('data-kind-n'), k = 0;
+      cards.forEach(function (c) { if (c.dataset.kind === key && fits(c, p, 'kind')) k++; });
+      b.textContent = k;
+    });
+    if (where) Array.prototype.forEach.call(where.options, function (o) {
+      if (!o.value) return;
+      var k = 0;
+      cards.forEach(function (c) { if (c.dataset.where === o.value && fits(c, p, 'where')) k++; });
+      o.textContent = o.value + ' (' + k + ')';
+    });
+    dayChip.hidden = !p.day;
+    document.querySelectorAll('.ev-cal__day.has-ev').forEach(function (a) {
+      a.classList.toggle('is-picked', a.getAttribute('data-day') === p.day);
+    });
+    if (push !== false) {
+      var q = new URLSearchParams();
+      p.kinds.forEach(function (k) { q.append('kind', k); });
+      if (p.where) q.set('where', p.where);
+      if (p.mode) q.set('mode', p.mode);
+      if (p.day) q.set('day', p.day);
+      var s = q.toString();
+      history.replaceState(null, '', '/events' + (s ? '?' + s : '') + location.hash);
+    }
+    strips();
+  }
+  form.addEventListener('submit', function (e) { e.preventDefault(); apply(); });
+  document.addEventListener('change', function (e) {
+    if (e.target.form === form || e.target.getAttribute('form') === 'evf') apply();
+  });
+  clears.forEach(function (b) {
+    b.addEventListener('click', function () {
+      document.querySelectorAll('input[name=kind]').forEach(function (i) { i.checked = false; });
+      if (where) where.value = '';
+      var any = document.querySelector('input[name=mode][value=""]'); if (any) any.checked = true;
+      dayInput.value = '';
+      apply();
+    });
+  });
+  dayChip.addEventListener('click', function () { dayInput.value = ''; apply(); });
+
+  // A day in the calendar narrows the list to it; pressing it again lets go.
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest && e.target.closest('.ev-cal__day.has-ev');
+    if (!a) return;
+    e.preventDefault();
+    var day = a.getAttribute('data-day');
+    dayInput.value = dayInput.value === day ? '' : day;
+    if (dayInput.value) {
+      var d = new Date(day + 'T12:00:00');
+      dayLabel.textContent = d.toLocaleDateString('en-IE', { weekday: 'short', day: 'numeric', month: 'short' });
+    }
+    apply();
+    var list = document.getElementById('list');
+    if (dayInput.value && list) list.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+
+  // The calendar steps a month at a time.
+  var months = document.querySelectorAll('[data-cal-month]'), at = 0;
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-cal-step]');
+    if (!b) return;
+    var next = Math.max(0, Math.min(months.length - 1, at + parseInt(b.getAttribute('data-cal-step'), 10)));
+    if (next === at) return;
+    months[at].hidden = true; months[next].hidden = false; at = next;
+    var again = months[next].querySelector('[data-cal-step="' + b.getAttribute('data-cal-step') + '"]');
+    (again && !again.disabled ? again : months[next].querySelector('[data-cal-step]:not(:disabled)') || b).focus();
+  });
+
+  // The strips' arrows, shown only when there is something off screen to reach.
+  function strips() {
+    document.querySelectorAll('[data-strip]').forEach(function (s) {
+      var nav = s.parentNode.querySelector('[data-strip-nav]');
+      if (!nav) return;
+      var max = s.scrollWidth - s.clientWidth;
+      nav.hidden = max < 8;
+      var b = nav.querySelectorAll('button');
+      b[0].disabled = s.scrollLeft < 8;
+      b[1].disabled = s.scrollLeft > max - 8;
+    });
+  }
+  document.querySelectorAll('[data-strip]').forEach(function (s) {
+    s.addEventListener('scroll', function () { window.requestAnimationFrame(strips); }, { passive: true });
+  });
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('[data-strip-step]');
+    if (!b) return;
+    var s = b.closest('.ev-sec').querySelector('[data-strip]');
+    s.scrollBy({ left: parseInt(b.getAttribute('data-strip-step'), 10) * s.clientWidth * 0.85,
+                 behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+  window.addEventListener('resize', strips);
+
+  // Countdowns stay true while the page is open: "Starts in 40 min", then "On now".
+  function tick() {
+    var now = Date.now();
+    document.querySelectorAll('[data-countdown]').forEach(function (el) {
+      var s = Date.parse(el.dataset.starts), f = Date.parse(el.dataset.ends);
+      if (isNaN(s)) return;
+      var card = el.closest('.tk');
+      if (now >= s && now < f) {
+        el.textContent = 'On now';
+        if (card) card.classList.add('tk--live');
+      } else if (now >= f) {
+        el.textContent = 'Finished';
+      } else if (el.dataset.timed === '1' && s - now < 6 * 3600e3) {
+        var m = Math.round((s - now) / 60000);
+        el.textContent = 'Starts in ' + (m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm');
+      }
+    });
+  }
+  tick(); setInterval(tick, 30000);
+  apply(false);
+})();
+</script>
+{% endblock %}

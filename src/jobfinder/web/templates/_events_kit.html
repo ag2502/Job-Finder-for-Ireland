@@ -1,0 +1,169 @@
+{# What the events pages share: the icons for each kind of event, the ticket card, and
+   the Remind me control's styles. Included once per page. #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="e-fair" viewBox="0 0 16 16"><path d="M2 6.2L8 2.6l6 3.6M3.4 6.6v6.6M12.6 6.6v6.6M1.8 13.4h12.4M6.2 13.2V9.6h3.6v3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="e-student" viewBox="0 0 16 16"><path d="M1.6 6.2L8 3l6.4 3.2L8 9.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M4.2 7.6v3.2c0 1 1.7 2 3.8 2s3.8-1 3.8-2V7.6M14.4 6.2v4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="e-inclusive" viewBox="0 0 16 16"><circle cx="8" cy="3.4" r="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M3 6.4h10M8 6.4v3.4M8 9.8l-2.6 4M8 9.8l2.6 4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="e-tech" viewBox="0 0 16 16"><path d="M5.4 4.4L1.8 8l3.6 3.6M10.6 4.4L14.2 8l-3.6 3.6M9.2 3l-2.4 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="e-skills" viewBox="0 0 16 16"><path d="M10.8 2.4l2.8 2.8-7.6 7.6H3.2V10z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 4.2L11.8 7" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="e-networking" viewBox="0 0 16 16"><circle cx="5.2" cy="5.4" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><circle cx="11" cy="5.4" r="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M1.8 13c.4-2.3 1.8-3.6 3.4-3.6S8.2 10.7 8.6 13M7.6 13c.4-2.3 1.8-3.6 3.4-3.6s3 1.3 3.4 3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="e-alarm" viewBox="0 0 16 16"><circle cx="8" cy="8.8" r="5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 6.4v2.6l1.8 1.1M2.6 3.6l2-1.6M13.4 3.6l-2-1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="e-cal" viewBox="0 0 16 16"><rect x="2.2" y="3.2" width="11.6" height="10.6" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M2.2 6.8h11.6M5.4 1.8v2.6M10.6 1.8v2.6M8 8.6v3.6M6.2 10.4h3.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="e-online" viewBox="0 0 16 16"><rect x="1.8" y="3" width="12.4" height="8.4" rx="1.4" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.4 13.6h5.2" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="e-left" viewBox="0 0 16 16"><path d="M10 3.4L5.4 8l4.6 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="e-right" viewBox="0 0 16 16"><path d="M6 3.4L10.6 8 6 12.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+</svg>
+
+{# One event as a ticket: a cover, then a torn-off stub with the date beside what it is,
+   when and where. `i` staggers its arrival. The script reads the data attributes to
+   filter and to keep the countdown current. #}
+{% macro ticket(v, i=0) -%}
+<article class="tk{% if v.status == 'live' %} tk--live{% endif %}" style="--i:{{ [i, 10]|min }}"
+         data-kind="{{ v.event.kind }}" data-where="{{ v.event.region or '' }}"
+         data-online="{{ 1 if v.event.is_online else 0 }}"
+         data-from="{{ v.starts.strftime('%Y-%m-%d') }}" data-to="{{ v.ends.strftime('%Y-%m-%d') }}"
+         {% if v.fits is defined and not v.fits %}hidden{% endif %}>
+  <a class="tk__cover" href="/events/{{ v.id }}" tabindex="-1" aria-hidden="true">
+    {% if v.event.image_url %}
+    <img src="{{ v.event.image_url }}" alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer"
+         onerror="this.remove()">
+    {% endif %}
+    <span class="tk__art"><svg><use href="#e-{{ v.event.kind }}"/></svg></span>
+    <span class="tk__kind"><svg><use href="#e-{{ v.event.kind }}"/></svg>{{ v.kind_label }}</span>
+    {% if v.event.is_free %}<span class="tk__free">Free</span>{% endif %}
+  </a>
+  <div class="tk__body">
+    <p class="tk__stub" aria-hidden="true">
+      <span class="tk__dow">{{ v.starts.strftime('%a') }}</span>
+      <b class="tk__day">{{ v.starts.day }}</b>
+      <span class="tk__mon">{{ v.starts.strftime('%b') }}</span>
+    </p>
+    <div class="tk__main">
+      <p class="tk__when">
+        <span class="tk__count" data-countdown data-starts="{{ v.starts.isoformat() }}" data-ends="{{ v.ends.isoformat() }}"
+              data-timed="{{ 1 if v.event.has_time else 0 }}">{{ v.countdown(now) }}</span>
+        <span class="tk__time">{{ v.time_label }}</span>
+      </p>
+      <h3 class="tk__title"><a href="/events/{{ v.id }}">{{ v.event.title }}</a></h3>
+      <p class="tk__where">
+        <svg aria-hidden="true"><use href="#{{ 'e-online' if v.event.is_online else 'i-pin' }}"/></svg>
+        <span>{{ v.place }}</span><span class="tk__by">{{ v.event.organizer or v.source_label }}</span>
+      </p>
+    </div>
+  </div>
+  {% if v.status != "done" %}
+  <div class="tk__foot">
+    {% with reminder = reminders.get(v.key) %}{% include "_remind.html" %}{% endwith %}
+    <span class="tk__tools">
+      <a class="tk__tool" href="/events/{{ v.id }}/calendar.ics" title="Add to calendar" aria-label="Add {{ v.event.title }} to your calendar"><svg aria-hidden="true"><use href="#e-cal"/></svg></a>
+      <button type="button" class="tk__tool" data-share data-share-url="/events/{{ v.id }}"
+              data-share-title="{{ v.event.title }}" data-share-text="{{ v.event.title }}, {{ v.date_label }}, {{ v.place }}"
+              title="Share" aria-label="Share {{ v.event.title }}"><svg aria-hidden="true"><use href="#i-share"/></svg></button>
+    </span>
+  </div>
+  {% endif %}
+</article>
+{%- endmacro %}
+
+<style>
+  /* ---------------------------------------------------------------- ticket */
+  .tk{position:relative;display:flex;flex-direction:column;min-width:0;background:var(--surface);
+    border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow-sm);
+    transition:transform .35s var(--spring),box-shadow .25s,border-color .2s}
+  .tk[hidden]{display:none}
+  .tk:hover{transform:translateY(-3px);box-shadow:var(--shadow-win);border-color:var(--line-strong)}
+  .tk__cover{position:relative;display:block;aspect-ratio:2/1;overflow:hidden;border-radius:13px 13px 0 0;
+    background:var(--fill);
+    background-image:radial-gradient(var(--desk-dot) 1.1px,transparent 1.2px);background-size:14px 14px}
+  .tk__cover img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:1;
+    transition:transform .6s var(--ease)}
+  .tk:hover .tk__cover img{transform:scale(1.04)}
+  .tk__art{position:absolute;inset:0;display:grid;place-items:center;color:var(--ink-3)}
+  .tk__art svg{width:44px;height:44px;opacity:.55}
+  .tk__kind,.tk__free{position:absolute;z-index:2;top:10px;display:inline-flex;align-items:center;gap:5px;
+    padding:4px 10px 4px 8px;border-radius:999px;font-size:12px;font-weight:650;
+    background:var(--pane);color:var(--ink);box-shadow:var(--shadow-sm);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+  .tk__kind{left:10px}
+  .tk__kind svg{width:13px;height:13px}
+  .tk__free{right:10px;padding:4px 10px;color:var(--sorted);background:var(--sorted-wash)}
+  /* The stub: torn along a perforated line, with a notch bitten out at each end. */
+  .tk__body{position:relative;display:flex;gap:14px;padding:16px 16px 12px;flex:1;
+    border-top:1.5px dashed var(--line-strong)}
+  .tk__body::before,.tk__body::after{content:"";position:absolute;top:-9px;width:16px;height:16px;border-radius:50%;
+    background:var(--tk-ground,var(--win));border:1px solid var(--line)}
+  .tk__body::before{left:-9px;clip-path:inset(0 0 0 50%)}
+  .tk__body::after{right:-9px;clip-path:inset(0 50% 0 0)}
+  .tk__stub{flex:none;align-self:flex-start;width:46px;margin:0;display:flex;flex-direction:column;align-items:center;
+    padding:6px 0 7px;border-radius:10px;background:var(--win-bar);border:1px solid var(--line);line-height:1}
+  .tk__dow,.tk__mon{font-family:var(--mono);font-size:11px;color:var(--ink-3)}
+  .tk__day{font-size:22px;font-weight:750;letter-spacing:-.03em;margin:3px 0 2px;font-variant-numeric:tabular-nums}
+  .tk__main{min-width:0;flex:1}
+  .tk__when{margin:0 0 4px;display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;font-size:12.5px}
+  .tk__count{font-weight:650;color:var(--ink)}
+  .tk--live .tk__count{color:var(--sorted);display:inline-flex;align-items:center;gap:6px}
+  .tk--live .tk__count::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--tl-green);
+    box-shadow:0 0 0 0 rgba(40,200,72,.5)}
+  @media (prefers-reduced-motion:no-preference){
+    .tk--live .tk__count::before{animation:livepulse 1.8s ease-out infinite}
+  }
+  @keyframes livepulse{70%{box-shadow:0 0 0 7px rgba(40,200,72,0)}100%{box-shadow:0 0 0 0 rgba(40,200,72,0)}}
+  .tk__time{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .tk__title{margin:0 0 6px;font-size:1.02rem;line-height:1.3;
+    display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .tk__title a{color:var(--ink);text-decoration:none;
+    background:linear-gradient(var(--aqua),var(--aqua)) 0 100%/0 1.5px no-repeat;transition:background-size .3s var(--ease)}
+  .tk__title a:hover{background-size:100% 1.5px}
+  .tk__title a::after{content:"";position:absolute;inset:0;z-index:0}
+  .tk__where{margin:0;display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);min-width:0}
+  .tk__where svg{width:13px;height:13px;flex:none;color:var(--ink-3)}
+  .tk__where span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tk__where span:first-of-type{flex:none;max-width:60%}
+  .tk__by{color:var(--ink-3);min-width:0}
+  .tk__by::before{content:"\00b7";margin-right:6px}
+  .tk__foot{position:relative;z-index:1;display:flex;align-items:flex-start;gap:8px;padding:0 12px 12px 16px}
+  .tk__tools{margin-left:auto;display:flex;gap:4px;flex:none}
+  .tk__tool{width:34px;height:34px;display:grid;place-items:center;border-radius:50%;padding:0;min-height:0;
+    border:1px solid transparent;background:none;color:var(--ink-3);box-shadow:none;text-shadow:none;cursor:pointer;
+    transition:background .15s,color .15s,transform .2s var(--spring)}
+  .tk__tool:hover{background:var(--fill);color:var(--ink);transform:none;filter:none}
+  .tk__tool svg{width:16px;height:16px}
+  .tk__tool.is-done{color:var(--aqua-deep);background:var(--aqua-wash)}
+  .tk--done{opacity:.9}
+  @media (prefers-reduced-motion:no-preference){
+    .js .tk{animation:tkin .55s var(--ease) both;animation-delay:calc(var(--i) * 45ms)}
+  }
+  @keyframes tkin{from{opacity:0;transform:translateY(16px) scale(.98)}}
+
+  /* ------------------------------------------------------------- remind me */
+  .remind{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;min-width:0;flex:1}
+  .remindbtn{display:inline-flex;align-items:center;gap:6px;padding:7px 13px 7px 11px;border-radius:999px;
+    border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:13px;font-weight:600;
+    text-decoration:none;cursor:pointer;list-style:none;white-space:nowrap;
+    transition:border-color .15s,background .15s,transform .2s var(--spring)}
+  .remindbtn::-webkit-details-marker{display:none}
+  .remindbtn svg{width:15px;height:15px;flex:none}
+  .remindbtn:hover{border-color:var(--aqua);color:var(--aqua-deep)}
+  .remindbtn:active{transform:scale(.96)}
+  .remindbtn.is-on{background:var(--brass-bg);border-color:var(--sticker-deep,#e9b800);color:var(--brass-ink);cursor:default}
+  .remindbtn.is-on svg{stroke-width:2}
+  .remind__stop{font-size:13px;padding:4px 2px}
+  .remind__pick{min-width:0}
+  .remind__pick[open] > .remindbtn{border-color:var(--aqua);color:var(--aqua-deep);background:var(--aqua-wash)}
+  .remind__pop{margin-top:10px;padding:12px;border-radius:12px;background:var(--win-bar);border:1px solid var(--line);
+    display:grid;gap:9px;justify-items:start}
+  .remind__q{margin:0;font-size:13.5px;font-weight:650;color:var(--ink)}
+  .remind__fine{margin:0;font-size:12.5px;color:var(--ink-3)}
+  .remind__go{padding:8px 18px;font-size:14px}
+  .remind__note{flex-basis:100%;margin:2px 0 0;font-size:12.5px;color:var(--sorted);font-weight:600}
+  .remind__note--bad{color:var(--tag-red-deep)}
+  .seg{display:inline-flex;padding:3px;border-radius:999px;background:var(--fill-2)}
+  .seg__opt{position:relative;display:flex;cursor:pointer}
+  .seg__opt span{padding:5px 13px;border-radius:999px;font-size:13px;font-weight:600;color:var(--ink-2);
+    transition:background .2s,color .2s}
+  .seg__opt input{position:absolute;inset:0;opacity:0;margin:0;pointer-events:none}
+  .seg__opt input:checked + span{background:var(--thumb);color:var(--ink);box-shadow:var(--shadow-sm)}
+  .seg__opt input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
+  @media (pointer:coarse){.remindbtn{min-height:40px}.tk__tool{width:40px;height:40px}}
+  @media (forced-colors:active){.seg__opt input:checked + span{outline:2px solid Highlight}}
+</style>

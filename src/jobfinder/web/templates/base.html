@@ -1159,6 +1159,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
   <nav class="menubar__nav" aria-label="Sections">
     <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Find jobs</a>
     <a href="/part-time" {% if nav == 'part-time' %}aria-current="page"{% endif %}>Part-time</a>
+    <a href="/events" {% if nav == 'events' %}aria-current="page"{% endif %}>Events</a>
     <a href="/companies" {% if nav == 'companies' %}aria-current="page"{% endif %}>Companies</a>
   </nav>
   <div class="status">
@@ -1212,6 +1213,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
     <nav class="sheet__nav" aria-label="Sections">
       <a href="/" {% if nav == 'finder' %}aria-current="page"{% endif %}>Find jobs<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
       <a href="/part-time" {% if nav == 'part-time' %}aria-current="page"{% endif %}>Part-time jobs<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
+      <a href="/events" {% if nav == 'events' %}aria-current="page"{% endif %}>Careers events<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
       <a href="/companies" {% if nav == 'companies' %}aria-current="page"{% endif %}>Companies<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
       {% if account %}
       <a href="/profile" {% if nav == 'profile' %}aria-current="page"{% endif %}>Your profile<svg aria-hidden="true"><use href="#i-arrow"/></svg></a>
@@ -1268,6 +1270,7 @@ hr.rule{border:0;border-top:1px solid var(--line);margin:26px 0}
     <a href="/" class="brand">{{ mascot() }}<span><b>sorted</b><span>.place</span></span></a>
     <nav aria-label="More">
       <a href="/part-time">Part-time jobs</a>
+      <a href="/events">Careers events</a>
       <a href="/companies">Companies</a>
       <a href="/privacy">Your CV &amp; privacy</a>
       {# The AGPL asks a network service to offer its source to the people using it. #}

@@ -60,6 +60,12 @@ def store(session: Session, raws: list[sources.RawEvent], summary: Summary,
         if kind:
             seen[(raw.source, raw.source_id)] = (raw, kind)
     summary.kept = len(seen)
+    # A rule added since an event was stored applies to it too: an event the block list
+    # now rules out is hidden (as cancelled), never deleted, and comes back if the rule
+    # is relaxed and the listing is seen again.
+    for event in session.execute(select(Event).where(Event.cancelled.is_(False))).scalars():
+        if relevance.is_blocked(event.title):
+            event.cancelled = True
     if not seen:
         return
     existing = {

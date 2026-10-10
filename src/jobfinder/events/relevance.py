@@ -73,6 +73,11 @@ _SKILLS = re.compile(
 _NETWORKING = re.compile(r"\bnetworking\b", re.IGNORECASE)
 
 
+def is_blocked(title: str) -> bool:
+    """Ruled out by its title alone, whatever else the listing says."""
+    return bool(_BLOCK.search(title))
+
+
 def is_careers_event(title: str, summary: str = "", *, career_tag: bool = False,
                      tech_hint: bool = False) -> bool:
     """Keep a listing only on positive evidence that it is about work."""

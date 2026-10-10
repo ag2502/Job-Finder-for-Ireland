@@ -302,3 +302,72 @@ $$;
 
 revoke all on function public.unsubscribe_alerts(uuid) from public;
 grant execute on function public.unsubscribe_alerts(uuid) to anon, authenticated;
+
+
+-- ------------------------------------------------------------ event reminders
+--
+-- "Remind me" on a careers event (added 2026-10-10). One row per account and event: an
+-- email daily or weekly until the event, always one the day before, and nothing once
+-- it has happened. Sent after a crawl by `jobfinder send-alerts`, like the job alerts.
+--
+-- `event_key` is "<source>:<listing id>" (events.listing.EventView.key), which survives
+-- the snapshot being rebuilt. The title, start and link are kept alongside it so a
+-- reminder can still be listed if the event leaves the listing site. `email` must be
+-- the account's own sign-in address, and `token` is the secret in the email's "stop
+-- this reminder" link, used only through `stop_event_reminder` below.
+
+create table if not exists public.event_reminders (
+    id              uuid primary key default gen_random_uuid(),
+    user_id         uuid not null references auth.users (id) on delete cascade,
+    email           text not null,
+    event_key       text not null,
+    title           text not null,
+    starts_at       timestamptz not null,
+    url             text not null,
+    frequency       text not null default 'weekly' check (frequency in ('daily', 'weekly')),
+    token           uuid not null default gen_random_uuid(),
+    last_sent_at    timestamptz,
+    day_before_sent boolean not null default false,
+    created_at      timestamptz not null default now(),
+    unique (user_id, event_key)
+);
+
+create index if not exists event_reminders_starts_at_idx on public.event_reminders (starts_at);
+
+alter table public.event_reminders enable row level security;
+
+drop policy if exists "read own event reminders"   on public.event_reminders;
+drop policy if exists "insert own event reminders" on public.event_reminders;
+drop policy if exists "update own event reminders" on public.event_reminders;
+drop policy if exists "delete own event reminders" on public.event_reminders;
+
+create policy "read own event reminders"
+    on public.event_reminders for select
+    using (auth.uid() = user_id);
+
+create policy "insert own event reminders"
+    on public.event_reminders for insert
+    with check (auth.uid() = user_id and email = (auth.jwt() ->> 'email'));
+
+create policy "update own event reminders"
+    on public.event_reminders for update
+    using (auth.uid() = user_id)
+    with check (auth.uid() = user_id and email = (auth.jwt() ->> 'email'));
+
+create policy "delete own event reminders"
+    on public.event_reminders for delete
+    using (auth.uid() = user_id);
+
+-- The "stop this reminder" link. Works without signing in, does one thing with the token
+-- it is given, and reveals nothing either way.
+create or replace function public.stop_event_reminder(p_token uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+    delete from public.event_reminders where token = p_token;
+$$;
+
+revoke all on function public.stop_event_reminder(uuid) from public;
+grant execute on function public.stop_event_reminder(uuid) to anon, authenticated;
