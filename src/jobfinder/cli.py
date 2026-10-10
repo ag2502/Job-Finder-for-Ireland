@@ -380,6 +380,16 @@ def cmd_send_alerts(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_crawl_events(args: argparse.Namespace) -> int:
+    """Add the careers events listed since the last run and refresh the rest."""
+    from jobfinder.events.crawl import run
+
+    init_db()
+    with session_scope() as session:
+        print(run(session))
+    return 0
+
+
 def cmd_serve(args: argparse.Namespace) -> int:
     import uvicorn
 
@@ -481,6 +491,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_coverage.add_argument("--limit", type=int, default=15, help="rows of work queue to show")
     p_coverage.set_defaults(func=cmd_coverage)
+
+    sub.add_parser(
+        "crawl-events", help="add new careers events and refresh known ones"
+    ).set_defaults(func=cmd_crawl_events)
 
     p_alerts = sub.add_parser("send-alerts", help="email the alerts that are due")
     p_alerts.add_argument("--dry-run", action="store_true", help="report, send nothing")

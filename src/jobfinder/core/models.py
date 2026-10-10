@@ -188,6 +188,51 @@ class JobPosting(Base):
         return f"<JobPosting {self.title!r} {self.status.value}>"
 
 
+class Event(Base):
+    """A careers event in Ireland: a job fair, a graduate event, a tech meetup.
+
+    Kept the way jobs are: an event is never deleted. Each crawl adds the ones it has not
+    seen and refreshes the ones it has, and an event whose end has passed is simply
+    shown under Completed. Identity is the listing's own id on the site it came from.
+    """
+
+    __tablename__ = "events"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    source: Mapped[str] = mapped_column(String(32))        # "eventbrite", "meetup", ...
+    source_id: Mapped[str] = mapped_column(String(256))
+    url: Mapped[str] = mapped_column(String(2048))
+
+    title: Mapped[str] = mapped_column(String(512))
+    summary: Mapped[str | None] = mapped_column(Text)
+    organizer: Mapped[str | None] = mapped_column(String(256))
+    image_url: Mapped[str | None] = mapped_column(String(2048))
+
+    # Stored in UTC. `has_time` is False where the listing gives a date and no hour,
+    # so the page says "all day" rather than inventing midnight.
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    ends_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    has_time: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    venue: Mapped[str | None] = mapped_column(String(512))
+    town: Mapped[str | None] = mapped_column(String(128))
+    region: Mapped[str | None] = mapped_column(String(32))   # the county, as jobs use
+    is_online: Mapped[bool] = mapped_column(Boolean, default=False)
+    # None where the listing does not say; never guessed.
+    is_free: Mapped[bool | None] = mapped_column(Boolean)
+
+    kind: Mapped[str] = mapped_column(String(24))            # see events.relevance.KINDS
+    cancelled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    first_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+    __table_args__ = (UniqueConstraint("source", "source_id", name="uq_event_source_identity"),)
+
+    def __repr__(self) -> str:
+        return f"<Event {self.title!r} {self.starts_at:%Y-%m-%d}>"
+
+
 class CrawlRun(Base):
     __tablename__ = "crawl_runs"
 
