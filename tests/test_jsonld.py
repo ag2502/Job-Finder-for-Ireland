@@ -472,3 +472,17 @@ def test_a_title_escaped_twice_is_shown_as_written() -> None:
     assert job.title == "Food & Beverage Supervisor"
     assert parse_job_posting({"@type": "JobPosting", "title": "R&D Engineer", "url": "https://x.ie/j/2"},
                              "https://x.ie/j/2").title == "R&D Engineer"
+
+
+def test_a_sites_crawl_delay_is_read_from_robots() -> None:
+    import httpx
+
+    from jobfinder.sources.jsonld import RobotsPolicy
+
+    def answer(request):
+        return httpx.Response(200, text="User-agent: *\nCrawl-delay: 10\n")
+
+    client = httpx.Client(transport=httpx.MockTransport(answer))
+    assert RobotsPolicy("https://yourcareer.dfscareers.co.uk", client).crawl_delay() == 10.0
+    quiet = httpx.Client(transport=httpx.MockTransport(lambda r: httpx.Response(200, text="User-agent: *\nDisallow:\n")))
+    assert RobotsPolicy("https://x.ie", quiet).crawl_delay() == 0.0

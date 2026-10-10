@@ -37,6 +37,7 @@ import html
 import json
 import logging
 import re
+import time
 from datetime import datetime
 from urllib.parse import urljoin, urlsplit
 from urllib.robotparser import RobotFileParser
@@ -351,6 +352,16 @@ class RobotsPolicy:
             return False
         return self._parser.can_fetch(settings.user_agent, url)
 
+    def crawl_delay(self) -> float:
+        """Seconds the site asks between requests, or 0. DFS's careers site asks 10."""
+        if not self._ok:
+            return 0.0
+        try:
+            delay = self._parser.crawl_delay(settings.user_agent)
+        except (AttributeError, ValueError):
+            return 0.0
+        return float(delay or 0)
+
     def sitemaps(self) -> list[str]:
         """Sitemaps the site declares in robots.txt.
 
@@ -399,6 +410,10 @@ class JsonLdAdapter(BaseAdapter):
                 # page). Keyed by source id so the same role is stored once.
                 jobs.setdefault(job.source_job_id, job)
             self.polite_pause()
+            # The site's own crawl-delay where it asks for more than the usual pause.
+            extra = robots.crawl_delay() - settings.request_delay_seconds
+            if extra > 0:
+                time.sleep(extra)
 
         if not jobs:
             raise ValueError(f"no JobPosting markup found under {careers_url}")
