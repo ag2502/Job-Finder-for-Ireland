@@ -86,6 +86,13 @@ _WEEKLY_HOURS = re.compile(
     r"weekly|p\.?/?w\b|pw\b)",
     re.I,
 )
+# A title states the weekly contract bare: "Retail Sales Advisor - 20 Hours", "8hr
+# tailor", Nike's "PT 20H". Plural or abbreviated only, and not before "shift", since
+# "12 Hour Shifts" and "24 Hour Gym" describe something else.
+_TITLE_HOURS = re.compile(
+    r"(?i:(?<![\d.])(\d{1,2}(?:\.\d)?)\s*(?:-\s*)?(?:hours|hrs|hr)\b(?!\s*shifts?))"
+    r"|\bPT\s?(\d{1,2})\s?H(?:RS?)?\b",
+)
 _FTE = re.compile(r"(?<![\d.])0?\.\d{1,2}\s*(?:fte|wte)\b|\bhalf[\s-]time\b", re.I)
 
 # A full-time week in Ireland is 35 to 40 hours. Thirty is the usual line drawn by
@@ -132,6 +139,10 @@ def is_part_time(
         return True
     if _TITLE.search(title) or _FTE.search(title) or _hours_say_part_time(title):
         return True
+    for match in _TITLE_HOURS.finditer(title):
+        figure = float(match.group(1) or match.group(2))
+        if 0 < figure < PART_TIME_HOURS:
+            return True
     text = description or ""
     if not text:
         return False

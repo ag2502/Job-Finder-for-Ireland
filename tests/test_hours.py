@@ -108,3 +108,22 @@ def test_weekly_hours_far_down_the_advert_are_ignored() -> None:
         "Staff may take up to 20 hours per week of study leave in exam season."
     )
     assert not is_part_time("Accountant", description)
+
+
+@pytest.mark.parametrize(
+    "title,expected",
+    [
+        ("Retail Sales Advisor - 20 Hours", True),
+        ("Retail Assistant (Athlete) - PT 20H - Kildare", True),
+        ("Retail Assistant (Temp Athlete) - PT8HRS Kildare", True),
+        ("8hr tailor experience essential", True),
+        ("30hr Keyholder", False),
+        ("Store Manager (39 hours)", False),
+        ("Staff Nurse - 12 Hour Shifts", False),
+        ("Staff Nurse - 12 hours shifts", False),
+        ("24 Hour Gym Receptionist", False),
+    ],
+)
+def test_a_weekly_contract_stated_in_the_title(title: str, expected: bool) -> None:
+    """DFS, Nike and Levi's write the contract bare in the title."""
+    assert is_part_time(title) is expected
