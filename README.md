@@ -76,6 +76,9 @@ the employer.
 | 1 | `cornerstone` | Cornerstone career sites, through the regional API the page names |
 | 1 | `rezoomo` | Irish recruitment platform; a company page's one-call job list |
 | 1 | `peoplefirst` | MHR People First boards; JSON API keyed by a `tenantcode` header |
+| 1 | `healthbox` | HealthBox HR feeds (Irish creches and care); server-rendered cards |
+| 1 | `pageup` | PageUp tenants' RSS feed, structured location and work type |
+| 1 | `sociallyrecruited` | SociallyRecruited sites; country search posted, crawl-delay honoured |
 | 1 | `hrmanager` | HR Manager job portal JSON list per customer |
 | 1 | `taleo_tbe` | Taleo Business Edition career sections, following their scroll pages |
 | 1 | `wordpress` | A WordPress site's vacancy post type, through the REST API |
@@ -92,6 +95,7 @@ the employer.
 | 4 | `adzuna` | Licensed aggregator; built, but Adzuna does not cover Ireland, so no source uses it |
 | 4 | `localgov` | Every council's vacancies from the LGMA's shared board |
 | 4 | `jobalert` | Irish board for employers too small for an ATS; shops, hotels, care, trades |
+| 4 | `seemehired` | SeeMeHired's public search; every Irish care home, hotel and pub on it |
 
 Tier 1 reads an employer's own board through a public API. Tier 3 targets a *convention*
 rather than a platform — Google requires `JobPosting` structured data for a role to
