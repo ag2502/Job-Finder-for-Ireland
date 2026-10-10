@@ -514,3 +514,9 @@ Wagamama Ireland,jsonld,https://jobs.wagamama.uk/|max=400|match=/job/,3,false,pa
 River Island,pinpoint,careers.riverisland.com,3,false,part-time-sweep,"Pinpoint board on its own domain; UK and Irish stores, Irish kept by location",https://careers.riverisland.com/
 L'Oréal Ireland,talentbrew,https://careers.loreal.com/en/search-jobs/Ireland,3,false,part-time-sweep,"Beauty advisors and counter staff in Boots, Brown Thomas, Arnotts and Dublin Airport",https://careers.loreal.com/en/search-jobs/Ireland
 Early Childhood Ireland,jsonld,https://www.earlychildhoodireland.ie/jobs-board/|employers|max=500|match=/job/,3,false,part-time-sweep,"Childcare jobs board; each advert filed under the creche, preschool or naionra that posted it",https://www.earlychildhoodireland.ie/jobs-board/
+Noel Recruitment,jsonld,https://noelgroup.ie/jobs|max=500,3,false,part-time-sweep,"Recruitment agency: warehouse, hospitality, care and office roles",https://noelgroup.ie/jobs
+TTM Healthcare,jsonld,https://jobs.ttmhealthcare.ie/|max=500,3,false,part-time-sweep,"Healthcare staffing: locum doctors, nurses and healthcare assistants",https://jobs.ttmhealthcare.ie/
+Collins McNicholas,jsonld,https://www.collinsmcnicholas.ie/|max=500,3,false,part-time-sweep,Recruitment agency across Ireland,https://www.collinsmcnicholas.ie/
+ManpowerGroup Ireland,jsonld,https://www.manpower.ie/|max=500,3,false,part-time-sweep,"Recruitment agency: warehouse, industrial and office roles",https://www.manpower.ie/
+Kate Cowhig International Recruitment,jsonld,https://www.kcr.ie/jobseekers/|max=500,3,false,part-time-sweep,Nursing and healthcare recruitment,https://www.kcr.ie/jobseekers/
+PE Global,jsonld,https://www.peglobal.net/jobs/|max=500,3,false,part-time-sweep,"Recruitment agency: data centres, engineering, IT and healthcare",https://www.peglobal.net/jobs/
