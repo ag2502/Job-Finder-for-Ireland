@@ -349,3 +349,12 @@ def test_pinpoint_reads_a_board_on_the_employers_own_domain():
                              "location": {"city": "Athlone", "name": "Athlone"}}]}))
     jobs = PinpointAdapter().fetch("careers.riverisland.com").jobs
     assert route.called and jobs[0].url == "https://careers.riverisland.com/en/postings/7"
+
+
+@respx.mock
+def test_occupop_frame_can_be_served_under_another_host():
+    """NCBI's board is the same frame under the BidRecruit name."""
+    route = respx.get(url__startswith="https://api.bidrecruit.io/api/jobs-frame/tok9").mock(
+        return_value=httpx.Response(200, text=FRAME_ROW))
+    assert OccupopAdapter().fetch("frame:api.bidrecruit.io/tok9").jobs[0].title == "Swim Teacher"
+    assert route.called

@@ -525,3 +525,4 @@ Dune London,jsonld,https://careers.dunelondon.com/|max=500,3,false,part-time-swe
 SeeMeHired,seemehired,all,3,false,board,"ATS for care homes, hotels and pubs; public search API read whole, Irish jobs kept and filed under each employer",https://seemehired.com/jobs
 O'Callaghan Hotels,jsonld,https://careers.ocallaghancollection.com/jobs.aspx|max=200|match=-\d{5,}\.htm$,3,false,part-time-sweep,"Davenport, Mont, Alex and Stephen's Green hotels; RecruitGenie site read as JSON-LD",https://careers.ocallaghancollection.com/jobs.aspx
 Little Harvard,healthbox,664dcd9a03d56|Ireland,3,false,part-time-sweep,"Creches in Kildare, Wicklow and Dublin; HealthBox HR feed",https://www.littleharvard.ie/careers
+NCBI,occupop,frame:api.bidrecruit.io/OdVfqm9lVng4PNGTmXoFt4iZPTTLjny7RavMs0O1C8Wy90l0C4,3,false,part-time-sweep,"Vision Ireland: charity shops, drivers and services; BidRecruit frame",https://vi.ie/about-us/careers/

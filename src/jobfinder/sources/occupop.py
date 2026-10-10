@@ -15,7 +15,9 @@ frame into their own site instead, addressed by an embed token rather than a com
 key, and the gateway rejects that token. Those boards are read from the frame's own
 HTML, under a slug of `frame:{token}`. It carries each job's title, place, sector and
 contract type but no advert body, since the apply page behind it is a second
-single-page app.
+single-page app. The same frame is served under the BidRecruit name
+(`api.bidrecruit.io`), which NCBI uses; such a board's slug names the host,
+`frame:api.bidrecruit.io/{token}`.
 """
 
 from __future__ import annotations
@@ -27,7 +29,8 @@ from selectolax.parser import HTMLParser
 from jobfinder.sources.base import BaseAdapter, RawJob, register
 
 GATEWAY = "https://gateway.server.occupop.com/graphql"
-FRAME = "https://api.occupop.com/api/jobs-frame/{token}"
+FRAME = "https://{host}/api/jobs-frame/{token}"
+FRAME_HOST = "api.occupop.com"
 FRAME_PREFIX = "frame:"
 
 LIVE_JOBS = """
@@ -80,9 +83,10 @@ def _date(value):
 
 
 def frame_jobs(token: str, client: httpx.Client) -> list[RawJob]:
-    """The postings in an embedded vacancy frame."""
+    """The postings in an embedded vacancy frame, `token` or `host/token`."""
+    host, _, bare = token.rpartition("/")
     response = client.get(
-        FRAME.format(token=token),
+        FRAME.format(host=host or FRAME_HOST, token=bare),
         params={"visibility": "external", "fields": "title,type,location,sector"},
     )
     response.raise_for_status()
