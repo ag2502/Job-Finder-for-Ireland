@@ -273,6 +273,10 @@
           <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
           Part-time only
         </label>
+        {# The switch searches part-time work within the fields picked; the part-time
+           page browses all of it by the week and the county. #}
+        <a class="slip__pt" href="/part-time">Part-time by shift and county
+          <svg width="13" height="13" aria-hidden="true"><use href="#i-arrow"/></svg></a>
       </div>
 
       <div class="slip__action">
@@ -711,6 +715,10 @@
     border-radius:0 0 var(--r-win) var(--r-win);
   }
   .slip__hint{margin-right:auto;font-size:14px;font-weight:600;color:var(--ink-2)}
+  .slip__pt{display:inline-flex;align-items:center;gap:5px;padding:6px 0;font-size:14px;font-weight:600;
+    color:var(--aqua-deep);text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+  .slip__pt svg{transition:transform .3s var(--spring)}
+  .slip__pt:hover svg{transform:translateX(3px)}
   .slip__hint.is-ready{color:var(--sorted)}
   .slip__action button{font-size:16px;padding:12px 26px;white-space:nowrap;flex:none}
   .slipwin.is-received{animation:receive .7s var(--spring)}
