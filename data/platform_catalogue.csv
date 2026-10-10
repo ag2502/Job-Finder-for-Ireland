@@ -62,6 +62,7 @@ intel,bespoke,1,public api,in use,Via Workday
 # --- Generic extraction (Tier 3) --------------------------------------------------
 jsonld,generic,3,public,built,schema.org/JobPosting extraction from any careers site; reaches platforms with no adapter
 volcanic,ats,1,public,in use,"Access Volcanic career sites (Woodie's, Bus Eireann, Rehab Group) - job pages carry JobPosting markup and a /job/sitemap.xml, so jsonld reads them; robots closes /api/*"
+recruitgenie,ats,1,public,in use,"RecruitGenie hotel career sites (Dalata, O'Callaghan) - job pages /{title}-{id}.htm carry JobPosting markup, read by jsonld with match=-\d{5,}\.htm$"
 careers_html,generic,3,public,in use,Reads a plain vacancy list from a careers page's HTML; confirms each advert before counting it
 # --- Aggregators and job boards (Tier 4) ------------------------------------------
 adzuna,aggregator,4,not accessible,built,"Official API with a free tier, but Ireland is not one of its countries (no ie endpoint; adzuna.ie does not resolve). Built, never had a source"
