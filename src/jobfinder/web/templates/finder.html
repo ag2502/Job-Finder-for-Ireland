@@ -215,8 +215,8 @@
         you might not have thought to search for.
       </p>
 
-      {% set cv_fields = me.cv.fields if me and me.cv else [] %}
-      {% if cv_fields %}
+      {% set cv_marks = me.cv.fields if me and me.cv else [] %}
+      {% if cv_marks %}
       <p class="cvlegend small"><span class="cvmark">cv</span> marks where your CV points. Those roles
         come up in your results too, just below the ones you pick.</p>
       {% endif %}
@@ -226,7 +226,7 @@
           <div class="drawer__label">{{ group_label }}</div>
           <div class="dividers">
             {% for f in group_fields %}
-            {{ field_tag(f, profile and profile.fields and f.key in profile.fields, cv_fields) }}
+            {{ field_tag(f, profile and profile.fields and f.key in profile.fields, cv_marks) }}
             {% endfor %}
           </div>
         </div>

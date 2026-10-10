@@ -1307,6 +1307,20 @@ def test_fields_the_cv_points_to_are_offered_below_the_chosen_ones(
     assert "Where your CV points" in page
 
 
+def test_the_cv_fields_are_named_on_a_full_page_too(client: TestClient, fake):
+    """A search link, Refresh or Back renders the results inside the whole page, where
+    the form's own list of CV fields once took the place of the results' list and
+    printed "Your CV also points to , , ," with every name blank."""
+    _signed_in(client)
+    fake.profile = {"cv": {
+        "name": "cv.pdf", "skills": ["excel"], "fields": ["accounting"], "terms": [],
+        "summary": "An accountant.", "seniority": "mid", "years": 4,
+    }}
+    page = client.get("/?f=backend&cv=1").text
+    assert "Your CV also points to" in page
+    assert "<strong>Accounting &amp; Tax</strong>" in page
+
+
 def test_a_profile_outage_does_not_take_the_search_down(client: TestClient, fake):
     _with_cv(client)
     fake.profile_fails_with = httpx.ConnectError("down")
