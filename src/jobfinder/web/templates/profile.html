@@ -316,6 +316,31 @@
     </details>
   </section>
 
+  {# The careers events this account pressed Remind me on, while they are still to come. #}
+  {% if event_reminders %}
+  <section class="win aboutwin opens" id="reminders" aria-labelledby="reminders-title">
+    {{ titlebar("event-reminders") }}
+    <div class="remlist">
+      <p class="remlist__head"><b id="reminders-title">Event reminders</b>
+        <span class="muted small">We email {{ account.email }} until each one starts, and the day before.</span></p>
+      <ul>
+        {% for r in event_reminders %}
+        <li class="remlist__row">
+          <span class="remlist__when typed">{{ r.when }}</span>
+          <a href="{{ r.href }}">{{ r.title }}</a>
+          <span class="remlist__freq">{{ r.frequency|capitalize }}</span>
+          <form method="post" action="/reminders/remove" hx-post="/reminders/remove" hx-target="closest li" hx-swap="outerHTML">
+            <input type="hidden" name="key" value="{{ r.key }}">
+            <button type="submit" class="linkish">Stop</button>
+          </form>
+        </li>
+        {% endfor %}
+      </ul>
+      <a class="linkish" href="/events">See every careers event</a>
+    </div>
+  </section>
+  {% endif %}
+
 {# Drag a file anywhere over the page and it can be dropped anywhere, not only on the
    drop zone. #}
 <div class="dropveil" aria-hidden="true">
@@ -631,6 +656,20 @@
   .aboutwin{scroll-margin-top:70px}
   /* Preferences and alerts are two windows, so they sit apart like the ones above. */
   .aboutwin + .aboutwin{margin-top:28px}
+  .remlist{padding:18px 26px 22px}
+  .remlist__head{display:flex;flex-direction:column;gap:2px;margin:0 0 10px}
+  .remlist ul{list-style:none;margin:0 0 12px;padding:0}
+  .remlist__row{display:grid;grid-template-columns:96px minmax(0,1fr) auto auto;gap:12px;align-items:center;
+    padding:10px 0;border-top:1px solid var(--line);font-size:14.5px}
+  .remlist__row a{color:var(--ink);font-weight:600;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .remlist__row a:hover{color:var(--aqua-deep)}
+  .remlist__freq{font-size:12.5px;font-weight:650;padding:3px 9px;border-radius:999px;background:var(--brass-bg);color:var(--brass-ink)}
+  @media (max-width:860px){
+    .remlist{padding:16px 16px 18px}
+    .remlist__row{grid-template-columns:1fr auto;gap:2px 10px}
+    .remlist__when{grid-column:1 / -1}
+    .remlist__freq{display:none}
+  }
   .aboutfold__head{list-style:none;display:flex;align-items:center;justify-content:space-between;gap:16px;
     padding:18px 26px;cursor:pointer}
   .aboutfold__head::-webkit-details-marker{display:none}

@@ -2560,10 +2560,12 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
         applied_job = pool.submit(fetch, supabase.list_applications, [])
         stored_job = pool.submit(fetch, supabase.get_profile, None)
         alerts_job = pool.submit(fetch, supabase.get_alerts, None)
+        reminders_job = pool.submit(fetch, supabase.list_event_reminders, [])
         saved_rows, saved_error = saved_job.result()
         applied_rows, applied_error = applied_job.result()
         stored, stored_error = stored_job.result()
         alerts_row, alerts_error = alerts_job.result()
+        reminder_rows, _ = reminders_job.result()
     stored = _reread_cv(account, stored)
 
     if saved_error or applied_error:
@@ -2589,8 +2591,32 @@ def profile(request: Request, tab: str = "saved", cv_error: str = ""):
         # The table not existing yet (schema.sql not re-run) reads as an error here: the
         # section then says alerts are not available rather than offering a dead form.
         alerts_unavailable=alerts_error is not None,
+        event_reminders=_reminder_list(reminder_rows),
     )
     return templates.TemplateResponse(request, "profile.html", context)
+
+
+def _reminder_list(rows: list[dict]) -> list[dict]:
+    """The events this account asked to be reminded of and that are still to come,
+    each linked to its page where the snapshot still has it."""
+    now = datetime.now(timezone.utc)
+    out = []
+    with session_scope() as session:
+        for row in rows:
+            starts = _parse_time(row.get("starts_at"))
+            view = event_listing.by_key(session, row.get("event_key") or "", now)
+            if view is not None:
+                if view.status == "done":
+                    continue
+                starts = view.starts
+            elif starts is None or starts < now:
+                continue
+            out.append({
+                "key": row["event_key"], "title": row.get("title") or "", "frequency": row.get("frequency") or "weekly",
+                "when": starts.astimezone(DUBLIN).strftime("%a %-d %b"),
+                "href": f"/events/{view.id}" if view is not None else row.get("url"),
+            })
+    return out
 
 
 def _alerts_view(row: dict | None) -> dict:
@@ -3524,6 +3550,22 @@ def event_remind_stop(request: Request, event_id: int):
     if not request.headers.get("HX-Request"):
         return RedirectResponse(f"/events/{event_id}", status_code=303)
     return _remind_control(request, view, None, "Reminder stopped.")
+
+
+@app.post("/reminders/remove", response_class=HTMLResponse)
+def reminder_remove(request: Request, key: str = Form(default="")):
+    """Stop a reminder from the profile's list, by its event key."""
+    account = _account(request)
+    if account is None:
+        return PlainTextResponse("Sign in to continue.", status_code=401)
+    try:
+        supabase.remove_event_reminder(account, key)
+    except (supabase.SupabaseError, httpx.HTTPError):
+        logger.warning("could not remove an event reminder", exc_info=True)
+        return HTMLResponse('<span class="savednote savednote--bad" role="status">Could not stop it. Try again.</span>')
+    if not request.headers.get("HX-Request"):
+        return RedirectResponse("/profile#reminders", status_code=303)
+    return HTMLResponse("")
 
 
 @app.get("/reminders/stop", response_class=HTMLResponse)
