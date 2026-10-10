@@ -372,7 +372,7 @@ IKEA Ireland,ikea.com,2,false,retail,"Dublin and Cork; TalentBrew search closed 
 TK Maxx Ireland,tkmaxx.ie,3,false,retail,"Stores nationwide; careers site refuses automated requests (2026-10-01)"
 Boots Ireland,boots.ie,3,false,retail,"Stores nationwide; careers site refuses automated requests (2026-10-01)"
 Sodexo Ireland,sodexo.ie,3,false,hospitality,"Irish roles on sodexojobs.co.uk; its feed asks users to contact the operator first (2026-10-01)"
-Lifestyle Sports,lifestylesports.com,4,false,retail,"Stores nationwide; no readable board found (2026-10-01)"
+Lifestyle Sports,lifestylesports.com,4,false,retail,"No own board (2026-10-10): its careers page sends applicants to Indeed, which is not read"
 Littlewoods Ireland,littlewoodsireland.ie,4,false,retail,"Dublin; no readable board found (2026-10-01)"
 Eason,easons.com,4,false,retail,"Stores nationwide; no careers page found (2026-10-01)"
 Insomnia Coffee,insomnia.ie,4,false,hospitality,"Cafes nationwide; no readable board found (2026-10-01)"
@@ -752,7 +752,7 @@ Arboretum Garden Centre,arboretum.ie,4,false,part-time-sweep,Electrical and home
 Johnstown Garden Centre,johnstowngardencentre.ie,4,false,part-time-sweep,Electrical and home; no readable board found 2026-10-09
 Halfords Ireland,halfords.ie,4,false,part-time-sweep,Electrical and home; no readable board found 2026-10-09
 Meadows & Byrne,meadowsandbyrne.ie,4,false,part-time-sweep,Electrical and home; no readable board found 2026-10-09
-Zara (Inditex),inditex.com,4,false,part-time-sweep,Fashion and footwear; no readable board found 2026-10-09
+Zara (Inditex),inditex.com,4,false,part-time-sweep,No readable board (2026-10-10): Inditex's careers site is a script app with no open API; Irish roles appear on Indeed
 Next Ireland,next.ie,4,false,part-time-sweep,Fashion and footwear; no readable board found 2026-10-09
 River Island,riverisland.com,4,false,part-time-sweep,Fashion and footwear; no readable board found 2026-10-09
 Schuh,schuh.ie,4,false,part-time-sweep,Fashion and footwear; no readable board found 2026-10-09
@@ -794,7 +794,7 @@ Unicare Pharmacy,unicare.ie,4,false,part-time-sweep,Pharmacy health and beauty; 
 totalhealth Pharmacy,totalhealth.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
 CarePlus Pharmacy,careplus.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
 Cara Pharmacy,carapharmacy.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
-Holland & Barrett Ireland,hollandandbarrett.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
+Holland & Barrett Ireland,hollandandbarrett.ie,4,false,part-time-sweep,Unreadable (2026-10-10): apply.hollandandbarrettjobs.com answers non-browsers with an AWS WAF challenge (HTTP 202)
 Specsavers Ireland,specsavers.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
 Vision Express Ireland,visionexpress.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
 The Health Store,thehealthstore.ie,4,false,part-time-sweep,Pharmacy health and beauty; no readable board found 2026-10-09
