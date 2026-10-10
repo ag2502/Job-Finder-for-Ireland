@@ -231,8 +231,8 @@
         <span>Posted</span>
         <select name="within">
           <option value="">Any time</option>
-          {% for days, label in within_choices.items() %}
-          <option value="{{ days }}" {% if within == days %}selected{% endif %}>{{ label }}</option>
+          {% for key, label in within_choices.items() %}
+          <option value="{{ key }}" {% if within == key %}selected{% endif %}>{{ label }}</option>
           {% endfor %}
         </select>
       </label>

@@ -905,7 +905,7 @@ def _search_url(profile: dict, context: dict) -> str:
     if context.get("pay"):
         pairs.append(("pay", str(context["pay"])))
     if context.get("within"):
-        pairs.append(("within", str(context["within"])))
+        pairs.append(("within", context["within"]))
     if context.get("via"):
         pairs.append(("via", context["via"]))
     if context.get("where"):
@@ -1641,7 +1641,29 @@ def _visit_label(when: datetime, now: datetime | None = None) -> str:
 # The filter bar's Salary picker: the least a year's pay should reach, in thousands.
 PAY_FLOORS = {30: "€30k+", 40: "€40k+", 50: "€50k+", 60: "€60k+", 80: "€80k+", 100: "€100k+"}
 # How recently a job was posted, for the filter bar's Posted picker: days, and its name.
-WITHIN = {1: "Last 24 hours", 3: "Last 3 days", 7: "Last week", 30: "Last month"}
+# Every choice but the last keeps what was posted since then; "Over a year ago" keeps the
+# opposite end, the adverts that have been up longest. Today and yesterday are Irish
+# calendar days, so "Today" at nine in the morning does not still mean last night.
+WITHIN = {
+    "today": "Today", "yesterday": "Since yesterday", "3d": "Last 3 days",
+    "1w": "Last week", "1m": "Last month", "3m": "Last 3 months", "6m": "Last 6 months",
+    "1y": "Over a year ago",
+}
+_WITHIN_DAYS = {"3d": 3, "1w": 7, "1m": 30, "3m": 91, "6m": 182, "1y": 365}
+# What the picker sent before it had names, so links made then still work.
+_WITHIN_BEFORE = {"1": "yesterday", "3": "3d", "7": "1w", "30": "1m"}
+
+
+def _posted_window(key: str, now: datetime) -> tuple[datetime | None, datetime | None]:
+    """The earliest and latest date a job may carry to stay under a Posted choice."""
+    if key in ("today", "yesterday"):
+        midnight = now.astimezone(DUBLIN).replace(hour=0, minute=0, second=0, microsecond=0)
+        start = midnight if key == "today" else midnight - timedelta(days=1)
+        return start.astimezone(timezone.utc), None
+    days = timedelta(days=_WITHIN_DAYS[key])
+    if key == "1y":
+        return None, now - days
+    return now - days, None
 # From this long open, a row says so. A quarter of Dublin's adverts have been up three
 # months or more; some are evergreen, some are roles nobody is hiring for any more, and
 # either way it is worth knowing before spending an evening on an application.
@@ -1957,14 +1979,13 @@ def _search_results(
         where = where if where in where_counts else None
         if where:
             items = [i for i in items if i["where"]["key"] == where]
-        try:
-            within = int(within) if within else None
-        except (TypeError, ValueError):
-            within = None
+        within = _WITHIN_BEFORE.get(str(within or ""), within)
         within = within if within in WITHIN else None
         if within:
-            since = now - timedelta(days=within)
-            items = [i for i in items if i["dated"] and i["dated"] >= since]
+            earliest, latest = _posted_window(within, now)
+            items = [i for i in items if i["dated"]
+                     and (earliest is None or i["dated"] >= earliest)
+                     and (latest is None or i["dated"] < latest)]
 
         total_all = len(items)
         known_fields = {i["field"]["key"] if i["field"] else OTHER_FACET for i in items}

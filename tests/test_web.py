@@ -1167,12 +1167,34 @@ def test_how_long_a_job_has_really_been_open():
 
 
 def test_the_posted_picker_keeps_only_recent_jobs(client):
-    recent = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "7"},
+    recent = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "1w"},
                          headers={"HX-Request": "true"})
-    assert recent.status_code == 200 and "within=7" in recent.headers["HX-Push-Url"]
+    assert recent.status_code == 200 and "within=1w" in recent.headers["HX-Push-Url"]
+    # A link from before the choices had names still means what it did.
+    legacy = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "7"},
+                         headers={"HX-Request": "true"})
+    assert "within=1w" in legacy.headers["HX-Push-Url"]
     bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "within": "9999"},
                         headers={"HX-Request": "true"})
     assert "within=" not in bogus.headers["HX-Push-Url"]
+
+
+def test_each_posted_choice_is_a_window_of_dates():
+    from datetime import datetime, timezone
+
+    from jobfinder.web.app import WITHIN, _posted_window
+
+    # 23:30 in Dublin on 10 October (summer time) is 22:30 UTC.
+    now = datetime(2026, 10, 10, 22, 30, tzinfo=timezone.utc)
+    assert _posted_window("today", now) == (datetime(2026, 10, 9, 23, 0, tzinfo=timezone.utc), None)
+    assert _posted_window("yesterday", now)[0] == datetime(2026, 10, 8, 23, 0, tzinfo=timezone.utc)
+    assert _posted_window("3m", now)[0] == datetime(2026, 7, 11, 22, 30, tzinfo=timezone.utc)
+    # The last choice is the far end: only what has been up longer than a year.
+    assert _posted_window("1y", now) == (None, datetime(2025, 10, 10, 22, 30, tzinfo=timezone.utc))
+    assert list(WITHIN.values()) == [
+        "Today", "Since yesterday", "Last 3 days", "Last week", "Last month",
+        "Last 3 months", "Last 6 months", "Over a year ago",
+    ]
 
 
 def test_a_switch_in_a_link_is_off_unless_it_says_one(client):
