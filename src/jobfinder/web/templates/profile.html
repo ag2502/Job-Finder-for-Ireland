@@ -261,7 +261,7 @@
             {% elif alerts.any %}
               On: {{ alerts.kinds|join(", ") }}, {{ alerts.frequency }}, to {{ account.email }}.
             {% else %}
-              Off. Get new internships, graduate programmes or jobs in your fields by email.
+              Off. Get new internships, graduate programmes, part-time jobs or jobs in your fields by email.
             {% endif %}
           </span>
         </span>
@@ -285,13 +285,20 @@
             <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
             New graduate programmes
           </label>
+          <label class="switch">
+            <input type="checkbox" name="part_time" value="1" {% if alerts.part_time %}checked{% endif %}>
+            <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
+            New part-time jobs
+          </label>
           <label class="switch{% if not me.fields %} switch--off{% endif %}">
             <input type="checkbox" name="jobs" value="1" {% if alerts.jobs %}checked{% endif %}{% if not me.fields %} disabled{% endif %}>
             <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>
             <span>New jobs in your {{ me.fields|length if me.fields else "" }} kind{{ "" if me.fields|length == 1 else "s" }} of work
-              {%- if me.years is not none %}, asking {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }} or fewer{% endif %}
-              {%- if not me.fields %} <em class="alerts__need">(save your Search preferences first)</em>{% endif %}</span>
+              {%- if me.years is not none %}, asking {{ "15+" if me.years > 15 else me.years }} year{{ "" if me.years == 1 else "s" }} or fewer{% endif %}</span>
           </label>
+          {% if not me.fields %}
+          <p class="muted small alerts__need">To get new jobs, <a href="/profile?edit=about#about">pick the kinds of work you want</a> under Search preferences and save them.</p>
+          {% endif %}
         </div>
         <div class="about__block">
           <span class="fieldname" id="freq-label">How often</span>
@@ -325,6 +332,7 @@
   .alerts__off{margin:0;padding:0 26px 22px}
   .alerts__kinds{display:flex;flex-direction:column;align-items:flex-start;gap:2px}
   .alerts__need{font-style:normal;color:var(--ink-3);font-weight:400}
+  p.alerts__need{margin:4px 0 0;max-width:56ch}
   .switch--off{cursor:default;color:var(--ink-3)}
   .alerts__freq{display:inline-flex;padding:3px;border-radius:999px;background:var(--fill-2);
     box-shadow:inset 0 1px 2px rgba(20,24,33,.1)}

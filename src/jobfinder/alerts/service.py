@@ -46,15 +46,20 @@ def _get(path: str, params: dict) -> list[dict]:
 
 def subscribers() -> list[dict]:
     """Every account with at least one alert on."""
-    return _get("alerts", {
-        "select": "*",
-        "or": "(internships.eq.true,graduate.eq.true,jobs.eq.true)",
-        "limit": "5000",
-    })
+    kinds = "internships.eq.true,graduate.eq.true,part_time.eq.true,jobs.eq.true"
+    try:
+        return _get("alerts", {"select": "*", "or": f"({kinds})", "limit": "5000"})
+    except ServiceError as exc:
+        # `part_time` arrived after the table did, and needs schema.sql re-run in
+        # Supabase. Until it is, every other alert still goes out.
+        if "part_time" not in str(exc):
+            raise
+        kinds = kinds.replace("part_time.eq.true,", "")
+        return _get("alerts", {"select": "*", "or": f"({kinds})", "limit": "5000"})
 
 
 def profiles(user_ids: list[str]) -> dict[str, dict]:
-    """The saved fields and years that a jobs alert searches with, by account."""
+    """The saved fields and years that the alerts search with, by account."""
     out: dict[str, dict] = {}
     for start in range(0, len(user_ids), 100):
         chunk = user_ids[start:start + 100]

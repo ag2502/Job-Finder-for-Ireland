@@ -16,7 +16,7 @@ NOW = datetime(2026, 9, 27, 8, 0, tzinfo=timezone.utc)
 
 def _row(**extra) -> dict:
     return {"user_id": "u1", "email": "aoife@example.com", "internships": False, "graduate": False,
-            "jobs": False, "frequency": "daily", "token": str(uuid.uuid4()), "last_sent_at": None,
+            "part_time": False, "jobs": False, "frequency": "daily", "token": str(uuid.uuid4()), "last_sent_at": None,
             "created_at": (NOW - timedelta(days=30)).isoformat(), **extra}
 
 
@@ -43,6 +43,34 @@ def test_the_subject_says_what_is_new():
     assert digest.subject([s(1, "internship")]) == "1 new internship in Ireland"
     assert digest.subject([s(3, "graduate programme"), s(12, "job")]) == \
         "3 new graduate programmes and 12 new jobs in Ireland"
+    assert digest.subject([s(5, "part-time job"), s(1, "job")]) == \
+        "5 new part-time jobs and 1 new job in Ireland"
+
+
+def test_a_part_time_alert_is_the_sites_part_time_search_and_needs_no_fields(monkeypatch):
+    searched = []
+
+    def search(profile, **kwargs):
+        searched.append(profile)
+        return {"items": []}
+
+    monkeypatch.setattr("jobfinder.web.app._search_results", search)
+    digest.sections_for(_row(part_time=True), {}, NOW)
+    assert searched == [{"fields": [], "part_time_only": True}]
+
+
+def test_subscribers_still_load_before_the_part_time_column_exists(monkeypatch):
+    asked = []
+
+    def get(path, params):
+        asked.append(params["or"])
+        if "part_time" in params["or"]:
+            raise service.ServiceError('alerts: HTTP 400 column alerts.part_time does not exist')
+        return [_row(graduate=True)]
+
+    monkeypatch.setattr(service, "_get", get)
+    assert len(service.subscribers()) == 1
+    assert asked[-1] == "(internships.eq.true,graduate.eq.true,jobs.eq.true)"
 
 
 def test_sections_list_new_jobs_once_from_the_sites_own_search():

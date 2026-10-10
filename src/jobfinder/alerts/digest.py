@@ -49,7 +49,7 @@ _env = Environment(
 class Section:
     key: str
     heading: str
-    noun: str            # "internship", "graduate programme", "job"
+    noun: str            # "internship", "graduate programme", "part-time job", "job"
     items: list[dict]
     more_url: str
 
@@ -127,6 +127,11 @@ def sections_for(row: dict, profile: dict | None, since: datetime) -> list[Secti
     if row.get("graduate"):
         out.append(_section("graduate", "New graduate programmes", "graduate programme",
                             {"fields": fields, "graduate_only": True}, since))
+    if row.get("part_time"):
+        # Like the site's own switch, part-time is a whole search: every part-time job
+        # in Ireland, the saved fields only putting their roles first.
+        out.append(_section("part_time", "New part-time jobs", "part-time job",
+                            {"fields": fields, "part_time_only": True}, since))
     if row.get("jobs") and fields:
         out.append(_section("jobs", "New jobs in your fields", "job", {
             "fields": fields, "years": profile.get("years"),
@@ -198,7 +203,8 @@ def run(*, dry_run: bool = False, now: datetime | None = None) -> Summary:
     summary.subscribers = len(rows)
     due = [r for r in rows if is_due(r, now)][:MAX_EMAILS]
     summary.due = len(due)
-    profiles = service.profiles([r["user_id"] for r in due if r.get("jobs")]) if due else {}
+    # Every alert ranks the searcher's own fields first, so every due row needs them.
+    profiles = service.profiles([r["user_id"] for r in due]) if due else {}
 
     server = None
     try:

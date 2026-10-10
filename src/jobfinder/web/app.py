@@ -2523,10 +2523,12 @@ def _alerts_view(row: dict | None) -> dict:
     row = row or {}
     kinds = [label for key, label in (("internships", "internships"),
                                       ("graduate", "graduate programmes"),
+                                      ("part_time", "part-time jobs"),
                                       ("jobs", "jobs in your fields")) if row.get(key)]
     return {
         "internships": bool(row.get("internships")),
         "graduate": bool(row.get("graduate")),
+        "part_time": bool(row.get("part_time")),
         "jobs": bool(row.get("jobs")),
         "frequency": row.get("frequency") if row.get("frequency") in ALERT_FREQUENCIES else "daily",
         "kinds": kinds,
@@ -2542,6 +2544,7 @@ def profile_alerts(
     request: Request,
     internships: str | None = Form(default=None),
     graduate: str | None = Form(default=None),
+    part_time: str | None = Form(default=None),
     jobs: str | None = Form(default=None),
     frequency: str = Form(default="daily"),
 ):
@@ -2560,16 +2563,29 @@ def profile_alerts(
     if jobs and not (_stored_profile(account) or {}).get("fields"):
         return note("Save the kinds of work you want under Search preferences first, so "
                     "we know which jobs to send.", bad=True)
+    columns = {
+        "internships": bool(internships), "graduate": bool(graduate),
+        "part_time": bool(part_time), "jobs": bool(jobs),
+        "frequency": frequency if frequency in ALERT_FREQUENCIES else "daily",
+    }
     try:
-        supabase.save_alerts(
-            account,
-            internships=bool(internships), graduate=bool(graduate), jobs=bool(jobs),
-            frequency=frequency if frequency in ALERT_FREQUENCIES else "daily",
-        )
+        try:
+            supabase.save_alerts(account, **columns)
+        except supabase.SupabaseError as exc:
+            # `part_time` arrived after the table did, and needs schema.sql re-run in
+            # Supabase. Until it is, the other alerts still save.
+            if "part_time" not in str(exc):
+                raise
+            logger.warning("alerts.part_time is missing; re-run schema.sql")
+            columns.pop("part_time")
+            supabase.save_alerts(account, **columns)
+            if part_time:
+                return note("Part-time alerts are not available just yet. Your other "
+                            "alerts are saved.", bad=True)
     except (supabase.SupabaseError, httpx.HTTPError):
         logger.warning("could not save alerts", exc_info=True)
         return note("Could not save just now. Please try again.", bad=True)
-    if not (internships or graduate or jobs):
+    if not (internships or graduate or part_time or jobs):
         return note("Saved. No alerts will be sent.")
     return note(f"Saved. We will email {html_escape(account.email)} when something new opens.")
 

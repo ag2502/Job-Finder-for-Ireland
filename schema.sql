@@ -237,8 +237,8 @@ create policy "delete own cv files"
 -- -------------------------------------------------------------------- alerts
 --
 -- Email alerts the searcher asked for (added 2026-09-27), one row per account. Nothing
--- is sent for anything not ticked here: new internships, new graduate programmes, or
--- new jobs in the fields and years saved on the profile. Sent after a crawl by
+-- is sent for anything not ticked here: new internships, new graduate programmes, new
+-- part-time jobs, or new jobs in the fields and years saved on the profile. Sent after a crawl by
 -- `jobfinder send-alerts` in GitHub Actions, the only place the service role key lives.
 --
 -- `email` must be the account's own sign-in address (the policies check it against the
@@ -257,6 +257,9 @@ create table if not exists public.alerts (
     created_at   timestamptz not null default now(),
     updated_at   timestamptz not null default now()
 );
+
+-- The "New part-time jobs" alert (added 2026-10-10).
+alter table public.alerts add column if not exists part_time boolean not null default false;
 
 alter table public.alerts enable row level security;
 
@@ -292,7 +295,8 @@ security definer
 set search_path = public
 as $$
     update public.alerts
-       set internships = false, graduate = false, jobs = false, updated_at = now()
+       set internships = false, graduate = false, part_time = false, jobs = false,
+           updated_at = now()
      where token = p_token;
 $$;
 

@@ -1500,6 +1500,7 @@ def test_alerts_are_off_until_ticked_and_saved_to_the_accounts_own_address(clien
     assert "Saved. We will email jane@example.com" in response.text
     assert fake.alerts["internships"] is True and fake.alerts["graduate"] is False
     assert fake.alerts["jobs"] is False and fake.alerts["frequency"] == "weekly"
+    assert fake.alerts["part_time"] is False
     assert fake.alerts["email"] == "jane@example.com"
     assert "On: internships, weekly" in client.get("/profile").text
 
@@ -1512,6 +1513,26 @@ def test_a_jobs_alert_needs_saved_preferences(client: TestClient, fake):
     response = client.post("/profile/alerts", data={"jobs": "1"}, headers={"HX-Request": "true"})
     assert "Saved" in response.text and fake.alerts["jobs"] is True
 
+
+
+def test_a_part_time_alert_needs_no_preferences(client: TestClient, fake, monkeypatch):
+    _signed_in(client)
+    page = client.get("/profile").text
+    assert 'name="part_time"' in page and "pick the kinds of work you want" in page
+    response = client.post("/profile/alerts", data={"part_time": "1"}, headers={"HX-Request": "true"})
+    assert "Saved" in response.text and fake.alerts["part_time"] is True
+    assert "On: part-time jobs, daily" in client.get("/profile").text
+
+    # Before schema.sql is re-run the column is missing: the other alerts still save.
+    def missing_column(account, **columns):
+        if "part_time" in columns:
+            raise supabase.SupabaseError("column alerts.part_time does not exist")
+        fake.alerts = {**columns}
+
+    monkeypatch.setattr(supabase, "save_alerts", missing_column)
+    response = client.post("/profile/alerts", data={"part_time": "1", "graduate": "1"},
+                           headers={"HX-Request": "true"})
+    assert "not available just yet" in response.text and fake.alerts["graduate"] is True
 
 def test_the_unsubscribe_link_asks_first_then_stops_everything(client: TestClient, fake):
     import uuid
