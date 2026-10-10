@@ -820,7 +820,7 @@ def test_fifteen_plus_asks_for_every_role(client):
 
 
 def test_no_page_carries_an_em_dash(client):
-    for path in ("/", "/companies", "/privacy"):
+    for path in ("/", "/companies", "/privacy", "/part-time"):
         text = client.get(path).text
         assert "\u2014" not in text and "&mdash;" not in text, path
 
@@ -1517,3 +1517,127 @@ def test_a_short_word_is_found_only_where_a_word_starts(employer_jobs):
     assert employer_jobs("hr") == ["HR Business Partner"]
     assert "Survey Analyst" in employer_jobs("survey")
     assert "Retail Assistant" in employer_jobs("penneys")
+
+
+# ---------------------------------------------------------------------------
+# Part-time
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def part_time_jobs(monkeypatch):
+    """A small database of part-time roles, served to /part-time."""
+    from contextlib import contextmanager
+    from datetime import datetime, timedelta, timezone
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+    from sqlalchemy.pool import StaticPool
+
+    import jobfinder.web.app as web
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+
+    # One connection for every thread: the test client serves from another one, and
+    # each new connection to an in-memory database would find it empty.
+    engine = create_engine("sqlite://", future=True, poolclass=StaticPool,
+                           connect_args={"check_same_thread": False})
+    Base.metadata.create_all(engine)
+    make = sessionmaker(bind=engine, future=True, expire_on_commit=False)
+    now = datetime.now(timezone.utc)
+    with make() as session:
+        ids = {}
+        for name in ("Spar", "Bluebird Care", "Fota Island Resort"):
+            company = Company(name=name, normalized_name=name.lower(),
+                              coverage_state=CoverageState.UNRESOLVED)
+            session.add(company)
+            session.flush()
+            source = Source(company_id=company.id, adapter="jsonld", slug=name, tier=1)
+            session.add(source)
+            session.flush()
+            ids[name] = (company.id, source.id)
+        rows = [
+            # employer, title, advert, county, part-time
+            ("Spar", "Deli Assistant", "Flexibility to work evenings and weekends.", "Cork", True),
+            ("Spar", "Sales Assistant", "20 hours per week, weekday mornings.", "Cork", True),
+            ("Bluebird Care", "Healthcare Assistant, Gorey", "Every second weekend.", "Wexford", True),
+            ("Bluebird Care", "Healthcare Assistant, New Ross", "", "Wexford", True),
+            ("Bluebird Care", "Healthcare Assistant, Wexford Town", "", "Wexford", True),
+            ("Fota Island Resort", "Night Porter", "", "Cork", True),
+            ("Fota Island Resort", "Christmas Bar Staff", "", None, True),
+            ("Spar", "Area Manager", "Full time.", "Dublin", False),
+        ]
+        for index, (employer, title, advert, county, part) in enumerate(rows):
+            company_id, source_id = ids[employer]
+            session.add(JobPosting(
+                company_id=company_id, source_id=source_id, source_job_id=str(index),
+                dedup_key=f"k{index}", title=title, description=advert,
+                url=f"https://example.ie/{index}", location_raw=county or "Ireland",
+                is_dublin=county == "Dublin", is_ireland=True, region=county, is_remote=False,
+                is_part_time=part, needs_location_review=False, status=JobStatus.ACTIVE,
+                consecutive_misses=0, posted_at=now - timedelta(hours=index),
+                first_seen_at=now - timedelta(days=3), last_seen_at=now,
+            ))
+        session.commit()
+
+    @contextmanager
+    def scope():
+        with make() as session:
+            yield session
+
+    monkeypatch.setattr(web, "session_scope", scope)
+    monkeypatch.setattr(web, "_part_time_cache", {"anchor": None, "jobs": {}})
+
+
+def _part_time_data(html: str) -> dict:
+    found = re.search(r'<script type="application/json" id="pt-data">(.*?)</script>', html, re.S)
+    return json.loads(found.group(1))
+
+
+def test_part_time_page_lists_only_part_time_jobs(client, part_time_jobs):
+    response = client.get("/part-time")
+    assert response.status_code == 200
+    data = _part_time_data(response.text)
+    titles = {row[1] for row in data["rows"]}
+    assert "Area Manager" not in titles
+    assert len(titles) == 7
+    assert response.text.count('class="ptrow"') == 7
+    assert 'href="/part-time"' in response.text and 'aria-current="page">Part-time' in response.text
+
+
+def test_part_time_reads_when_and_hours(client, part_time_jobs):
+    from jobfinder.normalize.shifts import WHEN_BITS
+
+    rows = {row[1]: row for row in _part_time_data(client.get("/part-time").text)["rows"]}
+    assert rows["Deli Assistant"][6] == WHEN_BITS["evenings"] | WHEN_BITS["weekends"]
+    assert rows["Night Porter"][6] == WHEN_BITS["nights"]
+    assert rows["Christmas Bar Staff"][6] == WHEN_BITS["seasonal"]
+    assert rows["Sales Assistant"][7] == "20 hrs a week"
+    # Kinds of work, and a role naming no county says so.
+    # A home-care HCA is care before it is healthcare.
+    assert rows["Healthcare Assistant, Gorey"][5] == "care"
+    assert rows["Christmas Bar Staff"][4] == "ireland"
+
+
+def test_part_time_filters_from_the_address(client, part_time_jobs):
+    html = client.get("/part-time?when=weekends&county=Cork").text
+    assert html.count('class="ptrow"') == 1 and "Deli Assistant" in html
+    # Adverts that don't say when come back on request.
+    html = client.get("/part-time?when=weekends&county=Wexford&unstated=1").text
+    assert html.count('class="ptrow"') == 3
+    html = client.get("/part-time?kind=care").text
+    assert html.count('class="ptrow"') == 3
+    html = client.get("/part-time?q=porter").text
+    assert html.count('class="ptrow"') == 1
+    # Junk in the address is ignored, not an error.
+    assert client.get("/part-time?county=Atlantis&when=never&co=x&n=abc").status_code == 200
+
+
+def test_part_time_employers_take_turns_within_a_day():
+    from datetime import datetime, timezone
+
+    from jobfinder.web.app import _take_turns
+
+    at = datetime(2026, 10, 10, 12, tzinfo=timezone.utc)
+    jobs = [{"company_id": c, "posted": at, "n": n}
+            for n, c in enumerate([1, 1, 1, 2, 2, 3])]
+    assert [j["company_id"] for j in _take_turns(jobs)] == [1, 2, 3, 1, 2, 1]

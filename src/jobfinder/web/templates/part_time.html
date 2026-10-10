@@ -1,0 +1,994 @@
+{% extends "base.html" %}
+{% from "_macros.html" import logo, titlebar, mascot %}
+{% set nav = 'part-time' %}
+{% block title %}{{ "{:,}".format(total) }} part-time jobs in Ireland | Sorted Place{% endblock %}
+{% block description %}{{ "{:,}".format(total) }} part-time jobs open in Ireland right now, in shops, cafés, care, hotels and offices across {{ counties_hiring }} counties. Pick when you're free and where, and see the ones that fit.{% endblock %}
+{% block railcount %}{{ "{:,}".format(total) }}<span class="rail-long"> part-time</span> open{% endblock %}
+
+{# One job in the list. part_time.html's script builds the same row from the page's data
+   (`rowFor`), so the two must be kept in step. #}
+{% macro ptrow(j) -%}
+<li class="ptrow" data-i="{{ j.id }}">
+  {{ logo(j.company, j.domain, "ptrow__logo") }}
+  <div class="ptrow__main">
+    <p class="ptrow__top"><span class="ptrow__co">{{ j.company }}</span><span class="ptrow__where"><svg aria-hidden="true"><use href="#i-pin"/></svg>{{ j.place }}</span></p>
+    <a class="ptrow__title" href="/jobs/{{ j.id }}">{{ j.title }}</a>
+    <p class="ptrow__chips">
+      {%- if j.hours %}<span class="chip chip--hrs"><svg aria-hidden="true"><use href="#k-clock"/></svg>{{ j.hours }}</span>{% endif -%}
+      {%- for name in j.when_names %}<span class="chip chip--when{% if name in picked.when %} is-hit{% endif %}">{{ when_labels[name] }}</span>{% endfor -%}
+      {%- if j.new %}<span class="stamp">new</span>{% endif -%}
+      <span class="ptrow__age">{{ j.age }}</span>
+    </p>
+  </div>
+  <div class="ptrow__act">
+    {%- if j.applied %}<span class="stamp stamp--filled">Applied</span>
+    {%- elif account or not accounts_enabled %}<span class="applied-mark" data-advert="{{ j.advert_key }}"><a class="btn btn--apply" href="{{ j.url }}" target="_blank" rel="noopener"
+       {%- if account %} data-apply-later='{{ {"advert_key": j.advert_key, "title": j.title, "company": j.company, "url": j.url}|tojson }}'{% endif %}>Apply <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></a></span>
+    {%- else %}<a class="btn btn--apply" href="/login?next={{ request.url.path|urlencode }}%3F{{ request.url.query|urlencode }}&amp;why=apply" title="Sign in first, so this job is recorded and never offered to you again">Apply <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    {%- endif -%}
+  </div>
+</li>
+{%- endmacro %}
+
+{% block wide %}
+{# Icons for the kinds of work and the clock on a row's hours. Drawn on a 16px grid in
+   one stroke weight, like the base sprite. #}
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="k-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 4.8V8l2.2 1.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="k-shops" viewBox="0 0 16 16"><path d="M3.2 5.5h9.6l-.7 8H3.9z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M5.8 5.5V4.4a2.2 2.2 0 014.4 0v1.1" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="k-food" viewBox="0 0 16 16"><path d="M2.8 6h8.4v3.6a3.6 3.6 0 01-3.6 3.6H6.4a3.6 3.6 0 01-3.6-3.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M11.2 7h.9a1.7 1.7 0 010 3.4h-1.2M5.5 2.6v1.6M8.4 2.6v1.6" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  <symbol id="k-care" viewBox="0 0 16 16"><path d="M8 13.4S2.4 10 2.4 6.1A2.9 2.9 0 018 4.6a2.9 2.9 0 015.6 1.5C13.6 10 8 13.4 8 13.4z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="k-health" viewBox="0 0 16 16"><path d="M6.2 2.6h3.6v3.6h3.6v3.6H9.8v3.6H6.2V9.8H2.6V6.2h3.6z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+  <symbol id="k-kids" viewBox="0 0 16 16"><rect x="2.6" y="8.4" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="8.4" y="8.4" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="5.5" y="2.6" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="k-office" viewBox="0 0 16 16"><rect x="2.4" y="5.2" width="11.2" height="8" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.8 5.2V4a1.4 1.4 0 011.4-1.4h1.6A1.4 1.4 0 0110.2 4v1.2M2.4 8.8h11.2" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+  <symbol id="k-cleaning" viewBox="0 0 16 16"><path d="M8 2.4l1.3 3.3 3.3 1.3-3.3 1.3L8 11.6 6.7 8.3 3.4 7l3.3-1.3zM12.4 10.6l.6 1.4 1.4.6-1.4.6-.6 1.4-.6-1.4-1.4-.6 1.4-.6z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/></symbol>
+  <symbol id="k-moving" viewBox="0 0 16 16"><path d="M1.8 4.4h7.6v6.8H1.8zM9.4 6.6h2.7l2.1 2.4v2.2H9.4" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="4.6" cy="11.8" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/><circle cx="11.6" cy="11.8" r="1.4" fill="var(--surface)" stroke="currentColor" stroke-width="1.4"/></symbol>
+  <symbol id="k-other" viewBox="0 0 16 16"><circle cx="3.6" cy="8" r="1.3" fill="currentColor"/><circle cx="8" cy="8" r="1.3" fill="currentColor"/><circle cx="12.4" cy="8" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="k-locate" viewBox="0 0 16 16"><path d="M13.6 2.4L2.4 7.2l4.8 1.6 1.6 4.8z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></symbol>
+</svg>
+
+{# Every control on the page belongs to this one form, wherever it sits, so a browser
+   without JS still filters with Show jobs, and a shared address reopens the same list. #}
+<form id="pt" action="/part-time" method="get" hidden></form>
+
+<section class="pt-hero wrap">
+  <div class="pt-hero__copy">
+    <h1 class="pt-hero__h">Part-time work that fits <span class="hl">around your week.</span></h1>
+    <p class="lede">
+      <strong data-count>{{ "{:,}".format(total) }} part-time jobs</strong> are open in Ireland right
+      now, in shops, cafés, care, hotels and offices across {{ counties_hiring }} counties.
+      Mark when you're free and where you are, and the list keeps only the jobs that fit.
+    </p>
+    <ul class="pt-facts" aria-label="What the adverts say">
+      <li><b>{{ "{:,}".format(says_when) }}</b> say when the hours fall</li>
+      <li><b>{{ "{:,}".format(says_hours) }}</b> give their weekly hours</li>
+      <li><b>{{ "{:,}".format(employers|length) }}</b> employers hiring</li>
+    </ul>
+    <div class="row pt-hero__go">
+      <a class="btn" href="#jobs" data-to-jobs>See the jobs
+        <svg width="16" height="16" aria-hidden="true"><use href="#i-down"/></svg></a>
+      {% if accounts_enabled %}
+      <a class="btn btn--ghost" href="{{ '/profile#alerts' if account else '/login?next=/profile%23alerts' }}">Email me new ones</a>
+      {% endif %}
+    </div>
+  </div>
+
+  {# The week planner. The ticks are real checkboxes in the row and column heads; the
+     grid of cells is a picture of them, painted with the highlighter, which the script
+     also lets you tap. #}
+  <section class="win pt-week opens" id="when" aria-labelledby="week-h">
+    {{ titlebar("my-week.ics") }}
+    <div class="pt-week__body">
+      <div class="pt-week__head">
+        <h2 id="week-h">When are you free?</h2>
+        <p class="hand pt-week__hint" aria-hidden="true">tap the times</p>
+      </div>
+      <div class="wk" role="group" aria-label="Times of the week you could work" data-week>
+        {% set on = picked.when %}
+        <label class="wk__end wk__tog">
+          <input type="checkbox" name="when" value="weekends" form="pt" {% if 'weekends' in on %}checked{% endif %}>
+          <span><i class="wk__box" aria-hidden="true"><svg><use href="#i-check"/></svg></i>Weekends <em data-when-n="weekends">{{ when_counts.weekends }}</em></span>
+        </label>
+        <span class="wk__brace" aria-hidden="true"></span>
+        <span class="wk__corner" aria-hidden="true"></span>
+        {% for d in ["M","T","W","T","F","S","S"] %}<span class="wk__day{% if loop.index > 5 %} wk__day--end{% endif %}" aria-hidden="true">{{ d }}</span>{% endfor %}
+        {% for band in ["mornings","day","evenings","nights"] %}
+          {% if band == "day" %}
+          <span class="wk__plain" style="grid-row:{{ loop.index + 3 }}" aria-hidden="true">Daytime</span>
+          {% else %}
+          <label class="wk__tog" style="grid-row:{{ loop.index + 3 }}">
+            <input type="checkbox" name="when" value="{{ band }}" form="pt" {% if band in on %}checked{% endif %}>
+            <span><i class="wk__box" aria-hidden="true"><svg><use href="#i-check"/></svg></i>{{ when_labels[band] }} <em data-when-n="{{ band }}">{{ when_counts[band] }}</em></span>
+          </label>
+          {% endif %}
+          {% set band_row = loop.index + 3 %}
+          {% for col in range(7) %}<i class="wk__cell{% if band in on or (col > 4 and 'weekends' in on) %} is-on{% endif %}" data-band="{{ band }}" data-col="{{ col }}" style="--col:{{ col }};grid-row:{{ band_row }}" aria-hidden="true"></i>{% endfor %}
+        {% endfor %}
+      </div>
+      <div class="pt-week__foot">
+        <label class="wk__tog wk__tog--season">
+          <input type="checkbox" name="when" value="seasonal" form="pt" id="season-toggle" {% if 'seasonal' in on %}checked{% endif %}>
+          <span><i class="wk__box" aria-hidden="true"><svg><use href="#i-check"/></svg></i>Christmas &amp; seasonal <em data-when-n="seasonal">{{ when_counts.seasonal }}</em></span>
+        </label>
+        <label class="switch pt-week__unstated">
+          <input type="checkbox" name="unstated" value="1" form="pt" {% if picked.unstated %}checked{% endif %}>
+          <span class="box" aria-hidden="true"></span>
+          <span>Also show adverts that don't say when</span>
+        </label>
+      </div>
+      <p class="pt-week__read" data-week-read aria-live="polite">
+        {%- if picked.when %}<b>{{ shown_total }}</b> fit the times you picked.{% else %}Most adverts don't say when the hours fall: {{ "{:,}".format(total - says_when) }} of {{ "{:,}".format(total) }}. Pick a time and those step aside.{% endif -%}
+      </p>
+    </div>
+    {% if season_note %}
+    <label class="note pt-season" for="season-toggle" aria-hidden="true">
+      Christmas jobs are in: {{ when_counts.seasonal }} so far
+    </label>
+    {% endif %}
+  </section>
+</section>
+
+<section class="wrap pt-bench" aria-label="Part-time jobs">
+  <aside class="pt-side">
+    {# The 26 counties as tiles, roughly where each one is. Each is a radio button. #}
+    <section class="win pt-map opens" aria-labelledby="map-h">
+      {{ titlebar("ireland.map") }}
+      <div class="pt-map__body">
+        <div class="pt-map__head">
+          <h2 id="map-h">Where?</h2>
+          <button type="button" class="btn btn--ghost pt-locate" data-locate hidden>
+            <svg width="14" height="14" aria-hidden="true"><use href="#k-locate"/></svg>Near me</button>
+        </div>
+        <div class="tiles" role="group" aria-label="County" data-tiles>
+          {% for t in tiles %}
+          <label class="tile{% if not t.jobs %} is-none{% endif %}{% if t.heat > 0.8 %} is-deep{% endif %}"
+                 style="--c:{{ t.col }};--r:{{ t.row }};--heat:{{ t.heat }}" data-tile="{{ t.name }}">
+            <input type="radio" name="county" value="{{ t.name }}" form="pt" {% if picked.county == t.name %}checked{% endif %}>
+            <b aria-hidden="true">{{ t.code }}</b><span class="tile__n" data-county-n="{{ t.name }}" aria-hidden="true">{{ t.jobs }}</span>
+            <span class="sr">{{ t.name }}, {{ t.jobs }} jobs</span>
+          </label>
+          {% endfor %}
+          <p class="hand tiles__hint" aria-hidden="true">tap a county</p>
+        </div>
+        <div class="pt-map__foot">
+          <label class="pick"><input type="radio" name="county" value="" form="pt" {% if not picked.county %}checked{% endif %}><span>All of Ireland</span></label>
+          {% if no_county %}
+          <label class="pick"><input type="radio" name="county" value="ireland" form="pt" {% if picked.county == 'ireland' %}checked{% endif %}><span>County not stated <em data-county-n="ireland">{{ no_county }}</em></span></label>
+          {% endif %}
+        </div>
+        <p class="pt-map__read" data-map-read aria-live="polite">
+          {%- if picked.county and picked.county != 'ireland' %}{{ picked.county }}{% else %}Every county, shaded by how many jobs it has.{% endif -%}
+        </p>
+      </div>
+    </section>
+
+    {# The kinds of work, each with a bar for its share of what is shown. #}
+    <section class="win pt-kinds opens" data-delay="80" aria-labelledby="kinds-h">
+      {{ titlebar("kinds-of-work") }}
+      <fieldset class="kinds">
+        <legend id="kinds-h" class="kinds__h">What kind of work?</legend>
+        {% set most = (kinds|map(attribute='jobs')|max) if kinds else 1 %}
+        {% for k in kinds %}
+        <label class="kind" style="--share:{{ '%.3f' % (k.jobs / most) }}" data-kind="{{ k.key }}">
+          <input type="checkbox" name="kind" value="{{ k.key }}" form="pt" {% if k.key in picked.kinds %}checked{% endif %}>
+          <span class="kind__row">
+            <svg class="kind__icon" aria-hidden="true"><use href="#k-{{ k.key }}"/></svg>
+            <b>{{ k.label }}</b>
+            <em data-kind-n="{{ k.key }}">{{ k.jobs }}</em>
+            <i class="kind__bar" aria-hidden="true"></i>
+          </span>
+        </label>
+        {% endfor %}
+      </fieldset>
+    </section>
+  </aside>
+
+  <section class="win pt-list opens" id="jobs" aria-labelledby="list-h">
+    {{ titlebar("part-time: jobs") }}
+    <div class="pt-list__bar" data-bar>
+      <h2 id="list-h"><span data-shown>{{ "{:,}".format(shown_total) }}</span> <span data-shown-noun>{{ "job fits" if shown_total == 1 else "jobs fit" }}</span></h2>
+      <label class="finder-search pt-search">
+        <svg width="15" height="15" aria-hidden="true"><use href="#i-search"/></svg>
+        <span class="sr">Search titles and employers</span>
+        <input type="search" name="q" form="pt" value="{{ picked.q }}" placeholder="Search titles and employers" autocomplete="off" enterkeyhint="search">
+      </label>
+      <ul class="picked" data-picked aria-label="What you picked"></ul>
+      <a class="pt-list__edit" href="#when" data-edit>Change</a>
+      <button type="submit" form="pt" class="pt-nojs">Show jobs</button>
+    </div>
+
+    <div class="emps" aria-label="Employers hiring part-time">
+      <p class="emps__h">Hiring part-time</p>
+      <ul class="emps__strip" data-emps>
+        {% for e in top %}
+        <li><a class="emp{% if picked.company == e.id %} is-on{% endif %}" href="?co={{ e.id }}" data-co="{{ e.id }}" aria-pressed="{{ 'true' if picked.company == e.id else 'false' }}">
+          <span class="emp__icon">{{ logo(e.name, e.domain) }}<span class="badge" data-emp-n="{{ e.id }}">{{ e.jobs }}</span></span>
+          <span class="emp__name">{{ e.name }}</span>
+        </a></li>
+        {% endfor %}
+      </ul>
+      {% if picked_company and picked_company not in top %}
+      <p class="emps__picked">Only <b>{{ picked_company.name }}</b>. <a href="/part-time">Show every employer</a></p>
+      {% endif %}
+    </div>
+
+    <ul class="ptrows" id="pt-rows">
+      {% for j in jobs %}{{ ptrow(j) }}{% endfor %}
+    </ul>
+
+    <div class="pt-more" data-more {% if shown_total <= jobs|length %}hidden{% endif %}>
+      <a class="btn btn--ghost" href="?{{ request.url.query }}{{ '&' if request.url.query }}n={{ jobs|length + 30 }}" data-more-btn>Show more
+        <span class="typed" data-more-count>{{ jobs|length }} of {{ "{:,}".format(shown_total) }}</span></a>
+    </div>
+
+    <div class="pt-empty" data-empty {% if shown_total %}hidden{% endif %}>
+      {{ mascot("surprised", "mascot--big") }}
+      <h3>Nothing fits all of that yet.</h3>
+      <p data-loosen-say>New part-time jobs arrive every day. Loosen one thing and there's more:</p>
+      <p class="pt-empty__ways" data-loosen></p>
+      <a class="btn btn--ghost" href="/part-time" data-clear>Start again</a>
+    </div>
+  </section>
+</section>
+
+<section class="pt-close wrap">
+  <h2 class="reveal">Not the right week for it?</h2>
+  <p class="lede">Part-time jobs open and fill fast, shops before Christmas most of all.
+    {% if accounts_enabled %}Switch on <b>New part-time jobs</b> in your email alerts and we'll send you the new ones as they open.{% else %}This list is read again from every employer several times a day.{% endif %}</p>
+  <div class="row" style="justify-content:center;gap:12px">
+    {% if accounts_enabled %}
+    <a class="btn" href="{{ '/profile#alerts' if account else '/login?next=/profile%23alerts' }}">Set up an email alert <svg width="16" height="16" aria-hidden="true"><use href="#i-arrow"/></svg></a>
+    {% endif %}
+    <a class="btn btn--ghost" href="/">Search full-time jobs too</a>
+  </div>
+</section>
+
+{# On a phone the controls stack above the list; this pill keeps the live count in
+   view while they are on screen and jumps to the list. #}
+<a class="pt-jump" href="#jobs" data-jump hidden><span data-jump-n>{{ "{:,}".format(shown_total) }}</span><span data-jump-noun>{{ "job fits" if shown_total == 1 else "jobs fit" }}</span><svg width="15" height="15" aria-hidden="true"><use href="#i-down"/></svg></a>
+
+<script type="application/json" id="pt-data">{{ part_time_data|tojson }}</script>
+
+<style>
+  .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  fieldset{border:0;margin:0;padding:0;min-width:0}
+  .js .pt-nojs{display:none}
+
+  /* ------------------------------------------------------------- hero */
+  .pt-hero{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr);gap:52px;
+    align-items:center;padding-top:64px;padding-bottom:44px}
+  .pt-hero__h{font-size:clamp(2.6rem,5.4vw,4.5rem)}
+  .pt-hero .lede{max-width:52ch}
+  .pt-facts{list-style:none;margin:22px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 22px}
+  .pt-facts li{font-size:14px;color:var(--ink-2)}
+  .pt-facts b{display:block;font-size:1.5rem;font-weight:750;letter-spacing:-.03em;color:var(--ink);
+    font-variant-numeric:tabular-nums;line-height:1.1}
+  .pt-hero__go{gap:12px;margin-top:28px}
+
+  /* ------------------------------------------------------ the week planner */
+  .pt-week{position:relative;overflow:visible;box-shadow:var(--shadow-lift);transform:rotate(.8deg)}
+  .pt-week > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
+  .pt-week__body{padding:20px 24px 20px}
+  .pt-week__head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:12px}
+  .pt-week__head h2{margin:0;font-size:clamp(1.3rem,2.2vw,1.6rem)}
+  .pt-week__hint{margin:0;font-size:20px;color:var(--ink-3);transform:rotate(-3deg)}
+
+  .wk{display:grid;grid-template-columns:minmax(118px,auto) repeat(7,minmax(0,1fr));gap:5px;align-items:center}
+  .wk__end{grid-column:5 / 9;grid-row:1;justify-self:end}
+  .wk__brace{grid-column:7 / 9;grid-row:2;height:9px;margin:0 6px;border:1.5px solid var(--line-strong);
+    border-bottom:0;border-radius:6px 6px 0 0;align-self:end}
+  .wk__corner{grid-column:1;grid-row:3}
+  .wk__day{grid-row:3;text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+  .wk__day--end{color:var(--ink);font-weight:600}
+  .wk__plain{font-size:13.5px;color:var(--ink-3);padding-left:30px}
+  .wk__cell{position:relative;display:block;height:30px;border-radius:7px;background:var(--fill);
+    box-shadow:inset 0 0 0 1px var(--line);overflow:hidden;cursor:pointer}
+  .wk__cell[data-band="day"]:not([data-col="5"]):not([data-col="6"]){cursor:default}
+  /* The highlighter: a slightly ragged stroke that sweeps along the row. */
+  .wk__cell::after{content:"";position:absolute;inset:3px 0;
+    background:linear-gradient(100deg,transparent 0 3%,var(--hl) 3% 97%,transparent 97%);
+    transform:scaleX(0);transform-origin:0 50%}
+  .wk__cell.is-on::after{transform:none}
+  .wk__cell.is-on{box-shadow:inset 0 0 0 1px var(--sticker-deep)}
+  @media (prefers-reduced-motion:no-preference){
+    .wk__cell::after{transition:transform .32s var(--ease) calc(var(--col) * 38ms)}
+    .wk__cell:hover{background:var(--hover-2)}
+  }
+
+  /* A tick in a row or column head: the label, its box and its count. */
+  .wk__tog{position:relative;display:inline-flex;cursor:pointer;user-select:none}
+  .wk__tog input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+  .wk__tog > span{display:inline-flex;align-items:center;gap:7px;padding:5px 10px 5px 6px;border-radius:999px;
+    font-size:13.5px;font-weight:600;color:var(--ink);white-space:nowrap;
+    border:1px solid var(--line-strong);background:var(--surface);
+    transition:background .2s var(--ease),border-color .2s var(--ease),transform .35s var(--spring)}
+  .wk__tog em{font-style:normal;font-family:var(--mono);font-size:11.5px;font-weight:400;color:var(--ink-3)}
+  .wk__box{display:grid;place-items:center;width:17px;height:17px;border-radius:5px;flex:none;
+    border:1.5px solid var(--line-strong);background:var(--surface);transition:background .2s,border-color .2s}
+  .wk__box svg{width:11px;height:11px;color:#3d3000;opacity:0;transform:scale(.4);
+    transition:opacity .15s,transform .35s var(--spring)}
+  .wk__tog:hover > span{transform:translateY(-1px)}
+  .wk__tog input:checked + span{background:var(--brass-bg);border-color:var(--sticker-deep)}
+  .wk__tog input:checked + span .wk__box{background:var(--sticker);border-color:var(--sticker-deep)}
+  .wk__tog input:checked + span .wk__box svg{opacity:1;transform:none}
+  .wk__tog input:checked + span em{color:var(--brass-ink)}
+  .wk__tog input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .wk__tog.is-zero > span{opacity:.55}
+
+  .pt-week__foot{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin-top:16px;
+    padding-top:14px;border-top:1px solid var(--line)}
+  .pt-week__unstated{margin:0;font-size:13.5px;color:var(--ink-2)}
+  .pt-week__read{margin:12px 0 0;font-size:13.5px;color:var(--ink-3);min-height:1.5em}
+  .pt-week__read b{color:var(--ink);font-weight:650;font-variant-numeric:tabular-nums}
+  .pt-season{position:absolute;right:-26px;bottom:-48px;width:168px;font-size:19px;cursor:pointer;
+    transform:rotate(4deg);box-shadow:0 10px 22px -12px rgba(20,24,33,.45);z-index:2;
+    transition:transform .4s var(--spring)}
+  .pt-season:hover{transform:rotate(1deg) scale(1.04)}
+
+  /* ------------------------------------------------------------ bench */
+  .pt-bench{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start;
+    padding-top:48px;scroll-margin-top:60px}
+  .pt-side{display:grid;gap:20px}
+  @media (min-width:981px) and (min-height:900px){
+    .pt-side{position:sticky;top:64px}
+  }
+
+  /* ------------------------------------------------------------ the map */
+  .pt-map__body{padding:18px 20px 16px}
+  .pt-map__head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+  .pt-map__head h2{margin:0;font-size:1.35rem}
+  .pt-locate{padding:6px 13px;min-height:34px;font-size:13px;gap:6px}
+  .pt-locate.is-busy svg{animation:spin 1s linear infinite}
+  .tiles{position:relative;display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-rows:repeat(7,auto);gap:5px;padding:10px;border-radius:12px;
+    background-color:var(--stage);
+    background-image:radial-gradient(var(--stage-dot) 1px,transparent 1.3px);background-size:12px 12px}
+  .tile{grid-column:calc(var(--c) + 1);grid-row:calc(var(--r) + 1);position:relative;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
+    aspect-ratio:1;border-radius:24%;cursor:pointer;user-select:none;
+    background:var(--aqua-wash);
+    background:color-mix(in srgb,var(--aqua) calc(var(--heat) * 80%),var(--surface));
+    color:var(--ink);
+    box-shadow:inset 0 0 0 1px var(--edge),0 1px 2px rgba(20,24,33,.08);
+    transition:background .45s var(--ease),color .3s,transform .4s var(--spring),box-shadow .25s,opacity .3s}
+  .tile input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+  .tile b{font-size:14px;font-weight:750;letter-spacing:-.02em;line-height:1}
+  .tile__n{font-family:var(--mono);font-size:10.5px;line-height:1;opacity:.8;font-variant-numeric:tabular-nums}
+  .tile.is-deep{color:#fff}
+  .tile.is-none{background:var(--surface);color:var(--ink-3);opacity:.55;
+    box-shadow:inset 0 0 0 1px var(--line)}
+  .tile:hover{transform:translateY(-2px) scale(1.06);z-index:2;
+    box-shadow:inset 0 0 0 1px var(--edge),0 8px 16px -8px rgba(20,24,33,.45)}
+  .tile:focus-within{outline:2.5px solid var(--aqua);outline-offset:2px;z-index:2}
+  .tile.is-on{background:var(--btn);color:#fff;transform:scale(1.12);z-index:3;opacity:1;
+    box-shadow:0 0 0 2px var(--surface),0 10px 20px -8px rgba(43,116,240,.8)}
+  .tiles__hint{position:absolute;right:12px;top:8px;margin:0;font-size:18px;color:var(--ink-3);transform:rotate(4deg)}
+  @media (prefers-reduced-motion:no-preference){
+    .js .pt-map:not(.is-open) .tile{opacity:0;transform:scale(.6)}
+    .js .pt-map .tile{transition-delay:calc((var(--c) + var(--r)) * 28ms),calc((var(--c) + var(--r)) * 28ms),0s,0s,0s}
+    .js .pt-map.is-settled .tile{transition-delay:0s}
+  }
+  .pt-map__foot{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .pick{position:relative;cursor:pointer}
+  .pick input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+  .pick span{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:999px;font-size:13px;
+    font-weight:550;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink-2);
+    transition:background .2s,border-color .2s,color .2s}
+  .pick em{font-style:normal;font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .pick input:checked + span{background:var(--ink);border-color:var(--ink);color:var(--win)}
+  .pick input:checked + span em{color:inherit;opacity:.75}
+  .pick input:focus-visible + span{outline:2.5px solid var(--aqua);outline-offset:2px}
+  .pt-map__read{margin:10px 0 0;font-size:13px;color:var(--ink-3);min-height:1.5em}
+  .pt-map__read b{color:var(--ink);font-weight:650}
+
+  /* ---------------------------------------------------------- the kinds */
+  .kinds{padding:14px 12px 12px}
+  .kinds__h{float:left;width:100%;padding:2px 8px 10px;font-size:1.15rem;font-weight:700;letter-spacing:-.02em}
+  .kind{position:relative;display:block;cursor:pointer;clear:both}
+  .kind input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none}
+  .kind__row{position:relative;display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;
+    gap:10px;padding:8px 10px 11px;border-radius:9px;transition:background .15s}
+  .kind__icon{width:16px;height:16px;color:var(--ink-3)}
+  .kind b{font-size:14px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .kind em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+  .kind__bar{position:absolute;left:38px;right:10px;bottom:5px;height:3px;border-radius:2px;background:var(--fill)}
+  .kind__bar::after{content:"";position:absolute;inset:0;border-radius:inherit;background:var(--aqua);opacity:.42;
+    transform:scaleX(var(--share));transform-origin:0 50%;transition:transform .55s var(--ease)}
+  .kind:hover .kind__row{background:var(--hover)}
+  .kind input:checked + .kind__row{background:var(--aqua-wash)}
+  .kind input:checked + .kind__row b{font-weight:650;color:var(--aqua-deep)}
+  .kind input:checked + .kind__row .kind__icon{color:var(--aqua-deep)}
+  .kind input:checked + .kind__row .kind__bar::after{opacity:1}
+  .kind input:focus-visible + .kind__row{outline:2.5px solid var(--aqua);outline-offset:-2px}
+  .kind.is-zero .kind__row{opacity:.5}
+
+  /* ---------------------------------------------------------- the list */
+  .pt-list{box-shadow:var(--shadow-lift);scroll-margin-top:60px;min-height:420px}
+  .pt-list__bar{position:sticky;top:48px;z-index:12;display:flex;flex-wrap:wrap;align-items:center;
+    gap:10px 16px;padding:14px 22px;background:var(--pane);border-bottom:1px solid var(--line)}
+  .pt-list__bar h2{margin:0;font-size:clamp(1.2rem,2vw,1.5rem);flex:1 1 auto;font-variant-numeric:tabular-nums}
+  .finder-search{position:relative;display:block}
+  .finder-search svg{position:absolute;left:12px;top:50%;margin-top:-7.5px;color:var(--ink-3)}
+  .finder-search input{padding-left:36px;border-radius:999px;background:var(--win-bar)}
+  .finder-search input:focus{background:var(--surface)}
+  .pt-search{width:min(280px,100%)}
+  .picked{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:6px;flex:1 0 100%}
+  .picked:empty{display:none}
+  .picked button{min-height:0;padding:4px 8px 4px 11px;font-size:12.5px;font-weight:600;gap:5px;
+    color:var(--ink);background:var(--brass-bg);background-image:none;border:1px solid var(--sticker-deep);
+    text-shadow:none;box-shadow:none}
+  .picked button.is-place{background:var(--aqua-wash);border-color:rgba(43,116,240,.35);color:var(--aqua-deep)}
+  .picked button.is-kind,.picked button.is-co,.picked button.is-q{background:var(--fill);border-color:var(--line-strong)}
+  .picked button svg{width:11px;height:11px;opacity:.6}
+  .picked button:hover:not(:disabled){transform:none;filter:none;box-shadow:none;border-color:var(--ink-3)}
+  .picked button:hover svg{transform:none;opacity:1}
+  .picked .picked__clear{background:none;border-color:transparent;color:var(--aqua-deep);text-decoration:underline;
+    text-underline-offset:3px;padding-left:4px}
+  .pt-list__edit{display:none;font-size:13.5px;font-weight:600;color:var(--aqua-deep)}
+
+  .emps{padding:14px 22px 6px;border-bottom:1px solid var(--line);background:var(--win-bar)}
+  .emps__h{margin:0 0 8px;font-size:12.5px;font-weight:600;color:var(--ink-3)}
+  .emps__strip{list-style:none;margin:0 -22px;padding:6px 22px 10px;display:flex;gap:6px;overflow-x:auto;
+    scroll-snap-type:x proximity;scrollbar-width:none;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+  .emps__strip::-webkit-scrollbar{display:none}
+  .emps__strip li{scroll-snap-align:start;flex:none}
+  .emp{display:flex;flex-direction:column;align-items:center;gap:7px;width:78px;padding:8px 2px 6px;
+    border-radius:12px;text-decoration:none;color:var(--ink);transition:background .15s}
+  .emp__icon{position:relative;display:block;transition:transform .45s var(--spring)}
+  .emp__icon .logo{box-shadow:inset 0 0 0 1px rgba(20,24,33,.08),0 6px 14px -8px rgba(20,24,33,.45)}
+  .emp__icon .badge{box-shadow:0 0 0 2px var(--win-bar),0 2px 6px -1px rgba(192,44,40,.5);transition:opacity .2s}
+  .emp__name{font-size:11.5px;font-weight:550;line-height:1.2;text-align:center;max-width:100%;
+    overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .emp:hover .emp__icon{transform:translateY(-3px) scale(1.06)}
+  .emp:active .emp__icon{transform:scale(.92);transition-duration:.1s}
+  .emp.is-on{background:var(--surface);box-shadow:inset 0 0 0 1.5px var(--aqua)}
+  .emp.is-on .emp__name{color:var(--aqua-deep);font-weight:650}
+  .emp.is-zero{opacity:.4}
+  .emp.is-zero .badge{opacity:0}
+  .emps__picked{margin:2px 0 10px;font-size:13px;color:var(--ink-2)}
+
+  .ptrows{list-style:none;margin:0;padding:0}
+  .ptrow{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:4px 16px;
+    align-items:start;padding:17px 22px;border-bottom:1px solid var(--line);background:var(--surface);
+    transition:background .15s}
+  .ptrow:hover{background:var(--surface-2)}
+  .ptrow__logo{--size:40px;margin-top:2px}
+  .ptrow__main{min-width:0}
+  .ptrow__top{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin:0 0 3px;font-size:13px;color:var(--ink-3);max-width:none}
+  .ptrow__co{font-weight:550;color:var(--ink-2)}
+  .ptrow__where{display:inline-flex;align-items:center;gap:3px}
+  .ptrow__where svg{width:12px;height:12px}
+  .ptrow__title{display:inline;font-size:1.04rem;font-weight:650;letter-spacing:-.015em;line-height:1.3;color:var(--ink);
+    text-decoration:none;background-image:linear-gradient(var(--aqua),var(--aqua));background-size:0 1.5px;
+    background-repeat:no-repeat;background-position:0 100%;transition:background-size .35s var(--ease)}
+  .ptrow__title:hover{background-size:100% 1.5px}
+  .ptrow__chips{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:9px 0 0;max-width:none}
+  .chip{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:550;line-height:1.3;color:var(--ink-2);
+    background:var(--win-bar);border:1px solid var(--line);border-radius:999px;padding:2px 9px;white-space:nowrap}
+  .chip svg{width:12px;height:12px;color:var(--ink-3)}
+  .chip--hrs{color:var(--ink);font-weight:600}
+  .chip--when.is-hit{background:var(--brass-bg);border-color:var(--sticker-deep);color:var(--brass-ink)}
+  .ptrow__age{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:2px}
+  .ptrow__act{align-self:center}
+  .ptrow__act .applied-mark{display:inline-flex}
+  @media (prefers-reduced-motion:no-preference){
+    .ptrow.is-arriving{animation:pt-arrive .45s var(--ease) both;animation-delay:calc(var(--k, 0) * 30ms)}
+  }
+  @keyframes pt-arrive{from{opacity:0;transform:translateY(12px)}}
+
+  .pt-more{display:flex;justify-content:center;padding:22px}
+  .pt-more[hidden]{display:none}
+  .pt-more .typed{margin-left:4px}
+  .pt-empty{padding:48px 24px 52px;text-align:center}
+  .pt-empty[hidden]{display:none}
+  .pt-empty p{margin:0 auto 14px;max-width:44ch;color:var(--ink-2)}
+  .pt-empty__ways{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+  .pt-empty__ways button{min-height:0;padding:7px 14px;font-size:13.5px}
+
+  /* Rows that move when the list changes: each keeps its name, so the browser moves
+     it from where it was to where it is (see `paint` in the script). */
+  ::view-transition-group(*){animation-duration:.42s;animation-timing-function:cubic-bezier(.16,1,.3,1)}
+  ::view-transition-old(root),::view-transition-new(root){animation:none}
+
+  .pt-jump{display:none}
+  @media (max-width:860px){
+    .pt-jump{position:fixed;z-index:60;left:50%;bottom:max(16px,env(safe-area-inset-bottom));
+      display:inline-flex;align-items:center;gap:8px;padding:12px 20px;border-radius:999px;
+      background:var(--ink);color:var(--win);font-weight:650;font-size:15px;text-decoration:none;
+      font-variant-numeric:tabular-nums;box-shadow:0 3px 8px rgba(20,24,33,.2),0 16px 32px -12px rgba(20,24,33,.55);
+      transform:translate(-50%,0);transition:transform .45s var(--spring),opacity .25s var(--ease)}
+    .pt-jump[hidden]{display:inline-flex;opacity:0;transform:translate(-50%,140%);pointer-events:none}
+    .pt-jump.is-bump{animation:pt-bump .45s var(--spring)}
+  }
+  @keyframes pt-bump{40%{transform:translate(-50%,0) scale(1.08)}}
+
+  .pt-close{text-align:center;padding:90px 0 20px}
+  .pt-close h2{font-size:clamp(1.8rem,4vw,2.8rem)}
+  .pt-close .lede{margin:0 auto 26px;max-width:52ch}
+
+  @media (forced-colors:active){
+    .wk__cell.is-on::after,.tile.is-on{background:Highlight}
+    .kind__bar::after{background:Highlight}
+  }
+
+  /* ------------------------------------------------------- narrower */
+  @media (max-width:1180px){
+    .pt-season{right:-8px}
+  }
+  @media (max-width:980px){
+    .pt-hero{grid-template-columns:1fr;gap:34px;padding-top:44px}
+    .pt-week{transform:none;max-width:620px}
+    .pt-season{right:10px;bottom:-30px}
+    .pt-bench{grid-template-columns:minmax(0,1fr);padding-top:56px}
+    .pt-side{grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start}
+  }
+  @media (max-width:860px){
+    .pt-facts b{font-size:1.25rem}
+    .pt-hero__go .btn{flex:1 1 auto}
+    .pt-week__body{padding:16px 14px 16px}
+    .wk{grid-template-columns:minmax(98px,auto) repeat(7,minmax(0,1fr));gap:4px}
+    .wk__tog > span{font-size:12.5px;padding:4px 8px 4px 5px;gap:5px}
+    .wk__plain{padding-left:24px;font-size:12.5px}
+    .wk__cell{height:26px;border-radius:6px}
+    .pt-season{display:none}
+    .pt-side{grid-template-columns:minmax(0,1fr)}
+    .tiles__hint{display:none}
+    .tiles{max-width:330px;margin:0 auto}
+    .kind__row{padding:7px 8px 10px}
+    .pt-list__bar{padding:12px 16px;gap:8px 12px}
+    .pt-search{width:100%;order:3}
+    .pt-list__edit{display:inline}
+    .emps{padding:12px 16px 4px}
+    .emps__strip{margin:0 -16px;padding:6px 16px 10px}
+    .ptrow{grid-template-columns:32px minmax(0,1fr);padding:14px 16px;gap:2px 12px}
+    .ptrow__logo{--size:32px}
+    .ptrow__act{grid-column:2;justify-self:start;margin-top:10px}
+    .ptrow__act .btn--apply{min-height:38px}
+  }
+  @media (max-width:380px){
+    .wk{grid-template-columns:minmax(86px,auto) repeat(7,minmax(0,1fr));gap:3px}
+    .wk__tog em{display:none}
+    .wk__end em{display:inline}
+  }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById('pt-data').textContent);
+  // Each row arrives as a bare list (see `data` in app.py's part_time); named here once.
+  var ROW = ['i', 't', 'e', 'p', 'c', 'k', 'w', 'h', 'a', 'n', 'u', 'x', 'd'];
+  var JOBS = data.rows.map(function (r) {
+    var j = {}; ROW.forEach(function (key, n) { j[key] = r[n]; }); return j;
+  });
+  var EMPS = data.employers, BITS = data.when, PAGE = data.page;
+  var form = document.getElementById('pt');
+  var rowsEl = document.getElementById('pt-rows');
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  var $ = function (sel, root) { return (root || document).querySelector(sel); };
+  var $$ = function (sel, root) { return Array.prototype.slice.call((root || document).querySelectorAll(sel)); };
+  var fmt = function (n) { return n.toLocaleString('en-IE'); };
+  var shown = [], limit = rowsEl.children.length || PAGE;
+
+  // ---------------------------------------------------------------- state
+  // Read from the controls themselves, which the server set from the address.
+  function state() {
+    var s = { when: [], unstated: false, county: '', kinds: [], co: null, q: '' };
+    $$('input[form="pt"]').forEach(function (el) {
+      if (el.type === 'checkbox' && el.checked) {
+        if (el.name === 'when') s.when.push(el.value);
+        else if (el.name === 'kind') s.kinds.push(el.value);
+        else if (el.name === 'unstated') s.unstated = true;
+      } else if (el.type === 'radio' && el.checked && el.name === 'county') s.county = el.value;
+      else if (el.name === 'q') s.q = el.value.trim().toLowerCase();
+    });
+    s.co = company;
+    return s;
+  }
+  var company = (function () {
+    var v = new URLSearchParams(location.search).get('co');
+    return v && /^\d+$/.test(v) ? +v : null;
+  })();
+
+  // The same rule as `_part_time_filter` in app.py. `skip` leaves one choice out, which
+  // is how each control's counts say what picking it would give.
+  function fits(j, s, skip) {
+    if (skip !== 'when' && s.when.length) {
+      var want = 0; s.when.forEach(function (w) { want |= BITS[w]; });
+      if (!(j.w & want) && !(s.unstated && !j.w)) return false;
+    }
+    if (skip !== 'county' && s.county && j.c !== s.county) return false;
+    if (skip !== 'kind' && s.kinds.length && s.kinds.indexOf(j.k) === -1) return false;
+    if (skip !== 'co' && s.co !== null && (EMPS[j.e] || [])[2] !== s.co) return false;
+    if (skip !== 'q' && s.q) {
+      var who = (EMPS[j.e] || [''])[0].toLowerCase();
+      if (j.t.toLowerCase().indexOf(s.q) === -1 && who.indexOf(s.q) === -1) return false;
+    }
+    return true;
+  }
+
+  // ----------------------------------------------------------------- rows
+  function esc(t) { return String(t).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+  function logo(name, domain, cls) {
+    var hue = ((name.length * 47) + ('abcdefghijklmnopqrstuvwxyz'.indexOf(name.charAt(0).toLowerCase()) + 1) * 29) % 360;
+    return '<span class="logo ' + cls + '" style="--hue:' + hue + '" data-initial="' + esc(name.charAt(0).toUpperCase()) + '" aria-hidden="true">' +
+      (domain ? '<img src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(domain) + '&amp;sz=128" alt="" loading="lazy" decoding="async" ' +
+        'onload="this.naturalWidth>16?this.parentNode.classList.add(\'has-img\'):this.remove()" onerror="this.remove()">' : '') + '</span>';
+  }
+  var ARROW = ' <svg width="14" height="14" aria-hidden="true"><use href="#i-arrow"/></svg>';
+  function applyFor(j, who) {
+    if (j.d) return '<span class="stamp stamp--filled">Applied</span>';
+    if (data.signedIn || !data.accounts) {
+      var later = data.signedIn ? " data-apply-later='" + esc(JSON.stringify({ advert_key: j.x, title: j.t, company: who, url: j.u })) + "'" : '';
+      return '<span class="applied-mark" data-advert="' + esc(j.x) + '"><a class="btn btn--apply" href="' + esc(j.u) +
+        '" target="_blank" rel="noopener"' + later + '>Apply' + ARROW + '</a></span>';
+    }
+    var back = encodeURIComponent(location.pathname + location.search);
+    return '<a class="btn btn--apply" href="/login?next=' + back + '&amp;why=apply" title="Sign in first, so this job is recorded and never offered to you again">Apply' + ARROW + '</a>';
+  }
+  function rowFor(j, s) {
+    var emp = EMPS[j.e] || ['Unknown', ''];
+    var chips = '';
+    if (j.h) chips += '<span class="chip chip--hrs"><svg aria-hidden="true"><use href="#k-clock"/></svg>' + esc(j.h) + '</span>';
+    Object.keys(BITS).forEach(function (w) {
+      if (j.w & BITS[w]) chips += '<span class="chip chip--when' + (s.when.indexOf(w) !== -1 ? ' is-hit' : '') + '">' + esc(data.whenLabels[w]) + '</span>';
+    });
+    if (j.n) chips += '<span class="stamp">new</span>';
+    chips += '<span class="ptrow__age">' + esc(j.a) + '</span>';
+    var li = document.createElement('li');
+    li.className = 'ptrow';
+    li.setAttribute('data-i', j.i);
+    li.innerHTML = logo(emp[0], emp[1], 'ptrow__logo') +
+      '<div class="ptrow__main"><p class="ptrow__top"><span class="ptrow__co">' + esc(emp[0]) + '</span>' +
+      '<span class="ptrow__where"><svg aria-hidden="true"><use href="#i-pin"/></svg>' + esc(j.p) + '</span></p>' +
+      '<a class="ptrow__title" href="/jobs/' + j.i + '">' + esc(j.t) + '</a>' +
+      '<p class="ptrow__chips">' + chips + '</p></div>' +
+      '<div class="ptrow__act">' + applyFor(j, emp[0]) + '</div>';
+    return li;
+  }
+
+  // ---------------------------------------------------------------- counts
+  // The heading's figure rolls from the old number to the new, so a narrowing list
+  // reads as the same list.
+  function roll(el, to) {
+    var from = parseInt((el.textContent || '0').replace(/,/g, ''), 10) || 0;
+    if (from === to || reduced.matches) { el.textContent = fmt(to); return; }
+    var t0 = null, dur = Math.min(900, 380 + Math.abs(to - from) * 2);
+    cancelAnimationFrame(el._roll);
+    function step(ts) {
+      if (!t0) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur), e = 1 - Math.pow(1 - p, 4);
+      el.textContent = fmt(Math.round(from + (to - from) * e));
+      if (p < 1) el._roll = requestAnimationFrame(step);
+    }
+    el._roll = requestAnimationFrame(step);
+  }
+
+  function counts(s) {
+    // Each control counts what picking it would show, everything else held as it is.
+    var when = {}, county = {}, kind = {}, emp = {};
+    JOBS.forEach(function (j) {
+      if (fits(j, s, 'when')) Object.keys(BITS).forEach(function (w) { if (j.w & BITS[w]) when[w] = (when[w] || 0) + 1; });
+      if (fits(j, s, 'county')) county[j.c] = (county[j.c] || 0) + 1;
+      if (fits(j, s, 'kind')) kind[j.k] = (kind[j.k] || 0) + 1;
+      if (fits(j, s, 'co')) emp[(EMPS[j.e] || [])[2]] = (emp[(EMPS[j.e] || [])[2]] || 0) + 1;
+    });
+    $$('[data-when-n]').forEach(function (el) {
+      var n = when[el.getAttribute('data-when-n')] || 0;
+      el.textContent = fmt(n);
+      el.closest('.wk__tog').classList.toggle('is-zero', !n);
+    });
+    var top = 1;
+    $$('[data-tile]').forEach(function (t) { top = Math.max(top, county[t.getAttribute('data-tile')] || 0); });
+    $$('[data-tile]').forEach(function (t) {
+      var name = t.getAttribute('data-tile'), n = county[name] || 0, heat = Math.sqrt(n / top);
+      t.style.setProperty('--heat', heat.toFixed(3));
+      t.classList.toggle('is-none', !n);
+      t.classList.toggle('is-deep', heat > .8);
+      $('.tile__n', t).textContent = n;
+      $('.sr', t).textContent = name + ', ' + n + (n === 1 ? ' job' : ' jobs');
+    });
+    var unstated = $('[data-county-n="ireland"]');
+    if (unstated) unstated.textContent = fmt(county.ireland || 0);
+    var most = 1;
+    $$('[data-kind]').forEach(function (k) { most = Math.max(most, kind[k.getAttribute('data-kind')] || 0); });
+    $$('[data-kind]').forEach(function (k) {
+      var n = kind[k.getAttribute('data-kind')] || 0;
+      k.style.setProperty('--share', (n / most).toFixed(3));
+      k.classList.toggle('is-zero', !n);
+      $('em', k).textContent = fmt(n);
+    });
+    $$('[data-emp-n]').forEach(function (b) {
+      var n = emp[+b.getAttribute('data-emp-n')] || 0;
+      b.textContent = n;
+      b.closest('.emp').classList.toggle('is-zero', !n);
+    });
+  }
+
+  // ------------------------------------------------------------- the rest
+  function paintWeek(s) {
+    $$('.wk__cell').forEach(function (c) {
+      var band = c.getAttribute('data-band'), col = +c.getAttribute('data-col');
+      c.classList.toggle('is-on', s.when.indexOf(band) !== -1 || (col > 4 && s.when.indexOf('weekends') !== -1));
+    });
+    var read = $('[data-week-read]'), times = s.when.filter(function (w) { return w !== 'seasonal'; });
+    if (!s.when.length) {
+      var silent = JOBS.filter(function (j) { return !j.w; }).length;
+      read.innerHTML = 'Most adverts don’t say when the hours fall: ' + fmt(silent) + ' of ' + fmt(JOBS.length) + '. Pick a time and those step aside.';
+    } else {
+      var hits = JOBS.filter(function (j) { return fits(j, { when: s.when, unstated: false, kinds: [], county: '', co: null, q: '' }); }).length;
+      read.innerHTML = '<b>' + fmt(hits) + '</b> ' + (hits === 1 ? 'advert mentions ' : 'adverts mention ') +
+        (times.length ? listOf(times.map(function (w) { return data.whenLabels[w].toLowerCase(); }), 'or') : 'Christmas or seasonal work') +
+        (times.length && s.when.indexOf('seasonal') !== -1 ? ', or seasonal work' : '') + '.' +
+        (s.unstated ? ' Adverts that don’t say are in too.' : '');
+    }
+  }
+  function listOf(words, joiner) {
+    if (words.length < 2) return words.join('');
+    return words.slice(0, -1).join(', ') + ' ' + joiner + ' ' + words[words.length - 1];
+  }
+
+  function paintMap(s) {
+    $$('[data-tile]').forEach(function (t) { t.classList.toggle('is-on', t.getAttribute('data-tile') === s.county); });
+    var read = $('[data-map-read]');
+    if (s.county && s.county !== 'ireland') {
+      var n = shown.length;
+      read.innerHTML = '<b>' + esc(s.county) + '</b>: ' + fmt(n) + (n === 1 ? ' job fits' : ' jobs fit');
+    } else if (s.county === 'ireland') read.textContent = 'Adverts that name only Ireland, not a county.';
+    else read.textContent = 'Every county, shaded by how many jobs it has.';
+  }
+
+  var X = '<svg aria-hidden="true"><use href="#i-x"/></svg>';
+  function paintPicked(s) {
+    var ul = $('[data-picked]'), html = '';
+    s.when.forEach(function (w) { html += '<li><button type="button" data-drop="when:' + w + '" aria-label="Remove ' + esc(data.whenLabels[w]) + '">' + esc(data.whenLabels[w]) + X + '</button></li>'; });
+    if (s.county) html += '<li><button type="button" class="is-place" data-drop="county" aria-label="Remove the county">' + (s.county === 'ireland' ? 'County not stated' : esc(s.county)) + X + '</button></li>';
+    s.kinds.forEach(function (k) { html += '<li><button type="button" class="is-kind" data-drop="kind:' + k + '" aria-label="Remove ' + esc(data.kinds[k]) + '">' + esc(data.kinds[k]) + X + '</button></li>'; });
+    if (s.co !== null) {
+      var e = EMPS.filter(function (x) { return x[2] === s.co; })[0];
+      if (e) html += '<li><button type="button" class="is-co" data-drop="co" aria-label="Remove ' + esc(e[0]) + '">' + esc(e[0]) + X + '</button></li>';
+    }
+    if (s.q) html += '<li><button type="button" class="is-q" data-drop="q" aria-label="Clear the search">“' + esc(s.q) + '”' + X + '</button></li>';
+    if (html) html += '<li><button type="button" class="picked__clear" data-drop="all">Clear all</button></li>';
+    ul.innerHTML = html;
+    $$('[data-co]').forEach(function (a) {
+      var on = +a.getAttribute('data-co') === s.co;
+      a.classList.toggle('is-on', on);
+      a.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  }
+
+  // When nothing fits, offer the one change that brings back the most.
+  function paintEmpty(s) {
+    var box = $('[data-loosen]'), ways = [];
+    s.when.forEach(function (w) { ways.push(['when:' + w, 'Any time, not ' + data.whenLabels[w].toLowerCase()]); });
+    if (s.when.length && !s.unstated) ways.push(['unstated', 'Include adverts that don’t say']);
+    if (s.county) ways.push(['county', 'All of Ireland']);
+    s.kinds.forEach(function (k) { ways.push(['kind:' + k, 'Not only ' + data.kinds[k].toLowerCase()]); });
+    if (s.co !== null) ways.push(['co', 'Every employer']);
+    if (s.q) ways.push(['q', 'Clear the search']);
+    var scored = ways.map(function (w) {
+      var t = loosen(JSON.parse(JSON.stringify(s)), w[0]);
+      return [w, JOBS.filter(function (j) { return fits(j, t); }).length];
+    }).filter(function (x) { return x[1] > 0; }).sort(function (a, b) { return b[1] - a[1]; }).slice(0, 3);
+    $('[data-loosen-say]').textContent = scored.length
+      ? 'New part-time jobs arrive every day. Loosen one thing and there\u2019s more:'
+      : 'Nothing turns up with any one of these dropped either. Start again and pick fewer at once.';
+    box.innerHTML = scored.map(function (x) {
+      return '<button type="button" class="btn btn--ghost" data-drop="' + x[0][0] + '">' + esc(x[0][1]) + ' <span class="typed">' + fmt(x[1]) + '</span></button>';
+    }).join('');
+  }
+  function loosen(s, how) {
+    var p = how.split(':');
+    if (p[0] === 'when') s.when = s.when.filter(function (w) { return w !== p[1]; });
+    else if (p[0] === 'kind') s.kinds = s.kinds.filter(function (k) { return k !== p[1]; });
+    else if (p[0] === 'county') s.county = '';
+    else if (p[0] === 'co') s.co = null;
+    else if (p[0] === 'q') s.q = '';
+    else if (p[0] === 'unstated') s.unstated = true;
+    return s;
+  }
+
+  function writeAddress(s) {
+    var q = new URLSearchParams();
+    s.when.forEach(function (w) { q.append('when', w); });
+    if (s.unstated) q.set('unstated', '1');
+    if (s.county) q.set('county', s.county);
+    s.kinds.forEach(function (k) { q.append('kind', k); });
+    if (s.co !== null) q.set('co', s.co);
+    var typed = $('input[name="q"][form="pt"]').value.trim();
+    if (typed) q.set('q', typed);
+    var str = q.toString();
+    history.replaceState(null, '', location.pathname + (str ? '?' + str : '') + location.hash);
+  }
+
+  function renderRows(s, from) {
+    var frag = document.createDocumentFragment();
+    shown.slice(from, limit).forEach(function (j, k) {
+      var li = rowFor(j, s);
+      if (from) { li.classList.add('is-arriving'); li.style.setProperty('--k', Math.min(k, 14)); }
+      frag.appendChild(li);
+    });
+    if (!from) rowsEl.innerHTML = '';
+    rowsEl.appendChild(frag);
+    var more = $('[data-more]');
+    more.hidden = limit >= shown.length;
+    $('[data-more-count]').textContent = fmt(Math.min(limit, shown.length)) + ' of ' + fmt(shown.length);
+    $('[data-empty]').hidden = shown.length > 0;
+    if (!shown.length) paintEmpty(s);
+  }
+
+  // Rows already on screen move to where they now belong, with view transitions where
+  // the browser has them; only rows near the top take part, so a long list stays quick.
+  function name(on) {
+    $$('.ptrow', rowsEl).slice(0, 18).forEach(function (li) {
+      li.style.viewTransitionName = on ? 'pt-' + li.getAttribute('data-i') : '';
+    });
+  }
+  function update(opts) {
+    var s = state();
+    shown = JOBS.filter(function (j) { return fits(j, s); });
+    limit = PAGE;
+    var heading = $('[data-shown]');
+    roll(heading, shown.length);
+    $('[data-shown-noun]').textContent = $('[data-jump-noun]').textContent = shown.length === 1 ? 'job fits' : 'jobs fit';
+    $('[data-jump-n]').textContent = fmt(shown.length);
+    var jump = $('[data-jump]');
+    jump.classList.remove('is-bump'); void jump.offsetWidth; jump.classList.add('is-bump');
+    var go = function () {
+      renderRows(s, 0);
+      name(true);
+    };
+    var rect = rowsEl.getBoundingClientRect();
+    var near = rect.top < window.innerHeight && rect.bottom > 0;
+    if (document.startViewTransition && !reduced.matches && near && !(opts && opts.quiet)) {
+      name(true);
+      document.startViewTransition(go).finished.then(function () { name(false); }, function () { name(false); });
+    } else { renderRows(s, 0); }
+    counts(s); paintWeek(s); paintMap(s); paintPicked(s);
+    if (!(opts && opts.keepAddress)) writeAddress(s);
+  }
+
+  // --------------------------------------------------------------- wiring
+  document.documentElement.classList.add('pt-ready');
+  var typing;
+  document.addEventListener('change', function (e) {
+    if (e.target.getAttribute && e.target.getAttribute('form') === 'pt' && e.target.name !== 'q') update();
+  });
+  var search = $('input[name="q"][form="pt"]');
+  search.addEventListener('input', function () { clearTimeout(typing); typing = setTimeout(function () { update({ quiet: true }); }, 140); });
+  form.addEventListener('submit', function (e) { e.preventDefault(); update(); });
+  search.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); search.blur(); } });
+
+  // Tapping the planner: a weekend cell ticks Weekends, any other ticks its row.
+  $('[data-week]').addEventListener('click', function (e) {
+    var cell = e.target.closest('.wk__cell');
+    if (!cell) return;
+    var band = cell.getAttribute('data-band'), col = +cell.getAttribute('data-col');
+    var value = col > 4 ? 'weekends' : (band === 'day' ? null : band);
+    if (!value) return;
+    var box = $('input[name="when"][value="' + value + '"]');
+    box.checked = !box.checked;
+    update();
+  });
+
+  document.addEventListener('click', function (e) {
+    var drop = e.target.closest('[data-drop]');
+    if (drop) {
+      var how = drop.getAttribute('data-drop'), p = how.split(':');
+      if (how === 'all') {
+        $$('input[form="pt"]').forEach(function (el) {
+          if (el.type === 'checkbox') el.checked = false;
+          else if (el.type === 'radio') el.checked = el.value === '';
+          else el.value = '';
+        });
+        company = null;
+      } else if (p[0] === 'when' || p[0] === 'kind') $('input[name="' + p[0] + '"][value="' + p[1] + '"]').checked = false;
+      else if (p[0] === 'county') $('input[name="county"][value=""]').checked = true;
+      else if (p[0] === 'co') company = null;
+      else if (p[0] === 'q') search.value = '';
+      else if (p[0] === 'unstated') $('input[name="unstated"]').checked = true;
+      update();
+      return;
+    }
+    var emp = e.target.closest('[data-co]');
+    if (emp) {
+      e.preventDefault();
+      var id = +emp.getAttribute('data-co');
+      company = company === id ? null : id;
+      update();
+      return;
+    }
+    if (e.target.closest('[data-clear]')) {
+      e.preventDefault();
+      var all = document.createElement('button');
+      all.setAttribute('data-drop', 'all');
+      document.body.appendChild(all); all.click(); all.remove();
+      return;
+    }
+    var more = e.target.closest('[data-more-btn]');
+    if (more) { e.preventDefault(); showMore(); return; }
+    var to = e.target.closest('[data-to-jobs],[data-edit],[data-jump]');
+    if (to) {
+      e.preventDefault();
+      var target = document.querySelector(to.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'start' });
+    }
+  });
+
+  function showMore() {
+    if (limit >= shown.length) return;
+    var from = limit;
+    limit += PAGE;
+    renderRows(state(), from);
+  }
+  // Show more fetches the next rows on its own as it comes into view.
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function (es) {
+      if (es[0].isIntersecting && !$('[data-more]').hidden) showMore();
+    }, { rootMargin: '0px 0px 300px 0px' }).observe($('[data-more]'));
+  }
+
+  // The jump pill shows once the headline is scrolled past, until the list is on screen.
+  if ('IntersectionObserver' in window) {
+    var jumpEl = $('[data-jump]'), listIn = false, queued = false;
+    var showJump = function () {
+      queued = false;
+      jumpEl.hidden = listIn || window.scrollY < window.innerHeight * .45;
+    };
+    window.addEventListener('scroll', function () { if (!queued) { queued = true; requestAnimationFrame(showJump); } }, { passive: true });
+    new IntersectionObserver(function (es) { listIn = es[0].isIntersecting; showJump(); },
+      { rootMargin: '0px 0px -30% 0px' }).observe($('#jobs'));
+  }
+
+  // The map's readout answers a pointer resting on a county.
+  $$('[data-tile]').forEach(function (t) {
+    t.addEventListener('pointerenter', function () {
+      var n = $('.tile__n', t).textContent;
+      $('[data-map-read]').innerHTML = '<b>' + esc(t.getAttribute('data-tile')) + '</b>: ' + n + (n === '1' ? ' job' : ' jobs');
+    });
+    t.addEventListener('pointerleave', function () { paintMap(state()); });
+  });
+  var map = $('.pt-map');
+  if (map) setTimeout(function () { map.classList.add('is-settled'); }, 1600);
+
+  // Near me: the nearest county to where the device says it is. The position is used
+  // here and nowhere else; nothing is sent.
+  var locate = $('[data-locate]');
+  if (locate && navigator.geolocation) {
+    locate.hidden = false;
+    locate.addEventListener('click', function () {
+      locate.classList.add('is-busy');
+      var read = $('[data-map-read]');
+      read.textContent = 'Finding where you are…';
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        locate.classList.remove('is-busy');
+        var la = pos.coords.latitude, lo = pos.coords.longitude, best = null, bestD = 1e9;
+        Object.keys(data.centres).forEach(function (c) {
+          var p = data.centres[c], dy = (p[0] - la) * 111, dx = (p[1] - lo) * 111 * Math.cos(la * Math.PI / 180);
+          var d = Math.sqrt(dx * dx + dy * dy);
+          if (d < bestD) { bestD = d; best = c; }
+        });
+        if (!best || bestD > 140) { read.textContent = 'That looks to be outside Ireland. Pick a county on the map.'; return; }
+        $('input[name="county"][value="' + best + '"]').checked = true;
+        update();
+      }, function () {
+        locate.classList.remove('is-busy');
+        read.textContent = 'Location is off for this site. Pick a county on the map instead.';
+      }, { maximumAge: 600000, timeout: 10000 });
+    });
+  }
+
+  // First paint: the server drew the rows; work out the rest without redrawing them.
+  (function () {
+    var s = state();
+    shown = JOBS.filter(function (j) { return fits(j, s); });
+    counts(s); paintWeek(s); paintMap(s); paintPicked(s);
+    if (!shown.length) paintEmpty(s);
+  })();
+})();
+</script>
+{% endblock %}

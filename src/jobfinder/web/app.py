@@ -74,7 +74,8 @@ from jobfinder.normalize.dedup import (
 )
 from jobfinder.normalize.experience import matches_experience
 from jobfinder.normalize import facts as advert_facts
-from jobfinder.normalize.taxonomy import FIELDS, GROUPS, extract_skills, is_technical
+from jobfinder.normalize import shifts
+from jobfinder.normalize.taxonomy import FIELDS, GROUPS, classify_title, extract_skills, is_technical
 
 logger = logging.getLogger(__name__)
 
@@ -2982,6 +2983,316 @@ def reset(request: Request):
 @app.get("/privacy", response_class=HTMLResponse)
 def privacy(request: Request):
     return templates.TemplateResponse(request, "privacy.html", _base_context(request))
+
+
+# ------------------------------------------------------------------- part-time
+
+# Kinds of work, in the words someone after a part-time job uses, each the fields of the
+# taxonomy that make it up. A title in several takes the first kind listed here, so a
+# "Pharmacy Care Assistant" is care before it is a shop job. Anything in no kind is
+# "Something else", said plainly rather than forced into one.
+PART_TIME_KINDS: tuple[tuple[str, str, frozenset[str]], ...] = (
+    ("care", "Care & support", frozenset({"care-support"})),
+    ("kids", "Childcare & teaching", frozenset({"childcare", "education"})),
+    ("health", "Healthcare", frozenset({"healthcare", "laboratory"})),
+    ("food", "Food, drink & hotels", frozenset({"hospitality", "leisure"})),
+    ("cleaning", "Cleaning & security", frozenset({"cleaning-security"})),
+    ("moving", "Driving & warehouse", frozenset({"transport", "supply-chain", "manufacturing"})),
+    ("shops", "Shops & retail", frozenset({"retail", "sales"})),
+    ("office", "Office & phones", frozenset({
+        "administration", "customer-support", "public-sector", "accounting", "finance",
+        "marketing", "hr", "recruiting", "operations", "content-communications",
+        "consulting", "project-management", "legal", "compliance", "audit-risk",
+    })),
+)
+PART_TIME_OTHER = ("other", "Something else")
+PART_TIME_KIND_LABELS = dict([(key, label) for key, label, _ in PART_TIME_KINDS]
+                             + [PART_TIME_OTHER])
+
+# The 26 counties as the tiles of a map, each at (column, row) on a 6 by 7 grid that
+# keeps them roughly where they are, with the code on Irish number plates.
+COUNTY_TILES: tuple[tuple[str, str, int, int], ...] = (
+    ("Donegal", "DL", 2, 0),
+    ("Sligo", "SO", 1, 1), ("Leitrim", "LM", 2, 1), ("Cavan", "CN", 3, 1),
+    ("Monaghan", "MN", 4, 1),
+    ("Mayo", "MO", 0, 2), ("Roscommon", "RN", 1, 2), ("Longford", "LD", 2, 2),
+    ("Westmeath", "WH", 3, 2), ("Meath", "MH", 4, 2), ("Louth", "LH", 5, 2),
+    ("Galway", "G", 1, 3), ("Offaly", "OY", 2, 3), ("Kildare", "KE", 3, 3),
+    ("Dublin", "D", 4, 3),
+    ("Clare", "CE", 1, 4), ("Tipperary", "T", 2, 4), ("Laois", "LS", 3, 4),
+    ("Wicklow", "WW", 4, 4),
+    ("Limerick", "L", 1, 5), ("Kilkenny", "KK", 2, 5), ("Carlow", "CW", 3, 5),
+    ("Wexford", "WX", 4, 5),
+    ("Kerry", "KY", 0, 6), ("Cork", "C", 1, 6), ("Waterford", "W", 2, 6),
+)
+# Rough middles, for "Use where I am", which picks the nearest on the device itself.
+COUNTY_CENTRES = {
+    "Carlow": (52.72, -6.84), "Cavan": (53.99, -7.36), "Clare": (52.85, -8.98),
+    "Cork": (51.95, -8.70), "Donegal": (54.92, -7.95), "Dublin": (53.35, -6.26),
+    "Galway": (53.35, -8.75), "Kerry": (52.15, -9.57), "Kildare": (53.17, -6.80),
+    "Kilkenny": (52.58, -7.22), "Laois": (53.00, -7.37), "Leitrim": (54.12, -8.00),
+    "Limerick": (52.50, -8.75), "Longford": (53.73, -7.79), "Louth": (53.92, -6.49),
+    "Mayo": (53.90, -9.30), "Meath": (53.60, -6.66), "Monaghan": (54.15, -6.90),
+    "Offaly": (53.23, -7.60), "Roscommon": (53.75, -8.27), "Sligo": (54.15, -8.60),
+    "Tipperary": (52.65, -7.85), "Waterford": (52.20, -7.60), "Westmeath": (53.53, -7.45),
+    "Wexford": (52.45, -6.60), "Wicklow": (52.98, -6.37),
+}
+# The county value for a role whose advert names only the country.
+NO_COUNTY = "ireland"
+PART_TIME_PAGE = 30
+
+# Reading every advert for its hours costs about a quarter of a second for the whole
+# part-time list, so each job's reading is kept until the next crawl changes the data.
+_part_time_cache: dict = {"anchor": None, "jobs": {}}
+_part_time_lock = threading.Lock()
+
+
+def _part_time_kind(title: str) -> str:
+    fields = set(classify_title(title))
+    for key, _label, members in PART_TIME_KINDS:
+        if fields & members:
+            return key
+    return PART_TIME_OTHER[0]
+
+
+def _part_time_reading(job: JobPosting) -> tuple[int, str | None, str]:
+    """(times of the week as bits, weekly hours, kind of work) for one advert."""
+    found = shifts.when_mentioned(job.title, job.description)
+    return (
+        shifts.when_bits(found),
+        shifts.weekly_hours(job.title, job.description),
+        _part_time_kind(job.title),
+    )
+
+
+def _part_time_jobs(session) -> tuple[list[dict], list[dict]]:
+    """Every part-time job open in Ireland, newest first, as the page's data, with the
+    employers they belong to (biggest first)."""
+    anchor = session.scalar(select(func.max(JobPosting.last_seen_at)))
+    rows = session.scalars(
+        select(JobPosting).where(
+            _is_offerable(), _in_ireland(), JobPosting.is_part_time.is_(True)
+        )
+    ).all()
+    grouping = _grouping_keys(session, rows)
+    rows = _prefer_direct_sources(session, rows, grouping)
+
+    with _part_time_lock:
+        if _part_time_cache["anchor"] != anchor:
+            _part_time_cache.update(anchor=anchor, jobs={})
+        readings = _part_time_cache["jobs"]
+        for row in rows:
+            if row.id not in readings:
+                readings[row.id] = _part_time_reading(row)
+        readings = dict(readings)
+
+    company_ids = {row.company_id for row in rows}
+    companies = {
+        cid: (name, website)
+        for cid, name, website in session.execute(
+            select(Company.id, Company.name, Company.website).where(Company.id.in_(company_ids))
+        ).all()
+    } if company_ids else {}
+
+    # A title that names no kind ("Team Member", "Supervisor") takes its employer's,
+    # when that employer's other part-time roles plainly are one: a Spar "Team Member"
+    # is a shop job. Below three named roles, or with no clear majority, it stays put.
+    by_employer: dict[int, list[str]] = {}
+    for row in rows:
+        by_employer.setdefault(row.company_id, []).append(readings[row.id][2])
+    usual: dict[int, str] = {}
+    for cid, kinds in by_employer.items():
+        named = [k for k in kinds if k != PART_TIME_OTHER[0]]
+        if len(named) >= 3:
+            top = max(set(named), key=named.count)
+            if named.count(top) / len(named) >= 0.6:
+                usual[cid] = top
+
+    now = datetime.now(timezone.utc)
+    jobs: list[dict] = []
+    for row in rows:
+        bits, hours, kind = readings[row.id]
+        if kind == PART_TIME_OTHER[0]:
+            kind = usual.get(row.company_id, kind)
+        posted = _as_utc(row.posted_at) or _as_utc(row.first_seen_at)
+        first_seen = _as_utc(row.first_seen_at)
+        name, website = companies.get(row.company_id, ("Unknown", None))
+        jobs.append({
+            "id": row.id,
+            "title": row.title,
+            "company_id": row.company_id,
+            "company": name,
+            "domain": _logo_domain(name, website),
+            "place": _place_label(row) or "Ireland",
+            "county": "Dublin" if row.is_dublin else (row.region or NO_COUNTY),
+            "kind": kind,
+            "when": bits,
+            "when_names": [n for n, bit in shifts.WHEN_BITS.items() if bits & bit],
+            "hours": hours,
+            "posted": posted,
+            "age": _age(posted, now) if row.posted_at else (
+                f"seen {_age(first_seen, now)}" if first_seen else ""),
+            "new": bool(first_seen and now - first_seen < timedelta(days=1)),
+            "url": row.url,
+            "advert_key": key_for(*grouping[row.id]),
+        })
+    jobs = _take_turns(jobs)
+
+    counts: dict[int, int] = {}
+    for job in jobs:
+        counts[job["company_id"]] = counts.get(job["company_id"], 0) + 1
+    employers = sorted(
+        (
+            {"id": cid, "name": companies[cid][0],
+             "domain": _logo_domain(*companies[cid]), "jobs": n}
+            for cid, n in counts.items() if cid in companies
+        ),
+        key=lambda e: (-e["jobs"], e["name"].lower()),
+    )
+    return jobs, employers
+
+
+def _take_turns(jobs: list[dict]) -> list[dict]:
+    """Newest day first, and within a day the employers take turns.
+
+    A care agency or a chain posts twenty adverts in one afternoon ("Healthcare Assistant,
+    Gorey", "Healthcare Assistant, New Ross", ...), and newest first put all twenty at the
+    top. Taking turns keeps the order by day and lets every employer of that day show.
+    """
+    by_day: dict = {}
+    for job in jobs:
+        day = job["posted"].astimezone(DUBLIN).date() if job["posted"] else None
+        by_day.setdefault(day, []).append(job)
+    ordered: list[dict] = []
+    for day in sorted(by_day, key=lambda d: (d is not None, d), reverse=True):
+        queues: dict[int, list[dict]] = {}
+        for job in sorted(by_day[day], key=lambda j: j["posted"], reverse=True):
+            queues.setdefault(job["company_id"], []).append(job)
+        lines = list(queues.values())
+        while lines:
+            ordered.extend(line.pop(0) for line in lines)
+            lines = [line for line in lines if line]
+    return ordered
+
+
+def _part_time_filter(jobs: list[dict], picked: dict) -> list[dict]:
+    """The jobs that fit what was picked. Mirrors `filter` in part_time.html, which does
+    the same on the device once the page is open; this serves a shared link and a
+    browser without JS."""
+    want = shifts.when_bits(set(picked["when"]))
+    query = picked["q"].casefold()
+    kept = []
+    for job in jobs:
+        if want and not job["when"] & want and not (picked["unstated"] and not job["when"]):
+            continue
+        if picked["county"] and job["county"] != picked["county"]:
+            continue
+        if picked["kinds"] and job["kind"] not in picked["kinds"]:
+            continue
+        if picked["company"] and job["company_id"] != picked["company"]:
+            continue
+        if query and query not in job["title"].casefold() and query not in job["company"].casefold():
+            continue
+        kept.append(job)
+    return kept
+
+
+@app.get("/part-time", response_class=HTMLResponse)
+def part_time(request: Request):
+    """Part-time work in Ireland: when it falls in the week, where, and what kind."""
+    params = request.query_params
+    counties = {name for name, *_ in COUNTY_TILES} | {NO_COUNTY}
+    company = params.get("co", "")
+    picked = {
+        "when": [w for w in params.getlist("when") if w in shifts.WHEN_BITS],
+        "unstated": params.get("unstated") == "1",
+        "county": params.get("county") if params.get("county") in counties else "",
+        "kinds": [k for k in params.getlist("kind") if k in PART_TIME_KIND_LABELS],
+        "company": int(company) if company.isdigit() else None,
+        "q": params.get("q", "").strip()[:80],
+    }
+    # Show more, for a browser without JS: a link asking for a longer first page.
+    limit = params.get("n", "")
+    limit = min(max(int(limit), PART_TIME_PAGE), 3000) if limit.isdigit() else PART_TIME_PAGE
+
+    with session_scope() as session:
+        jobs, employers = _part_time_jobs(session)
+
+    account = _account(request)
+    applied = _applied_keys(account)
+    for job in jobs:
+        job["applied"] = job["advert_key"] in applied
+
+    shown = _part_time_filter(jobs, picked)
+    when_counts = {
+        name: sum(1 for j in jobs if j["when"] & bit) for name, bit in shifts.WHEN_BITS.items()
+    }
+    county_counts: dict[str, int] = {}
+    kind_counts: dict[str, int] = {}
+    for job in jobs:
+        county_counts[job["county"]] = county_counts.get(job["county"], 0) + 1
+        kind_counts[job["kind"]] = kind_counts.get(job["kind"], 0) + 1
+    kinds = [
+        {"key": key, "label": label, "jobs": kind_counts.get(key, 0)}
+        for key, label in [(k, l) for k, l, _ in PART_TIME_KINDS] + [PART_TIME_OTHER]
+        if kind_counts.get(key)
+    ]
+    biggest = max(county_counts.values(), default=1)
+    tiles = [
+        {"name": name, "code": code, "col": col, "row": row,
+         "jobs": county_counts.get(name, 0),
+         "heat": round((county_counts.get(name, 0) / biggest) ** 0.5, 3)}
+        for name, code, col, row in COUNTY_TILES
+    ]
+    emp_index = {e["id"]: i for i, e in enumerate(employers)}
+
+    # Every row travels with the page for its own filtering, so each is a bare list in
+    # the order `ROW` in part_time.html reads it: as objects the key names alone were a
+    # quarter of the page. The advert key only matters to "Did you apply?", so it is
+    # sent only to someone signed in.
+    data = {
+        "rows": [
+            [j["id"], j["title"], emp_index.get(j["company_id"], -1), j["place"],
+             j["county"], j["kind"], j["when"], j["hours"] or "", j["age"], int(j["new"]),
+             j["url"], j["advert_key"] if account else "", int(j["applied"])]
+            for j in jobs
+        ],
+        "employers": [[e["name"], e["domain"], e["id"]] for e in employers],
+        "when": shifts.WHEN_BITS,
+        "whenLabels": shifts.WHEN_LABELS,
+        "kinds": PART_TIME_KIND_LABELS,
+        "centres": COUNTY_CENTRES,
+        "page": PART_TIME_PAGE,
+        # Apply follows the finder's rule: signed in, the click is noted so the site can
+        # ask "Did you apply?"; signed out where accounts exist, it goes through sign-in.
+        "signedIn": bool(account),
+        "accounts": supabase.configured(),
+    }
+
+    context = _base_context(request)
+    context.update(
+        nav="part-time",
+        jobs=shown[:limit],
+        shown_total=len(shown),
+        total=len(jobs),
+        counties_hiring=sum(1 for name, *_ in COUNTY_TILES if county_counts.get(name)),
+        no_county=county_counts.get(NO_COUNTY, 0),
+        says_when=sum(1 for j in jobs if j["when"]),
+        says_hours=sum(1 for j in jobs if j["hours"]),
+        when_counts=when_counts,
+        when_labels=shifts.WHEN_LABELS,
+        tiles=tiles,
+        kinds=kinds,
+        employers=employers,
+        top=[e for e in employers if e["domain"]][:14],
+        picked=picked,
+        picked_company=next((e for e in employers if e["id"] == picked["company"]), None),
+        # Christmas hiring is news from October to December, and only said when there is
+        # some: the note is a live count like everything else on the desk.
+        season_note=datetime.now(DUBLIN).month >= 10 and when_counts["seasonal"] > 0,
+        part_time_data=data,
+    )
+    return templates.TemplateResponse(request, "part_time.html", context)
 
 
 # ------------------------------------------------------------------- companies
