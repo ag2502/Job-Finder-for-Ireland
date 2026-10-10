@@ -79,3 +79,38 @@ def mark_sent(user_id: str, when: datetime) -> None:
     )
     if response.status_code >= 400:
         raise ServiceError(f"mark_sent: HTTP {response.status_code} {response.text[:200]}")
+
+
+def event_reminders(since: datetime) -> list[dict]:
+    """Every reminder for an event starting after `since`. Empty, rather than an error,
+    while `schema.sql` has not been re-run to create the table."""
+    try:
+        return _get("event_reminders", {"select": "*", "starts_at": f"gte.{since.isoformat()}",
+                                        "order": "starts_at.asc", "limit": "10000"})
+    except ServiceError as exc:
+        if "event_reminders" in str(exc) or "404" in str(exc):
+            return []
+        raise
+
+
+def finished_reminders(before: datetime) -> list[dict]:
+    return _get("event_reminders", {"select": "id", "starts_at": f"lt.{before.isoformat()}",
+                                    "limit": "10000"})
+
+
+def update_reminder(reminder_id: str, **columns) -> None:
+    response = httpx.patch(
+        f"{settings.supabase_url}/rest/v1/event_reminders", headers=_headers(),
+        params={"id": f"eq.{reminder_id}"}, json=columns, timeout=TIMEOUT,
+    )
+    if response.status_code >= 400:
+        raise ServiceError(f"update_reminder: HTTP {response.status_code} {response.text[:200]}")
+
+
+def delete_reminder(reminder_id: str) -> None:
+    response = httpx.delete(
+        f"{settings.supabase_url}/rest/v1/event_reminders", headers=_headers(),
+        params={"id": f"eq.{reminder_id}"}, timeout=TIMEOUT,
+    )
+    if response.status_code >= 400:
+        raise ServiceError(f"delete_reminder: HTTP {response.status_code} {response.text[:200]}")

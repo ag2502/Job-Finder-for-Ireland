@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Event reminder</title></head>
+<body style="margin:0;padding:0;background:#eceef2;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#15171c">
+<div style="max-width:600px;margin:0 auto;padding:24px 14px">
+  <p style="margin:0 0 14px;font-size:15px;font-weight:700;letter-spacing:-.01em">sorted<span style="color:#5c626d;font-weight:500">.place</span></p>
+  <div style="background:#ffffff;border:1px solid #dde1e7;border-radius:14px;overflow:hidden">
+    <div style="padding:22px 24px 6px">
+      <h2 style="margin:0 0 4px;font-size:19px;line-height:1.25;letter-spacing:-.02em">{{ "Coming up" if items|length > 1 else items[0].countdown }}</h2>
+      <p style="margin:0 0 6px;font-size:13.5px;color:#5c626d">You asked us to remind you{% if items|length > 1 %} about these{% endif %}.</p>
+    </div>
+    {% for item in items %}
+    <div style="padding:16px 24px;border-top:1px solid #eef0f3">
+      <p style="margin:0 0 4px;font-size:12.5px;font-weight:700;color:{{ '#157a3a' if item.day_before else '#5c626d' }}">{{ item.countdown }}</p>
+      <a href="{{ item.page }}" style="font-size:17px;font-weight:650;color:#1a55c2;text-decoration:none;line-height:1.35">{{ item.title }}</a>
+      <p style="margin:4px 0 0;font-size:14px;color:#454b56;line-height:1.5">{{ item.when }}{% if item.where %}<br>{{ item.where }}{% endif %}</p>
+      <p style="margin:12px 0 0;font-size:13.5px;line-height:1.8">
+        <a href="{{ item.url }}" style="display:inline-block;padding:8px 16px;border-radius:999px;background:#2b74f0;color:#ffffff;font-weight:600;text-decoration:none">Details and registration</a>
+        {% if item.calendar %}&nbsp; <a href="{{ item.calendar }}" style="color:#1a55c2;font-weight:600">Add to calendar</a>{% endif %}
+        &nbsp; <a href="{{ stop(item) }}" style="color:#5c626d">Stop reminding me</a>
+      </p>
+    </div>
+    {% endfor %}
+    <div style="padding:16px 24px 20px;border-top:1px solid #dde1e7;background:#f4f5f7">
+      <p style="margin:0;font-size:13px;color:#5c626d;line-height:1.6">
+        Registration is on the organiser's own site. <a href="{{ site }}/events" style="color:#1a55c2">See every careers event</a> on Sorted Place.
+      </p>
+    </div>
+  </div>
+  <p style="margin:16px 4px 0;font-size:12.5px;color:#5c626d;line-height:1.6">
+    You get this because you pressed Remind me on Sorted Place. It stops on its own once the event has happened,
+    and each event above has its own link to stop sooner.
+  </p>
+</div>
+</body>
+</html>

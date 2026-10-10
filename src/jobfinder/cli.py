@@ -372,11 +372,16 @@ def cmd_coverage(args: argparse.Namespace) -> int:
 
 
 def cmd_send_alerts(args: argparse.Namespace) -> int:
-    """Email every subscriber whose alert is due and has something new in it."""
+    """Email every subscriber whose alert is due and has something new in it, and every
+    event reminder that is due."""
     from jobfinder.alerts.digest import run
+    from jobfinder.events import reminders
 
     init_db()
     print(run(dry_run=args.dry_run))
+    # Event reminders go out in the same step: the same keys, the same mail server.
+    with session_scope() as session:
+        print(reminders.run(session, dry_run=args.dry_run))
     return 0
 
 

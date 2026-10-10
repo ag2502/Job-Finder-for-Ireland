@@ -1,0 +1,17 @@
+Sorted Place: you asked us to remind you
+{% for item in items %}
+
+{{ item.countdown }}: {{ item.title }}
+{{ item.when }}{% if item.where %}
+
+{{ item.where }}{% endif %}
+
+Details and registration: {{ item.url }}
+{% if item.calendar %}
+Add to calendar: {{ item.calendar }}
+{% endif %}
+Stop reminding me: {{ stop(item) }}
+{% endfor %}
+
+These stop on their own once the event has happened.
+Every careers event: {{ site }}/events
