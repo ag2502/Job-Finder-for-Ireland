@@ -1957,3 +1957,19 @@ def test_wordpress_reads_the_town_from_a_boots_title_and_keeps_only_irish_roles(
     # Without the option every role is kept, and a UK title is left unplaced.
     everything = WordPressAdapter().fetch("boots.jobs|jobs").jobs
     assert len(everything) == 3 and everything[1].location_raw is None
+
+
+def test_talentbrew_reads_ikeas_card_template():
+    """IKEA's cards use job-list__ class names and name only the country."""
+    from jobfinder.sources.talentbrew import parse_list
+
+    page = (
+        '<section id="search-results-list"><ul><li class="job-list__item">'
+        '<a href="/en/job/sligo/sales-specialist-ikea-sligo/24107/101556338384" data-job-id="101556338384">'
+        '<span class="visually-hidden">View job</span>'
+        '<span class="job-list__title">Sales Specialist - IKEA Sligo</span>'
+        '<ul><li><span class="job-list__location">Ireland</span></li></ul></a></li></ul></section>'
+    )
+    roles, _ = parse_list(page, "https://jobs.ikea.com")
+    assert roles == [("101556338384", "https://jobs.ikea.com/en/job/sligo/sales-specialist-ikea-sligo/24107/101556338384",
+                      "Sales Specialist - IKEA Sligo", "Sligo, Ireland")]

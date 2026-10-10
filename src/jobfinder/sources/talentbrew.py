@@ -55,13 +55,19 @@ def parse_list(page: str, base: str) -> tuple[list[tuple[str, str, str, str | No
             continue
         href = link.attributes.get("href") or ""
         job_id = link.attributes.get("data-job-id") or (JOB_ID.search(href) or [None, None])[1]
-        heading = link.css_first("h2, h3")
+        # IKEA's template names its parts job-list__title and job-list__location.
+        heading = link.css_first("h2, h3, .job-list__title")
         title = _clean((heading or link).text())
         if not job_id or not title:
             continue
-        office = item.css_first(".job-location")
-        roles.append((job_id, urljoin(base, href), title,
-                      _clean(office.text()) if office is not None else None))
+        office_node = item.css_first(".job-location, .job-list__location")
+        office = _clean(office_node.text()) if office_node is not None else None
+        # A card naming only the country ("Ireland") leaves the town to the URL,
+        # /job/sligo/...
+        city = CITY.search(href)
+        if office and "," not in office and city:
+            office = f"{city.group(1).replace('-', ' ').title()}, {office}"
+        roles.append((job_id, urljoin(base, href), title, office))
     total = TOTAL.search(page)
     return roles, int(total.group(1)) if total else None
 
