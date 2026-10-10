@@ -77,6 +77,13 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   future results. A job counts as applied to only when the searcher says so (2026-09-28):
   Apply opens the employer's posting, and the site asks "Did you apply?" when they come
   back, since pressing Apply is not applying.
+- Careers events (2026-10-10): `/events` lists job fairs, graduate and college
+  events, inclusive hiring fairs, tech meetups and workshops across Ireland, read every
+  crawl from Eventbrite, Meetup, Luma and gradireland and kept only on evidence they are
+  about work. Finished events move to Completed; nothing is deleted. Registration is
+  always on the listing's own site.
+- Filters for a salary floor (from €30k+, on stated pay only) and for how long ago a
+  job was posted (today to over a year ago), and Share on a job, a search and an event.
 - An employer directory covering the whole registry, including employers that cannot be
   crawled — those link out to their own careers page rather than being hidden.
 
@@ -93,7 +100,9 @@ Verified: 28 sources forced to return HTTP 503 across three consecutive crawls c
   daily or weekly. Nothing is sent for anything not ticked, an email is sent only when
   something new has opened, and every email has a one-click unsubscribe. There are no
   push notifications, no in-app bell or unread counts, and no marketing email; copy must
-  never imply otherwise.
+  never imply otherwise. Added 2026-10-10 at the owner's request: **Remind me** on a
+  careers event emails that person daily or weekly (their choice) until it starts, and
+  once the day before, then stops by itself; each email has a link to stop it.
 - No applications taken on-site, no employer accounts, no pricing or payments.
 
 **Hard constraints:**

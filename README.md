@@ -301,6 +301,29 @@ by field, so the ticked fields come first and every other part-time job follows 
 its own heading. Someone after evening or weekend hours takes the shop floor as readily
 as the office.
 
+## Careers events
+
+`/events` lists careers events across Ireland, refreshed by `jobfinder crawl-events`, a
+step of every crawl (`events/`):
+
+| Source | How it is read | What it brings |
+|---|---|---|
+| Eventbrite | its Ireland search pages, whose results sit as JSON in the page (the search API closed in 2020; robots.txt allows `/d/`) | Intreo Work and Skills fairs, college careers fairs, recruitment days |
+| Meetup | the Tech and Career & Business categories for Dublin, Cork, Galway and Limerick, from schema.org data (no `source=` or `keywords=`, which its robots.txt forbids) | tech user groups and meetups, in person only |
+| Luma | the Dublin page's schema.org data | startup and tech events |
+| gradireland | the events hub's Gatsby page data | graduate and student events |
+
+A listing is kept only on evidence it is about work: Eventbrite's own Career tag, a
+careers word in the title, or a tech word from a tech listing. A block list (dating,
+hobbies, parties, gigs) overrides all of it, and applies to events already stored too,
+which are hidden rather than deleted. A test run read 730 listings and kept 64. Like
+jobs, events are never deleted; an event that has finished is shown under Completed.
+
+**Remind me** saves a row in Supabase's `event_reminders` table (re-run `schema.sql` to
+create it). `jobfinder send-alerts` then emails each person daily or weekly until the
+event, once the day before, never between 22:00 and 07:00, and deletes the reminder
+once the event has happened.
+
 ## Matching
 
 Rule-based parsing and lexical ranking, chosen so the whole thing runs on free tiers:
