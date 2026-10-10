@@ -923,8 +923,10 @@ def home(request: Request):
         return RedirectResponse(f"/auth/callback?{request.url.query}", status_code=303)
 
     params = request.query_params
-    # A search in a link names its fields, or is the part-time switch on its own.
-    if params.getlist("f") or (params.get("pt") or "").lower() in ("1", "true", "on", "yes"):
+    # A search in a link names its fields, or is a typed search or the part-time switch
+    # on its own.
+    if (params.getlist("f") or (params.get("q") or "").strip()
+            or (params.get("pt") or "").lower() in ("1", "true", "on", "yes")):
         form = {
             field: (params.getlist(key) if key in ("f", "field") else params.get(key))
             for key, field in URL_KEYS.items()
@@ -1040,7 +1042,9 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     previous_profile = _profile(request) or {}
     chosen_fields = [f for f in (form.get("chosen_fields") or []) if f]
     years = form.get("years")
-    q = form.get("q")
+    # What was typed in the search bar, tidied. Capped so a pasted advert cannot become
+    # a hundred LIKE clauses.
+    q = " ".join((form.get("q") or "").split())[:100] or None
     sort = form.get("sort")
     show_applied = form.get("show_applied")
     use_cv = form.get("use_cv")
@@ -1052,11 +1056,14 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     # Part-time work is the exception: someone after evening or weekend hours usually
     # takes whatever is near them, so the switch alone is a whole search, every
     # part-time job in Ireland, and a ticked field only puts its roles first.
+    # A typed search is a whole search too: someone who knows they want "barista" should
+    # not have to find the drawer it lives in first.
     part_time_alone = bool(form.get("part_time_only")) and not chosen_fields
+    query_alone = bool(q) and not chosen_fields
     effective_fields = chosen_fields or (
-        [] if part_time_alone else previous_profile.get("fields") or []
+        [] if part_time_alone or query_alone else previous_profile.get("fields") or []
     )
-    if not effective_fields and not part_time_alone:
+    if not effective_fields and not part_time_alone and not query_alone:
         context = _finder_context(request)
         context["error"] = (
             "Pick at least one role or field you want to work in. Your CV tells us "
@@ -1160,7 +1167,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
     labels = [FIELDS[f].label for f in effective_fields if f in FIELDS]
     context["search_title"] = (
         ", ".join(labels[:2]) + (f" and {len(labels) - 2} more" if len(labels) > 2 else "")
-        if labels else "Part-time"
+        if labels else q or "Part-time"
     )
 
     # HTMX asks for the table alone; a normal form post gets the whole page back. Show
@@ -1720,7 +1727,7 @@ def _search_results(
         else:
             stmt = stmt.where(_in_ireland())
         if query:
-            stmt = stmt.where(JobPosting.title.ilike(f"%{query}%"))
+            stmt = stmt.where(_query_clause(query))
 
         rows = session.execute(stmt).scalars().all()
 
@@ -1773,10 +1780,13 @@ def _search_results(
         # under their own heading, rather than disappearing.
         # Part-time work is the same: a few hundred roles across every field, and someone
         # after evening or weekend hours takes the shop floor as readily as the office.
+        # A typed search is the same again: the searcher has said what they want in
+        # words, so a match in another field is still a match, just listed after.
         early = bool(
             profile.get("internships_only")
             or profile.get("graduate_only")
             or profile.get("part_time_only")
+            or query
         )
         scored = rank_jobs(rows, candidate, limit=len(rows), only_relevant=not early)
         by_id = {row.id: row for row in rows}
@@ -2035,8 +2045,8 @@ def _search_results(
             rank.TIER_NEAR: "Closely related roles",
             rank.TIER_FAR: "A sideways move into another field",
             rank.TIER_SKILLS: (
-                f"Every other {_early_noun(profile)} open now" if profile.get("fields")
-                else f"Every {_early_noun(profile)} open now"
+                f"Every other {_early_noun(profile)} {_query_phrase(query)}" if profile.get("fields")
+                else f"Every {_early_noun(profile)} {_query_phrase(query)}"
             ) if early else "Matched on your skills, not your fields",
         },
         # False for the part-time switch on its own, which has no fields to rank first.
@@ -2126,6 +2136,30 @@ def _search_results(
         "graduate_only": bool(profile.get("graduate_only")),
         "part_time_only": bool(profile.get("part_time_only")),
     }
+
+
+def _query_phrase(query: str | None) -> str:
+    """How a band heading ends: what was searched for, or that the list is everything."""
+    return f"matching \u201c{query}\u201d" if query else "open now"
+
+
+def _query_clause(query: str):
+    """Every word typed appears in the job's title or its employer's name.
+
+    Word by word rather than as one phrase, so "engineer software" finds "Software
+    Engineer", "software engineer" also finds "Software Test Engineer", and "google
+    engineer" finds Google's engineering roles. The LIKE wildcards are escaped: "100%" means a percent sign.
+    """
+    clauses = []
+    for word in query.split():
+        pattern = "%" + re.sub(r"([\\%_])", r"\\\1", word) + "%"
+        clauses.append(or_(
+            JobPosting.title.ilike(pattern, escape="\\"),
+            JobPosting.company_id.in_(
+                select(Company.id).where(Company.name.ilike(pattern, escape="\\"))
+            ),
+        ))
+    return and_(*clauses)
 
 
 def _early_noun(profile: dict) -> str:

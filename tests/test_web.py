@@ -137,12 +137,13 @@ def test_submit_button_starts_disabled(client):
     """The requirement is explained before the click, not after it."""
     response = client.get("/")
     assert 'id="find-btn" disabled' in response.text
-    assert "Pick at least one above" in response.text
+    assert "Search, pick at least one area, or Part-time only" in response.text
 
 
-def test_roles_are_marked_required_in_the_form(client):
-    response = client.get("/")
-    assert 'stamp--filled">required' in response.text
+def test_the_search_bar_sits_above_the_areas(client):
+    page = client.get("/").text
+    assert page.index('id="q"') < page.index('id="roles-heading"')
+    assert 'id="search-btn"' in page
 
 
 def test_roles_alone_succeed(client):
@@ -1371,7 +1372,7 @@ def shift_jobs(monkeypatch):
             yield session
 
     monkeypatch.setattr(web, "session_scope", scope)
-    return lambda **profile: web._search_results({"fields": ["retail"], **profile})
+    return lambda query=None, **profile: web._search_results({"fields": ["retail"], **profile}, query=query)
 
 
 def test_part_time_only_keeps_part_time_roles_in_any_field(shift_jobs):
@@ -1414,3 +1415,29 @@ def test_the_part_time_switch_needs_no_field_but_a_bare_search_still_does(client
     # The link it writes runs the same search.
     page = client.get("/?pt=1")
     assert page.status_code == 200 and "Part-time jobs in Ireland" in page.text
+
+
+def test_a_typed_search_needs_no_field(shift_jobs):
+    """No field ticked: every job with the words in its title or company, any field."""
+    result = shift_jobs(fields=[], query="assistant")
+    assert _titles(result) == ["Part Time Sales Assistant"]
+    assert not result["chosen_any"]
+
+
+def test_a_typed_search_matches_each_word_in_title_or_company(shift_jobs):
+    assert _titles(shift_jobs(fields=[], query="acme engineer")) == ["Software Engineer"]
+    assert _titles(shift_jobs(fields=[], query="engineer software")) == ["Software Engineer"]
+    assert _titles(shift_jobs(fields=[], query="100%")) == []
+
+
+def test_a_typed_search_keeps_matches_outside_the_ticked_fields(shift_jobs):
+    """Retail ticked and "engineer" typed: the engineering job still comes back."""
+    assert "Software Engineer" in _titles(shift_jobs(query="engineer"))
+
+
+def test_a_typed_search_alone_runs_from_the_form_and_from_a_link(client):
+    response = client.post("/search", data={"q": "  engineer  "}, headers={"HX-Request": "true"})
+    assert response.status_code == 200
+    assert response.headers["HX-Push-Url"] == "/?q=engineer"
+    page = client.get("/?q=engineer")
+    assert page.status_code == 200 and "engineer jobs in Ireland" in page.text

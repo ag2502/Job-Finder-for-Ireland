@@ -24,7 +24,7 @@
       {% elif part_time_only %}
         <span data-roll>{{ "{:,}".format(total) }}</span> part-time job{{ "" if total == 1 else "s" }}
       {% else %}
-        <span data-roll>{{ "{:,}".format(total) }}</span> job{{ "" if total == 1 else "s" }} match
+        <span data-roll>{{ "{:,}".format(total) }}</span> job{{ "" if total == 1 else "s" }} match{{ "es" if total == 1 else "" }}{% if query %} &ldquo;{{ query }}&rdquo;{% endif %}
       {% endif %}
     </h2>
 
@@ -66,7 +66,7 @@
       {% if candidate_years > 15 %}15+ years of experience &middot;
       {% else %}asking {{ candidate_years }} year{{ "" if candidate_years == 1 else "s" }} or less &middot;{% endif %}
     {% endif %}
-    {% if part_time_only and not chosen_any and total %}Every part-time job open in Ireland &middot; {% elif (early_only or part_time_only) and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Ireland &middot; {% endif %}
+    {% if query and not chosen_any and total %}Every {{ pt }}job open in Ireland with &ldquo;{{ query }}&rdquo; in the title or company &middot; {% elif part_time_only and not chosen_any and total %}Every part-time job open in Ireland &middot; {% elif (early_only or part_time_only or query) and total %}{{ in_fields }} in or near the fields you picked, then every other one open in Ireland &middot; {% endif %}
     {% if by_location %}busiest places first, best matches first within each{% elif skill_count %}closest to your CV first{% if cv_name %} ({{ cv_name }}){% endif %}{% else %}best matches first{% endif %}
     {% if candidate_years is not none and candidate_years <= 2 and not early_only %}
       &middot; graduate and entry-level jobs included
@@ -281,7 +281,10 @@
   {{ mascot("surprised", "mascot--big") }}
   <h3 style="margin-bottom:8px">No jobs matched</h3>
   <p class="muted" style="margin:0 auto">
-    {% if graduate_only and not internships_only %}
+    {% if query and not chosen_any and not early_only %}
+      Nothing open in Ireland has &ldquo;{{ query }}&rdquo; in its title or company name
+      right now. Try fewer words, a shorter word, or picking an area instead.
+    {% elif graduate_only and not internships_only %}
       There are no graduate programmes open in those areas right now. Graduate intakes
       are seasonal, so this changes a lot through the year. Try more areas, or
       turn on Active jobs.
@@ -291,10 +294,10 @@
       the year. Try more areas, or turn on Active jobs.
     {% elif part_time_only %}
       There are no part-time jobs open that fit this search right now. Try raising the
-      years of experience, clearing the title search, or picking a different location.
+      years of experience, clearing the search, or picking a different location.
     {% else %}
       Nothing open in those areas right now. Try raising the years of experience,
-      picking more areas, clearing the title search, or turning on Active jobs.
+      picking more areas, clearing the search, or turning on Active jobs.
     {% endif %}
   </p>
 </div>
