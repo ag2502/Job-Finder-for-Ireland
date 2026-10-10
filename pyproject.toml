@@ -1,7 +1,7 @@
 [project]
 name = "jobfinder"
 version = "0.1.0"
-description = "Dublin job portal - aggregates active openings from company career pages and ATS APIs"
+description = "Sorted Place: every job in Ireland, in one place. Aggregates active openings from company career pages and ATS APIs"
 readme = "README.md"
 # AGPL, the owner's choice (first needed for PyMuPDF, used by CV tailoring until it was
 # removed on 2026-09-28); see LICENSE. The site links its own source from the footer,

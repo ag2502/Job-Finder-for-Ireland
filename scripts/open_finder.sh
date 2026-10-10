@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Launch the Ireland Job Finder interface and open it in a browser.
+# Launch Sorted Place and open it in a browser.
 #
 # Safe to run repeatedly: if the server is already up on the port it just opens the
 # browser rather than starting a second copy.

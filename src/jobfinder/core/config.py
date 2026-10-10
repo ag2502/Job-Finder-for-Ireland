@@ -78,7 +78,7 @@ class Settings(BaseSettings):
 
     # Identifies the crawler to the sites it visits, with a contact route.
     user_agent: str = (
-        "JobFinderBot/0.1 (+https://github.com/jobfinder; Dublin job aggregator)"
+        "SortedPlaceBot/0.1 (+https://sorted-place.vercel.app; Ireland job aggregator)"
     )
 
     # Per-domain politeness delay in seconds.
@@ -192,7 +192,7 @@ class Settings(BaseSettings):
     smtp_password: str = ""
     smtp_from: str = ""
     # Where links in an email point: the live site, not wherever the sender runs.
-    site_url: str = "https://dublin-job-finder.vercel.app"
+    site_url: str = "https://sorted-place.vercel.app"
 
     @field_validator("supabase_url")
     @classmethod

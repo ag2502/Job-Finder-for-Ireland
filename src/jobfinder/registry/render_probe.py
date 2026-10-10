@@ -47,7 +47,7 @@ COMMIT_EVERY = 25
 
 BROWSER_UA = (
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36 JobFinderBot/0.1"
+    "(KHTML, like Gecko) Chrome/126.0 Safari/537.36 SortedPlaceBot/0.1"
 )
 
 

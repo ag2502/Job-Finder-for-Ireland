@@ -119,7 +119,7 @@ if PUBLIC_DEPLOYMENT and settings.session_secret == "dev-only-change-me":
         "project's environment variables before deploying."
     )
 
-app = FastAPI(title="Ireland Job Finder", lifespan=lifespan)
+app = FastAPI(title="Sorted Place", lifespan=lifespan)
 
 # Everything a signed-out visitor may still reach. Privacy is on the list deliberately:
 # someone has to be able to read what an account will store about them *before* being

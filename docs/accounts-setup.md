@@ -12,7 +12,7 @@ Budget about 20 minutes.
 
 1. Go to **https://supabase.com** and sign in with GitHub.
 2. **New project**. Fill in:
-   - **Name** — `dublin-job-finder` (anything; it is only a label).
+   - **Name** — `sorted-place` (anything; it is only a label).
    - **Database password** — click Generate, then **save it in your password manager**.
      You will not need it for this setup, but it is the only way to reach the database
      directly later and Supabase will not show it again.
@@ -65,7 +65,7 @@ real users — they will silently stop receiving confirmation emails. Options:
   **Project Settings → Authentication → SMTP Settings**. Resend, Postmark and Brevo all
   have free tiers that are plenty for this.
 
-While you are in Authentication, set **Site URL** to `https://dublin-job-finder.vercel.app`
+While you are in Authentication, set **Site URL** to `https://sorted-place.vercel.app`
 under **URL Configuration**, so confirmation links come back to your site rather than
 `localhost`.
 
@@ -101,7 +101,7 @@ is what step 2 did. Run `schema.sql` before this key goes anywhere.
 
 ## Step 5 — Give them to Vercel
 
-1. **https://vercel.com** → your `dublin-job-finder` project → **Settings** →
+1. **https://vercel.com** → your `sorted-place` project → **Settings** →
    **Environment Variables**.
 2. Add two, both ticked for **Production**, **Preview** and **Development**:
 
@@ -196,7 +196,7 @@ are enabled), so until this step is done the page simply shows the email form.
    *Testing*, only the test users you list can sign in; everyone else gets an error.
 3. **APIs & Services > Credentials > Create credentials > OAuth client ID.**
    Application type **Web application**.
-   - **Authorized JavaScript origins:** `https://dublin-job-finder.vercel.app`
+   - **Authorized JavaScript origins:** `https://sorted-place.vercel.app`
    - **Authorized redirect URIs:** `https://<your-ref>.supabase.co/auth/v1/callback`
      (Supabase shows this exact address on its Google provider page; copy it from there.)
 4. Copy the **Client ID** and **Client secret**.
@@ -206,7 +206,7 @@ are enabled), so until this step is done the page simply shows the email form.
 5. **Authentication > Sign In / Providers > Google.** Enable it, paste the Client ID
    and Client secret, save.
 6. **Authentication > URL Configuration > Redirect URLs.** Add
-   `https://dublin-job-finder.vercel.app/auth/callback`. For local testing also add
+   `https://sorted-place.vercel.app/auth/callback`. For local testing also add
    `http://127.0.0.1:8000/auth/callback`. (If this is missed, Supabase sends people to
    the Site URL instead; the home page notices the code and finishes the sign-in anyway,
    but the allow-list entry is the proper route.)
@@ -237,7 +237,7 @@ Or wait up to two hours for `crawl.yml`, which deploys at the end of every run.
 
 ## Step 8 — Check it
 
-1. Open https://dublin-job-finder.vercel.app — **Sign in** should now be in the header.
+1. Open https://sorted-place.vercel.app — **Sign in** should now be in the header.
    If it is not, the environment variables did not reach the deployment: re-check the
    `JOBFINDER_` prefix and that you redeployed after adding them.
 2. Create an account.
@@ -276,3 +276,25 @@ The privacy page has a `TODO`. GDPR gives people the right to erase the **accoun
 itself**, not only the application rows in it, and that needs a contact route someone
 can actually use. This site has no contact address anywhere, so the page deliberately
 does not promise one. Add an address, then say so in that paragraph.
+
+---
+
+## Moving to the Sorted Place name (2026-10-10)
+
+The site, its links and the repository are all **Sorted Place** now. The code points at
+`https://sorted-place.vercel.app` and `github.com/ag2502/sorted-place`; these dashboard
+steps make those addresses real. Each keeps the old address working, so nothing breaks
+in between.
+
+1. **GitHub** → the `Job-Finder-for-Ireland` repo → **Settings** → **Repository name**:
+   `sorted-place` → **Rename**. GitHub forwards the old name, pushes included. Then
+   locally: `git remote set-url origin git@github.com:ag2502/sorted-place.git`.
+2. **Vercel** → the `dublin-job-finder` project → **Settings** → **General** →
+   **Project Name**: `sorted-place`. Then **Settings** → **Domains** → **Add**
+   `sorted-place.vercel.app`, and set the old `dublin-job-finder.vercel.app` to
+   **Redirect to** it (308), so old links and bookmarks arrive.
+3. **Supabase** → **Authentication** → **URL Configuration**: **Site URL**
+   `https://sorted-place.vercel.app`, and add `https://sorted-place.vercel.app/**` to
+   **Redirect URLs** (keep the old entry until the redirect is in place).
+4. **Google Cloud** → the OAuth client: add `https://sorted-place.vercel.app` to
+   **Authorized JavaScript origins**. The redirect URI is Supabase's own, so it stays.

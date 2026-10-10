@@ -1,4 +1,6 @@
-# Job Finder: Ireland
+# Sorted Place
+
+Live at https://sorted-place.vercel.app.
 
 A job portal for Ireland. Upload a CV, choose the fields you want to work in,
 and get every currently-active relevant opening — sourced from employers' own careers
