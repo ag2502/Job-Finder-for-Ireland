@@ -282,13 +282,13 @@ does not promise one. Add an address, then say so in that paragraph.
 ## Moving to the Sorted Place name (2026-10-10)
 
 The site, its links and the repository are all **Sorted Place** now. The code points at
-`https://sorted-place.vercel.app` and `github.com/ag2502/sorted-place`; these dashboard
+`https://sorted-place.vercel.app` and `github.com/ag2502/Sorted-Place`; these dashboard
 steps make those addresses real. Each keeps the old address working, so nothing breaks
 in between.
 
-1. **GitHub** → the `Job-Finder-for-Ireland` repo → **Settings** → **Repository name**:
-   `sorted-place` → **Rename**. GitHub forwards the old name, pushes included. Then
-   locally: `git remote set-url origin git@github.com:ag2502/sorted-place.git`.
+1. **GitHub** (done 2026-10-10): the repo is now `ag2502/Sorted-Place`, and GitHub
+   forwards the old `Job-Finder-for-Ireland` name. The local remote is
+   `git@github.com:ag2502/Sorted-Place.git`.
 2. **Vercel** → the `dublin-job-finder` project → **Settings** → **General** →
    **Project Name**: `sorted-place`. Then **Settings** → **Domains** → **Add**
    `sorted-place.vercel.app`, and set the old `dublin-job-finder.vercel.app` to
