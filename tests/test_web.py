@@ -1119,6 +1119,26 @@ def test_states_a_salary_keeps_only_adverts_that_give_one(client):
     assert "paid=1" in paid.headers["HX-Push-Url"]
 
 
+def test_the_salary_picker_keeps_pay_that_reaches_the_floor(client):
+    from jobfinder.normalize.facts import DAY, HOUR, Salary
+
+    # An hourly wage and a day rate are compared on the same yearly scale.
+    assert Salary(55_000, 75_000).yearly_high == 75_000
+    assert Salary(400, 500, DAY).yearly_high == 115_000
+    assert Salary(15, 18, HOUR).yearly_high == 35_100
+
+    floor = client.post("/search", data={"chosen_fields": ["software-engineering"], "pay": "50"},
+                        headers={"HX-Request": "true"})
+    assert floor.status_code == 200 and "pay=50" in floor.headers["HX-Push-Url"]
+    rows = re.findall(r'<article class="record.*?</article>', floor.text, re.S)
+    assert all("chip--pay" in row for row in rows)
+    assert '<option value="50" selected>' in floor.text
+    # A floor nobody offers is ignored rather than emptying the list.
+    bogus = client.post("/search", data={"chosen_fields": ["software-engineering"], "pay": "45"},
+                        headers={"HX-Request": "true"})
+    assert "pay=" not in bogus.headers["HX-Push-Url"]
+
+
 def test_the_job_panel_says_when_pay_is_not_stated(client):
     from jobfinder.normalize.facts import salary
 

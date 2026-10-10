@@ -3,9 +3,21 @@
 {# `rerun_base` and `rerun_include`, what every control here re-submits, are set in
    web/app.py (RERUN_BASE), since Show more in _result_rows.html sends them too. #}
 {% from "_macros.html" import logo, titlebar, mascot %}
-{% set filtered = facet or company or mode or paid or within or via or where %}
+{% set filtered = facet or company or mode or paid or pay or within or via or where %}
 {% set via_label = (platforms|selectattr("key", "equalto", via)|map(attribute="label")|first) if via else "" %}
 {% set where_label = (places|selectattr("key", "equalto", where)|map(attribute="label")|first) if where else "" %}
+{# What the filter bar has narrowed to, in words: "Backend at Stripe, hybrid, €50k+ salary".
+   Said twice, above the list and in the bar that stays, so it is built once here. The
+   first part keeps its capital and the generic ones after it go lower case; names never do. #}
+{% set fparts = [] %}
+{% if facet or company %}{% set _ = fparts.append(facet_label ~ (" at " if facet and company else "") ~ (company or "")) %}{% endif %}
+{% if mode %}{% set _ = fparts.append(work_modes[mode]|lower if fparts else work_modes[mode]) %}{% endif %}
+{% if pay %}{% set _ = fparts.append(pay_choices[pay] ~ " salary") %}
+{% elif paid %}{% set _ = fparts.append("salary stated" if fparts else "Salary stated") %}{% endif %}
+{% if within %}{% set _ = fparts.append(within_choices[within]|lower if fparts else within_choices[within]) %}{% endif %}
+{% if via %}{% set _ = fparts.append("via " ~ via_label) %}{% endif %}
+{% if where %}{% set _ = fparts.append("in " ~ where_label) %}{% endif %}
+{% set filter_words = fparts|join(", ") %}
 {# Either early-career switch replaces the experience filter rather than adding to it. #}
 {% set early_only = internships_only or graduate_only %}
 {% set pt = "part-time " if part_time_only else "" %}
@@ -55,7 +67,7 @@
 
   <p class="rsummary">
     {% if filtered %}
-      <strong>{{ facet_label }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</strong>,
+      <strong>{{ filter_words }}</strong>,
       from {{ "{:,}".format(total_search|default(total_all)) }} in all
       <button class="linkish" type="button"
               hx-post="/search" hx-include="{{ rerun_base }}" hx-target="#results"
@@ -98,11 +110,11 @@
 {# The bar that stays: how many, the order, and a way back to the filters from anywhere
    down the list. It sticks under the menu bar for as long as the results are on screen.
    Sort lives here rather than in the filter bar, so it is one tap away at any depth. #}
-{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if within else 0) + (1 if via else 0) + (1 if where else 0) %}
+{% set active = (1 if facet else 0) + (1 if company else 0) + (1 if mode else 0) + (1 if paid else 0) + (1 if pay else 0) + (1 if within else 0) + (1 if via else 0) + (1 if where else 0) %}
 <div class="rstick">
   <p class="rstick__count">
     <b data-roll>{{ "{:,}".format(total) }}</b> job{{ "" if total == 1 else "s" }}
-    {%- if filtered %}<span class="rstick__on">, {{ facet_label }}{% if facet and company %} at {% endif %}{{ company or "" }}{% if mode %}{% if facet or company %}, {% endif %}{{ work_modes[mode]|lower if facet or company else work_modes[mode] }}{% endif %}{% if paid %}{% if facet or company or mode %}, {% endif %}{{ "salary stated" if facet or company or mode else "Salary stated" }}{% endif %}{% if within %}{% if facet or company or mode or paid %}, {% endif %}{{ within_choices[within]|lower if facet or company or mode or paid else within_choices[within] }}{% endif %}{% if via %}{% if facet or company or mode or paid or within %}, {% endif %}via {{ via_label }}{% endif %}{% if where %}{% if facet or company or mode or paid or within or via %}, {% endif %}in {{ where_label }}{% endif %}</span>{% endif %}
+    {%- if filtered %}<span class="rstick__on">, {{ filter_words }}</span>{% endif %}
   </p>
   <label class="pick rstick__sort">
     <span class="rstick__sortlabel">Sort</span>
@@ -246,6 +258,15 @@
         </select>
       </label>
       {% endif %}
+      <label class="pick">
+        <span>Salary</span>
+        <select name="pay">
+          <option value="">Any</option>
+          {% for floor, label in pay_choices.items() %}
+          <option value="{{ floor }}" {% if pay == floor %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
       <label class="switch switch--sm rbar__paid">
         <input type="checkbox" name="paid" value="1" {% if paid %}checked{% endif %}>
         <span class="box"><svg aria-hidden="true"><use href="#i-check"/></svg></span>

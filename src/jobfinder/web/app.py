@@ -252,7 +252,7 @@ RERUN_BASE = (
 # starts unfiltered, since the form does not include it.
 RERUN_INCLUDE = RERUN_BASE + (
     ", #results input[name=facet], #results input[name=company], #results select[name=mode],"
-    " #results input[name=paid], #results select[name=within], #results input[name=new_only],"
+    " #results input[name=paid], #results select[name=pay], #results select[name=within], #results input[name=new_only],"
     " #results select[name=via], #results select[name=where]"
 )
 templates.env.globals.update(rerun_base=RERUN_BASE, rerun_include=RERUN_INCLUDE)
@@ -869,7 +869,7 @@ URL_KEYS = {
     "f": "chosen_fields", "y": "years", "q": "q", "remote": "include_remote",
     "intern": "internships_only", "grad": "graduate_only", "pt": "part_time_only", "sort": "sort",
     "cv": "use_cv", "applied": "show_applied", "field": "facet", "co": "company",
-    "view": "view", "mode": "mode", "paid": "paid", "within": "within", "via": "via",
+    "view": "view", "mode": "mode", "paid": "paid", "pay": "pay", "within": "within", "via": "via",
     "where": "where",
 }
 
@@ -902,6 +902,8 @@ def _search_url(profile: dict, context: dict) -> str:
         pairs.append(("mode", context["mode"]))
     if context.get("paid"):
         pairs.append(("paid", "1"))
+    if context.get("pay"):
+        pairs.append(("pay", str(context["pay"])))
     if context.get("within"):
         pairs.append(("within", str(context["within"])))
     if context.get("via"):
@@ -971,6 +973,7 @@ async def search(
     view: str | None = Form(default=None),
     mode: str | None = Form(default=None),
     paid: str | None = Form(default=None),
+    pay: str | None = Form(default=None),
     within: str | None = Form(default=None),
     new_only: str | None = Form(default=None),
     via: str | None = Form(default=None),
@@ -982,7 +985,7 @@ async def search(
         "internships_only": internships_only, "graduate_only": graduate_only,
         "part_time_only": part_time_only, "years": years, "q": q, "sort": sort, "show_applied": show_applied,
         "use_cv": use_cv, "facet": facet, "company": company, "view": view,
-        "mode": mode, "paid": paid, "within": within, "new_only": new_only,
+        "mode": mode, "paid": paid, "pay": pay, "within": within, "new_only": new_only,
         "via": via, "where": where,
     }
     return _search(request, form, page=page, more=bool(more))
@@ -1156,6 +1159,7 @@ def _search(request: Request, form: dict, *, page: int = 1, more: bool = False):
             view=form.get("view"),
             mode=form.get("mode") or None,
             paid=bool(form.get("paid")),
+            pay=form.get("pay"),
             within=form.get("within"),
             since=last_visit,
             new_only=bool(form.get("new_only")),
@@ -1634,6 +1638,8 @@ def _visit_label(when: datetime, now: datetime | None = None) -> str:
     return "on " + local.strftime("%-d %B")
 
 
+# The filter bar's Salary picker: the least a year's pay should reach, in thousands.
+PAY_FLOORS = {30: "€30k+", 40: "€40k+", 50: "€50k+", 60: "€60k+", 80: "€80k+", 100: "€100k+"}
 # How recently a job was posted, for the filter bar's Posted picker: days, and its name.
 WITHIN = {1: "Last 24 hours", 3: "Last 3 days", 7: "Last week", 30: "Last month"}
 # From this long open, a row says so. A quarter of Dublin's adverts have been up three
@@ -1688,6 +1694,7 @@ def _search_results(
     view: str | None = None,
     mode: str | None = None,
     paid: bool = False,
+    pay: str | int | None = None,
     within: str | int | None = None,
     since: datetime | None = None,
     new_only: bool = False,
@@ -1919,6 +1926,16 @@ def _search_results(
             items = [i for i in items if i["mode"] and i["mode"].kind == mode]
         if paid:
             items = [i for i in items if i["salary"]]
+        try:
+            pay = int(pay) if pay else None
+        except (TypeError, ValueError):
+            pay = None
+        pay = pay if pay in PAY_FLOORS else None
+        if pay:
+            # The top of the stated range has to reach the floor: a role paying up to
+            # €55k is one a €50k+ searcher wants to see. An advert that states no pay is
+            # left out, like every other narrowing on what adverts say.
+            items = [i for i in items if i["salary"] and i["salary"].yearly_high >= pay * 1000]
         if new_only:
             items = [i for i in items if i["is_new"]]
         # The Platform picker counts within everything else the bar has narrowed to.
@@ -2087,6 +2104,8 @@ def _search_results(
         "company": company,
         "mode": mode,
         "paid": paid,
+        "pay": pay,
+        "pay_choices": PAY_FLOORS,
         "within": within,
         "within_choices": WITHIN,
         "via": via,

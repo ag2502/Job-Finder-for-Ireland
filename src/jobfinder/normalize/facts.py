@@ -161,6 +161,17 @@ class Salary:
     def chip(self) -> str:
         return self.text(short=True)
 
+    @property
+    def yearly_high(self) -> int:
+        """The top of the range as a full-time year, for the filter bar's Salary picker.
+
+        An hour is counted as 1,950 a year (37.5 a week) and a day as 230 (a working
+        year less annual leave and bank holidays), so a day rate and an hourly wage sit
+        on the same scale as an annual salary. Only the comparison uses this; the advert's
+        own figure is what any page shows.
+        """
+        return round(self.high * {YEAR: 1, DAY: 230, HOUR: 1950}[self.period])
+
 
 def _euros(number: str, thousands: str | None) -> float:
     if re.fullmatch(r"\d{1,3}(?:[.,  ]\d{3})+(?:[.,]\d{2})?", number):
