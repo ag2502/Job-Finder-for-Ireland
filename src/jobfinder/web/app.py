@@ -2167,11 +2167,35 @@ def _squash(text: str) -> str:
     return re.sub(r"[^0-9a-z]", "", text.lower())
 
 
+# A word this short is found only where a word starts. Anywhere inside one, "ey" was
+# in Penneys, Survey and Attorney long before it reached EY, and "hr" in Christmas.
+SHORT_WORD = 3
+
+
+def _is_short(word: str) -> bool:
+    """Whether a word searched for must start a word: short, and not ".net" or "c#"."""
+    return len(_squash(word)) <= SHORT_WORD and word[:1].isalnum()
+
+
 def _names_company(query: str, name: str) -> bool:
     """Whether every word searched for is in this employer's name, punctuation aside."""
     squashed = _squash(name)
-    words = [_squash(w) for w in _query_words(query)]
-    return bool(squashed) and any(words) and all(w in squashed for w in words)
+    starts = [_squash(part) for part in re.split(r"[^0-9A-Za-z]+", name)]
+    words = [w for w in _query_words(query) if _squash(w)]
+
+    def found(word: str) -> bool:
+        if _is_short(word):
+            return squashed.startswith(_squash(word)) or any(s.startswith(_squash(word)) for s in starts)
+        return _squash(word) in squashed
+
+    return bool(squashed) and bool(words) and all(found(w) for w in words)
+
+
+def _word_start(column, word: str):
+    """The column has a word beginning with `word`: "ey" in "EY Ireland", not "Penneys"."""
+    escaped = re.sub(r"([\\%_])", r"\\\1", word)
+    return or_(*(column.ilike(f"{lead}{escaped}%", escape="\\")
+                 for lead in ("", "% ", "%-", "%/", "%(", "%.", "%,", "%&")))
 
 
 def _query_clause(query: str):
@@ -2181,19 +2205,26 @@ def _query_clause(query: str):
     Engineer", "software engineer" also finds "Software Test Engineer", and "google
     engineer" finds Google's engineering roles. Company names are also compared with
     their punctuation gone (see NAME_PUNCTUATION), in SQL so the database still does
-    the narrowing. The LIKE wildcards are escaped: "100%" means a percent sign.
+    the narrowing. A word of SHORT_WORD letters or fewer has to start a word, so "ey"
+    finds EY and "hr" finds HR roles. The LIKE wildcards are escaped: "100%" means a
+    percent sign.
     """
     squashed_name = func.lower(Company.name)
     for mark in NAME_PUNCTUATION:
         squashed_name = func.replace(squashed_name, mark, "")
     clauses = []
     for word in _query_words(query) or query.split():
-        pattern = "%" + re.sub(r"([\\%_])", r"\\\1", word) + "%"
-        in_name = Company.name.ilike(pattern, escape="\\")
-        if _squash(word):
-            in_name = or_(in_name, squashed_name.like(f"%{_squash(word)}%"))
+        if _is_short(word):
+            in_title = _word_start(JobPosting.title, word)
+            in_name = or_(_word_start(Company.name, word), squashed_name.like(f"{_squash(word)}%"))
+        else:
+            pattern = "%" + re.sub(r"([\\%_])", r"\\\1", word) + "%"
+            in_title = JobPosting.title.ilike(pattern, escape="\\")
+            in_name = Company.name.ilike(pattern, escape="\\")
+            if _squash(word):
+                in_name = or_(in_name, squashed_name.like(f"%{_squash(word)}%"))
         clauses.append(or_(
-            JobPosting.title.ilike(pattern, escape="\\"),
+            in_title,
             JobPosting.company_id.in_(select(Company.id).where(in_name)),
         ))
     return and_(*clauses)

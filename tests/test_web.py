@@ -1463,17 +1463,25 @@ def employer_jobs(monkeypatch):
             ("McDonald's Ireland", "Crew Member"),
             ("Johnson & Johnson", "Process Engineer"),
             ("Coca-Cola HBC Ireland", "Sales Representative"),
+            ("EY Ireland", "Tax Consultant"),
+            ("Penneys", "Retail Assistant"),
+            ("Acme", "Survey Analyst"),
+            ("Acme", "HR Business Partner"),
+            ("Acme", "Christmas Sales Assistant"),
         ]
+        sources = {}
         for index, (name, title) in enumerate(roles):
-            company = Company(name=name, normalized_name=name.lower(),
-                              coverage_state=CoverageState.UNRESOLVED)
-            session.add(company)
-            session.flush()
-            source = Source(company_id=company.id, adapter="greenhouse", slug=f"s{index}", tier=1)
-            session.add(source)
-            session.flush()
+            if name not in sources:
+                company = Company(name=name, normalized_name=name.lower(),
+                                  coverage_state=CoverageState.UNRESOLVED)
+                session.add(company)
+                session.flush()
+                sources[name] = Source(company_id=company.id, adapter="greenhouse", slug=f"s{index}", tier=1)
+                session.add(sources[name])
+                session.flush()
+            source = sources[name]
             session.add(JobPosting(
-                company_id=company.id, source_id=source.id, source_job_id=str(index),
+                company_id=source.company_id, source_id=source.id, source_job_id=str(index),
                 dedup_key=f"e{index}", title=title, url=f"https://jobs.example/{index}",
                 location_raw="Dublin, Ireland", is_dublin=True, is_ireland=True, region="Dublin",
                 is_remote=False, is_part_time=False, needs_location_review=False,
@@ -1500,3 +1508,12 @@ def test_a_company_is_found_whatever_its_punctuation(employer_jobs):
 
 def test_a_companys_own_jobs_come_before_ones_that_mention_it(employer_jobs):
     assert employer_jobs("mcdonald's") == ["Crew Member", "McDonald's Account Manager"]
+
+
+def test_a_short_word_is_found_only_where_a_word_starts(employer_jobs):
+    """"ey" is EY, not Penneys or a Survey; "hr" is HR, not Christmas."""
+    assert employer_jobs("ey") == ["Tax Consultant"]
+    assert employer_jobs("EY") == ["Tax Consultant"]
+    assert employer_jobs("hr") == ["HR Business Partner"]
+    assert "Survey Analyst" in employer_jobs("survey")
+    assert "Retail Assistant" in employer_jobs("penneys")
