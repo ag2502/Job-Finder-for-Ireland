@@ -58,6 +58,7 @@ def load_adapters() -> None:
         rezoomo,
         rippling,
         smartrecruiters,
+        sociallyrecruited,
         successfactors,
         talentbrew,
         taleo_tbe,
