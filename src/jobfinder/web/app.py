@@ -3287,9 +3287,9 @@ def part_time(request: Request):
         top=[e for e in employers if e["domain"]][:14],
         picked=picked,
         picked_company=next((e for e in employers if e["id"] == picked["company"]), None),
-        # Christmas hiring is news from October to December, and only said when there is
-        # some: the note is a live count like everything else on the desk.
-        season_note=datetime.now(DUBLIN).month >= 10 and when_counts["seasonal"] > 0,
+        # Said whenever there is seasonal work open, whichever festival it is for: the
+        # note is a live count like everything else on the desk, and names no season.
+        season_note=when_counts["seasonal"] > 0,
         part_time_data=data,
     )
     return templates.TemplateResponse(request, "part_time.html", context)

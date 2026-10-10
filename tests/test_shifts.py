@@ -54,6 +54,8 @@ def test_ignores_mentions_that_are_not_the_hours(text: str) -> None:
         ("Christmas Sales Assistant, Omni", {"seasonal"}),
         ("8hr Stylist (seasonal)", {"seasonal"}),
         ("Seasonal Sales Associate, Tommy Hilfiger Limerick", {"seasonal"}),
+        ("Easter Egg Hunt Assistant", {"seasonal"}),
+        ("Halloween Store Team Member", {"seasonal"}),
         # A childcare title, not a shift.
         ("Early Years Educator", set()),
         ("Deli Assistant (Part-Time)", set()),

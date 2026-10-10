@@ -35,7 +35,7 @@ WHEN_LABELS = {
     "evenings": "Evenings",
     "nights": "Nights",
     "weekends": "Weekends",
-    "seasonal": "Christmas & seasonal",
+    "seasonal": "Seasonal",
 }
 
 # How far into an advert to read. The terms come first; further down, a long advert
@@ -91,15 +91,17 @@ _TITLE_NIGHTS = re.compile(r"\bnights?\b|\bovernight\b|\bsleep[\s-]?overs?\b", r
 
 # Seasonal work is said in the title ("Christmas Sales Assistant", "Seasonal Team
 # Member") or as the contract ("a seasonal contract until January").
+# Every festival reads as "seasonal" on the page, so nothing there names one.
 _SEASONAL_TITLE = re.compile(
-    r"\bchristmas\b|\bxmas\b|\bseasonal\b|\bfestive\b|\bsummer\s+(?:staff|team|camp|"
+    r"\bchristmas\b|\bxmas\b|\bseasonal\b|\bfestive\b|\beaster\b|\bhalloween\b|"
+    r"\bblack\s+friday\b|\bsummer\s+(?:staff|team|camp|"
     r"season|job|work|assistant|associate|crew|position|role|student)",
     re.I,
 )
 _SEASONAL_TEXT = re.compile(
     r"\bseasonal\s+(?:role|contract|position|post|vacanc(?:y|ies)|team|staff|work|"
     r"opportunit(?:y|ies)|associates?|colleagues?|hires?|recruitment|temp)"
-    r"|\b(?:christmas|festive)\s+(?:period|season|temp|contract|role|position|team|staff|"
+    r"|\b(?:christmas|festive|easter|halloween)\s+(?:period|season|temp|contract|role|position|team|staff|"
     r"temporary|peak|trading)"
     r"|\btemporary\s+(?:christmas|seasonal|summer)\b",
     re.I,

@@ -108,7 +108,7 @@
       <div class="pt-week__foot">
         <label class="wk__tog wk__tog--season">
           <input type="checkbox" name="when" value="seasonal" form="pt" id="season-toggle" {% if 'seasonal' in on %}checked{% endif %}>
-          <span><i class="wk__box" aria-hidden="true"><svg><use href="#i-check"/></svg></i>Christmas &amp; seasonal <em data-when-n="seasonal">{{ when_counts.seasonal }}</em></span>
+          <span><i class="wk__box" aria-hidden="true"><svg><use href="#i-check"/></svg></i>Seasonal <em data-when-n="seasonal">{{ when_counts.seasonal }}</em></span>
         </label>
         <label class="switch pt-week__unstated">
           <input type="checkbox" name="unstated" value="1" form="pt" {% if picked.unstated %}checked{% endif %}>
@@ -122,7 +122,7 @@
     </div>
     {% if season_note %}
     <label class="note pt-season" for="season-toggle" aria-hidden="true">
-      Christmas jobs are in: {{ when_counts.seasonal }} so far
+      Seasonal jobs are in: {{ when_counts.seasonal }} so far
     </label>
     {% endif %}
   </section>
@@ -233,7 +233,7 @@
 
 <section class="pt-close wrap">
   <h2 class="reveal">Not the right week for it?</h2>
-  <p class="lede">Part-time jobs open and fill fast, shops before Christmas most of all.
+  <p class="lede">Part-time jobs open and fill fast, seasonal ones most of all.
     {% if accounts_enabled %}Switch on <b>New part-time jobs</b> in your email alerts and we'll send you the new ones as they open.{% else %}This list is read again from every employer several times a day.{% endif %}</p>
   <div class="row" style="justify-content:center;gap:12px">
     {% if accounts_enabled %}
@@ -721,7 +721,7 @@
     } else {
       var hits = JOBS.filter(function (j) { return fits(j, { when: s.when, unstated: false, kinds: [], county: '', co: null, q: '' }); }).length;
       read.innerHTML = '<b>' + fmt(hits) + '</b> ' + (hits === 1 ? 'advert mentions ' : 'adverts mention ') +
-        (times.length ? listOf(times.map(function (w) { return data.whenLabels[w].toLowerCase(); }), 'or') : 'Christmas or seasonal work') +
+        (times.length ? listOf(times.map(function (w) { return data.whenLabels[w].toLowerCase(); }), 'or') : 'seasonal work') +
         (times.length && s.when.indexOf('seasonal') !== -1 ? ', or seasonal work' : '') + '.' +
         (s.unstated ? ' Adverts that don’t say are in too.' : '');
     }
