@@ -140,9 +140,9 @@ def test_submit_button_starts_disabled(client):
     assert "Search, pick at least one area, or Part-time only" in response.text
 
 
-def test_the_search_bar_sits_above_the_areas(client):
+def test_the_search_bar_sits_below_the_areas_by_the_switches(client):
     page = client.get("/").text
-    assert page.index('id="q"') < page.index('id="roles-heading"')
+    assert page.index('id="roles-heading"') < page.index('id="q"') < page.index('name="include_remote"')
     assert 'id="search-btn"' in page
 
 

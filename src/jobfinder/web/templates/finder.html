@@ -184,22 +184,9 @@
           hx-indicator="#search-loading, #results"
           hx-disabled-elt="#find-btn, #search-btn">
 
-      {# A search on its own, or a narrowing of the areas picked below. Enter runs it. #}
-      <div class="searchbar">
-        <label for="q" class="fieldname">Search jobs</label>
-        <div class="searchbar__box">
-          <svg class="searchbar__icon" width="18" height="18" aria-hidden="true"><use href="#i-search"/></svg>
-          <input type="search" id="q" name="q" enterkeyhint="search" spellcheck="false"
-                 placeholder="Job title or company: nurse, barista, Google&hellip;"
-                 value="{{ profile.query if profile and profile.query else '' }}">
-          <button type="submit" id="search-btn" class="searchbar__go" disabled>Search</button>
-        </div>
-        <p class="small muted searchbar__note">Search by job title or company name, across every job open in Ireland. Pick areas below to put those first.</p>
-      </div>
-
       <div class="slip__head">
         <h2 id="roles-heading">What kind of work are you looking for?</h2>
-        <span class="stamp">or search above</span>
+        <span class="stamp">or search below</span>
         {% if me and me.has_details %}
         {# Saved details are offered, never applied: every visit still starts blank. #}
         <button type="button" class="secondary fillme" id="fill-me"
@@ -245,6 +232,20 @@
             {% endcall %}
           </div>
         </div>
+      </div>
+
+      {# A search on its own, or a narrowing of the areas picked above. Enter runs it. It
+         sits with the switches, by the button, rather than heading the form. #}
+      <div class="searchbar">
+        <label for="q" class="fieldname">Search jobs</label>
+        <div class="searchbar__box">
+          <svg class="searchbar__icon" width="18" height="18" aria-hidden="true"><use href="#i-search"/></svg>
+          <input type="search" id="q" name="q" enterkeyhint="search" spellcheck="false"
+                 placeholder="Job title or company: nurse, barista, Google&hellip;"
+                 value="{{ profile.query if profile and profile.query else '' }}">
+          <button type="submit" id="search-btn" class="searchbar__go" disabled>Search</button>
+        </div>
+        <p class="small muted searchbar__note">Search by job title or company name, across every job open in Ireland. Pick areas above to put those first.</p>
       </div>
 
       <div class="switches">
@@ -622,7 +623,7 @@
   .slipwin{box-shadow:var(--shadow-lift);overflow:visible}
   .slipwin > .win__bar{border-radius:var(--r-win) var(--r-win) 0 0}
   .slip{padding:34px 40px 0}
-  .searchbar{margin:0 0 30px;padding-bottom:30px;border-bottom:1px solid var(--line)}
+  .searchbar{margin:0;padding:28px 0 0}
   .searchbar > .fieldname{display:block;margin-bottom:8px}
   .searchbar__box{position:relative;display:flex;gap:10px;align-items:stretch}
   .searchbar__icon{position:absolute;left:15px;top:50%;transform:translateY(-50%);color:var(--ink-3);pointer-events:none}
