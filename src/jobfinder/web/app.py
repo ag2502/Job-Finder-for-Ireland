@@ -1790,6 +1790,13 @@ def _search_results(
         )
         scored = rank_jobs(rows, candidate, limit=len(rows), only_relevant=not early)
         by_id = {row.id: row for row in rows}
+        # A search for an employer means that employer: its own jobs lead, ahead of
+        # other companies' roles that only mention it ("Amazon Connect Consultant").
+        # Within each band, so the band headings still hold.
+        if query:
+            scored.sort(key=lambda s: (
+                s.tier, not _names_company(query, companies.get(by_id[s.job_id].company_id, ""))
+            ))
 
         cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
 
@@ -2143,21 +2150,51 @@ def _query_phrase(query: str | None) -> str:
     return f"matching \u201c{query}\u201d" if query else "open now"
 
 
+# Joining words a searcher types for "&" or leaves out: "Johnson and Johnson" is
+# "Johnson & Johnson", and "Marks and Spencer" is "Marks & Spencer".
+QUERY_FILLER = {"and", "&", "+"}
+# What a company name loses before it is compared, so "mcdonalds" finds "McDonald's",
+# "cocacola" finds "Coca-Cola" and "bookingcom" finds "Booking.com".
+NAME_PUNCTUATION = (" ", "'", "\u2019", ".", "-", "&", ",", "/", "(", ")", "+")
+
+
+def _query_words(query: str) -> list[str]:
+    return [w for w in query.split() if w.lower() not in QUERY_FILLER]
+
+
+def _squash(text: str) -> str:
+    """Lower case, letters and digits only: "McDonald's Ireland" is "mcdonaldsireland"."""
+    return re.sub(r"[^0-9a-z]", "", text.lower())
+
+
+def _names_company(query: str, name: str) -> bool:
+    """Whether every word searched for is in this employer's name, punctuation aside."""
+    squashed = _squash(name)
+    words = [_squash(w) for w in _query_words(query)]
+    return bool(squashed) and any(words) and all(w in squashed for w in words)
+
+
 def _query_clause(query: str):
     """Every word typed appears in the job's title or its employer's name.
 
     Word by word rather than as one phrase, so "engineer software" finds "Software
     Engineer", "software engineer" also finds "Software Test Engineer", and "google
-    engineer" finds Google's engineering roles. The LIKE wildcards are escaped: "100%" means a percent sign.
+    engineer" finds Google's engineering roles. Company names are also compared with
+    their punctuation gone (see NAME_PUNCTUATION), in SQL so the database still does
+    the narrowing. The LIKE wildcards are escaped: "100%" means a percent sign.
     """
+    squashed_name = func.lower(Company.name)
+    for mark in NAME_PUNCTUATION:
+        squashed_name = func.replace(squashed_name, mark, "")
     clauses = []
-    for word in query.split():
+    for word in _query_words(query) or query.split():
         pattern = "%" + re.sub(r"([\\%_])", r"\\\1", word) + "%"
+        in_name = Company.name.ilike(pattern, escape="\\")
+        if _squash(word):
+            in_name = or_(in_name, squashed_name.like(f"%{_squash(word)}%"))
         clauses.append(or_(
             JobPosting.title.ilike(pattern, escape="\\"),
-            JobPosting.company_id.in_(
-                select(Company.id).where(Company.name.ilike(pattern, escape="\\"))
-            ),
+            JobPosting.company_id.in_(select(Company.id).where(in_name)),
         ))
     return and_(*clauses)
 

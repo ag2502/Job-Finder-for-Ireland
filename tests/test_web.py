@@ -1441,3 +1441,62 @@ def test_a_typed_search_alone_runs_from_the_form_and_from_a_link(client):
     assert response.headers["HX-Push-Url"] == "/?q=engineer"
     page = client.get("/?q=engineer")
     assert page.status_code == 200 and "engineer jobs in Ireland" in page.text
+
+
+@pytest.fixture
+def employer_jobs(monkeypatch):
+    """Employers whose names carry punctuation, and one that only mentions another."""
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import sessionmaker
+
+    import jobfinder.web.app as web
+    from jobfinder.core.models import Base, Company, CoverageState, JobPosting, JobStatus, Source
+
+    engine = create_engine("sqlite://", future=True)
+    Base.metadata.create_all(engine)
+    make = sessionmaker(bind=engine, future=True, expire_on_commit=False)
+    with make() as session:
+        roles = [
+            ("Acme", "McDonald's Account Manager"),
+            ("McDonald's Ireland", "Crew Member"),
+            ("Johnson & Johnson", "Process Engineer"),
+            ("Coca-Cola HBC Ireland", "Sales Representative"),
+        ]
+        for index, (name, title) in enumerate(roles):
+            company = Company(name=name, normalized_name=name.lower(),
+                              coverage_state=CoverageState.UNRESOLVED)
+            session.add(company)
+            session.flush()
+            source = Source(company_id=company.id, adapter="greenhouse", slug=f"s{index}", tier=1)
+            session.add(source)
+            session.flush()
+            session.add(JobPosting(
+                company_id=company.id, source_id=source.id, source_job_id=str(index),
+                dedup_key=f"e{index}", title=title, url=f"https://jobs.example/{index}",
+                location_raw="Dublin, Ireland", is_dublin=True, is_ireland=True, region="Dublin",
+                is_remote=False, is_part_time=False, needs_location_review=False,
+                status=JobStatus.ACTIVE, consecutive_misses=0,
+            ))
+        session.commit()
+
+    @contextmanager
+    def scope():
+        with make() as session:
+            yield session
+
+    monkeypatch.setattr(web, "session_scope", scope)
+    return lambda query: _titles(web._search_results({"fields": []}, query=query))
+
+
+def test_a_company_is_found_whatever_its_punctuation(employer_jobs):
+    assert "Crew Member" in employer_jobs("mcdonalds")
+    assert employer_jobs("johnson and johnson") == ["Process Engineer"]
+    assert employer_jobs("Johnson & Johnson") == ["Process Engineer"]
+    assert employer_jobs("cocacola") == ["Sales Representative"]
+    assert employer_jobs("coca cola") == ["Sales Representative"]
+
+
+def test_a_companys_own_jobs_come_before_ones_that_mention_it(employer_jobs):
+    assert employer_jobs("mcdonald's") == ["Crew Member", "McDonald's Account Manager"]
