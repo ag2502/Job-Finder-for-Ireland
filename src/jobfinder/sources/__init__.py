@@ -36,6 +36,7 @@ def load_adapters() -> None:
         dayforce,
         eightfold,
         greenhouse,
+        healthbox,
         hibob,
         hirehive,
         hrcloud,

@@ -24,6 +24,7 @@ bamboohr,ats,1,public api,open api,{slug}.bamboohr.com/careers/list - common amo
 jazzhr,ats,1,public api,open api,Public board feed per employer
 breezy,ats,1,public api,in use,{slug}.breezy.hr/json; descriptions read from each position page; board names its owner
 peoplefirst,ats,1,public api,in use,MHR People First - {tenant}.jobs.people-first.com JSON API with a tenantcode header (Dublin Simon Community)
+healthbox,ats,1,public,in use,"HealthBox HR (Irish) - app.hbhr.io/jobs-feed/web/company/{id} server-rendered cards; /job-application/ closed by robots and never fetched (Little Harvard)"
 peoplehr,ats,1,not accessible,not accessible,"Access PeopleHR - {slug}.peoplehr.net robots.txt disallows everything (DPD Ireland, Family Carers Ireland, Irish Guide Dogs)"
 eploy,ats,1,not accessible,not accessible,Eploy - Aldi's careers.aldirecruitment.ie sits behind a Cloudflare managed challenge; not bypassed
 tribepad,ats,1,scrape only,scrape only,Tribepad - Tesco's apply.tesco-careers.com lists nothing without a login and its search site refuses non-browsers (HTTP 403)
