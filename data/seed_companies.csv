@@ -535,3 +535,7 @@ Applus+ (NCT),workday,applus:wd3:applus_careers,3,false,part-time-sweep,"Runs th
 Dublin Business School,workday,ghc:wd1:DBS_Career,3,false,part-time-sweep,Graham Holdings' Workday site for DBS; nothing open when added,https://www.dbs.ie/
 Kaplan International Dublin,workday,ghc:wd1:Kaplan_International_Careers,3,false,part-time-sweep,"English school; board read, no Irish roles open when added",https://www.kaplaninternational.com/
 Next Ireland,oracle_recruiting,ekeq.fa.em2.oraclecloud.com|CX_3001,2,false,part-time-sweep,Next stores in Ireland; Oracle Recruiting site filtered to Ireland,https://careers.next.co.uk/
+Schuh,dayforce,schuh|VARIOUSINSTOREPOSITIONS,3,false,part-time-sweep,"Dayforce board VARIOUSINSTOREPOSITIONS; UK and Irish stores, Irish kept by location",https://careers.schuh.co.uk/
+Schuh,dayforce,schuh|STOREMANAGEMENTVACANCIES,3,false,part-time-sweep,"Dayforce board STOREMANAGEMENTVACANCIES; UK and Irish stores, Irish kept by location",https://careers.schuh.co.uk/
+Schuh,dayforce,schuh|KIDSINSTOREVACANCIES,3,false,part-time-sweep,"Dayforce board KIDSINSTOREVACANCIES; UK and Irish stores, Irish kept by location",https://careers.schuh.co.uk/
+Schuh,dayforce,schuh|KIDSMANAGEMENTVACANCIES,3,false,part-time-sweep,"Dayforce board KIDSMANAGEMENTVACANCIES; UK and Irish stores, Irish kept by location",https://careers.schuh.co.uk/
